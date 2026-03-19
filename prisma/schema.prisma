@@ -1,0 +1,837 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// CORE COMMUNITY & USER MODELS
+// ============================================================================
+
+model Community {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  slug         String   @unique
+  domain       String?  @unique
+  description  String?
+  colorPrimary String   @default("#46A8CC")
+  colorAccent  String   @default("#A51E30")
+  logoUrl      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  memberships         UserCommunityMembership[]
+  articles            Article[]
+  events              Event[]
+  stores              Store[]
+  marketplaceListings MarketplaceListing[]
+  helpWantedPosts     HelpWantedPost[]
+  roadmapIdeas       RoadmapIdea[]
+  roadmapBallots     RoadmapRankingBallot[]
+  domainInfluenceWeights DomainInfluenceWeight[]
+  homepageSections    HomepageSection[]
+  categories          Category[]
+  siteSettings        SiteSetting[]
+
+  @@map("communities")
+}
+
+model User {
+  id               String     @id @default(uuid()) @db.Uuid
+  email            String     @unique
+  passwordHash     String?
+  firstName        String
+  lastName         String
+  dateOfBirth      DateTime?
+  profilePhotoUrl  String?
+  bio              String?
+  trustLevel       TrustLevel @default(ANONYMOUS)
+  isIdentityLocked Boolean    @default(false)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  // Relations
+  memberships              UserCommunityMembership[]
+  vouchesGiven             VouchRecord[]             @relation("voucherUser")
+  vouchesReceived          VouchRecord[]             @relation("vouchedUser")
+  articles                 Article[]
+  comments                 Comment[]
+  eventsSubmitted          Event[]
+  marketplaceListings      MarketplaceListing[]
+  helpWantedPosts          HelpWantedPost[]
+  roadmapIdeas             RoadmapIdea[]
+  roadmapRankingBallots    RoadmapRankingBallot[]
+  domainInfluenceWeights   DomainInfluenceWeight[]
+  trustAuditLogsAsActor    TrustAuditLog[]           @relation("actorUser")
+  trustAuditLogsAsTarget   TrustAuditLog[]           @relation("targetUser")
+  bannedEmailsCreated      BannedEmail[]             @relation("bannedByUser")
+  bannedEmailsRemoved      BannedEmail[]             @relation("unbannedByUser")
+  conversationParticipants ConversationParticipant[]
+  messagesSent             Message[]
+  userBlocksInitiated      UserBlock[]               @relation("blockerUser")
+  userBlocksReceived       UserBlock[]               @relation("blockedUser")
+  homepagePinnedItems      HomepagePinnedItem[]
+  loginEvents              LoginEvent[]
+  activityLogs             ActivityLog[]
+  ownedStores              Store[]                   @relation("storeOwner")
+  approvedStores           Store[]                   @relation("storeApprovedBy")
+  storeMemberships         StoreMember[]
+
+  @@map("users")
+}
+
+enum TrustLevel {
+  ANONYMOUS
+  REGISTERED
+  TRUSTED
+  SUSPENDED
+}
+
+// ============================================================================
+// COMMUNITY MEMBERSHIP & TRUST
+// ============================================================================
+
+model UserCommunityMembership {
+  id          String         @id @default(uuid()) @db.Uuid
+  userId      String         @db.Uuid
+  communityId String         @db.Uuid
+  role        MembershipRole @default(READER)
+  joinedAt    DateTime       @default(now())
+
+  // Relations
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, communityId])
+  @@map("user_community_memberships")
+}
+
+enum MembershipRole {
+  READER
+  CONTRIBUTOR
+  STAFF_WRITER
+  EDITOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+model VouchRecord {
+  id            String   @id @default(uuid()) @db.Uuid
+  voucherUserId String   @db.Uuid
+  vouchedUserId String   @db.Uuid
+  createdAt     DateTime @default(now())
+
+  // Relations
+  voucherUser User @relation("voucherUser", fields: [voucherUserId], references: [id], onDelete: Cascade)
+  vouchedUser User @relation("vouchedUser", fields: [vouchedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([voucherUserId, vouchedUserId])
+  @@map("vouch_records")
+}
+
+model TrustAuditLog {
+  id           String      @id @default(uuid()) @db.Uuid
+  actorUserId  String      @db.Uuid
+  targetUserId String      @db.Uuid
+  action       TrustAction
+  reason       String?
+  timestamp    DateTime    @default(now())
+
+  // Relations
+  actorUser  User @relation("actorUser", fields: [actorUserId], references: [id], onDelete: Cascade)
+  targetUser User @relation("targetUser", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@map("trust_audit_logs")
+}
+
+enum TrustAction {
+  TRUST_GRANTED
+  TRUST_REVOKED
+  SUSPENDED
+  REINSTATED
+  BANNED
+  UNBANNED
+  IDENTITY_MODIFIED
+}
+
+model BannedEmail {
+  id               String    @id @default(uuid()) @db.Uuid
+  email            String    @unique
+  bannedByUserId   String    @db.Uuid
+  bannedAt         DateTime  @default(now())
+  unbannedByUserId String?   @db.Uuid
+  unbannedAt       DateTime?
+
+  // Relations
+  bannedByUser   User  @relation("bannedByUser", fields: [bannedByUserId], references: [id], onDelete: Cascade)
+  unbannedByUser User? @relation("unbannedByUser", fields: [unbannedByUserId], references: [id], onDelete: SetNull)
+
+  @@map("banned_emails")
+}
+
+// ============================================================================
+// ARTICLES & CONTENT
+// ============================================================================
+
+model Article {
+  id               String        @id @default(uuid()) @db.Uuid
+  communityId      String        @db.Uuid
+  authorUserId     String        @db.Uuid
+  title            String
+  slug             String
+  excerpt          String?
+  body             String
+  featuredImageUrl String?
+  status           ArticleStatus @default(DRAFT)
+  categoryId       String?       @db.Uuid
+  publishedAt      DateTime?
+  isFeatured       Boolean       @default(false)
+  featuredOrder    Int?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  // Relations
+  community Community    @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  author    User         @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  category  Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags      ArticleTag[]
+  comments  Comment[]
+
+  @@unique([communityId, slug])
+  @@index([communityId])
+  @@index([authorUserId])
+  @@index([categoryId])
+  @@index([status])
+  @@map("articles")
+}
+
+enum ArticleStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  UNPUBLISHED
+}
+
+model Tag {
+  id   String @id @default(uuid()) @db.Uuid
+  name String @unique
+  slug String @unique
+
+  // Relations
+  articles ArticleTag[]
+
+  @@map("tags")
+}
+
+model ArticleTag {
+  articleId String @db.Uuid
+  tagId     String @db.Uuid
+
+  // Relations
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, tagId])
+  @@map("article_tags")
+}
+
+model Category {
+  id               String  @id @default(uuid()) @db.Uuid
+  communityId      String? @db.Uuid
+  name             String
+  slug             String
+  parentCategoryId String? @db.Uuid
+  sortOrder        Int     @default(0)
+  isArchived       Boolean @default(false)
+
+  // Relations
+  community       Community? @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  parentCategory  Category?  @relation("categoryHierarchy", fields: [parentCategoryId], references: [id], onDelete: Cascade)
+  childCategories Category[] @relation("categoryHierarchy")
+  articles        Article[]
+
+  @@index([communityId])
+  @@index([parentCategoryId])
+  @@map("categories")
+}
+
+model Comment {
+  id              String        @id @default(uuid()) @db.Uuid
+  articleId       String        @db.Uuid
+  authorUserId    String        @db.Uuid
+  parentCommentId String?       @db.Uuid
+  body            String
+  status          CommentStatus @default(APPROVED)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  article       Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  author        User      @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  parentComment Comment?  @relation("commentHierarchy", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  childComments Comment[] @relation("commentHierarchy")
+
+  @@index([articleId])
+  @@index([authorUserId])
+  @@index([parentCommentId])
+  @@map("comments")
+}
+
+enum CommentStatus {
+  APPROVED
+  PENDING
+  HIDDEN
+}
+
+// ============================================================================
+// EVENTS
+// ============================================================================
+
+model Event {
+  id                String      @id @default(uuid()) @db.Uuid
+  communityId       String      @db.Uuid
+  submittedByUserId String      @db.Uuid
+  title             String
+  description       String?
+  locationText      String?
+  startDatetime     DateTime
+  endDatetime       DateTime?
+  costText          String?
+  contactInfo       String?
+  isRecurring       Boolean     @default(false)
+  recurrenceRule    String?
+  photoUrl          String?
+  status            EventStatus @default(PENDING_REVIEW)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  // Relations
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  submittedBy User      @relation(fields: [submittedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([communityId])
+  @@index([submittedByUserId])
+  @@index([status])
+  @@map("events")
+}
+
+enum EventStatus {
+  PENDING_REVIEW
+  PUBLISHED
+  UNPUBLISHED
+}
+
+// ============================================================================
+// HELP WANTED
+// ============================================================================
+
+model HelpWantedPost {
+  id               String                      @id @default(uuid()) @db.Uuid
+  communityId      String                      @db.Uuid
+  authorUserId     String                      @db.Uuid
+  title            String
+  description      String
+  postingType      HelpWantedPostingType
+  compensationType HelpWantedCompensationType?
+  compensationText String?
+  locationText     String?
+  scheduleText     String?
+  photoUrl         String?
+  status           HelpWantedStatus            @default(PENDING_REVIEW)
+  publishedAt      DateTime?
+  filledAt         DateTime?
+  closedAt         DateTime?
+  expiresAt        DateTime?
+  createdAt        DateTime                    @default(now())
+  updatedAt        DateTime                    @updatedAt
+
+  // Relations
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  author    User      @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+
+  @@index([communityId])
+  @@index([authorUserId])
+  @@index([postingType])
+  @@index([status])
+  @@map("help_wanted_posts")
+}
+
+enum HelpWantedPostingType {
+  EMPLOYMENT
+  SERVICE_REQUEST
+  GIG_TASK
+}
+
+enum HelpWantedCompensationType {
+  HOURLY
+  SALARY
+  FIXED
+  NEGOTIABLE
+  VOLUNTEER
+  UNSPECIFIED
+}
+
+enum HelpWantedStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  FILLED
+  CLOSED
+  REJECTED
+}
+
+// ============================================================================
+// COMMUNITY ROADMAP / FEATURE PRIORITIZATION
+// ============================================================================
+
+model RoadmapIdea {
+  id               String            @id @default(uuid()) @db.Uuid
+  communityId      String            @db.Uuid
+  authorUserId     String            @db.Uuid
+  mergedIntoIdeaId String?           @db.Uuid
+  title            String
+  summary          String
+  description      String
+  status           RoadmapIdeaStatus @default(SUBMITTED)
+  staffNotes       String?
+  publishedAt      DateTime?
+  plannedAt        DateTime?
+  startedAt        DateTime?
+  shippedAt        DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  // Relations
+  community   Community             @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  author      User                  @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  mergedInto  RoadmapIdea?          @relation("roadmapIdeaMerge", fields: [mergedIntoIdeaId], references: [id], onDelete: SetNull)
+  mergedIdeas RoadmapIdea[]         @relation("roadmapIdeaMerge")
+  ballotItems RoadmapRankingItem[]
+
+  @@index([communityId])
+  @@index([authorUserId])
+  @@index([status])
+  @@index([mergedIntoIdeaId])
+  @@map("roadmap_ideas")
+}
+
+enum RoadmapIdeaStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED_FOR_RANKING
+  DECLINED
+  MERGED
+  PLANNED
+  IN_PROGRESS
+  SHIPPED
+}
+
+model RoadmapRankingBallot {
+  id          String   @id @default(uuid()) @db.Uuid
+  communityId String   @db.Uuid
+  userId      String   @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  community Community            @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     RoadmapRankingItem[]
+
+  @@unique([communityId, userId])
+  @@index([communityId])
+  @@index([userId])
+  @@map("roadmap_ranking_ballots")
+}
+
+model RoadmapRankingItem {
+  id        String @id @default(uuid()) @db.Uuid
+  ballotId  String @db.Uuid
+  ideaId    String @db.Uuid
+  rank      Int
+
+  // Relations
+  ballot RoadmapRankingBallot @relation(fields: [ballotId], references: [id], onDelete: Cascade)
+  idea   RoadmapIdea          @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+
+  @@unique([ballotId, rank])
+  @@unique([ballotId, ideaId])
+  @@index([ideaId])
+  @@map("roadmap_ranking_items")
+}
+
+model DomainInfluenceWeight {
+  id                    String                  @id @default(uuid()) @db.Uuid
+  communityId           String                  @db.Uuid
+  userId                String                  @db.Uuid
+  domain                InfluenceDomain
+  multiplierPercent     Int                     @default(100)
+  rationale             String?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+
+  // Relations
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, userId, domain])
+  @@index([communityId])
+  @@index([userId])
+  @@index([domain])
+  @@map("domain_influence_weights")
+}
+
+enum InfluenceDomain {
+  ROADMAP_FEATURE_PRIORITIZATION
+}
+
+// ============================================================================
+// MARKETPLACE / STORES
+// ============================================================================
+
+model Store {
+  id               String      @id @default(uuid()) @db.Uuid
+  communityId      String      @db.Uuid
+  ownerUserId      String      @db.Uuid
+  approvedByUserId String?     @db.Uuid
+  name             String
+  slug             String
+  description      String?
+  logoUrl          String?
+  bannerUrl        String?
+  websiteUrl       String?
+  contactEmail     String?
+  contactPhone     String?
+  status           StoreStatus @default(PENDING_APPROVAL)
+  approvedAt       DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  // Relations
+  community   Community            @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  owner       User                 @relation("storeOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  approvedBy  User?                @relation("storeApprovedBy", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  memberships StoreMember[]
+  listings    MarketplaceListing[]
+
+  @@unique([communityId, slug])
+  @@index([communityId])
+  @@index([ownerUserId])
+  @@index([approvedByUserId])
+  @@index([status])
+  @@map("stores")
+}
+
+model StoreMember {
+  id       String          @id @default(uuid()) @db.Uuid
+  storeId  String          @db.Uuid
+  userId   String          @db.Uuid
+  role     StoreMemberRole @default(MANAGER)
+  joinedAt DateTime        @default(now())
+
+  // Relations
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, userId])
+  @@index([userId])
+  @@map("store_members")
+}
+
+model MarketplaceListing {
+  id            String                 @id @default(uuid()) @db.Uuid
+  communityId   String                 @db.Uuid
+  storeId       String                 @db.Uuid
+  authorUserId  String                 @db.Uuid
+  title         String
+  description   String?
+  priceCents    Int
+  category      String
+  listingType   MarketplaceListingType @default(PRODUCT)
+  contactMethod String
+  expiresAt     DateTime?
+  status        MarketplaceStatus      @default(ACTIVE)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  // Relations
+  community Community          @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  store     Store              @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  author    User               @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  photos    MarketplacePhoto[]
+
+  @@index([communityId])
+  @@index([storeId])
+  @@index([authorUserId])
+  @@index([status])
+  @@map("marketplace_listings")
+}
+
+model MarketplacePhoto {
+  id                   String @id @default(uuid()) @db.Uuid
+  marketplaceListingId String @db.Uuid
+  imageUrl             String
+  sortOrder            Int    @default(0)
+
+  // Relations
+  marketplaceListing MarketplaceListing @relation(fields: [marketplaceListingId], references: [id], onDelete: Cascade)
+
+  @@index([marketplaceListingId])
+  @@map("marketplace_photos")
+}
+
+enum MarketplaceStatus {
+  DRAFT
+  PENDING
+  ACTIVE
+  SOLD
+  ARCHIVED
+  EXPIRED
+  REMOVED
+}
+
+enum MarketplaceListingType {
+  PRODUCT
+  FOOD
+  SERVICE
+}
+
+enum StoreStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum StoreMemberRole {
+  OWNER
+  MANAGER
+}
+
+// ============================================================================
+// MESSAGING
+// ============================================================================
+
+model Conversation {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+
+  // Relations
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String   @id @default(uuid()) @db.Uuid
+  conversationId String   @db.Uuid
+  userId         String   @db.Uuid
+  joinedAt       DateTime @default(now())
+  lastReadAt     DateTime @default(now())
+
+  // Relations
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([conversationId])
+  @@index([userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String   @id @default(uuid()) @db.Uuid
+  conversationId String   @db.Uuid
+  senderUserId   String   @db.Uuid
+  body           String
+  createdAt      DateTime @default(now())
+
+  // Relations
+  conversation Conversation        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User                @relation(fields: [senderUserId], references: [id], onDelete: Cascade)
+  attachments  MessageAttachment[]
+
+  @@index([conversationId])
+  @@index([senderUserId])
+  @@map("messages")
+}
+
+model MessageAttachment {
+  id            String @id @default(uuid()) @db.Uuid
+  messageId     String @db.Uuid
+  fileUrl       String
+  fileName      String
+  fileType      String
+  fileSizeBytes Int
+
+  // Relations
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@map("message_attachments")
+}
+
+// ============================================================================
+// USER INTERACTIONS & BLOCKING
+// ============================================================================
+
+model UserBlock {
+  id            String   @id @default(uuid()) @db.Uuid
+  blockerUserId String   @db.Uuid
+  blockedUserId String   @db.Uuid
+  createdAt     DateTime @default(now())
+
+  // Relations
+  blocker User @relation("blockerUser", fields: [blockerUserId], references: [id], onDelete: Cascade)
+  blocked User @relation("blockedUser", fields: [blockedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerUserId, blockedUserId])
+  @@map("user_blocks")
+}
+
+// ============================================================================
+// HOMEPAGE & SITE CONFIGURATION
+// ============================================================================
+
+model HomepageSection {
+  id          String              @id @default(uuid()) @db.Uuid
+  communityId String              @db.Uuid
+  sectionType HomepageSectionType
+  sortOrder   Int                 @default(0)
+  isVisible   Boolean             @default(true)
+
+  // Relations
+  community   Community            @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  pinnedItems HomepagePinnedItem[]
+
+  @@index([communityId])
+  @@map("homepage_sections")
+}
+
+enum HomepageSectionType {
+  FEATURED_ARTICLES
+  LATEST_NEWS
+  UPCOMING_EVENTS
+  RECENT_MARKETPLACE
+  RECENT_GALLERIES
+}
+
+model HomepagePinnedItem {
+  id                String      @id @default(uuid()) @db.Uuid
+  homepageSectionId String      @db.Uuid
+  contentType       ContentType
+  contentId         String      @db.Uuid
+  pinnedByUserId    String      @db.Uuid
+  sortOrder         Int         @default(0)
+  pinnedAt          DateTime    @default(now())
+
+  // Relations
+  homepageSection HomepageSection @relation(fields: [homepageSectionId], references: [id], onDelete: Cascade)
+  pinnedBy        User            @relation(fields: [pinnedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([homepageSectionId])
+  @@index([pinnedByUserId])
+  @@map("homepage_pinned_items")
+}
+
+enum ContentType {
+  ARTICLE
+  EVENT
+  MARKETPLACE_LISTING
+  GALLERY
+}
+
+model SiteSetting {
+  id          String @id @default(uuid()) @db.Uuid
+  communityId String @db.Uuid
+  key         String
+  value       String
+
+  // Relations
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, key])
+  @@index([communityId])
+  @@map("site_settings")
+}
+
+// ============================================================================
+// SECURITY & FORENSIC LOGGING
+// ============================================================================
+
+model LoginEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @db.Uuid
+  ipAddress     String
+  userAgent     String?
+  provider      String // "credentials", "google", "facebook"
+  city          String?
+  region        String?
+  country       String?
+  isAnomaly     Boolean  @default(false)
+  anomalyReason String?
+  createdAt     DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([ipAddress])
+  @@index([createdAt])
+  @@index([userId, ipAddress])
+  @@map("login_events")
+}
+
+model ActivityLog {
+  id           String         @id @default(uuid()) @db.Uuid
+  userId       String         @db.Uuid
+  action       ActivityAction
+  resourceType ResourceType
+  resourceId   String         @db.Uuid
+  ipAddress    String?
+  metadata     Json? // flexible field for extra context (e.g., changed fields, before/after)
+  createdAt    DateTime       @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([resourceType, resourceId])
+  @@index([createdAt])
+  @@index([action])
+  @@map("activity_logs")
+}
+
+enum ActivityAction {
+  CREATE
+  UPDATE
+  DELETE
+  PUBLISH
+  UNPUBLISH
+  APPROVE
+  REJECT
+  FLAG
+  SEND_MESSAGE
+}
+
+enum ResourceType {
+  ARTICLE
+  COMMENT
+  EVENT
+  HELP_WANTED_POST
+  ROADMAP_IDEA
+  ROADMAP_RANKING_BALLOT
+  DOMAIN_INFLUENCE_WEIGHT
+  MARKETPLACE_LISTING
+  MESSAGE
+  CONVERSATION
+  USER_PROFILE
+}

@@ -1,0 +1,77 @@
+'use client';
+
+import React, { useState } from 'react';
+
+interface VouchConfirmModalProps {
+  userName: string;
+  onConfirm: () => Promise<void>;
+  onCancel: () => void;
+  isLoading?: boolean;
+}
+
+export const VouchConfirmModal: React.FC<VouchConfirmModalProps> = ({
+  userName,
+  onConfirm,
+  onCancel,
+  isLoading = false
+}) => {
+  const [isAgreed, setIsAgreed] = useState(false);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+        {/* Header */}
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Confirm Vouch</h2>
+
+        {/* Warning Section */}
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+          <p className="text-sm text-red-800 font-semibold mb-2">Accountability Warning</p>
+          <p className="text-sm text-red-700 leading-relaxed">
+            You are confirming that you personally know <strong>{userName}</strong> and that they are
+            who they claim to be. If this user is later found to be fake, disruptive, or engaged in
+            fraudulent activity, your own account may be suspended or reviewed.
+          </p>
+        </div>
+
+        {/* Important Notice */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded p-4 mb-6">
+          <p className="text-sm text-yellow-800">
+            This action is permanent and you should only vouch for people you trust completely.
+          </p>
+        </div>
+
+        {/* Checkbox */}
+        <label className="flex items-start gap-3 mb-6">
+          <input
+            type="checkbox"
+            checked={isAgreed}
+            onChange={(e) => setIsAgreed(e.target.checked)}
+            className="w-5 h-5 mt-0.5 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+          />
+          <span className="text-sm text-gray-700">
+            I understand the accountability implications and confirm that I personally know {userName}
+          </span>
+        </label>
+
+        {/* Action Buttons */}
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={onCancel}
+            disabled={isLoading}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={!isAgreed || isLoading}
+            className="px-4 py-2 text-white rounded-lg font-medium disabled:opacity-50 transition-colors"
+            style={{ backgroundColor: '#46A8CC' }}
+          >
+            {isLoading ? 'Vouching...' : 'Confirm Vouch'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
