@@ -9,6 +9,10 @@ import {
   ROADMAP_STATUS_LABELS,
 } from '@/lib/roadmap-ideas';
 import { buildRoadmapLeaderboard } from '@/lib/roadmap-ranking';
+import {
+  ROADMAP_WEIGHT_CONSTRAINTS,
+  ROADMAP_WEIGHT_DOMAIN,
+} from '@/lib/roadmap-weighting';
 
 const LISTABLE_STATUSES: RoadmapIdeaStatus[] = [
   'SUBMITTED',
@@ -222,7 +226,7 @@ export async function GET(request: NextRequest) {
         ? await db.domainInfluenceWeight.findMany({
             where: {
               communityId,
-              domain: 'ROADMAP_FEATURE_PRIORITIZATION',
+              domain: ROADMAP_WEIGHT_DOMAIN,
               userId: {
                 in: Array.from(
                   new Set(rankingItems.map((item) => item.ballot.userId))
@@ -273,8 +277,8 @@ export async function GET(request: NextRequest) {
         weightedVoterCount: weightedUserIds.size,
         totalBallotCount: new Set(rankingItems.map((item) => item.ballot.userId)).size,
         multiplierRange: {
-          min: 90,
-          max: 110,
+          min: ROADMAP_WEIGHT_CONSTRAINTS.minMultiplierPercent,
+          max: ROADMAP_WEIGHT_CONSTRAINTS.maxMultiplierPercent,
         },
       },
       statusLabels: ROADMAP_STATUS_LABELS,

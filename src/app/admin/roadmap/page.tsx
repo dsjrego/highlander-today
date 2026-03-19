@@ -60,6 +60,13 @@ interface WeightChange {
   } | null;
 }
 
+interface WeightConstraints {
+  domain: string;
+  defaultMultiplierPercent: number;
+  minMultiplierPercent: number;
+  maxMultiplierPercent: number;
+}
+
 const MODERATION_OPTIONS: Array<{ value: Exclude<RoadmapIdeaStatus, 'SUBMITTED'>; label: string }> = [
   { value: 'UNDER_REVIEW', label: 'Move to Under Review' },
   { value: 'APPROVED_FOR_RANKING', label: 'Approve for Ranking' },
@@ -74,6 +81,7 @@ export default function AdminRoadmapPage() {
   const [ideas, setIdeas] = useState<PendingRoadmapIdea[]>([]);
   const [weightedUsers, setWeightedUsers] = useState<WeightedUser[]>([]);
   const [recentWeightChanges, setRecentWeightChanges] = useState<WeightChange[]>([]);
+  const [weightConstraints, setWeightConstraints] = useState<WeightConstraints | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isWeightsLoading, setIsWeightsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -120,6 +128,7 @@ export default function AdminRoadmapPage() {
       if (res.ok) {
         setWeightedUsers(data.users || []);
         setRecentWeightChanges(data.recentChanges || []);
+        setWeightConstraints(data.constraints || null);
       }
     } catch (error) {
       console.error('Failed to fetch roadmap weights:', error);
@@ -331,7 +340,10 @@ export default function AdminRoadmapPage() {
         <h2 className="text-xl font-bold mb-4">Roadmap Influence Weights</h2>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
           <p className="text-sm text-gray-600 mb-4">
-            These are roadmap-only weighting overrides for Milestone 4. The normal multiplier is 100%. Keep changes small and justified. This does not affect any other domain.
+            These are roadmap-only weighting overrides for Milestone 4. The normal multiplier is {weightConstraints?.defaultMultiplierPercent ?? 100}%. Keep changes small and justified. This does not affect any other domain.
+          </p>
+          <p className="text-xs text-gray-500 mb-4">
+            Allowed range: {weightConstraints?.minMultiplierPercent ?? 90}% to {weightConstraints?.maxMultiplierPercent ?? 110}%. Returning a user to {weightConstraints?.defaultMultiplierPercent ?? 100}% with a blank rationale removes the override.
           </p>
           <div className="flex flex-col md:flex-row gap-3">
             <input
@@ -386,8 +398,8 @@ export default function AdminRoadmapPage() {
                       </label>
                       <input
                         type="number"
-                        min={90}
-                        max={110}
+                        min={weightConstraints?.minMultiplierPercent ?? 90}
+                        max={weightConstraints?.maxMultiplierPercent ?? 110}
                         step={1}
                         value={weightByUser[user.id] ?? user.multiplierPercent}
                         onChange={(event) =>
@@ -413,7 +425,7 @@ export default function AdminRoadmapPage() {
                           }))
                         }
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
-                        placeholder="Explain the roadmap-specific reason for this small weight adjustment."
+                        placeholder="Required for any non-default roadmap-specific weight adjustment."
                       />
                     </div>
                     <div className="flex lg:justify-end">

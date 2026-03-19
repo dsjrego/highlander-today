@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -20,41 +19,7 @@ async function main() {
   });
   console.log('✓ Community created:', community.name);
 
-  // 2. Create Admin User
-  const passwordHash = await bcrypt.hash('admin123', 10);
-
-  const adminUser = await prisma.user.upsert({
-    where: { email: 'admin@highlandertoday.com' },
-    update: {},
-    create: {
-      email: 'admin@highlandertoday.com',
-      passwordHash,
-      firstName: 'Admin',
-      lastName: 'Highlander',
-      trustLevel: 'TRUSTED',
-      isIdentityLocked: true,
-    },
-  });
-  console.log('✓ Admin user created:', adminUser.email);
-
-  // 3. Create Admin Membership
-  await prisma.userCommunityMembership.upsert({
-    where: {
-      userId_communityId: {
-        userId: adminUser.id,
-        communityId: community.id,
-      },
-    },
-    update: {},
-    create: {
-      userId: adminUser.id,
-      communityId: community.id,
-      role: 'ADMIN',
-    },
-  });
-  console.log('✓ Admin membership created');
-
-  // 4. Create Default Categories
+  // 2. Create Default Categories
   // Two top-level sections: "Local Life" (text-based content) and
   // "Experiences" (activity/event-based content). Children are the
   // subcategories that will drive nav dropdowns and DB queries.
@@ -130,7 +95,7 @@ async function main() {
   }
   console.log('✓ Default categories created');
 
-  // 5. Create Homepage Sections
+  // 3. Create Homepage Sections
   const sectionTypes = [
     'FEATURED_ARTICLES',
     'LATEST_NEWS',
@@ -156,7 +121,7 @@ async function main() {
   }
   console.log('✓ Homepage sections created');
 
-  // 6. Create Default Site Setting
+  // 4. Create Default Site Setting
   await prisma.siteSetting.upsert({
     where: {
       communityId_key: {
@@ -174,7 +139,7 @@ async function main() {
   console.log('✓ Default site settings created');
 
   console.log('\n✓ Database seed completed successfully!');
-  console.log('  Admin login: admin@highlandertoday.com / admin123');
+  console.log('  Seeded structural data only (no user accounts created).');
 }
 
 main()

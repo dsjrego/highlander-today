@@ -4,6 +4,11 @@ Highlander Today is a multi-tenant local community platform for Cambria Heights,
 
 This README is the repo-facing setup and architecture overview. The deeper running project log lives in [PROJECT-STATUS.md](/Users/dennisdestjeor/work/highlander-today/PROJECT-STATUS.md).
 
+Repository:
+
+- GitHub: `https://github.com/dsjrego/highlander-today`
+- Default branch: `main`
+
 ## Current Product Scope
 
 Active product areas:
@@ -70,6 +75,7 @@ docker-compose up -d
 npm run db:generate
 npm run db:push
 npx prisma db seed
+SUPER_ADMIN_EMAIL=admin@highlandertoday.local SUPER_ADMIN_PASSWORD='ChangeMe123!' npm run db:create-super-admin
 npm run dev
 ```
 
@@ -84,7 +90,7 @@ http://localhost:3000
 Create `.env` with at least:
 
 ```env
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5433/highlander_today?connect_timeout=10&sslmode=disable
+DATABASE_URL=postgresql://<db-user>:<db-password>@127.0.0.1:5433/highlander_today?connect_timeout=10&sslmode=disable
 NEXTAUTH_SECRET=replace-with-a-real-secret
 NEXTAUTH_URL=http://localhost:3000
 
@@ -96,15 +102,24 @@ FACEBOOK_CLIENT_SECRET=
 
 Optional / future-facing variables include upload storage and encryption settings. See `.env.example`, but prefer the values in `PROJECT-STATUS.md` when there is a mismatch.
 
-### Seeded local account
+### Initial admin bootstrap
 
-Current local seed includes:
+The structural seed creates:
 
 - Community: `Highlander Today`
-- Admin user: `admin@highlandertoday.com`
-- Password: `admin123`
+- Categories
+- Homepage sections
+- Default site settings
 
-This is for local development only and should not be used as a production bootstrap pattern.
+It does not create any user accounts.
+
+Create the first Super Admin explicitly:
+
+```bash
+SUPER_ADMIN_EMAIL=admin@highlandertoday.local SUPER_ADMIN_PASSWORD='ChangeMe123!' npm run db:create-super-admin
+```
+
+The script requires a strong password, creates the user if needed, and ensures the membership role is `SUPER_ADMIN`.
 
 ## Main Routes
 

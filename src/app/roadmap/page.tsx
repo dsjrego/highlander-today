@@ -301,6 +301,9 @@ export default function RoadmapPage() {
           <p className="mt-2 text-gray-500">
             Current snapshot: {transparency.totalBallotCount} ballot{transparency.totalBallotCount === 1 ? '' : 's'} counted, with {transparency.weightedVoterCount} voter{transparency.weightedVoterCount === 1 ? '' : 's'} currently using a non-default roadmap weight.
           </p>
+          <p className="mt-2 text-gray-500">
+            Any non-default roadmap weight is limited to this roadmap domain and logged in admin history with a stated rationale.
+          </p>
         </div>
       ) : null}
 

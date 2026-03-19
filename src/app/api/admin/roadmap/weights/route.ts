@@ -3,20 +3,12 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { logActivity } from '@/lib/activity-log';
 import { isAdmin, type PermissionUser } from '@/lib/permissions';
-
-const DOMAIN = 'ROADMAP_FEATURE_PRIORITIZATION' as const;
-const MIN_MULTIPLIER_PERCENT = 90;
-const MAX_MULTIPLIER_PERCENT = 110;
-
-const UpdateWeightSchema = z.object({
-  userId: z.string().uuid(),
-  multiplierPercent: z
-    .number()
-    .int()
-    .min(MIN_MULTIPLIER_PERCENT)
-    .max(MAX_MULTIPLIER_PERCENT),
-  rationale: z.string().trim().max(1000).nullable().optional(),
-});
+import {
+  matchesRoadmapWeightActivityForCommunity,
+  ROADMAP_WEIGHT_CONSTRAINTS,
+  ROADMAP_WEIGHT_DOMAIN,
+  UpdateRoadmapWeightSchema,
+} from '@/lib/roadmap-weighting';
 
 function buildPermissionUser(request: NextRequest): PermissionUser | null {
   const userId = request.headers.get('x-user-id');
@@ -118,7 +110,7 @@ export async function GET(request: NextRequest) {
         domainInfluenceWeights: {
           where: {
             communityId,
-            domain: DOMAIN,
+            domain: ROADMAP_WEIGHT_DOMAIN,
           },
           select: {
             id: true,
@@ -152,6 +144,11 @@ export async function GET(request: NextRequest) {
         },
       },
     });
+    const filteredRecentChanges = recentChanges
+      .filter((entry) =>
+        matchesRoadmapWeightActivityForCommunity(entry.metadata, communityId)
+      )
+      .slice(0, 20);
 
     return NextResponse.json({
       users: users.map((user) => ({
@@ -166,7 +163,7 @@ export async function GET(request: NextRequest) {
         rationale: user.domainInfluenceWeights[0]?.rationale ?? null,
         weightUpdatedAt: user.domainInfluenceWeights[0]?.updatedAt ?? null,
       })),
-      recentChanges: recentChanges.map((entry) => ({
+      recentChanges: filteredRecentChanges.map((entry) => ({
         id: entry.id,
         action: entry.action,
         createdAt: entry.createdAt,
@@ -178,11 +175,7 @@ export async function GET(request: NextRequest) {
         },
         metadata: entry.metadata,
       })),
-      constraints: {
-        minMultiplierPercent: MIN_MULTIPLIER_PERCENT,
-        maxMultiplierPercent: MAX_MULTIPLIER_PERCENT,
-        domain: DOMAIN,
-      },
+      constraints: ROADMAP_WEIGHT_CONSTRAINTS,
     });
   } catch (error) {
     console.error('Error fetching roadmap influence weights:', error);
@@ -208,7 +201,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Community not found' }, { status: 404 });
     }
 
-    const validated = UpdateWeightSchema.parse(await request.json());
+    const validated = UpdateRoadmapWeightSchema.parse(await request.json());
     const targetUser = await db.user.findUnique({
       where: {
         id: validated.userId,
@@ -249,7 +242,7 @@ export async function PATCH(request: NextRequest) {
         communityId_userId_domain: {
           communityId,
           userId: validated.userId,
-          domain: DOMAIN,
+          domain: ROADMAP_WEIGHT_DOMAIN,
         },
       },
       select: {
@@ -279,13 +272,13 @@ export async function PATCH(request: NextRequest) {
           communityId_userId_domain: {
             communityId,
             userId: validated.userId,
-            domain: DOMAIN,
+            domain: ROADMAP_WEIGHT_DOMAIN,
           },
         },
         create: {
           communityId,
           userId: validated.userId,
-          domain: DOMAIN,
+          domain: ROADMAP_WEIGHT_DOMAIN,
           multiplierPercent: validated.multiplierPercent,
           rationale: validated.rationale ?? null,
         },
@@ -308,7 +301,8 @@ export async function PATCH(request: NextRequest) {
       resourceId: existing?.id ?? result?.id ?? validated.userId,
       ipAddress: request.headers.get('x-client-ip'),
       metadata: {
-        domain: DOMAIN,
+        domain: ROADMAP_WEIGHT_DOMAIN,
+        communityId,
         targetUserId: validated.userId,
         targetUserName: `${targetUser.firstName} ${targetUser.lastName}`.trim(),
         previousMultiplierPercent: existing?.multiplierPercent ?? 100,

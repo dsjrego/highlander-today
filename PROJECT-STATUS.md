@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-03-19 (session 33 — Milestone 4 transparency/hardening pass landed for roadmap weighting: the public roadmap now explains the bounded weighting policy and shows weighted vs raw leaderboard points, the admin roadmap screen now shows recent weight-change history beside the weight editor, and the admin activity-log route recognizes roadmap-specific resource types so the weighting layer is easier to inspect end to end)
+> **Last updated:** 2026-03-19 (session 35 — production bootstrap cleanup landed: `prisma/seed.ts` now creates structural data only, the stale root `seed.ts` copy was removed, `scripts/create-super-admin.ts` now creates or promotes the initial `SUPER_ADMIN` from env vars, and `README.md`/package scripts were updated to match the explicit bootstrap flow)
 > **Purpose:** Full context for AI assistants to continue development. Read this file first each session.
 
 ---
@@ -128,7 +128,7 @@ docker-compose up -d && npm run db:push && npx prisma db seed && npm run dev
 
 ### .env
 ```
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5433/highlander_today?connect_timeout=10&sslmode=disable
+DATABASE_URL=postgresql://<db-user>:<db-password>@127.0.0.1:5433/highlander_today?connect_timeout=10&sslmode=disable
 NEXTAUTH_SECRET="<set-in-.env>"
 NEXTAUTH_URL="http://localhost:3000"
 GOOGLE_CLIENT_ID="<your-google-client-id>"
@@ -138,7 +138,7 @@ FACEBOOK_CLIENT_SECRET="<your-facebook-app-secret>"
 ```
 
 ### Seed Data
-Community "Highlander Today" (slug: `highlander-today`), admin user (`admin@highlandertoday.com` / `admin123`), 4 homepage sections, default site settings. **Note:** `seed.ts` creates categories with parents "Local Life" and "Experiences", but the **actual database** has different parents: News, Community, Lifestyle, Opinion, Announcements (with ~22 subcategories). All category references in the app are now fetched dynamically from the DB — never hardcode category slugs or names.
+Community "Highlander Today" (slug: `highlander-today`), 4 homepage sections, default site settings. Create the initial Super Admin explicitly with `SUPER_ADMIN_EMAIL=... SUPER_ADMIN_PASSWORD=... npm run db:create-super-admin`. **Note:** `seed.ts` creates categories with parents "Local Life" and "Experiences", but the **actual database** has different parents: News, Community, Lifestyle, Opinion, Announcements (with ~22 subcategories). All category references in the app are now fetched dynamically from the DB — never hardcode category slugs or names.
 
 ---
 
@@ -159,7 +159,7 @@ Nav: Home, Local Life (dropdown), Experiences (dropdown), Market, Help Wanted, A
 ```
 prisma/
   schema.prisma          # 25+ models
-  seed.ts                # Admin user, community, categories
+  seed.ts                # Structural seed: community, categories, homepage, site settings
 src/app/
   api/                   # 40+ API route files (real Prisma queries + auth)
   admin/                 # 9 admin pages
@@ -227,13 +227,14 @@ src/lib/
 - **Help Wanted:** `HelpWantedPost` plus the posting/compensation/status enums now exist in the Prisma schema. `/api/help-wanted`, `/api/help-wanted/[id]`, and `/api/help-wanted/[id]/approve` are wired for public browsing of approved content, trusted-user creation/edit/delete, poster close/fill transitions, editor/admin moderation, and activity-log coverage. The public Help Wanted list/detail/submit pages are live on real data at `/help-wanted`, `/help-wanted/[id]`, and `/help-wanted/submit`, detail pages open the existing messaging flow for trusted responders, uploads support a dedicated `help-wanted` context, and trusted authors now have a management dashboard at `/help-wanted/manage` plus an edit screen at `/help-wanted/[id]/edit` for draft/rejected revisions and lifecycle actions (`submit`, `resubmit`, `move to draft`, `fill`, `close`, `reopen`, `delete` where allowed).
 - **Help Wanted polish:** The active Help Wanted surfaces now do a better job explaining the moderation and messaging loop. The list page surfaces high-level counts plus stronger “how it works” framing, the detail page clarifies response rules and poster workflow, the submit/edit pages explain moderation expectations and on-platform contact rules more explicitly, and the manage dashboard now summarizes open/review/attention states with clearer lifecycle guidance for posters.
 - **Community roadmap / prioritization:** `RoadmapIdea`, `RoadmapRankingBallot`, and `RoadmapRankingItem` now exist in the Prisma schema along with roadmap-specific permission and activity-log resource types. `/api/roadmap`, `/api/roadmap/[id]`, `/api/roadmap/[id]/moderate`, and `/api/roadmap/ballot` now support trusted-user submission/edit/delete/resubmit, ordered top-five ballot saving, author/manage views, staff moderation, merge-target references, leaderboard aggregation, and public browsing of approved/planned/in-progress/shipped ideas. The public/community surface is live at `/roadmap`, `/roadmap/[id]`, `/roadmap/submit`, and `/roadmap/manage`, while staff moderation lives at `/admin/roadmap`.
-- **Roadmap weighting foundation:** `DomainInfluenceWeight` plus the `InfluenceDomain` enum now exist in the Prisma schema for domain-specific weighting. The first and only live domain is `ROADMAP_FEATURE_PRIORITIZATION`. `/api/admin/roadmap/weights` allows admins to search trusted users in the current community and set small roadmap-only multipliers with rationale, the admin roadmap page now exposes that management UI beside moderation, and the public roadmap leaderboard now applies those multipliers when rolling up ballot scores. Weight changes are logged to `ActivityLog` under `DOMAIN_INFLUENCE_WEIGHT`, preserving the requirement that admin influence adjustments remain auditable and non-global.
-- **Roadmap weighting transparency:** The public `/roadmap` page now explicitly states the roadmap-only multiplier bounds and surfaces weighted vs raw leaderboard points so the influence layer is not hidden inside the score math. The admin roadmap screen now also shows recent roadmap-weight changes pulled from `ActivityLog`, and the legacy `/api/admin/activity-logs` route now recognizes roadmap-specific resource types (`ROADMAP_IDEA`, `ROADMAP_RANKING_BALLOT`, `DOMAIN_INFLUENCE_WEIGHT`) so forensic/admin tooling no longer lags the active roadmap domain.
+- **Roadmap weighting foundation:** `DomainInfluenceWeight` plus the `InfluenceDomain` enum now exist in the Prisma schema for domain-specific weighting. The first and only live domain is `ROADMAP_FEATURE_PRIORITIZATION`. `/api/admin/roadmap/weights` allows admins to search trusted users in the current community and set small roadmap-only multipliers with rationale, the admin roadmap page now exposes that management UI beside moderation, and the public roadmap leaderboard now applies those multipliers when rolling up ballot scores. Non-default weights now require a rationale in validation, and weight changes are logged to `ActivityLog` under `DOMAIN_INFLUENCE_WEIGHT`, preserving the requirement that admin influence adjustments remain auditable and non-global.
+- **Roadmap weighting transparency:** The public `/roadmap` page now explicitly states the roadmap-only multiplier bounds and surfaces weighted vs raw leaderboard points so the influence layer is not hidden inside the score math. The admin roadmap screen now also shows recent roadmap-weight changes pulled from `ActivityLog`, scoped to the active roadmap domain/community and backed by shared policy constants instead of duplicated hardcoded bounds. The legacy `/api/admin/activity-logs` route now recognizes roadmap-specific resource types (`ROADMAP_IDEA`, `ROADMAP_RANKING_BALLOT`, `DOMAIN_INFLUENCE_WEIGHT`) so forensic/admin tooling no longer lags the active roadmap domain.
 - **Developer verification baseline:** ESLint is configured via `.eslintrc.json`, `npm run lint` runs successfully again (currently with warnings but no blocking errors), and `npm run test:unit` is green on the current unit suite (`permissions`, `trust-cascade`, `marketplace-status`) after removing stale schema-era test files that no longer matched the live app.
 - **TypeScript baseline:** `npx tsc --noEmit` now passes for the full repo again. The earlier file-level exclusions were removed after rewriting the stale helper/route surface (`src/lib/auth.ts`, `src/lib/audit.ts`, `src/lib/community.ts`, `src/lib/trust.ts`, `src/lib/upload.ts`, `/api/settings`, `/api/users/[id]/block`) to the current Prisma/session model and deleting outdated test suites that were only preserving dead schema assumptions.
 - **Homepage curation:** `/admin/homepage` and `/api/homepage/sections` are the active curation surface for section order, visibility, and pinning. The page now shares its types with `src/lib/homepage.ts`, and marketplace homepage cards now use store-based metadata instead of legacy seller-name framing.
 - **Navigation / design:** Public design system is applied, nav dropdowns work, Arcade is visible only to Super Admin, and the Experiences dropdown now links directly to `/events` for the Events entry. The `/events` page also exposes a visible `Submit Event` CTA for signed-in users. In the admin sidebar, the `/admin/stores` entry is now labeled `Store Moderation` to match the dedicated store-review workflow and the redirect notice shown in the shared content queue.
 - **Security logging:** Login events and immutable activity logs are live, including admin endpoints for investigation/export.
+- **Repository / deployment baseline:** The project is now under git and the initial `main` branch has been pushed to GitHub at `https://github.com/dsjrego/highlander-today`. Repo-facing docs/config were cleaned up for first public/private remote use: `README.md` now reflects the active product surface instead of stale scaffold routes, `.env.example` now documents the real local Docker Postgres connection on `127.0.0.1:5433`, and `src/app/api/health/route.ts` now exists so the Docker `HEALTHCHECK` hits a real endpoint.
 
 ### PLACEHOLDER (UI exists, mock/hardcoded data)
 - Admin: dashboard
@@ -244,6 +245,31 @@ src/lib/
 - Messaging attachments UI/data model
 - Help Wanted MVP: core public list/detail/submit/respond/manage loop is live; current remaining work is validation with real usage plus any targeted refinements discovered from that usage rather than missing core workflow
 - Multi-tenant cross-site content sharing ("sister site" pull-through) is **not** implemented yet; homepage/content selection is currently per-domain/per-community only
+
+## Blue-Sky Brainstorming
+
+These are explicitly future-facing ideas for later exploration, not current commitments. They should only be pursued if they strengthen the core local interaction loops and preserve focus on complete end-to-end workflows.
+
+- **Local Intent Router:** A single resident-facing flow for "I need something" that routes people into the right system automatically (local content, events, marketplace, help wanted, service requests, or trusted messaging) based on the actual need rather than requiring users to understand the site architecture first.
+- **Community Capability Graph:** A structured map of who in the community can do what, derived from real identity, vouches, trusted participation, completed interactions, and visible local activity. This would emphasize known local competence rather than anonymous reviews.
+- **Trust-Backed Local Reputation:** Domain-specific reputation layers built on top of the base trust model so members can accumulate visible reliability in narrow contexts such as selling, hiring, organizing events, volunteering, or civic contribution without turning the product into a generic rating platform.
+- **Local Operating Feed:** A unified, high-signal daily feed of what is changing in the community across events, local stories, marketplace updates, help wanted activity, urgent requests, public notices, and other meaningful local developments.
+- **Mutual Aid / Response Network:** A dedicated trusted-neighbor coordination layer for rides, short-term help, weather response, elder support, lost pets, errands, and other community support needs where identity and accountability materially improve safety and follow-through.
+- **Civic Action Layer:** Structured tools for issue tracking, petitions, public comment mobilization, meeting agendas, local advocacy, and visible community problem-solving so the platform can support civic coordination as well as information distribution.
+- **Verified Local Memory:** A persistent community knowledge layer built from approved reporting and trusted contributions that answers recurring local questions and preserves useful institutional memory over time.
+- **Marketplace-to-Fulfillment Bridge:** Longer-term logistics tooling that lets trusted local sellers coordinate delivery windows, pickup points, neighborhood route batching, or local runners, extending the marketplace beyond listing-and-message behavior.
+- **Institution Accounts:** First-class profiles and workflows for schools, churches, clubs, nonprofits, municipal bodies, and other local institutions so they can publish updates, run recurring events, recruit help, and maintain visible authority within the same trust-aware ecosystem.
+- **Community Pulse / Early Warning System:** Aggregate local signals from searches, posts, response patterns, and interaction trends to identify emerging needs, shortages, or issues before they are formally organized into content or requests.
+
+### Brainstorming Priorities
+
+If these ideas are revisited later, the strongest strategic candidates based on the current product thesis are:
+
+1. **Local Intent Router**
+2. **Community Capability Graph**
+3. **Mutual Aid / Response Network**
+
+These fit the current vision best because they deepen the existing trust, messaging, content, marketplace, and help-wanted systems into a more unified local coordination platform rather than adding disconnected feature surface area.
 
 ---
 
@@ -314,7 +340,7 @@ Status: complete for the current MVP loop. Store creation, approval, browsing, s
 3. **Milestone 3 — Community feature-prioritization MVP:** trusted users can submit roadmap ideas, staff can moderate/merge/clarify them, approved ideas can enter a ranking pool, and trusted users can submit ordered priorities that roll up into a shared community-informed leaderboard.
 Status: complete for the current MVP loop. Trusted submission, author management/edit/resubmit, staff moderation, approved ranking-pool visibility, ordered ballot saving, and public leaderboard aggregation are now live. Remaining follow-up is polish rather than MVP capability: improve duplicate-merge ergonomics, expose richer roadmap history/context if needed, and then move into Milestone 4 domain-specific weighting.
 4. **Milestone 4 — Domain-specific weighting/reputation MVP:** the platform can apply small, auditable, domain-specific influence modifiers inside selected systems without introducing a global user weight; first use case is feature prioritization, with future reuse possible for delivery reliability and other trust-sensitive domains.
-Status: in progress. The roadmap-first weighting foundation is now live: a dedicated roadmap weighting domain, bounded per-user multipliers, admin rationale capture, auditable activity-log entries, and weighted leaderboard aggregation on the roadmap prioritization loop. Remaining work before calling the milestone complete is mostly product hardening: decide whether public UI should expose more explicit weighting transparency, improve admin discovery/history around changed weights, and confirm the exact weighting policy bounds before reusing the pattern in later domains.
+Status: complete for the current MVP loop. The roadmap-first weighting foundation is live with a dedicated roadmap weighting domain, bounded per-user multipliers, required rationale for non-default overrides, auditable activity-log entries, active-community admin history, shared policy constants for the current 90%-110% range, and public weighted-vs-raw transparency on the roadmap leaderboard. Future work in later domains should reuse this pattern rather than expand it into a global user score.
 5. **Milestone 5 — Delivery jobs MVP:** requester can post a delivery job, eligible drivers can browse or receive it based on assignment mode, one driver can claim or accept dispatch, and the job can move through basic completion states.
 6. **Milestone 6 — Decide next bottleneck:** only after milestones 1 through 5 are stable should the platform choose among payments, restaurant ordering, merchant tooling, or broader integrations as the next expansion lane.
 
@@ -431,36 +457,41 @@ Status: in progress. The roadmap-first weighting foundation is now live: a dedic
 - **TypeScript cleanup follow-up:** The legacy cleanup lane landed. `npx tsc --noEmit` now passes without the prior file-level exclusions, including the rewritten auth/community/trust/audit/upload helpers, the repaired settings/blocking routes, and the remaining tests.
 - **Test cleanup follow-up:** Stale schema-era integration/e2e/unit tests plus the old shared `tests/helpers.ts` factory were removed rather than carried forward with dead field names and mock shapes. The remaining tests are intentionally the ones that still describe live behavior.
 - **Important implication:** Future work can use `npx tsc --noEmit` as a repo-wide gate again. Do not reintroduce blanket test/file exclusions to hide drift; either keep a slice current or delete it.
+- **Repository bootstrap follow-up:** The repo now has an initial git commit and a live GitHub remote at `https://github.com/dsjrego/highlander-today`. Alongside that bootstrap, `README.md` was rewritten to match the current app surface and setup assumptions, `.env.example` was corrected to use Docker Postgres on `127.0.0.1:5433`, and `src/app/api/health/route.ts` was added so the existing Docker health check no longer points at a missing route. These changes were repo/deployment-readiness cleanup only; no app behavior beyond the new health endpoint was changed, and no test/build verification was re-run for this documentation/bootstrap pass.
 
 ---
 
 ## Deployment: Super Admin Seeding Plan
 
-The local seed (`prisma/seed.ts`) creates an admin user with hardcoded credentials — not suitable for production. Here's the plan for initial Super Admin creation when deploying:
+The production bootstrap cleanup is now implemented. `prisma/seed.ts` creates structural data only, and the initial elevated account should be created with `scripts/create-super-admin.ts`.
 
-### Step 1: Split seed.ts
-Remove the admin user creation from `seed.ts`. The seed should only create **structural data**: community, categories, homepage sections, site settings. This makes it safe to re-run idempotently in any environment.
+### Repository status
 
-### Step 2: Create `scripts/create-super-admin.ts`
-A standalone one-off script that:
+The project now has a live GitHub remote at `https://github.com/dsjrego/highlander-today` with the initial `main` branch pushed. Future deployment work should assume GitHub is the source-control system of record for CI/CD and infrastructure wiring.
+
+### Step 1: Structural seed
+`prisma/seed.ts` now creates only **structural data**: community, categories, homepage sections, and site settings. This makes it safe to re-run idempotently in any environment.
+
+### Step 2: `scripts/create-super-admin.ts`
+The standalone bootstrap script:
 - Reads `SUPER_ADMIN_EMAIL` and `SUPER_ADMIN_PASSWORD` from environment variables
-- Validates both are present, rejects weak passwords
+- Validates both are present and rejects weak passwords
 - Hashes the password with bcrypt
-- Creates the User with `trustLevel: 'TRUSTED'`, `isIdentityLocked: true`
-- Creates the `UserCommunityMembership` with `role: 'SUPER_ADMIN'` (not `ADMIN` — current seed only grants `ADMIN`, which blocks `DELETE_USER` and Arcade access)
-- Logs success, exits
+- Creates the User with `trustLevel: 'TRUSTED'`, `isIdentityLocked: true` when missing, or promotes the existing user while preserving their name fields
+- Upserts the `UserCommunityMembership` with `role: 'SUPER_ADMIN'`
+- Logs success and exits
 
 ### Step 3: Production deployment sequence
 ```bash
 npm run db:push              # schema → production DB (explicitly uses prisma/schema.prisma)
 npx prisma db seed            # structural data only (community, categories, etc.)
-SUPER_ADMIN_EMAIL=... SUPER_ADMIN_PASSWORD=... npx ts-node scripts/create-super-admin.ts
+SUPER_ADMIN_EMAIL=... SUPER_ADMIN_PASSWORD=... npm run db:create-super-admin
 ```
 Run the super admin script once. After that, the Super Admin uses the admin UI to promote other users.
 
 ### Notes
 - **Alternative (OAuth bootstrap):** First user signs in via Google/Facebook OAuth, then promote to Super Admin via the script or a direct DB update. Avoids putting a password in env vars entirely.
-- **Current seed bug:** Seed grants `ADMIN` role, not `SUPER_ADMIN`. Fix this for local dev too.
+- **Local dev:** if you want the old seeded-admin convenience locally, run the explicit Super Admin script after `db seed` rather than re-embedding credentials in the seed.
 - **Geolocation:** Swap ip-api.com → MaxMind GeoIP for production (gotcha #18).
 - **OAuth apps:** Google and Facebook apps are in dev/test mode — must be published/reviewed before production (gotcha #17).
 
