@@ -6,17 +6,41 @@ import {
 import sharp from 'sharp';
 import { FILE_LIMITS, IMAGE_PROCESSING } from './constants';
 
-const s3Client = new S3Client({
-  region: 'auto',
-  credentials: {
-    accessKeyId: process.env.CLOUDFLARE_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.CLOUDFLARE_SECRET_ACCESS_KEY || '',
-  },
-  endpoint: process.env.CLOUDFLARE_R2_ENDPOINT || '',
-});
+const R2_ACCESS_KEY_ID =
+  process.env.CLOUDFLARE_ACCESS_KEY_ID || process.env.R2_ACCESS_KEY_ID || '';
+const R2_SECRET_ACCESS_KEY =
+  process.env.CLOUDFLARE_SECRET_ACCESS_KEY || process.env.R2_SECRET_ACCESS_KEY || '';
+const R2_ENDPOINT =
+  process.env.CLOUDFLARE_R2_ENDPOINT ||
+  (process.env.R2_ACCOUNT_ID
+    ? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
+    : '');
+const BUCKET_NAME =
+  process.env.CLOUDFLARE_BUCKET_NAME || process.env.R2_BUCKET_NAME || 'highlander-today';
+const CDN_URL = process.env.CLOUDFLARE_CDN_URL || process.env.R2_PUBLIC_URL || '';
 
-const BUCKET_NAME = process.env.CLOUDFLARE_BUCKET_NAME || 'highlander-today';
-const CDN_URL = process.env.CLOUDFLARE_CDN_URL || '';
+function createS3Client(): S3Client {
+  return new S3Client({
+    region: 'auto',
+    credentials: {
+      accessKeyId: R2_ACCESS_KEY_ID,
+      secretAccessKey: R2_SECRET_ACCESS_KEY,
+    },
+    endpoint: R2_ENDPOINT,
+  });
+}
+
+function getConfiguredS3Client(): S3Client {
+  if (!isCloudflareR2Configured()) {
+    throw new Error('Cloudflare R2 is not fully configured');
+  }
+
+  return createS3Client();
+}
+
+export function isCloudflareR2Configured(): boolean {
+  return Boolean(R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_ENDPOINT && BUCKET_NAME && CDN_URL);
+}
 
 export function validateFileSize(size: number): void {
   if (size > FILE_LIMITS.maxFileSize) {
@@ -77,7 +101,7 @@ export async function uploadFile(
   const key = path.startsWith('/') ? path.slice(1) : path;
 
   try {
-    await s3Client.send(
+    await getConfiguredS3Client().send(
       new PutObjectCommand({
         Bucket: BUCKET_NAME,
         Key: key,
@@ -129,7 +153,7 @@ export async function getSignedDownloadUrl(key: string, expiresIn = 3600): Promi
 
 export async function deleteFile(key: string): Promise<void> {
   try {
-    await s3Client.send(
+    await getConfiguredS3Client().send(
       new DeleteObjectCommand({
         Bucket: BUCKET_NAME,
         Key: key,

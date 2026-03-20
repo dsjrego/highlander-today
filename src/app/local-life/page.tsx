@@ -1,7 +1,7 @@
 'use client';
 
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
@@ -36,7 +36,7 @@ interface Pagination {
   pages: number;
 }
 
-export default function LocalLifePage() {
+function LocalLifePageContent() {
   const searchParams = useSearchParams();
   const activeCategory = searchParams.get('category');
   const pageParam = parseInt(searchParams.get('page') || '1');
@@ -278,5 +278,13 @@ export default function LocalLifePage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function LocalLifePage() {
+  return (
+    <Suspense fallback={<div className="py-12 text-center text-gray-500">Loading Local Life...</div>}>
+      <LocalLifePageContent />
+    </Suspense>
   );
 }

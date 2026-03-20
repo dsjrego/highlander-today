@@ -174,7 +174,8 @@ Known placeholders / partial admin areas:
 - Local development storage: `public/uploads/{context}/`
 - Supported formats: JPEG, PNG, WebP, GIF
 - Current limit: 5MB
-- Cloudflare R2 is planned but not yet configured in the active local flow
+- Production uploads now use Cloudflare R2 when the required env vars are configured
+- Local development still writes to `public/uploads/{context}/`
 
 ## Testing and Verification
 
@@ -183,10 +184,13 @@ Common commands:
 ```bash
 npm run lint
 npm run test:unit
-npx tsc --noEmit
+npm run typecheck
+npm run build
 ```
 
 The current project status notes that these checks are back to being useful repo-wide gates for the active surface.
+
+The repository now also includes a GitHub Actions workflow at `.github/workflows/ci.yml` that runs the same verification sequence on pushes to `main` and on pull requests.
 
 ## Deployment Notes
 
@@ -200,6 +204,23 @@ This repo is not production-ready by default. Before deployment, plan for:
 - rate limiting and email notifications
 
 The project includes a `Dockerfile`, but deployment work should happen after the repository is under source control and the remaining deployment-facing docs/config are cleaned up.
+
+Minimum pre-launch verification sequence:
+
+```bash
+npm run lint
+npm run test:unit
+npm run typecheck
+npm run build
+```
+
+If those pass, follow the production bootstrap flow from `PROJECT-STATUS.md`:
+
+```bash
+npm run db:push
+npx prisma db seed
+SUPER_ADMIN_EMAIL=... SUPER_ADMIN_PASSWORD=... npm run db:create-super-admin
+```
 
 ## Source Of Truth
 

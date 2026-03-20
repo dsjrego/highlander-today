@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import ImageUpload from "@/components/shared/ImageUpload";
@@ -32,7 +32,7 @@ const LISTING_TYPE_OPTIONS = [
   { value: "SERVICE", label: "Service" },
 ] as const;
 
-export default function CreateListingPage() {
+function CreateListingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [stores, setStores] = useState<StoreOption[]>([]);
@@ -373,5 +373,19 @@ export default function CreateListingPage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function CreateListingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center text-gray-500">
+          Loading listing form...
+        </div>
+      }
+    >
+      <CreateListingPageContent />
+    </Suspense>
   );
 }

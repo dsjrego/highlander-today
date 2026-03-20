@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
+import { isCloudflareR2Configured, uploadFile } from '@/lib/upload';
 
 /**
  * POST /api/upload
@@ -51,16 +52,44 @@ export async function POST(request: NextRequest) {
     const random = Math.random().toString(36).substring(2, 8);
     const safeFilename = `${timestamp}-${random}.${ext}`;
 
-    // ── Storage: Local filesystem (swap to R2 for production) ────────
-    // Organize by context subfolder
     const subfolder = ['article', 'profile', 'event', 'marketplace', 'help-wanted'].includes(context)
       ? context
       : 'general';
+    const buffer = Buffer.from(await file.arrayBuffer());
+
+    if (process.env.NODE_ENV === 'production') {
+      if (!isCloudflareR2Configured()) {
+        return NextResponse.json(
+          { error: 'Upload storage is not configured for production' },
+          { status: 500 }
+        );
+      }
+
+      const key = `${subfolder}/${safeFilename}`;
+      const uploaded = await uploadFile(buffer, key, {
+        contentType: file.type,
+        metadata: {
+          uploadedBy: userId,
+          originalFilename: file.name,
+        },
+      });
+
+      return NextResponse.json(
+        {
+          success: true,
+          url: uploaded.url,
+          filename: safeFilename,
+          size: file.size,
+          type: file.type,
+        },
+        { status: 201 }
+      );
+    }
+
+    // ── Storage: Local filesystem for development ───────────────────
 
     const uploadDir = path.join(process.cwd(), 'public', 'uploads', subfolder);
     await mkdir(uploadDir, { recursive: true });
-
-    const buffer = Buffer.from(await file.arrayBuffer());
     const filePath = path.join(uploadDir, safeFilename);
     await writeFile(filePath, buffer);
 

@@ -4,10 +4,12 @@
   "description": "A multi-tenant community news platform",
   "private": true,
   "scripts": {
+    "postinstall": "prisma generate --schema prisma/schema.prisma",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint src --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:unit": "jest --testPathPattern='tests/unit'",
     "test:integration": "jest --testPathPattern='tests/integration'",

@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-03-19 (session 35 — production bootstrap cleanup landed: `prisma/seed.ts` now creates structural data only, the stale root `seed.ts` copy was removed, `scripts/create-super-admin.ts` now creates or promotes the initial `SUPER_ADMIN` from env vars, and `README.md`/package scripts were updated to match the explicit bootstrap flow)
+> **Last updated:** 2026-03-19 (session 36 — deployment-readiness verification pass: production build now succeeds after wrapping `useSearchParams()` pages in `Suspense`, the local verification sequence is confirmed as `lint` + `test:unit` + `typecheck` + `build`, and GitHub Actions CI now runs those same gates on pushes/PRs)
 > **Purpose:** Full context for AI assistants to continue development. Read this file first each session.
 
 ---
@@ -169,7 +169,8 @@ src/app/
   experiences/           # section landing page (placeholder)
   events/                # list, submit
   marketplace/           # list, create, stores, [id] detail (store-based commerce)
-  help-wanted/           # placeholder (services, employment)
+  help-wanted/           # list, detail, submit, manage, edit (wired to DB)
+  roadmap/               # list, detail, submit, manage, ballot ranking (wired to DB)
   arcade/                # placeholder (Super Admin only, linked from nav)
   messages/              # list, conversation detail
   search/                # search page
@@ -230,7 +231,9 @@ src/lib/
 - **Roadmap weighting foundation:** `DomainInfluenceWeight` plus the `InfluenceDomain` enum now exist in the Prisma schema for domain-specific weighting. The first and only live domain is `ROADMAP_FEATURE_PRIORITIZATION`. `/api/admin/roadmap/weights` allows admins to search trusted users in the current community and set small roadmap-only multipliers with rationale, the admin roadmap page now exposes that management UI beside moderation, and the public roadmap leaderboard now applies those multipliers when rolling up ballot scores. Non-default weights now require a rationale in validation, and weight changes are logged to `ActivityLog` under `DOMAIN_INFLUENCE_WEIGHT`, preserving the requirement that admin influence adjustments remain auditable and non-global.
 - **Roadmap weighting transparency:** The public `/roadmap` page now explicitly states the roadmap-only multiplier bounds and surfaces weighted vs raw leaderboard points so the influence layer is not hidden inside the score math. The admin roadmap screen now also shows recent roadmap-weight changes pulled from `ActivityLog`, scoped to the active roadmap domain/community and backed by shared policy constants instead of duplicated hardcoded bounds. The legacy `/api/admin/activity-logs` route now recognizes roadmap-specific resource types (`ROADMAP_IDEA`, `ROADMAP_RANKING_BALLOT`, `DOMAIN_INFLUENCE_WEIGHT`) so forensic/admin tooling no longer lags the active roadmap domain.
 - **Developer verification baseline:** ESLint is configured via `.eslintrc.json`, `npm run lint` runs successfully again (currently with warnings but no blocking errors), and `npm run test:unit` is green on the current unit suite (`permissions`, `trust-cascade`, `marketplace-status`) after removing stale schema-era test files that no longer matched the live app.
-- **TypeScript baseline:** `npx tsc --noEmit` now passes for the full repo again. The earlier file-level exclusions were removed after rewriting the stale helper/route surface (`src/lib/auth.ts`, `src/lib/audit.ts`, `src/lib/community.ts`, `src/lib/trust.ts`, `src/lib/upload.ts`, `/api/settings`, `/api/users/[id]/block`) to the current Prisma/session model and deleting outdated test suites that were only preserving dead schema assumptions.
+- **TypeScript baseline:** `npm run typecheck` (`tsc --noEmit`) now passes for the full repo again when run sequentially as part of the normal verification flow. The earlier file-level exclusions were removed after rewriting the stale helper/route surface (`src/lib/auth.ts`, `src/lib/audit.ts`, `src/lib/community.ts`, `src/lib/trust.ts`, `src/lib/upload.ts`, `/api/settings`, `/api/users/[id]/block`) to the current Prisma/session model and deleting outdated test suites that were only preserving dead schema assumptions.
+- **Build verification baseline:** `npm run build` now completes successfully for the current app surface. The deployment-readiness pass fixed App Router prerender failures on `/experiences`, `/local-life`, and `/marketplace/create` by wrapping their `useSearchParams()` usage in explicit `Suspense` boundaries so production prerendering no longer aborts on those routes.
+- **CI baseline:** `.github/workflows/ci.yml` now runs `npm run lint`, `npm run test:unit`, `npm run typecheck`, and `npm run build` on pull requests and pushes to `main`, using placeholder auth/env values plus Prisma client generation so the repo has an automated launch-readiness gate instead of relying on manual local verification alone.
 - **Homepage curation:** `/admin/homepage` and `/api/homepage/sections` are the active curation surface for section order, visibility, and pinning. The page now shares its types with `src/lib/homepage.ts`, and marketplace homepage cards now use store-based metadata instead of legacy seller-name framing.
 - **Navigation / design:** Public design system is applied, nav dropdowns work, Arcade is visible only to Super Admin, and the Experiences dropdown now links directly to `/events` for the Events entry. The `/events` page also exposes a visible `Submit Event` CTA for signed-in users. In the admin sidebar, the `/admin/stores` entry is now labeled `Store Moderation` to match the dedicated store-review workflow and the redirect notice shown in the shared content queue.
 - **Security logging:** Login events and immutable activity logs are live, including admin endpoints for investigation/export.
@@ -290,17 +293,17 @@ These fit the current vision best because they deepen the existing trust, messag
 13. **Messaging rollout gotcha** — If Prisma throws `P2022` for `conversation_participants.lastReadAt`, the local DB is behind the schema. In this environment `prisma db push` failed once with a generic schema engine error and the fix was `ALTER TABLE "conversation_participants" ADD COLUMN "lastReadAt" TIMESTAMP NOT NULL DEFAULT NOW();`.
 14. **Articles canonical path** — Article flow is `/local-life/*`. Legacy `/articles/*` routes should only be used as redirects for backwards compatibility; do not build new behavior there.
 15. **Categories source of truth** — The DB category tree does not match `seed.ts`. All category usage should be dynamic from `/api/categories`; never hardcode expected parent/category names.
-16. **Uploads** — `/api/upload` uses middleware auth headers and writes to local disk in development. `ImageUpload.tsx` is the active component; `ImageUploader.tsx` is legacy.
+16. **Uploads** — `/api/upload` uses middleware auth headers, writes to local disk in development, and now switches to Cloudflare R2 in production when the required env vars are configured. `ImageUpload.tsx` is the active component; `ImageUploader.tsx` is legacy.
 16b. **Supported upload formats** — The active upload pipeline currently accepts only JPEG, PNG, WebP, and GIF, up to 5MB. HEIC/HEIF is not supported yet, so iPhone photos may need conversion before upload.
-16c. **Article video support** — The active TipTap article flow does not currently support video embeds or uploaded video files. Safe YouTube/Vimeo-style embeds are a reasonable future enhancement; native video upload would require broader storage and delivery work.
+16c. **Article video support** — The active TipTap article flow does not currently support video embeds or uploaded video files. Safe YouTube/Vimeo embeds are the next planned content-editor enhancement and should be completed before Milestone 5 / Delivery Jobs. Native video upload remains out of scope for now because it would require broader storage and delivery work.
 17. **TipTap versions** — Core TipTap packages are v2.x. Pin any added extensions to v2.x.
 18. **No @@fulltext** — PostgreSQL full-text search is implemented manually in `src/lib/search.ts`.
-19. **R2 not configured** — Production upload target is planned, but current working storage is local filesystem.
+19. **R2 operational status** — Production upload code is now wired for Cloudflare R2, but launch still requires real bucket/CDN credentials and public URL configuration. Local development continues to use filesystem storage.
 20. **Removed sections** — Classifieds and Galleries were removed. Do not re-add them.
 21. **Homepage tenant resolution** — Active homepage resolution is now domain-aware. Use `host` / `x-community-domain` (or `x-community-id` when explicit). `localhost` / `127.0.0.1` intentionally fall back to the first community for local dev because the seed does not set `Community.domain`.
 22. **Homepage de-duplication rule** — `FEATURED_ARTICLES` should not repeat inside `LATEST_NEWS` on the same homepage render. Preserve that rule unless product requirements change.
-23. **Verification caveat** — `npm run lint` works, `npm run test:unit` is green on the current suite, and `npx tsc --noEmit` now passes for the active app surface. This does **not** mean every file in the repo is current; the TypeScript config now excludes tests and several clearly stale schema-era modules/routes so live verification is useful again.
-24. **How to treat excluded files** — The excluded TypeScript files are not harmless background noise. They represent stale scaffold code or old schema assumptions that should be either rewritten to the current Prisma/session model or deleted when that area becomes active again.
+23. **Verification caveat** — `npm run lint` works, `npm run test:unit` is green on the current suite, and `npx tsc --noEmit` now passes repo-wide again. This does **not** mean every file is equally production-ready; it means the current checked-in TypeScript surface is back under type coverage instead of being hidden behind broad exclusions.
+24. **Legacy cleanup rule** — Do not reintroduce blanket TypeScript exclusions to hide drift. If a stale scaffold-era file becomes active again, either rewrite it to the current Prisma/session model or delete it.
 25. **Marketplace product direction** — Marketplace is being repositioned from direct user-owned classifieds into a store-based commerce platform. Users can own multiple stores. Stores require admin approval before becoming public. Listings belong to stores, not directly to users, even if the initial migration temporarily keeps owner fields for compatibility.
 26. **Marketplace MVP scope** — Initial listing types should cover physical products, grocery/artisan food items, and services. Experiences may join later, but they are not part of the first commerce implementation.
 27. **Marketplace buyer access** — Buyers may browse marketplace content without logging in, but seller messaging requires the buyer to be a `TRUSTED` user. Messaging remains the active buyer/seller contact path for MVP.
@@ -313,9 +316,9 @@ These fit the current vision best because they deepen the existing trust, messag
 34. **Domain-specific weighting direction** — Influence weighting should never be global. If used, it should be attached to a user within a specific domain (for example feature prioritization, recommendations, or later delivery reliability) so a user can be high-signal in one context and neutral or lower-signal in another.
 35. **Rollout philosophy** — Features should be introduced at a pace the community can absorb. Each release should teach users one new behavior rather than exposing every future capability at once. Build forward-compatible foundations early when useful, but keep features hidden, gated, or lightly exposed in UI/navigation until there is enough community momentum to support real adoption.
 36. **Scope-control rule** — Work should be prioritized around complete user loops, not abstract feature categories. Example loop: store creation -> admin approval -> listing creation -> public discovery/search -> trusted buyer messaging -> seller marks pending/sold.
-37. **Platform sequencing** — Current build order should remain: `1)` trust/content/community identity, `2)` store-based listings and discovery, `3)` Help Wanted opportunity board, `4)` community feature-prioritization module, `5)` domain-specific weighting/reputation, `6)` delivery/jobs, `7)` transaction infrastructure such as payments, inventory, shipping, and merchant APIs.
-38. **Execution rule for sequencing** — Build weighting only after there is a live domain that produces real behavior to score. In the current roadmap that means: complete Help Wanted first, then build the community feature-prioritization module, then introduce domain-specific weighting inside that module, and only after that reuse the pattern in delivery or other trust-sensitive systems.
-39. **Active product question** — The next product question to prove is whether trusted local users and businesses will use a moderated Help Wanted board to post and respond to employment openings, service requests, and short-term tasks through the platform's trust and messaging system.
+37. **Platform sequencing** — The intended build order remains: `1)` trust/content/community identity, `2)` store-based listings and discovery, `3)` Help Wanted opportunity board, `4)` community feature-prioritization module, `5)` domain-specific weighting/reputation, `6)` delivery/jobs, `7)` transaction infrastructure such as payments, inventory, shipping, and merchant APIs. Milestones 1 through 4 are now complete for the current MVP loops.
+38. **Current execution priority** — Because the app has not launched yet, the immediate engineering priority is deployment and launch readiness for the current product surface, not starting delivery/jobs or doing speculative extra Help Wanted polish without user feedback.
+39. **Post-launch product question** — After launch, the next product question to prove is whether trusted local users and businesses will use the moderated Help Wanted board to post and respond to employment openings, service requests, and short-term tasks through the platform's trust and messaging system.
 40. **Marketplace local DB gotcha** — In this environment `prisma db push` hit a generic schema-engine failure while applying the store-based marketplace changes. Prisma client generation succeeded, but the local Postgres schema had to be aligned manually for `stores`, `store_members`, `marketplace_listings.storeId`, `marketplace_listings.listingType`, and the expanded `MarketplaceStatus` enum. If local marketplace tables drift again, inspect the live DB directly instead of trusting the opaque Prisma error.
 41. **Legacy cleanup status** — The formerly excluded legacy helper/route surface has now been reconciled with the live schema and reintroduced to TypeScript coverage. The remaining cleanup rule is to avoid letting new scaffold-era files accumulate outside the active Prisma/session model.
 
@@ -337,12 +340,14 @@ These fit the current vision best because they deepen the existing trust, messag
 1. **Milestone 1 — Store marketplace MVP:** user can create a store, admin can approve it, approved store can publish listings, the public can browse/search listings, trusted buyers can message sellers, and sellers can mark listings pending/sold.
 Status: complete for the current MVP loop. Store creation, approval, browsing, search integration, trusted-user messaging entry point, public pending/sold visibility, seller listing-state controls, seller edit/delete management, public storefront pages, dedicated admin store management, direct store discovery on `/marketplace`, storefront presentation polish, and homepage/discovery refinement on the store schema are now in place.
 2. **Milestone 2 — Help Wanted MVP:** trusted users and businesses can create employment listings, service/help requests, and gig/task postings; the public can browse them; trusted users can respond through platform messaging; and posters can close/fill the opportunity.
+Status: complete for the current MVP loop. Public browsing, trusted-author creation/editing, moderation, trusted responder messaging, poster lifecycle controls, and the management surface are live. Remaining work is launch validation with real usage rather than missing core functionality.
 3. **Milestone 3 — Community feature-prioritization MVP:** trusted users can submit roadmap ideas, staff can moderate/merge/clarify them, approved ideas can enter a ranking pool, and trusted users can submit ordered priorities that roll up into a shared community-informed leaderboard.
 Status: complete for the current MVP loop. Trusted submission, author management/edit/resubmit, staff moderation, approved ranking-pool visibility, ordered ballot saving, and public leaderboard aggregation are now live. Remaining follow-up is polish rather than MVP capability: improve duplicate-merge ergonomics, expose richer roadmap history/context if needed, and then move into Milestone 4 domain-specific weighting.
 4. **Milestone 4 — Domain-specific weighting/reputation MVP:** the platform can apply small, auditable, domain-specific influence modifiers inside selected systems without introducing a global user weight; first use case is feature prioritization, with future reuse possible for delivery reliability and other trust-sensitive domains.
 Status: complete for the current MVP loop. The roadmap-first weighting foundation is live with a dedicated roadmap weighting domain, bounded per-user multipliers, required rationale for non-default overrides, auditable activity-log entries, active-community admin history, shared policy constants for the current 90%-110% range, and public weighted-vs-raw transparency on the roadmap leaderboard. Future work in later domains should reuse this pattern rather than expand it into a global user score.
-5. **Milestone 5 — Delivery jobs MVP:** requester can post a delivery job, eligible drivers can browse or receive it based on assignment mode, one driver can claim or accept dispatch, and the job can move through basic completion states.
-6. **Milestone 6 — Decide next bottleneck:** only after milestones 1 through 5 are stable should the platform choose among payments, restaurant ordering, merchant tooling, or broader integrations as the next expansion lane.
+5. **Milestone 5 — Article video embeds MVP:** trusted authors and editors can embed safe YouTube and Vimeo videos inside the active TipTap article flow so Local Life stories can include hosted video without opening native video upload/storage scope.
+6. **Milestone 6 — Delivery jobs MVP:** requester can post a delivery job, eligible drivers can browse or receive it based on assignment mode, one driver can claim or accept dispatch, and the job can move through basic completion states.
+7. **Milestone 7 — Decide next bottleneck:** only after milestones 1 through 6 are stable should the platform choose among payments, restaurant ordering, merchant tooling, or broader integrations as the next expansion lane.
 
 ### Phase 1: Wire listing pages to real data
 1. ~~Local Life → fetch from /api/articles (filtered by Local Life category children)~~ — done
@@ -417,7 +422,7 @@ Status: complete for the current MVP loop. The roadmap-first weighting foundatio
    - leave room for separate requester-side and driver-side reliability/reputation signals rather than a single delivery score
    - route design should leave room for defaults, negotiation, status tracking, deadlines, and future driver workflows
 17. ~~Image upload~~ — done (all forms wired). Local storage working. Still need: R2 swap for production.
-17b. Article video embeds (YouTube/Vimeo) in the active TipTap editor
+17b. Article video embeds (YouTube/Vimeo) in the active TipTap editor — prioritize this before Delivery Jobs / Milestone 6
 
 ### Phase 4: Polish & production
 18. Error handling, loading states, mobile responsive, SEO metadata
@@ -453,11 +458,12 @@ Status: complete for the current MVP loop. The roadmap-first weighting foundatio
 - **Roadmap ranking follow-up:** Verified the ordered-ballot slice through repo-wide type checking plus the public roadmap/ballot surface. Trusted users can now save one ordered top-five ballot, approved ranking-pool ideas show live score/position metadata, and the roadmap page now exposes a visible community-priority leaderboard without changing the later Milestone 4 weighting assumptions.
 - **Roadmap weighting follow-up:** Verified the roadmap-weighting slice through Prisma client regeneration, repo-wide type checking, and the new admin/public roadmap code paths. The current implementation keeps weighting domain-specific and bounded to the roadmap leaderboard, but local DB schema application still depends on the same manual-Postgres fallback when Prisma’s schema engine fails on `db push`.
 - **Roadmap weighting transparency follow-up:** Verified the transparency pass through repo-wide type checking and the updated public/admin roadmap payloads. The leaderboard now exposes both weighted and raw point totals, and the admin weight-management screen now has a native recent-change view without requiring a separate audit page visit.
-- **Tooling follow-up:** ESLint config and Jest unit-test config/scripts remain repaired. `npm run lint` still executes with warnings only. `npm run test:unit` was re-run after the legacy cleanup and is green on the remaining current suite.
+- **Tooling follow-up:** ESLint config and Jest unit-test config/scripts remain repaired. `npm run lint` still executes with warnings only. `npm run test:unit` was re-run after the legacy cleanup and is green on the remaining current suite. The canonical verification sequence is now `npm run lint`, `npm run test:unit`, `npm run typecheck`, then `npm run build`.
 - **TypeScript cleanup follow-up:** The legacy cleanup lane landed. `npx tsc --noEmit` now passes without the prior file-level exclusions, including the rewritten auth/community/trust/audit/upload helpers, the repaired settings/blocking routes, and the remaining tests.
 - **Test cleanup follow-up:** Stale schema-era integration/e2e/unit tests plus the old shared `tests/helpers.ts` factory were removed rather than carried forward with dead field names and mock shapes. The remaining tests are intentionally the ones that still describe live behavior.
 - **Important implication:** Future work can use `npx tsc --noEmit` as a repo-wide gate again. Do not reintroduce blanket test/file exclusions to hide drift; either keep a slice current or delete it.
 - **Repository bootstrap follow-up:** The repo now has an initial git commit and a live GitHub remote at `https://github.com/dsjrego/highlander-today`. Alongside that bootstrap, `README.md` was rewritten to match the current app surface and setup assumptions, `.env.example` was corrected to use Docker Postgres on `127.0.0.1:5433`, and `src/app/api/health/route.ts` was added so the existing Docker health check no longer points at a missing route. These changes were repo/deployment-readiness cleanup only; no app behavior beyond the new health endpoint was changed, and no test/build verification was re-run for this documentation/bootstrap pass.
+- **Deployment verification follow-up:** The previously unverified bootstrap/deployment cleanup has now been checked with a full local verification pass. `npm run lint`, `npm run test:unit`, `npm run typecheck`, and `npm run build` all pass sequentially, and CI now mirrors that same gate on GitHub. Remaining launch blockers are operational rather than code-level: production DB provisioning/migration, OAuth app publication, production-safe upload storage, secrets management, and geolocation vendor swap.
 
 ---
 
@@ -493,19 +499,107 @@ Run the super admin script once. After that, the Super Admin uses the admin UI t
 - **Alternative (OAuth bootstrap):** First user signs in via Google/Facebook OAuth, then promote to Super Admin via the script or a direct DB update. Avoids putting a password in env vars entirely.
 - **Local dev:** if you want the old seeded-admin convenience locally, run the explicit Super Admin script after `db seed` rather than re-embedding credentials in the seed.
 - **Geolocation:** Swap ip-api.com → MaxMind GeoIP for production (gotcha #18).
-- **OAuth apps:** Google and Facebook apps are in dev/test mode — must be published/reviewed before production (gotcha #17).
+- **OAuth apps:** Google and Facebook OAuth are already configured for local development, but the apps are still in dev/test mode and must be published/reviewed with production redirect URIs before production launch (gotcha #17).
 
 ---
 
 ## Upload Snapshot
 
-- **Current storage:** local filesystem under `public/uploads/{context}/`
+- **Current local storage:** filesystem under `public/uploads/{context}/`
 - **Active endpoint:** `src/app/api/upload/route.ts`
 - **Active component:** `src/components/shared/ImageUpload.tsx`
 - **Supported types:** JPEG, PNG, WebP, GIF up to 5MB
 - **Wired flows:** article featured image, TipTap inline images, profile photo, event image, marketplace images
 - **Legacy component:** `src/components/shared/ImageUploader.tsx`
-- **Production plan:** swap the API route to `src/lib/upload.ts` for Cloudflare R2 when storage/CDN work begins
+- **Production storage path:** `/api/upload` now uses `src/lib/upload.ts` for Cloudflare R2 when the production R2 env vars are present; otherwise production uploads should be treated as misconfigured
+
+---
+
+## Recommended Production Infrastructure
+
+This is the current recommended launch setup for the first public deployment. It is chosen to fit the current codebase, stay within the approximate `$100/month` launch budget, and preserve a clean path to larger multi-community expansion if the product gains traction.
+
+### Recommended stack
+
+- **App hosting:** Vercel
+- **Primary database:** Neon Postgres
+- **Object storage / uploads:** Cloudflare R2
+- **DNS / edge proxy:** Cloudflare DNS
+- **Source control / CI trigger:** GitHub + GitHub Actions
+
+### Why this is the current recommendation
+
+- The app is a single Next.js 14 monolith with App Router, Prisma, and NextAuth; it does not currently justify a multi-service or container-orchestration deployment model.
+- The initial service area is small enough that launch risk is product adoption and operational readiness, not raw infrastructure scale.
+- Vercel is the most straightforward fit for the active Next.js surface and minimizes deployment friction while the product is still validating its first market/community.
+- Neon keeps the data layer on standard PostgreSQL rather than a proprietary database model and can scale upward before any re-architecture is needed.
+- Cloudflare R2 externalizes uploads early so production is not tied to local filesystem storage and media remains portable if app hosting changes later.
+- Cloudflare DNS keeps domain management and edge routing separate from the app host, which improves long-term portability.
+
+### Target launch budget
+
+- **Expected launch posture:** keep total recurring infrastructure spend roughly in the `$35-$60/month` range at low to moderate early usage, leaving room inside the `$100/month` target for domain, email, monitoring, and modest usage variance.
+- **Do not pre-buy scale:** launch on the smallest production-capable paid tiers that avoid hobby-plan limitations, then increase capacity only when usage justifies it.
+
+### Upgrade-path principle
+
+The platform must launch cheaply without creating migration traps. The core rule is: **optimize for portability, not premature complexity**.
+
+That means:
+
+- keep the app as one deployable service until actual workload justifies splitting responsibilities
+- keep the database on standard PostgreSQL features and avoid deep provider lock-in
+- move uploads to R2 so file storage is already externalized from the app runtime
+- keep tenant/community resolution in the app + database model rather than in host-specific routing tricks
+- keep CI/CD centered on GitHub Actions rather than provider-specific deployment logic
+
+### Planned scaling path
+
+1. **Scale vertically first**  
+   Increase Vercel and Neon capacity before introducing new services or architectural splits.
+
+2. **Add operational hardening second**  
+   Prioritize monitoring, error tracking, rate limiting, backups, transactional email, and secret hygiene before redesigning the hosting topology.
+
+3. **Add background-job infrastructure only when justified**  
+   Introduce queues/workers for email, notifications, media processing, imports, digests, or search maintenance only after those jobs become operationally meaningful.
+
+4. **Reassess app hosting only when economics or workload demand it**  
+   If Vercel becomes too expensive or too operationally constraining, the app should still be portable to Render, Fly.io, or AWS because the stack remains standard Next.js + PostgreSQL + S3-compatible object storage.
+
+5. **Strengthen multi-tenant boundaries before aggressive geographic expansion**  
+   The main scaling risk from rapid expansion is likely to be tenant isolation, moderation boundaries, search relevance, and operational process across communities before it is raw traffic volume.
+
+### Explicit non-goals for launch infrastructure
+
+- No Kubernetes
+- No microservice split
+- No custom container platform unless forced by clear hosting constraints
+- No premature event bus / distributed-systems architecture
+- No full checkout/payments/shipping infrastructure before marketplace demand proves it is warranted
+
+### Pre-launch infrastructure checklist
+
+- Provision production Postgres
+- Configure production `DATABASE_URL`
+- Move uploads to Cloudflare R2
+- Configure production secrets in the hosting platform
+- Set production `NEXTAUTH_URL`
+- Put the production domain behind Cloudflare DNS
+- Update Google and Facebook OAuth from local-dev setup to production-ready configuration, including production redirect URIs and any required publication/review
+- Replace the current production geolocation placeholder/vendor assumption as already noted elsewhere in this file
+- Before executing any of the above, provide explicit account-creation and setup instructions for any external service the owner has not already configured (at minimum: Vercel, Neon, Cloudflare/R2, Google OAuth, Facebook OAuth, and any production geolocation provider). Future sessions should not assume those accounts, buckets, API credentials, or dashboard projects already exist.
+- Run the production bootstrap flow:
+
+```bash
+npm run db:push
+npx prisma db seed
+SUPER_ADMIN_EMAIL=... SUPER_ADMIN_PASSWORD=... npm run db:create-super-admin
+```
+
+### Current recommendation status
+
+This is the active infrastructure recommendation unless future product requirements, usage patterns, or budget constraints materially change. Future sessions should treat this as the working production direction rather than re-opening the hosting decision from scratch.
 
 ---
 

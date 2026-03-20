@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -15,7 +16,7 @@ const SUBCATEGORIES = [
   { label: 'Seasonal Activities',       slug: 'seasonal' },
 ];
 
-export default function ExperiencesPage() {
+function ExperiencesPageContent() {
   const searchParams = useSearchParams();
   const activeCategory = searchParams.get('category');
 
@@ -82,5 +83,13 @@ export default function ExperiencesPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ExperiencesPage() {
+  return (
+    <Suspense fallback={<div className="py-12 text-center text-gray-500">Loading experiences...</div>}>
+      <ExperiencesPageContent />
+    </Suspense>
   );
 }
