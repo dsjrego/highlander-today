@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ImageUpload from "@/components/shared/ImageUpload";
+import InternalPageHeader from "@/components/shared/InternalPageHeader";
 
 export default function CreateStorePage() {
   const router = useRouter();
@@ -75,18 +76,21 @@ export default function CreateStorePage() {
   }
 
   return (
-    <div>
-      <div
-        className="flex items-start justify-between gap-4 mb-8 pb-3 border-b-2"
-        style={{ borderColor: "#A51E30" }}
-      >
-        <div>
-          <h1 className="text-2xl font-bold">Create a Store</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Create a local storefront profile that can be reviewed and approved for marketplace listings.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-8">
+      <InternalPageHeader
+        title="Create a Store"
+        actions={
+          <Link
+            href="/marketplace/stores"
+            className="rounded-full border border-white/14 bg-white/8 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/12"
+          >
+            My Stores
+          </Link>
+        }
+      />
+      <p className="max-w-3xl text-sm leading-7 text-slate-500">
+        Create a local storefront profile that can be reviewed and approved for marketplace listings.
+      </p>
 
       {error ? (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">

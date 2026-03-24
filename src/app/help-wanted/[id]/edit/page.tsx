@@ -156,63 +156,68 @@ export default function EditHelpWantedPage({ params }: PageProps) {
   }
 
   if (isLoading) {
-    return <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center text-gray-500">Loading post...</div>;
+    return <div className="rounded-[28px] border border-white/10 bg-white/70 p-8 text-center text-slate-500 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">Loading post...</div>;
   }
 
   if (error && !post) {
-    return <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">{error}</div>;
+    return <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">{error}</div>;
   }
 
   return (
-    <div>
-      <div className="flex items-start justify-between gap-4 mb-8 pb-3 border-b-2" style={{ borderColor: '#A51E30' }}>
+    <div className="space-y-8">
+      <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(143,29,44,0.96),rgba(10,32,51,0.94))] px-6 py-8 text-white shadow-[0_35px_80px_rgba(7,17,26,0.22)] md:px-10 md:py-10">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Edit Help Wanted Post</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/74">
+            Help Wanted
+          </p>
+          <h1 className="mt-4 text-4xl font-black leading-[0.95] tracking-[-0.05em] md:text-6xl">Edit your post</h1>
+          <p className="mt-4 text-base leading-8 text-white/78 md:text-lg">
             Update the post and return to your Help Wanted dashboard.
           </p>
         </div>
         <Link
           href="/help-wanted/manage"
-          className="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-gray-100 text-gray-800 font-semibold"
+          className="inline-flex items-center justify-center rounded-full bg-white px-5 py-2.5 font-semibold text-slate-950"
         >
           Back to My Posts
         </Link>
       </div>
+      </section>
 
       {error ? (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
           {error}
         </div>
       ) : null}
 
-      <div className="bg-blue-50 border border-blue-200 text-blue-900 rounded-xl px-4 py-3 mb-6 text-sm">
+      <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
         Editing lets you improve clarity before resubmitting or reusing the post. Keep response details on-platform and avoid public phone numbers or email addresses in the text or image.
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8 space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6 rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
               Current Status
             </label>
-            <div className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-700">
+            <div className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700">
               {post?.status.replace('_', ' ')}
             </div>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-2 text-xs text-slate-500">
               Draft and rejected posts can be revised before resubmission. Published posts stay managed from your dashboard.
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
               Posting Type
             </label>
             <select
               name="postingType"
               value={formData.postingType}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             >
               {POSTING_TYPE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -224,7 +229,7 @@ export default function EditHelpWantedPage({ params }: PageProps) {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-semibold text-slate-700">
             Title
           </label>
           <input
@@ -232,12 +237,12 @@ export default function EditHelpWantedPage({ params }: PageProps) {
             name="title"
             value={formData.title}
             onChange={handleInputChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-semibold text-slate-700">
             Description
           </label>
           <textarea
@@ -245,23 +250,23 @@ export default function EditHelpWantedPage({ params }: PageProps) {
             value={formData.description}
             onChange={handleInputChange}
             rows={6}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
           />
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-2 text-xs text-slate-500">
             Include the work, timing, local context, compensation, and what a responder should know before opening a message thread.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
               Compensation Type
             </label>
             <select
               name="compensationType"
               value={formData.compensationType}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             >
               {COMPENSATION_TYPE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -272,7 +277,7 @@ export default function EditHelpWantedPage({ params }: PageProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
               Compensation Details
             </label>
             <input
@@ -280,14 +285,14 @@ export default function EditHelpWantedPage({ params }: PageProps) {
               name="compensationText"
               value={formData.compensationText}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
               Location
             </label>
             <input
@@ -295,12 +300,12 @@ export default function EditHelpWantedPage({ params }: PageProps) {
               name="locationText"
               value={formData.locationText}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
               Schedule / Timing
             </label>
             <input
@@ -308,13 +313,13 @@ export default function EditHelpWantedPage({ params }: PageProps) {
               name="scheduleText"
               value={formData.scheduleText}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-semibold text-slate-700">
             Optional Closing Date
           </label>
           <input
@@ -322,7 +327,7 @@ export default function EditHelpWantedPage({ params }: PageProps) {
             name="expiresAt"
             value={formData.expiresAt}
             onChange={handleInputChange}
-            className="w-full md:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC] md:w-auto"
           />
         </div>
 
@@ -340,14 +345,14 @@ export default function EditHelpWantedPage({ params }: PageProps) {
           <button
             type="submit"
             disabled={isSaving}
-            className="flex-1 bg-[#46A8CC] text-white font-bold py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+            className="flex-1 rounded-xl bg-slate-950 py-3 font-bold text-white transition hover:opacity-90 disabled:opacity-50"
           >
             {isSaving ? 'Saving...' : 'Save Changes'}
           </button>
           <button
             type="button"
             onClick={() => router.push('/help-wanted/manage')}
-            className="flex-1 border border-gray-300 text-gray-700 font-bold py-2 rounded-lg hover:bg-gray-50 transition"
+            className="flex-1 rounded-xl border border-slate-300 py-3 font-bold text-slate-700 transition hover:bg-slate-50"
           >
             Cancel
           </button>

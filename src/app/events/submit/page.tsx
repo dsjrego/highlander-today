@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import ImageUpload from "@/components/shared/ImageUpload";
+import InternalPageHeader from "@/components/shared/InternalPageHeader";
 
 export default function SubmitEventPage() {
   const router = useRouter();
@@ -78,32 +79,25 @@ export default function SubmitEventPage() {
   }
 
   return (
-    <div>
-      <div
-        className="flex items-start justify-between gap-4 mb-8 pb-3 border-b-2"
-        style={{ borderColor: "#A51E30" }}
-      >
-        <div>
-          <h1 className="text-2xl font-bold">Submit an Event</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Share a local gathering, activity, or public event for community review.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-8">
+      <InternalPageHeader title="Events" titleClassName="text-white" />
+      <p className="max-w-3xl text-sm leading-7 text-slate-500">
+        Share a local gathering, activity, or public event for community review.
+      </p>
 
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">
+        <div className="rounded-xl border border-red-400 bg-red-100 px-4 py-3 text-red-700">
           {error}
         </div>
       )}
 
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-6 md:p-8 rounded-xl border border-gray-200 shadow-sm space-y-6"
+        className="space-y-6 rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur md:p-8"
       >
         {/* Title */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-bold text-slate-700">
             Event Title *
           </label>
           <input
@@ -111,21 +105,21 @@ export default function SubmitEventPage() {
             name="title"
             value={formData.title}
             onChange={handleInputChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             placeholder="Event title"
           />
         </div>
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-bold text-slate-700">
             Description
           </label>
           <textarea
             name="description"
             value={formData.description}
             onChange={handleInputChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             rows={4}
             placeholder="Event description"
           />
@@ -134,7 +128,7 @@ export default function SubmitEventPage() {
         {/* Date and Time */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-bold text-slate-700">
               Start Date *
             </label>
             <input
@@ -142,11 +136,11 @@ export default function SubmitEventPage() {
               name="startDate"
               value={formData.startDate}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             />
           </div>
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-bold text-slate-700">
               Start Time
             </label>
             <input
@@ -154,7 +148,7 @@ export default function SubmitEventPage() {
               name="startTime"
               value={formData.startTime}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             />
           </div>
         </div>
@@ -162,7 +156,7 @@ export default function SubmitEventPage() {
         {/* End Date and Time */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-bold text-slate-700">
               End Date
             </label>
             <input
@@ -170,11 +164,11 @@ export default function SubmitEventPage() {
               name="endDate"
               value={formData.endDate}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             />
           </div>
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-bold text-slate-700">
               End Time
             </label>
             <input
@@ -182,14 +176,14 @@ export default function SubmitEventPage() {
               name="endTime"
               value={formData.endTime}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             />
           </div>
         </div>
 
         {/* Location */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-bold text-slate-700">
             Location *
           </label>
           <input
@@ -197,14 +191,14 @@ export default function SubmitEventPage() {
             name="location"
             value={formData.location}
             onChange={handleInputChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             placeholder="Event location"
           />
         </div>
 
         {/* Cost */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-bold text-slate-700">
             Cost
           </label>
           <input
@@ -212,14 +206,14 @@ export default function SubmitEventPage() {
             name="costText"
             value={formData.costText}
             onChange={handleInputChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             placeholder="Free, $10, donation suggested, etc."
           />
         </div>
 
         {/* Contact info */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-bold text-slate-700">
             Contact Info
           </label>
           <input
@@ -227,7 +221,7 @@ export default function SubmitEventPage() {
             name="contactInfo"
             value={formData.contactInfo}
             onChange={handleInputChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             placeholder="Email, phone number, or organizer contact"
           />
         </div>
@@ -254,22 +248,22 @@ export default function SubmitEventPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="flex-1 bg-[#46A8CC] text-white font-bold py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+            className="flex-1 rounded-xl bg-slate-950 py-3 font-bold text-white transition hover:opacity-90 disabled:opacity-50"
           >
             {isLoading ? "Submitting..." : "Submit Event"}
           </button>
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex-1 bg-gray-300 text-gray-800 font-bold py-2 rounded-lg hover:bg-gray-400 transition"
+            className="flex-1 rounded-xl border border-slate-300 py-3 font-bold text-slate-800 transition hover:bg-slate-50"
           >
             Cancel
           </button>
         </div>
       </form>
 
-      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-gray-700">
-        <p className="font-semibold mb-2">Event Guidelines:</p>
+      <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-4 text-sm text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
+        <p className="mb-2 font-semibold text-cyan-100/74">Event Guidelines</p>
         <ul className="space-y-1 list-disc list-inside text-xs">
           <li>Provide accurate event details</li>
           <li>Include a clear location</li>

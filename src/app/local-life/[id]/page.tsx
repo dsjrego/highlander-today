@@ -106,22 +106,21 @@ export default function ArticleDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center py-20">
-        <div className="text-gray-500">Loading article...</div>
+      <div className="rounded-[28px] border border-white/10 bg-white/70 px-6 py-20 text-center text-slate-500 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">
+        Loading article...
       </div>
     );
   }
 
   if (notFound || !article) {
     return (
-      <div className="text-center py-20">
-        <div className="text-6xl mb-4">📄</div>
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Article Not Found</h1>
-        <p className="text-gray-500 mb-6">This article may have been removed or is not yet published.</p>
+      <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] py-20 text-center text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
+        <p className="mb-4 text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/66">Local Life</p>
+        <h1 className="mb-2 text-2xl font-bold text-white">Article Not Found</h1>
+        <p className="mb-6 text-white/70">This article may have been removed or is not yet published.</p>
         <Link
           href="/local-life"
-          className="inline-block px-6 py-3 text-white font-semibold rounded-full hover:opacity-90 transition"
-          style={{ backgroundColor: '#A51E30' }}
+          className="inline-block rounded-full bg-white px-6 py-3 font-semibold text-slate-950 transition hover:opacity-90"
         >
           Back to Local Life
         </Link>
@@ -142,10 +141,10 @@ export default function ArticleDetailPage() {
   const showStatusBanner = article.status !== 'PUBLISHED';
 
   return (
-    <div>
+    <div className="space-y-8">
       {/* Status banner for non-published articles */}
       {showStatusBanner && (
-        <div className={`mb-6 p-3 rounded-lg text-sm font-medium ${
+        <div className={`rounded-2xl p-3 text-sm font-medium ${
           article.status === 'DRAFT'
             ? 'bg-gray-100 text-gray-700'
             : article.status === 'PENDING_REVIEW'
@@ -159,8 +158,8 @@ export default function ArticleDetailPage() {
       )}
 
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
-        <Link href="/local-life" className="hover:text-[#A51E30] transition-colors">
+      <div className="flex items-center gap-2 text-sm text-slate-400">
+        <Link href="/local-life" className="transition-colors hover:text-[#8f1d2c]">
           Local Life
         </Link>
         {article.category && (
@@ -168,7 +167,7 @@ export default function ArticleDetailPage() {
             <span>/</span>
             <Link
               href={`/local-life?category=${article.category.slug}`}
-              className="hover:text-[#A51E30] transition-colors"
+              className="transition-colors hover:text-[#8f1d2c]"
             >
               {article.category.name}
             </Link>
@@ -176,38 +175,47 @@ export default function ArticleDetailPage() {
         )}
       </div>
 
-      {/* Title */}
-      <h1 className="text-3xl font-bold text-gray-900 mb-4 leading-tight">
-        {article.title}
-      </h1>
-
-      {/* Author + Date */}
-      <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200">
-        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-          {article.author.profilePhotoUrl ? (
-            <img src={article.author.profilePhotoUrl} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <span className="text-sm font-bold text-gray-500">
-              {article.author.firstName[0]}{article.author.lastName[0]}
-            </span>
+      <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(143,29,44,0.96),rgba(10,32,51,0.94))] px-6 py-8 text-white shadow-[0_35px_80px_rgba(7,17,26,0.22)] md:px-10 md:py-10">
+        <div className="max-w-4xl">
+          {article.category && (
+            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/72">
+              {article.category.name}
+            </p>
           )}
-        </div>
-        <div>
-          <Link
-            href={`/profile/${article.author.id}`}
-            className="font-semibold text-gray-800 hover:text-[#A51E30] transition-colors text-sm"
-          >
-            {article.author.firstName} {article.author.lastName}
-          </Link>
-          {publishedDate && (
-            <p className="text-xs text-gray-400">{publishedDate}</p>
+          <h1 className="mt-4 text-4xl font-black leading-[0.95] tracking-[-0.05em] md:text-6xl">
+            {article.title}
+          </h1>
+          {article.excerpt && (
+            <p className="mt-5 max-w-3xl text-base leading-8 text-white/78 md:text-lg">
+              {article.excerpt}
+            </p>
           )}
+          <div className="mt-6 flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-white/12">
+              {article.author.profilePhotoUrl ? (
+                <img src={article.author.profilePhotoUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-sm font-bold text-white/78">
+                  {article.author.firstName[0]}{article.author.lastName[0]}
+                </span>
+              )}
+            </div>
+            <div>
+              <Link
+                href={`/profile/${article.author.id}`}
+                className="text-sm font-semibold text-white transition-colors hover:text-cyan-200"
+              >
+                {article.author.firstName} {article.author.lastName}
+              </Link>
+              {publishedDate && <p className="text-xs text-white/60">{publishedDate}</p>}
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* Featured image */}
       {article.featuredImageUrl && (
-        <div className="mb-8 rounded-xl overflow-hidden">
+        <div className="overflow-hidden rounded-[28px] border border-white/10 shadow-[0_24px_55px_rgba(7,17,26,0.14)]">
           <img
             src={article.featuredImageUrl}
             alt={article.title}
@@ -217,19 +225,20 @@ export default function ArticleDetailPage() {
       )}
 
       {/* Article body */}
-      <div
-        className="prose prose-lg max-w-none mb-8"
-        dangerouslySetInnerHTML={{ __html: article.body }}
-      />
+      <section className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
+        <div
+          className="prose prose-lg max-w-none prose-headings:text-slate-950 prose-p:text-slate-700 prose-li:text-slate-700 prose-a:text-[#8f1d2c]"
+          dangerouslySetInnerHTML={{ __html: article.body }}
+        />
+      </section>
 
       {/* Tags */}
       {article.tags.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-8 pt-6 border-t border-gray-200">
+        <div className="flex flex-wrap gap-2">
           {article.tags.map((at) => (
             <span
               key={at.tag.id}
-              className="px-3 py-1 text-xs font-medium rounded-full text-white"
-              style={{ backgroundColor: '#A51E30' }}
+              className="rounded-full bg-slate-950 px-3 py-1 text-xs font-medium text-white"
             >
               #{at.tag.name}
             </span>
@@ -239,14 +248,14 @@ export default function ArticleDetailPage() {
 
       {/* About the author */}
       {article.author.bio && (
-        <div className="bg-gray-50 rounded-xl p-5 mb-8">
-          <h3 className="text-sm font-semibold text-gray-600 mb-2">About the Author</h3>
+        <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-5 text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
+          <h3 className="mb-2 text-sm font-semibold text-cyan-100/70">About the Author</h3>
           <div className="flex items-start gap-3">
-            <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden shrink-0">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/12">
               {article.author.profilePhotoUrl ? (
                 <img src={article.author.profilePhotoUrl} alt="" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-sm font-bold text-gray-500">
+                <span className="text-sm font-bold text-white/78">
                   {article.author.firstName[0]}{article.author.lastName[0]}
                 </span>
               )}
@@ -254,11 +263,11 @@ export default function ArticleDetailPage() {
             <div>
               <Link
                 href={`/profile/${article.author.id}`}
-                className="font-semibold text-gray-800 hover:text-[#A51E30] transition-colors"
+                className="font-semibold text-white transition-colors hover:text-cyan-200"
               >
                 {article.author.firstName} {article.author.lastName}
               </Link>
-              <p className="text-sm text-gray-500 mt-1">{article.author.bio}</p>
+              <p className="mt-1 text-sm text-white/70">{article.author.bio}</p>
             </div>
           </div>
         </div>
@@ -266,7 +275,7 @@ export default function ArticleDetailPage() {
 
       {/* Comments */}
       {article.status === 'PUBLISHED' && (
-        <div className="border-t border-gray-200 pt-8">
+        <div className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
           <CommentThread
             comments={article.comments || []}
             onAddComment={handleAddComment}
@@ -281,11 +290,10 @@ export default function ArticleDetailPage() {
       )}
 
       {/* Back link */}
-      <div className="mt-8 pt-6 border-t border-gray-200">
+      <div>
         <Link
           href="/local-life"
-          className="text-sm font-medium hover:underline"
-          style={{ color: '#A51E30' }}
+          className="text-sm font-semibold text-[#8f1d2c] hover:underline"
         >
           &larr; Back to Local Life
         </Link>

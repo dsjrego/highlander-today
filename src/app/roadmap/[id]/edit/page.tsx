@@ -105,36 +105,41 @@ export default function EditRoadmapIdeaPage() {
   }
 
   if (isLoading) {
-    return <div className="flex justify-center items-center py-20 text-gray-500">Loading roadmap idea...</div>;
+    return <div className="rounded-[28px] border border-white/10 bg-white/70 px-6 py-20 text-center text-slate-500 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">Loading roadmap idea...</div>;
   }
 
   if (error && !status) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-5 py-4">
+      <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-red-700">
         {error}
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="flex items-start justify-between gap-4 mb-8 pb-3 border-b-2" style={{ borderColor: '#A51E30' }}>
+    <div className="space-y-8">
+      <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(143,29,44,0.96),rgba(10,32,51,0.94))] px-6 py-8 text-white shadow-[0_35px_80px_rgba(7,17,26,0.22)] md:px-10 md:py-10">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Edit Roadmap Idea</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/74">
+            Roadmap
+          </p>
+          <h1 className="mt-4 text-4xl font-black leading-[0.95] tracking-[-0.05em] md:text-6xl">Edit roadmap idea</h1>
+          <p className="mt-4 text-base leading-8 text-white/78 md:text-lg">
             Update your proposal and {status === 'DECLINED' ? 'resubmit it for review.' : 'keep it clear while staff reviews it.'}
           </p>
         </div>
       </div>
+      </section>
 
       {error ? (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">
+        <div className="rounded-xl border border-red-400 bg-red-100 px-4 py-3 text-red-700">
           {error}
         </div>
       ) : null}
 
       {status === 'DECLINED' && staffNotes ? (
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-900 rounded-xl px-4 py-3 mb-6 text-sm whitespace-pre-wrap">
+        <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm whitespace-pre-wrap text-yellow-900">
           <p className="font-semibold mb-1">Staff feedback</p>
           <p>{staffNotes}</p>
         </div>
@@ -142,38 +147,38 @@ export default function EditRoadmapIdeaPage() {
 
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-6 md:p-8 rounded-xl border border-gray-200 shadow-sm space-y-6"
+        className="space-y-6 rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur md:p-8"
       >
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">Idea Title *</label>
+          <label className="mb-2 block text-sm font-bold text-slate-700">Idea Title *</label>
           <input
             type="text"
             name="title"
             value={formData.title}
             onChange={handleInputChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">Short Summary *</label>
+          <label className="mb-2 block text-sm font-bold text-slate-700">Short Summary *</label>
           <textarea
             name="summary"
             value={formData.summary}
             onChange={handleInputChange}
             rows={3}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">Detailed Explanation *</label>
+          <label className="mb-2 block text-sm font-bold text-slate-700">Detailed Explanation *</label>
           <textarea
             name="description"
             value={formData.description}
             onChange={handleInputChange}
             rows={8}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
           />
         </div>
 
@@ -181,15 +186,14 @@ export default function EditRoadmapIdeaPage() {
           <button
             type="button"
             onClick={() => router.push(`/roadmap/${params.id}`)}
-            className="px-5 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
+            className="rounded-xl border border-slate-300 px-5 py-3 text-slate-700 transition hover:bg-slate-50"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSaving}
-            className="px-6 py-2 text-white font-semibold rounded-lg hover:opacity-90 transition disabled:opacity-50"
-            style={{ backgroundColor: '#A51E30' }}
+            className="rounded-xl bg-slate-950 px-6 py-3 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
           >
             {isSaving ? 'Saving...' : status === 'DECLINED' ? 'Save and Resubmit' : 'Save Changes'}
           </button>

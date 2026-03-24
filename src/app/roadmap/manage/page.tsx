@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import InternalPageHeader from '@/components/shared/InternalPageHeader';
 
 type RoadmapIdeaStatus =
   | 'SUBMITTED'
@@ -137,32 +138,42 @@ export default function ManageRoadmapIdeasPage() {
   }
 
   return (
-    <div>
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8 pb-3 border-b-2" style={{ borderColor: '#A51E30' }}>
-        <div>
-          <h1 className="text-2xl font-bold">My Roadmap Ideas</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Track moderation status, revise declined ideas, and follow which submissions have moved into the public roadmap.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => router.push('/roadmap')}
-            className="px-4 py-2 bg-white text-gray-700 text-sm font-semibold rounded-full shadow-sm hover:shadow-md transition"
-          >
-            View Roadmap
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push('/roadmap/submit')}
-            className="px-4 py-2 text-white text-sm font-semibold rounded-full hover:opacity-90 transition"
-            style={{ backgroundColor: '#A51E30' }}
-          >
-            + Submit Idea
-          </button>
-        </div>
-      </div>
+    <div className="space-y-8">
+      <InternalPageHeader
+        title="My Roadmap Ideas"
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={() => router.push('/roadmap')}
+              className="rounded-full border border-white/14 bg-white/8 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/12"
+            >
+              View Roadmap
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push('/roadmap/submit')}
+              className="inline-flex items-center rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-950 transition hover:opacity-90"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 16 16"
+                className="h-3.5 w-3.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
+                <path d="M8 3.25v9.5M3.25 8h9.5" />
+              </svg>
+              Submit Idea
+            </button>
+          </>
+        }
+      />
+      <p className="max-w-3xl text-sm leading-7 text-slate-500">
+        Track moderation status, revise declined ideas, and follow which submissions have moved into the public roadmap.
+      </p>
 
       {error ? (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">

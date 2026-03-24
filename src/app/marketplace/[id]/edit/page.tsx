@@ -161,7 +161,7 @@ export default function EditListingPage({ params }: PageProps) {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center text-gray-500">
+      <div className="rounded-[28px] border border-white/10 bg-white/70 p-8 text-center text-slate-500 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">
         Loading listing...
       </div>
     );
@@ -169,61 +169,65 @@ export default function EditListingPage({ params }: PageProps) {
 
   if (error && !listing) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
         {error}
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="space-y-8">
+      <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(143,29,44,0.96),rgba(10,32,51,0.94))] px-6 py-8 text-white shadow-[0_35px_80px_rgba(7,17,26,0.22)] md:px-10 md:py-10">
       <div
-        className="flex items-start justify-between gap-4 mb-8 pb-3 border-b-2"
-        style={{ borderColor: "#A51E30" }}
+        className="flex items-start justify-between gap-4"
       >
         <div>
-          <h1 className="text-2xl font-bold">Edit Listing</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/74">
+            Market
+          </p>
+          <h1 className="mt-4 text-4xl font-black leading-[0.95] tracking-[-0.05em] md:text-6xl">Edit listing</h1>
+          <p className="mt-4 text-base leading-8 text-white/78 md:text-lg">
             Update listing details for {listing?.store.name}.
           </p>
         </div>
         <Link
           href="/marketplace/stores"
-          className="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-gray-100 text-gray-800 font-semibold"
+          className="inline-flex items-center justify-center rounded-full bg-white px-5 py-2.5 font-semibold text-slate-950"
         >
           Back to My Stores
         </Link>
       </div>
+      </section>
 
       {error ? (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
           {error}
         </div>
       ) : null}
 
       <form
         onSubmit={handleSubmit}
-        className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8 space-y-6"
+        className="space-y-6 rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur md:p-8"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
               Store
             </label>
-            <div className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-700">
+            <div className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700">
               {listing?.store.name}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
               Listing Type
             </label>
             <select
               name="listingType"
               value={formData.listingType}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             >
               {LISTING_TYPE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -235,7 +239,7 @@ export default function EditListingPage({ params }: PageProps) {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-semibold text-slate-700">
             Listing Title
           </label>
           <input
@@ -244,20 +248,20 @@ export default function EditListingPage({ params }: PageProps) {
             value={formData.title}
             onChange={handleInputChange}
             placeholder="What are you offering?"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-[1fr_180px] gap-6">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
               Category
             </label>
             <select
               name="category"
               value={formData.category}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             >
               {CATEGORY_OPTIONS.map((category) => (
                 <option key={category} value={category}>
@@ -268,7 +272,7 @@ export default function EditListingPage({ params }: PageProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
               Price
             </label>
             <input
@@ -279,13 +283,13 @@ export default function EditListingPage({ params }: PageProps) {
               value={formData.price}
               onChange={handleInputChange}
               placeholder="0.00"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-semibold text-slate-700">
             Description
           </label>
           <textarea
@@ -294,7 +298,7 @@ export default function EditListingPage({ params }: PageProps) {
             onChange={handleInputChange}
             rows={6}
             placeholder="Describe the item or service clearly, including quality, quantity, delivery expectations, or booking details."
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
           />
         </div>
 
@@ -322,14 +326,14 @@ export default function EditListingPage({ params }: PageProps) {
           <button
             type="submit"
             disabled={isSaving}
-            className="flex-1 bg-[#46A8CC] text-white font-bold py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+            className="flex-1 rounded-xl bg-slate-950 py-3 font-bold text-white transition hover:opacity-90 disabled:opacity-50"
           >
             {isSaving ? "Saving..." : "Save Changes"}
           </button>
           <button
             type="button"
             onClick={() => router.push("/marketplace/stores")}
-            className="flex-1 bg-gray-300 text-gray-800 font-bold py-2.5 rounded-lg hover:bg-gray-400 transition"
+            className="flex-1 rounded-xl border border-slate-300 py-3 font-bold text-slate-800 transition hover:bg-slate-50"
           >
             Cancel
           </button>

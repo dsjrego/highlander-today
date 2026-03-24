@@ -144,7 +144,7 @@ export default function EditStorePage() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center text-gray-500">
+      <div className="rounded-[28px] border border-white/10 bg-white/70 p-8 text-center text-slate-500 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">
         Loading store...
       </div>
     );
@@ -152,40 +152,44 @@ export default function EditStorePage() {
 
   if (error && !store) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
         {error}
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="space-y-8">
+      <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(143,29,44,0.96),rgba(10,32,51,0.94))] px-6 py-8 text-white shadow-[0_35px_80px_rgba(7,17,26,0.22)] md:px-10 md:py-10">
       <div
-        className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8 pb-3 border-b-2"
-        style={{ borderColor: "#A51E30" }}
+        className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
       >
         <div>
-          <h1 className="text-2xl font-bold">Edit Store</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/74">
+            Market
+          </p>
+          <h1 className="mt-4 text-4xl font-black leading-[0.95] tracking-[-0.05em] md:text-6xl">Edit store</h1>
+          <p className="mt-4 text-base leading-8 text-white/78 md:text-lg">
             Update store details{store?.status === "REJECTED" ? " and resubmit for approval." : "."}
           </p>
         </div>
         <Link
           href="/marketplace/stores"
-          className="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-gray-200 text-gray-800 font-semibold"
+          className="inline-flex items-center justify-center rounded-full bg-white px-5 py-2.5 font-semibold text-slate-950"
         >
           Back to My Stores
         </Link>
       </div>
+      </section>
 
       {error ? (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
           {error}
         </div>
       ) : null}
 
       {successMessage ? (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6">
+        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-700">
           {successMessage}
         </div>
       ) : null}
@@ -193,17 +197,17 @@ export default function EditStorePage() {
       {store ? (
         <form
           onSubmit={handleSubmit}
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8 space-y-6"
+          className="space-y-6 rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur md:p-8"
         >
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-500">Current status:</span>
-            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+            <span className="text-sm text-slate-500">Current status:</span>
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
               {store.status.replace(/_/g, " ")}
             </span>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
               Store Name
             </label>
             <input
@@ -211,12 +215,12 @@ export default function EditStorePage() {
               name="name"
               value={formData.name}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
               Description
             </label>
             <textarea
@@ -224,13 +228,13 @@ export default function EditStorePage() {
               value={formData.description}
               onChange={handleInputChange}
               rows={5}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
                 Website
               </label>
               <input
@@ -238,11 +242,11 @@ export default function EditStorePage() {
                 name="websiteUrl"
                 value={formData.websiteUrl}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
                 Contact Email
               </label>
               <input
@@ -250,13 +254,13 @@ export default function EditStorePage() {
                 name="contactEmail"
                 value={formData.contactEmail}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
               Contact Phone
             </label>
             <input
@@ -264,7 +268,7 @@ export default function EditStorePage() {
               name="contactPhone"
               value={formData.contactPhone}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             />
           </div>
 
@@ -300,7 +304,7 @@ export default function EditStorePage() {
             <button
               type="submit"
               disabled={isSaving}
-              className="flex-1 bg-[#46A8CC] text-white font-bold py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+              className="flex-1 rounded-xl bg-slate-950 py-3 font-bold text-white transition hover:opacity-90 disabled:opacity-50"
             >
               {isSaving ? "Saving..." : "Save Changes"}
             </button>
@@ -309,8 +313,7 @@ export default function EditStorePage() {
                 type="button"
                 onClick={() => saveStore(true)}
                 disabled={isSaving}
-                className="flex-1 text-white font-bold py-2.5 rounded-lg disabled:opacity-50 transition"
-                style={{ backgroundColor: "#A51E30" }}
+                className="flex-1 rounded-xl bg-[#8f1d2c] py-3 font-bold text-white transition disabled:opacity-50"
               >
                 {isSaving ? "Working..." : "Resubmit for Approval"}
               </button>

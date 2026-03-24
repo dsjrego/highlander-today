@@ -3,6 +3,7 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import InternalPageHeader from '@/components/shared/InternalPageHeader';
 
 export default function SubmitRoadmapIdeaPage() {
   const router = useRouter();
@@ -101,22 +102,22 @@ export default function SubmitRoadmapIdeaPage() {
   }
 
   return (
-    <div>
-      <div className="flex items-start justify-between gap-4 mb-8 pb-3 border-b-2" style={{ borderColor: '#A51E30' }}>
-        <div>
-          <h1 className="text-2xl font-bold">Submit Roadmap Idea</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Propose a clear product improvement. Staff will review, clarify, merge, or decline ideas before they enter the roadmap pool.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => router.push('/roadmap/manage')}
-          className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-semibold rounded-full hover:bg-gray-200 transition"
-        >
-          My Ideas
-        </button>
-      </div>
+    <div className="space-y-8">
+      <InternalPageHeader
+        title="Submit Roadmap Idea"
+        actions={
+          <button
+            type="button"
+            onClick={() => router.push('/roadmap/manage')}
+            className="rounded-full border border-white/14 bg-white/8 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/12"
+          >
+            My Ideas
+          </button>
+        }
+      />
+      <p className="max-w-3xl text-sm leading-7 text-slate-500">
+        Propose a clear product improvement. Staff will review, clarify, merge, or decline ideas before they enter the roadmap pool.
+      </p>
 
       {error ? (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">

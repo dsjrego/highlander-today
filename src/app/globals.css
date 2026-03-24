@@ -186,10 +186,12 @@ button,
 
 /* Utility classes */
 .container {
-  max-width: 1280px;
+  width: 100%;
+  max-width: none;
+  margin-top: 10px;
   margin-left: auto;
   margin-right: auto;
-  padding: 0 1rem;
+  padding: 0 2rem;
 }
 
 .visually-hidden {
@@ -336,7 +338,7 @@ button,
   }
 
   .container {
-    padding: 0 0.75rem;
+    padding: 0 2rem;
   }
 }
 

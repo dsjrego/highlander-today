@@ -4,6 +4,7 @@ import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import ImageUpload from '@/components/shared/ImageUpload';
+import InternalPageHeader from '@/components/shared/InternalPageHeader';
 
 const POSTING_TYPE_OPTIONS = [
   {
@@ -123,12 +124,12 @@ export default function SubmitHelpWantedPage() {
   }
 
   if (sessionStatus === 'loading') {
-    return <div className="flex justify-center items-center py-20 text-gray-500">Loading...</div>;
+    return <div className="rounded-[28px] border border-white/10 bg-white/70 px-6 py-20 text-center text-slate-500 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">Loading...</div>;
   }
 
   if (sessionStatus !== 'authenticated') {
     return (
-      <div className="bg-blue-50 border border-blue-200 text-blue-900 rounded-xl px-5 py-4">
+      <div className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-4 text-blue-900">
         Sign in with a trusted account to post a Help Wanted opportunity.
       </div>
     );
@@ -136,45 +137,46 @@ export default function SubmitHelpWantedPage() {
 
   if (!isTrusted) {
     return (
-      <div className="bg-yellow-50 border border-yellow-200 text-yellow-900 rounded-xl px-5 py-4">
+      <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-5 py-4 text-yellow-900">
         Trusted membership is required before you can post to Help Wanted.
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="flex items-start justify-between gap-4 mb-8 pb-3 border-b-2" style={{ borderColor: '#A51E30' }}>
-        <div>
-          <h1 className="text-2xl font-bold">Post to Help Wanted</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Create a local opportunity for jobs, services, or short-term task work. Posts are reviewed before publication.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => router.push('/help-wanted/manage')}
-          className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-semibold rounded-full hover:bg-gray-200 transition"
-        >
-          My Posts
-        </button>
-      </div>
+    <div className="space-y-8">
+      <InternalPageHeader
+        title="Help Wanted"
+        titleClassName="text-white"
+        actions={
+          <button
+            type="button"
+            onClick={() => router.push('/help-wanted/manage')}
+            className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:opacity-90"
+          >
+            My Posts
+          </button>
+        }
+      />
+      <p className="max-w-3xl text-sm leading-7 text-slate-500">
+        Create a local opportunity for jobs, services, or short-term task work. Posts are reviewed before publication.
+      </p>
 
       {error ? (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">
+        <div className="rounded-xl border border-red-400 bg-red-100 px-4 py-3 text-red-700">
           {error}
         </div>
       ) : null}
 
-      <div className="bg-blue-50 border border-blue-200 text-blue-900 rounded-xl px-4 py-3 mb-6 text-sm">
+      <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
         To preserve accountability, responses stay inside Highlander Today messaging. Do not include public phone numbers or email addresses in the post body.
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">What happens next</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+      <div className="rounded-[28px] border border-white/10 bg-white/82 p-5 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">What happens next</h2>
+        <div className="grid grid-cols-1 gap-4 text-sm text-slate-600 md:grid-cols-3">
           <div>
-            <p className="font-semibold text-gray-900 mb-1">1. Submit for review</p>
+            <p className="mb-1 font-semibold text-slate-900">1. Submit for review</p>
             <p>Staff checks that the opportunity is local, clear, and appropriate for the community.</p>
           </div>
           <div>
@@ -190,10 +192,10 @@ export default function SubmitHelpWantedPage() {
 
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-6 md:p-8 rounded-xl border border-gray-200 shadow-sm space-y-6"
+        className="space-y-6 rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur md:p-8"
       >
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-bold text-slate-700">
             Posting Type *
           </label>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -203,7 +205,7 @@ export default function SubmitHelpWantedPage() {
                 className={`rounded-xl border p-4 cursor-pointer transition ${
                   formData.postingType === option.value
                     ? 'border-[#46A8CC] bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300'
+                    : 'border-slate-200 hover:border-slate-300'
                 }`}
               >
                 <input
@@ -214,15 +216,15 @@ export default function SubmitHelpWantedPage() {
                   onChange={handleInputChange}
                   className="sr-only"
                 />
-                <p className="font-semibold text-gray-900">{option.label}</p>
-                <p className="text-sm text-gray-500 mt-1">{option.description}</p>
+                <p className="font-semibold text-slate-900">{option.label}</p>
+                <p className="mt-1 text-sm text-slate-500">{option.description}</p>
               </label>
             ))}
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-bold text-slate-700">
             Title *
           </label>
           <input
@@ -230,38 +232,38 @@ export default function SubmitHelpWantedPage() {
             name="title"
             value={formData.title}
             onChange={handleInputChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             placeholder="Need a weekend cashier, looking for gutter repair, moving help needed..."
           />
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-bold text-slate-700">
             Description *
           </label>
           <textarea
             name="description"
             value={formData.description}
             onChange={handleInputChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             rows={6}
             placeholder="Explain the work, expectations, timing, and what kind of person or provider you are looking for."
           />
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-2 text-xs text-slate-500">
             Strong posts usually mention the work itself, timing, location, compensation, and anything responders should know before messaging.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-bold text-slate-700">
               Compensation Type
             </label>
             <select
               name="compensationType"
               value={formData.compensationType}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             >
               {COMPENSATION_TYPE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -271,7 +273,7 @@ export default function SubmitHelpWantedPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-bold text-slate-700">
               Compensation Details
             </label>
             <input
@@ -279,7 +281,7 @@ export default function SubmitHelpWantedPage() {
               name="compensationText"
               value={formData.compensationText}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
               placeholder="$20/hour, salary based on experience, flat $150, etc."
             />
           </div>
@@ -287,7 +289,7 @@ export default function SubmitHelpWantedPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-bold text-slate-700">
               Location
             </label>
             <input
@@ -295,12 +297,12 @@ export default function SubmitHelpWantedPage() {
               name="locationText"
               value={formData.locationText}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
               placeholder="Cambria Heights, in-home, remote, local storefront, etc."
             />
           </div>
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-bold text-slate-700">
               Schedule / Timing
             </label>
             <input
@@ -308,14 +310,14 @@ export default function SubmitHelpWantedPage() {
               name="scheduleText"
               value={formData.scheduleText}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
               placeholder="Weekdays, evenings, one-time weekend task, ASAP, etc."
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-bold text-slate-700">
             Optional Closing Date
           </label>
           <input
@@ -323,7 +325,7 @@ export default function SubmitHelpWantedPage() {
             name="expiresAt"
             value={formData.expiresAt}
             onChange={handleInputChange}
-            className="w-full md:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC] md:w-auto"
           />
         </div>
 
@@ -345,14 +347,14 @@ export default function SubmitHelpWantedPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="flex-1 bg-[#46A8CC] text-white font-bold py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+            className="flex-1 rounded-xl bg-slate-950 py-3 font-bold text-white transition hover:opacity-90 disabled:opacity-50"
           >
             {isLoading ? 'Submitting...' : 'Submit for Review'}
           </button>
           <button
             type="button"
             onClick={() => router.push('/help-wanted')}
-            className="flex-1 border border-gray-300 text-gray-700 font-bold py-2 rounded-lg hover:bg-gray-50 transition"
+            className="flex-1 rounded-xl border border-slate-300 py-3 font-bold text-slate-700 transition hover:bg-slate-50"
           >
             Cancel
           </button>

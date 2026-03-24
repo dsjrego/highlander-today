@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ConversationList } from "@/components/messaging/ConversationList";
+import InternalPageHeader from "@/components/shared/InternalPageHeader";
 
 interface ApiConversation {
   id: string;
@@ -100,15 +101,10 @@ export default function MessagesPage() {
   }, [conversations, searchTerm]);
 
   return (
-    <div>
-      <h1
-        className="text-2xl font-bold mb-6 pb-3 border-b-2"
-        style={{ borderColor: "#A51E30" }}
-      >
-        Messages
-      </h1>
+    <div className="space-y-6">
+      <InternalPageHeader title="Messages" />
 
-      <div className="mb-6">
+      <div>
         <input
           type="text"
           value={searchTerm}

@@ -106,9 +106,12 @@ function NavDropdown({ section }: { section: NavSection }) {
       onMouseLeave={handleMouseLeave}
     >
       {/* Trigger */}
-      <Link
-        href={section.href}
-        className="text-red-100 hover:text-white flex items-center gap-1 transition-colors"
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-cyan-300 transition hover:border-cyan-300/25 hover:bg-white/[0.11] hover:text-white"
+        onClick={() => setOpen((current) => !current)}
       >
         {section.label}
         <svg
@@ -120,15 +123,18 @@ function NavDropdown({ section }: { section: NavSection }) {
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
-      </Link>
+      </button>
 
       {/* Dropdown panel */}
       {open && (
-        <div className="absolute left-0 top-full mt-1 w-60 bg-white rounded-lg shadow-xl border border-gray-100 py-2 z-50">
+        <div
+          className="absolute left-0 top-full z-50 mt-2 w-64 rounded-2xl border border-white/10 bg-[#111827]/95 py-2 shadow-2xl backdrop-blur"
+          role="menu"
+        >
           {/* "View all" link */}
           <Link
             href={section.href}
-            className="block px-4 py-2 text-sm font-semibold text-[#A51E30] hover:bg-gray-50 border-b border-gray-100 mb-1"
+            className="mb-1 block border-b border-white/10 px-4 py-3 text-sm font-semibold text-cyan-200 hover:bg-white/5"
             onClick={() => setOpen(false)}
           >
             View All {section.label}
@@ -138,7 +144,7 @@ function NavDropdown({ section }: { section: NavSection }) {
             <Link
               key={sub.slug}
               href={sub.href || `${section.href}?category=${sub.slug}`}
-              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#A51E30] transition-colors"
+              className="block px-4 py-2.5 text-sm text-white/78 transition-colors hover:bg-white/5 hover:text-white"
               onClick={() => setOpen(false)}
             >
               {sub.label}
@@ -160,9 +166,13 @@ export default function NavigationBar() {
   const isSuperAdmin = userRole === 'SUPER_ADMIN';
 
   return (
-    <nav style={{ backgroundColor: '#A51E30' }}>
-      <div className="container mx-auto px-4 py-5 flex gap-8 text-base font-medium items-center">
-        <Link href="/" className="text-red-100 hover:text-white transition-colors">
+    <nav>
+      <div className="overflow-visible">
+        <div className="flex flex-wrap items-center gap-2">
+        <Link
+          href="/"
+          className="rounded-full border border-white/25 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-cyan-300 transition hover:bg-white/[0.12] hover:text-white"
+        >
           Home
         </Link>
 
@@ -170,21 +180,31 @@ export default function NavigationBar() {
           <NavDropdown key={section.slug} section={section} />
         ))}
 
-        <Link href="/marketplace" className="text-red-100 hover:text-white transition-colors">
+        <Link
+          href="/marketplace"
+          className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-cyan-300 transition hover:border-cyan-300/25 hover:bg-white/[0.11] hover:text-white"
+        >
           Market
         </Link>
 
-        <Link href="/help-wanted" className="text-red-100 hover:text-white transition-colors">
+        <Link
+          href="/help-wanted"
+          className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-cyan-300 transition hover:border-cyan-300/25 hover:bg-white/[0.11] hover:text-white"
+        >
           Help Wanted
         </Link>
 
         <NavDropdown section={ABOUT_SECTION} />
 
         {isSuperAdmin && (
-          <Link href="/arcade" className="text-red-100 hover:text-white transition-colors">
+          <Link
+            href="/arcade"
+            className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-cyan-300 transition hover:border-cyan-300/25 hover:bg-white/[0.11] hover:text-white"
+          >
             Arcade
           </Link>
         )}
+        </div>
       </div>
     </nav>
   );

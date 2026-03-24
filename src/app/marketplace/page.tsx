@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
+import InternalPageHeader from "@/components/shared/InternalPageHeader";
 
 interface MarketplaceListing {
   id: string;
@@ -278,56 +279,53 @@ export default function MarketplacePage() {
   );
 
   return (
-    <div>
-      <div
-        className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8 pb-3 border-b-2"
-        style={{ borderColor: "#A51E30" }}
-      >
-        <div>
-          <h1 className="text-2xl font-bold">Market</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Local store listings for products, artisan food, and community services.
-          </p>
-        </div>
-        {sessionStatus === "authenticated" ? (
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Link
-              href="/marketplace/stores"
-              className="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-gray-100 text-gray-800 font-semibold whitespace-nowrap border border-gray-300"
-            >
-              My Stores
-            </Link>
-            <Link
-              href="/marketplace/stores/create"
-              className="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-white text-gray-800 font-semibold whitespace-nowrap border border-gray-300"
-            >
-              Create Store
-            </Link>
-            <Link
-              href="/marketplace/create"
-              className="inline-flex items-center justify-center px-5 py-2.5 rounded-full text-white font-semibold whitespace-nowrap"
-              style={{ backgroundColor: "#A51E30" }}
-            >
-              Create Listing
-            </Link>
-          </div>
-        ) : null}
-      </div>
+    <div className="space-y-8">
+      <InternalPageHeader
+        title="Market"
+        titleClassName="text-white"
+        actions={
+          sessionStatus === "authenticated" ? (
+            <>
+              <Link
+                href="/marketplace/stores"
+                className="inline-flex items-center justify-center rounded-full border border-white/14 bg-white/8 px-5 py-2.5 font-semibold whitespace-nowrap text-white"
+              >
+                My Stores
+              </Link>
+              <Link
+                href="/marketplace/stores/create"
+                className="inline-flex items-center justify-center rounded-full border border-white/14 bg-white/8 px-5 py-2.5 font-semibold whitespace-nowrap text-white"
+              >
+                Create Store
+              </Link>
+              <Link
+                href="/marketplace/create"
+                className="inline-flex items-center justify-center rounded-full bg-white px-5 py-2.5 font-semibold whitespace-nowrap text-slate-950"
+              >
+                Create Listing
+              </Link>
+            </>
+          ) : null
+        }
+      />
+      <p className="max-w-3xl text-sm leading-7 text-slate-500">
+        Local store listings for products, artisan food, and community services.
+      </p>
 
-      <div className="bg-gradient-to-r from-[#f8fdff] via-white to-[#fff6f7] rounded-2xl border border-gray-200 p-6 mb-8 shadow-sm">
+      <div className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
         <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-6">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-gray-500 mb-2">
+            <p className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#8f1d2c]">
               Local Discovery
             </p>
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">
+            <h2 className="mb-3 text-3xl font-black tracking-[-0.04em] text-slate-950">
               Browse what local stores are offering right now
             </h2>
-            <p className="text-gray-600 max-w-2xl">
+            <p className="max-w-2xl text-slate-600">
               Discover approved local storefronts, compare active listings, and use trusted messaging when you are ready to reach out.
             </p>
             <div className="mt-5">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
                 Search listings and stores
               </label>
               <input
@@ -335,23 +333,23 @@ export default function MarketplacePage() {
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Search by item, service, store, or seller"
-                className="w-full max-w-2xl px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                className="w-full max-w-2xl rounded-2xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-xl bg-white border border-gray-200 p-4">
-              <p className="text-sm text-gray-500">Public listings</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">{marketplaceSummary.listings}</p>
+            <div className="rounded-2xl border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-4 text-white">
+              <p className="text-sm text-white/62">Public listings</p>
+              <p className="mt-2 text-3xl font-bold text-white">{marketplaceSummary.listings}</p>
             </div>
-            <div className="rounded-xl bg-white border border-gray-200 p-4">
-              <p className="text-sm text-gray-500">Approved stores</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">{marketplaceSummary.stores}</p>
+            <div className="rounded-2xl border border-white/10 bg-[linear-gradient(160deg,rgba(57,20,34,0.95),rgba(20,13,24,0.95))] p-4 text-white">
+              <p className="text-sm text-white/62">Approved stores</p>
+              <p className="mt-2 text-3xl font-bold text-white">{marketplaceSummary.stores}</p>
             </div>
-            <div className="rounded-xl bg-white border border-gray-200 p-4">
-              <p className="text-sm text-gray-500">Categories</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">{marketplaceSummary.categories}</p>
+            <div className="rounded-2xl bg-slate-950 p-4 text-white">
+              <p className="text-sm text-white/62">Categories</p>
+              <p className="mt-2 text-3xl font-bold text-white">{marketplaceSummary.categories}</p>
             </div>
           </div>
         </div>
@@ -361,8 +359,8 @@ export default function MarketplacePage() {
         <section className="mb-8">
           <div className="flex items-center justify-between gap-4 mb-4">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Browse Stores</h2>
-              <p className="text-sm text-gray-500 mt-1">
+              <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950">Browse Stores</h2>
+              <p className="mt-1 text-sm text-slate-500">
                 Start with the storefront if you want to see a seller&apos;s full local presence.
               </p>
             </div>
@@ -373,7 +371,7 @@ export default function MarketplacePage() {
               <Link
                 key={store.id}
                 href={`/marketplace/stores/${store.id}`}
-                className="group bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
+                className="group overflow-hidden rounded-[26px] border border-white/10 bg-white/82 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_24px_55px_rgba(15,23,42,0.12)]"
               >
                 <div className="h-28 bg-gradient-to-r from-[#46A8CC] via-[#7bc4dd] to-[#dceff6]">
                   {store.bannerUrl ? (
@@ -398,7 +396,7 @@ export default function MarketplacePage() {
                       )}
                     </div>
                     <div className="min-w-0 pb-2">
-                      <h3 className="font-bold text-lg text-gray-900 group-hover:text-[#46A8CC] transition-colors">
+                      <h3 className="text-lg font-bold text-slate-950 transition-colors group-hover:text-[#8f1d2c]">
                         {store.name}
                       </h3>
                       <p className="text-sm text-gray-500">/{store.slug}</p>
@@ -453,7 +451,7 @@ export default function MarketplacePage() {
         </section>
       ) : null}
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-8">
+      <div className="rounded-[28px] border border-white/10 bg-white/82 p-5 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
         <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr_1fr] gap-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -465,16 +463,11 @@ export default function MarketplacePage() {
                   key={category}
                   type="button"
                   onClick={() => setSelectedCategory(category)}
-                  className={`px-3 py-2 rounded-full text-sm font-medium transition ${
+                  className={`rounded-full px-3 py-2 text-sm font-semibold transition ${
                     selectedCategory === category
-                      ? "text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      ? "bg-slate-950 text-white"
+                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                   }`}
-                  style={
-                    selectedCategory === category
-                      ? { backgroundColor: "#A51E30" }
-                      : undefined
-                  }
                 >
                   {category}
                 </button>
@@ -491,7 +484,7 @@ export default function MarketplacePage() {
               onChange={(event) =>
                 setSelectedType(event.target.value as "ALL" | keyof typeof LISTING_TYPE_LABELS)
               }
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             >
               <option value="ALL">All Types</option>
               {Object.entries(LISTING_TYPE_LABELS).map(([value, label]) => (
@@ -514,7 +507,7 @@ export default function MarketplacePage() {
                 value={minPrice}
                 onChange={(event) => setMinPrice(event.target.value)}
                 placeholder="Min"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                className="w-full rounded-xl border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
               />
               <input
                 type="number"
@@ -523,7 +516,7 @@ export default function MarketplacePage() {
                 value={maxPrice}
                 onChange={(event) => setMaxPrice(event.target.value)}
                 placeholder="Max"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                className="w-full rounded-xl border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
               />
             </div>
           </div>
@@ -534,7 +527,7 @@ export default function MarketplacePage() {
       </div>
 
       {isLoading ? (
-        <div className="bg-white rounded-xl shadow-sm p-12 text-center text-gray-500">
+        <div className="rounded-[28px] border border-white/10 bg-white/70 p-12 text-center text-slate-500 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">
           Loading marketplace listings...
         </div>
       ) : error ? (
@@ -542,9 +535,9 @@ export default function MarketplacePage() {
           {error}
         </div>
       ) : filteredListings.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-          <h2 className="text-xl font-bold text-gray-800 mb-2">No listings found</h2>
-          <p className="text-gray-500 max-w-xl mx-auto">
+        <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-12 text-center text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
+          <h2 className="mb-2 text-xl font-bold text-white">No listings found</h2>
+          <p className="mx-auto max-w-xl text-white/70">
             There are no public listings that match your current filters yet.
           </p>
         </div>
@@ -557,7 +550,7 @@ export default function MarketplacePage() {
               <Link
                 key={listing.id}
                 href={`/marketplace/${listing.id}`}
-                className={`group bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden border border-gray-200 ${
+                className={`group overflow-hidden rounded-[26px] border border-white/10 bg-white/82 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_24px_55px_rgba(15,23,42,0.12)] ${
                   listing.status === "SOLD" ? "opacity-80" : ""
                 }`}
               >
@@ -578,13 +571,10 @@ export default function MarketplacePage() {
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex flex-wrap gap-2">
-                      <span
-                        className="text-xs text-white px-3 py-1 rounded-full font-medium"
-                        style={{ backgroundColor: "#A51E30" }}
-                      >
+                      <span className="rounded-full bg-[#8f1d2c] px-3 py-1 text-xs font-medium text-white">
                         {listing.category}
                       </span>
-                      <span className="text-xs bg-blue-50 text-[#46A8CC] px-3 py-1 rounded-full font-medium">
+                      <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-[#46A8CC]">
                         {LISTING_TYPE_LABELS[listing.listingType]}
                       </span>
                       <span
@@ -598,10 +588,10 @@ export default function MarketplacePage() {
                     </span>
                   </div>
 
-                  <h2 className="font-bold text-lg mb-2 group-hover:text-[#46A8CC] transition-colors">
+                  <h2 className="mb-2 text-lg font-bold text-slate-950 transition-colors group-hover:text-[#8f1d2c]">
                     {listing.title}
                   </h2>
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                  <p className="mb-4 line-clamp-3 text-sm leading-7 text-slate-600">
                     {listing.description || "No description provided yet."}
                   </p>
 

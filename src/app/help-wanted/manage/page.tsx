@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import InternalPageHeader from '@/components/shared/InternalPageHeader';
 
 interface HelpWantedPost {
   id: string;
@@ -323,22 +324,32 @@ export default function ManageHelpWantedPage() {
   }
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 pb-3 border-b-2" style={{ borderColor: '#A51E30' }}>
-        <div>
-          <h1 className="text-2xl font-bold">My Help Wanted Posts</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Review drafts, resubmit rejected posts, and manage open opportunities.
-          </p>
-        </div>
-        <Link
-          href="/help-wanted/submit"
-          className="px-4 py-2 text-white text-sm font-semibold rounded-full hover:opacity-90 transition"
-          style={{ backgroundColor: '#A51E30' }}
-        >
-          + Post Opportunity
-        </Link>
-      </div>
+    <div className="space-y-8">
+      <InternalPageHeader
+        title="My Help Wanted Posts"
+        actions={
+          <Link
+            href="/help-wanted/submit"
+            className="inline-flex items-center rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-950 transition hover:opacity-90"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 16 16"
+              className="h-3.5 w-3.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            >
+              <path d="M8 3.25v9.5M3.25 8h9.5" />
+            </svg>
+            Post Opportunity
+          </Link>
+        }
+      />
+      <p className="max-w-3xl text-sm leading-7 text-slate-500">
+        Review drafts, resubmit rejected posts, and manage open opportunities.
+      </p>
 
       {error ? (
         <div className="mb-6 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3">{error}</div>

@@ -6,21 +6,24 @@ import { getHomepageSectionsData, resolveHomepageCommunityId, type HomepageSecti
 
 function SectionHeading({ children }: { children: ReactNode }) {
   return (
-    <h2 className="text-2xl font-bold mb-6 pb-3 border-b-2" style={{ borderColor: '#A51E30' }}>
-      {children}
-    </h2>
+    <div className="mb-6 flex items-end justify-between gap-4">
+      <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950">{children}</h2>
+      <div className="hidden h-px flex-1 bg-gradient-to-r from-[#8f1d2c]/60 to-transparent sm:block" />
+    </div>
   );
 }
 
 function EmptySection({ children }: { children: ReactNode }) {
   return (
-    <div className="bg-white rounded-xl p-8 text-center text-gray-500 shadow-sm">{children}</div>
+    <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(15,24,36,0.96),rgba(8,18,29,0.96))] p-8 text-center text-sm leading-7 text-white/72 shadow-[0_20px_45px_rgba(7,17,26,0.18)]">
+      {children}
+    </div>
   );
 }
 
 function renderFeaturedSection(section: HomepageSectionData) {
   return (
-    <section key={section.id} className="mb-12">
+    <section key={section.id} className="mb-14">
       <SectionHeading>{section.title}</SectionHeading>
       {section.displayItems.length === 0 ? (
         <EmptySection>Featured stories will appear here once editors publish them.</EmptySection>
@@ -30,10 +33,10 @@ function renderFeaturedSection(section: HomepageSectionData) {
             <Link
               key={`${item.contentType}-${item.contentId}`}
               href={item.url}
-              className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200"
+            className="group overflow-hidden rounded-[28px] border border-white/12 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] shadow-[0_25px_60px_rgba(7,17,26,0.18)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_30px_70px_rgba(7,17,26,0.24)]"
             >
               {item.imageUrl && (
-                <div className="relative h-48 w-full bg-gray-100">
+                <div className="relative h-52 w-full bg-slate-900">
                   <Image
                     src={item.imageUrl}
                     alt={item.title}
@@ -42,12 +45,15 @@ function renderFeaturedSection(section: HomepageSectionData) {
                   />
                 </div>
               )}
-              <div className="p-5">
-                <h3 className="font-bold text-lg mb-2 group-hover:text-[#46A8CC] transition-colors">
+              <div className="p-6">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/72">
+                  Featured
+                </p>
+                <h3 className="mb-2 text-xl font-bold leading-tight text-white transition-colors group-hover:text-cyan-200">
                   {item.title}
                 </h3>
-                {item.description && <p className="text-gray-500 text-sm mb-3">{item.description}</p>}
-                {item.metadata && <p className="text-xs text-gray-400">{item.metadata}</p>}
+                {item.description && <p className="mb-3 text-sm leading-7 text-white/72">{item.description}</p>}
+                {item.metadata && <p className="text-xs text-white/48">{item.metadata}</p>}
               </div>
             </Link>
           ))}
@@ -59,7 +65,7 @@ function renderFeaturedSection(section: HomepageSectionData) {
 
 function renderLatestNewsSection(section: HomepageSectionData) {
   return (
-    <section key={section.id} className="mb-12">
+    <section key={section.id} className="mb-14">
       <SectionHeading>{section.title}</SectionHeading>
       {section.displayItems.length === 0 ? (
         <EmptySection>Latest published articles will appear here.</EmptySection>
@@ -69,15 +75,17 @@ function renderLatestNewsSection(section: HomepageSectionData) {
             <Link
               key={`${item.contentType}-${item.contentId}`}
               href={item.url}
-              className="group flex items-start gap-4 bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow duration-200 border-l-4"
-              style={{ borderColor: '#A51E30' }}
+            className="group flex items-start gap-4 rounded-[24px] border border-white/10 bg-white/70 p-5 shadow-[0_15px_35px_rgba(15,23,42,0.06)] backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:bg-white/90 hover:shadow-[0_20px_45px_rgba(15,23,42,0.1)]"
             >
               <div className="flex-1">
-                <h3 className="font-bold text-base mb-1 group-hover:text-[#46A8CC] transition-colors">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#8f1d2c]">
+                  Latest
+                </p>
+                <h3 className="mb-1 text-lg font-bold text-slate-950 transition-colors group-hover:text-[#8f1d2c]">
                   {item.title}
                 </h3>
-                {item.description && <p className="text-gray-500 text-sm mb-2">{item.description}</p>}
-                {item.metadata && <p className="text-xs text-gray-400">{item.metadata}</p>}
+                {item.description && <p className="mb-2 text-sm leading-7 text-slate-600">{item.description}</p>}
+                {item.metadata && <p className="text-xs text-slate-400">{item.metadata}</p>}
               </div>
             </Link>
           ))}
@@ -89,7 +97,7 @@ function renderLatestNewsSection(section: HomepageSectionData) {
 
 function renderEventsSection(section: HomepageSectionData) {
   return (
-    <section key={section.id} className="mb-12">
+    <section key={section.id} className="mb-14">
       <SectionHeading>{section.title}</SectionHeading>
       {section.displayItems.length === 0 ? (
         <EmptySection>Upcoming community events will appear here once they are published.</EmptySection>
@@ -99,18 +107,21 @@ function renderEventsSection(section: HomepageSectionData) {
             <Link
               key={`${item.contentType}-${item.contentId}`}
               href={item.url}
-              className="group bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow duration-200"
+            className="group rounded-[24px] border border-white/10 bg-[linear-gradient(160deg,rgba(57,20,34,0.95),rgba(20,13,24,0.95))] p-6 shadow-[0_20px_45px_rgba(7,17,26,0.18)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_26px_55px_rgba(7,17,26,0.24)]"
             >
-              <h3 className="font-bold text-base mb-2 group-hover:text-[#46A8CC] transition-colors">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-pink-200/70">
+                Upcoming
+              </p>
+              <h3 className="mb-2 text-lg font-bold text-white transition-colors group-hover:text-pink-100">
                 {item.title}
               </h3>
-              {item.metadata && <p className="text-sm text-gray-500">{item.metadata}</p>}
+              {item.metadata && <p className="text-sm text-white/68">{item.metadata}</p>}
             </Link>
           ))}
         </div>
       )}
       <div className="mt-4">
-        <Link href="/events" className="text-sm font-medium hover:underline" style={{ color: '#A51E30' }}>
+        <Link href="/events" className="text-sm font-semibold text-[#8f1d2c] hover:underline">
           View all events →
         </Link>
       </div>
@@ -120,7 +131,7 @@ function renderEventsSection(section: HomepageSectionData) {
 
 function renderMarketplaceSection(section: HomepageSectionData) {
   return (
-    <section key={section.id} className="mb-12">
+    <section key={section.id} className="mb-14">
       <SectionHeading>{section.title}</SectionHeading>
       {section.displayItems.length === 0 ? (
         <EmptySection>Recent market listings will appear here as approved local stores publish them.</EmptySection>
@@ -129,11 +140,11 @@ function renderMarketplaceSection(section: HomepageSectionData) {
           {section.displayItems.map((item) => (
             <article
               key={`${item.contentType}-${item.contentId}`}
-              className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200"
+              className="overflow-hidden rounded-[24px] border border-white/10 bg-white/80 shadow-[0_15px_35px_rgba(15,23,42,0.06)] backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_20px_45px_rgba(15,23,42,0.1)]"
             >
               <Link href={item.url} className="group block">
                 {item.imageUrl && (
-                  <div className="relative h-32 w-full bg-gray-100">
+                  <div className="relative h-36 w-full bg-slate-100">
                     <Image
                       src={item.imageUrl}
                       alt={item.title}
@@ -142,20 +153,22 @@ function renderMarketplaceSection(section: HomepageSectionData) {
                     />
                   </div>
                 )}
-                <div className="p-4">
-                  <h3 className="font-bold text-base mb-1 group-hover:text-[#46A8CC] transition-colors">
+                <div className="p-5">
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#0f2941]/70">
+                    Market
+                  </p>
+                  <h3 className="mb-1 text-lg font-bold text-slate-950 transition-colors group-hover:text-[#8f1d2c]">
                     {item.title}
                   </h3>
-                  {item.metadata && <p className="text-xs text-gray-400 mb-2">{item.metadata}</p>}
-                  {item.description && <p className="text-sm text-gray-500 line-clamp-2">{item.description}</p>}
+                  {item.metadata && <p className="mb-2 text-xs text-slate-400">{item.metadata}</p>}
+                  {item.description && <p className="line-clamp-2 text-sm leading-6 text-slate-600">{item.description}</p>}
                 </div>
               </Link>
               {item.secondaryUrl && item.secondaryLabel ? (
                 <div className="px-4 pb-4">
                   <Link
                     href={item.secondaryUrl}
-                    className="text-sm font-medium hover:underline"
-                    style={{ color: '#A51E30' }}
+                    className="text-sm font-semibold text-[#8f1d2c] hover:underline"
                   >
                     {item.secondaryLabel} →
                   </Link>
@@ -166,7 +179,7 @@ function renderMarketplaceSection(section: HomepageSectionData) {
         </div>
       )}
       <div className="mt-4">
-        <Link href="/marketplace" className="text-sm font-medium hover:underline" style={{ color: '#A51E30' }}>
+        <Link href="/marketplace" className="text-sm font-semibold text-[#8f1d2c] hover:underline">
           View market and stores →
         </Link>
       </div>
@@ -201,11 +214,39 @@ export default async function Home() {
 
   if (visibleSections.length === 0) {
     return (
-      <EmptySection>
-        Homepage sections have not been configured yet.
-      </EmptySection>
+      <div className="space-y-8">
+        <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(143,29,44,0.96),rgba(10,32,51,0.94))] p-8 text-white shadow-[0_35px_80px_rgba(7,17,26,0.22)] md:p-10">
+          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/76">
+            Highlander Today
+          </p>
+          <h1 className="mt-4 max-w-4xl text-4xl font-black leading-[0.94] tracking-[-0.05em] md:text-6xl">
+            Make local feel alive, useful, and worth checking every day.
+          </h1>
+          <p className="mt-5 max-w-2xl text-base leading-8 text-white/78 md:text-lg">
+            News, events, trust, opportunity, and real community coordination are meant to live
+            together. This homepage will grow into that daily front door.
+          </p>
+        </section>
+        <EmptySection>Homepage sections have not been configured yet.</EmptySection>
+      </div>
     );
   }
 
-  return <>{visibleSections.map((section) => renderSection(section))}</>;
+  return (
+    <div className="space-y-8">
+      <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(143,29,44,0.96),rgba(10,32,51,0.94))] p-8 text-white shadow-[0_35px_80px_rgba(7,17,26,0.22)] md:p-10">
+        <p className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/76">
+          Today in Cambria Heights
+        </p>
+        <h1 className="mt-4 max-w-4xl text-4xl font-black leading-[0.94] tracking-[-0.05em] md:text-6xl">
+          A local platform built for real use, not disposable scrolling.
+        </h1>
+        <p className="mt-5 max-w-2xl text-base leading-8 text-white/78 md:text-lg">
+          Follow local stories, discover events, find help, and participate in a community space
+          designed to feel active, accountable, and genuinely useful.
+        </p>
+      </section>
+      <div>{visibleSections.map((section) => renderSection(section))}</div>
+    </div>
+  );
 }

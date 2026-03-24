@@ -68,11 +68,11 @@ export default function BannerActions() {
   }, [status]);
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex flex-wrap items-center justify-end gap-2">
       {/* Search link */}
       <Link
         href="/search"
-        className="text-white hover:text-gray-200 text-sm font-medium flex items-center gap-1"
+        className="flex items-center gap-1 rounded-full border border-white/18 bg-white/[0.05] px-3 py-2 text-sm font-medium text-cyan-300 transition hover:border-white/28 hover:bg-white/[0.1] hover:text-white"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -83,7 +83,7 @@ export default function BannerActions() {
       {/* Messages link */}
       <Link
         href="/messages"
-        className="relative text-white hover:text-gray-200 text-sm font-medium flex items-center gap-1"
+        className="relative flex items-center gap-1 rounded-full border border-white/18 bg-white/[0.05] px-3 py-2 text-sm font-medium text-cyan-300 transition hover:border-white/28 hover:bg-white/[0.1] hover:text-white"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -104,7 +104,7 @@ export default function BannerActions() {
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="text-white hover:text-gray-200 text-sm font-medium flex items-center gap-1 !p-0"
+            className="!p-0 flex items-center gap-1 rounded-full border border-white/18 bg-white/[0.05] px-3 py-2 text-sm font-medium text-white/88 transition hover:border-white/28 hover:bg-white/[0.1] hover:text-white"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -116,10 +116,10 @@ export default function BannerActions() {
           </button>
 
           {dropdownOpen && (
-            <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+            <div className="absolute right-0 z-50 mt-2 w-44 rounded-2xl border border-white/10 bg-[#111827]/95 py-1 shadow-2xl backdrop-blur">
               <Link
                 href={`/profile/${(session.user as any).id}`}
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                className="block px-4 py-2 text-sm text-white/82 hover:bg-white/5"
                 onClick={() => setDropdownOpen(false)}
               >
                 Profile
@@ -127,7 +127,7 @@ export default function BannerActions() {
               {showAdmin && (
                 <Link
                   href="/admin"
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  className="block px-4 py-2 text-sm text-white/82 hover:bg-white/5"
                   onClick={() => setDropdownOpen(false)}
                 >
                   Admin
@@ -138,7 +138,7 @@ export default function BannerActions() {
                   setDropdownOpen(false);
                   signOut({ callbackUrl: '/' });
                 }}
-                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                className="block w-full px-4 py-2 text-left text-sm text-white/82 hover:bg-white/5"
               >
                 Logout
               </button>
@@ -148,7 +148,7 @@ export default function BannerActions() {
       ) : (
         <Link
           href="/login"
-          className="text-white hover:text-gray-200 text-sm font-medium flex items-center gap-1"
+          className="flex items-center gap-1 rounded-full border border-white/18 bg-white/[0.05] px-3 py-2 text-sm font-medium text-cyan-300 transition hover:border-white/28 hover:bg-white/[0.1] hover:text-white"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />

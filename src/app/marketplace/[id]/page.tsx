@@ -148,7 +148,7 @@ export default function ListingDetailPage({ params }: PageProps) {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl shadow-sm p-12 text-center text-gray-500">
+      <div className="rounded-[28px] border border-white/10 bg-white/70 p-12 text-center text-slate-500 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">
         Loading listing...
       </div>
     );
@@ -156,7 +156,7 @@ export default function ListingDetailPage({ params }: PageProps) {
 
   if (error || !listing) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3">
+      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
         {error || "Listing not found"}
       </div>
     );
@@ -180,20 +180,39 @@ export default function ListingDetailPage({ params }: PageProps) {
         : null;
 
   return (
-    <div>
-      <div className="mb-6">
+    <div className="space-y-8">
+      <div>
         <Link
           href="/marketplace"
-          className="text-sm font-medium hover:underline"
-          style={{ color: "#A51E30" }}
+          className="text-sm font-semibold text-[#8f1d2c] hover:underline"
         >
           Back to Market
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-8 mb-10">
+      <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(143,29,44,0.96),rgba(10,32,51,0.94))] px-6 py-8 text-white shadow-[0_35px_80px_rgba(7,17,26,0.22)] md:px-10 md:py-10">
+        <div className="flex flex-wrap gap-2 mb-3">
+          <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-950">
+            {listing.category}
+          </span>
+          <span className="rounded-full bg-white/12 px-3 py-1 text-xs font-medium text-white">
+            {LISTING_TYPE_LABELS[listing.listingType]}
+          </span>
+          <span className={`text-xs px-3 py-1 rounded-full font-medium ${STATUS_STYLES[listing.status]}`}>
+            {listing.status}
+          </span>
+        </div>
+        <h1 className="text-4xl font-black leading-[0.95] tracking-[-0.05em] md:text-6xl">{listing.title}</h1>
+        <p className="mt-4 text-base leading-8 text-white/78 md:text-lg">
+          Listed {formatDate(listing.createdAt)}
+          {listing.expiresAt ? ` • Expires ${formatDate(listing.expiresAt)}` : ''}
+        </p>
+        <p className="mt-5 text-4xl font-black tracking-[-0.04em] text-white">{formatPrice(listing.priceCents)}</p>
+      </section>
+
+      <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-8">
         <section>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="overflow-hidden rounded-[28px] border border-white/10 bg-white/82 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
             <div className="aspect-[4/3] bg-gray-100">
               {activePhoto ? (
                 <img
@@ -209,7 +228,7 @@ export default function ListingDetailPage({ params }: PageProps) {
             </div>
 
             {gallery.length > 1 ? (
-              <div className="grid grid-cols-4 gap-3 p-4 border-t border-gray-100">
+              <div className="grid grid-cols-4 gap-3 border-t border-gray-100 p-4">
                 {gallery.map((photo) => (
                   <button
                     key={photo.id}
@@ -217,7 +236,7 @@ export default function ListingDetailPage({ params }: PageProps) {
                     onClick={() => setSelectedPhoto(photo.imageUrl)}
                     className={`aspect-square rounded-lg overflow-hidden border-2 ${
                       activePhoto === photo.imageUrl
-                        ? "border-[#A51E30]"
+                        ? "border-[#8f1d2c]"
                         : "border-transparent"
                     }`}
                   >
@@ -241,41 +260,16 @@ export default function ListingDetailPage({ params }: PageProps) {
             </div>
           ) : null}
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex flex-wrap gap-2 mb-3">
-              <span
-                className="text-xs text-white px-3 py-1 rounded-full font-medium"
-                style={{ backgroundColor: "#A51E30" }}
-              >
-                {listing.category}
-              </span>
-              <span className="text-xs bg-blue-50 text-[#46A8CC] px-3 py-1 rounded-full font-medium">
-                {LISTING_TYPE_LABELS[listing.listingType]}
-              </span>
-              <span
-                className={`text-xs px-3 py-1 rounded-full font-medium ${STATUS_STYLES[listing.status]}`}
-              >
-                {listing.status}
-              </span>
-            </div>
-
-            <h1 className="text-3xl font-bold mb-2">{listing.title}</h1>
-            <p className="text-sm text-gray-500 mb-4">
-              Listed {formatDate(listing.createdAt)}
-            </p>
-            <p className="text-4xl font-bold text-[#A51E30] mb-5">
-              {formatPrice(listing.priceCents)}
-            </p>
-
-            <div className="border-t pt-5">
+          <div className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
+            <div>
               <h2 className="text-lg font-bold mb-2">Description</h2>
-              <p className="text-gray-700 whitespace-pre-wrap">
+              <p className="whitespace-pre-wrap text-slate-700">
                 {listing.description || "No description provided yet."}
               </p>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
             <h2 className="text-lg font-bold mb-4">Store Information</h2>
             <div className="flex items-center gap-4 mb-4">
               <div className="w-14 h-14 rounded-full bg-[#46A8CC] text-white flex items-center justify-center font-bold text-lg overflow-hidden">
@@ -292,34 +286,33 @@ export default function ListingDetailPage({ params }: PageProps) {
               <div>
                 <Link
                   href={`/marketplace/stores/${listing.store.id}`}
-                  className="font-semibold text-gray-900 hover:underline"
+                  className="font-semibold text-slate-900 hover:underline"
                 >
                   {listing.store.name}
                 </Link>
-                <p className="text-sm text-gray-500">Owned by {sellerName}</p>
+                <p className="text-sm text-slate-500">Owned by {sellerName}</p>
               </div>
             </div>
 
             {listing.store.description ? (
-              <p className="text-sm text-gray-700 mb-4">{listing.store.description}</p>
+              <p className="mb-4 text-sm text-slate-700">{listing.store.description}</p>
             ) : null}
 
             <Link
               href={`/marketplace/stores/${listing.store.id}`}
-              className="inline-flex items-center text-sm font-semibold hover:underline mb-4"
-              style={{ color: "#A51E30" }}
+              className="mb-4 inline-flex items-center text-sm font-semibold text-[#8f1d2c] hover:underline"
             >
               View storefront
             </Link>
 
             {(listing.store.contactEmail || listing.store.contactPhone) ? (
-              <div className="border-t pt-4 text-sm text-gray-700 space-y-1">
-                <p className="font-semibold text-gray-900">Store Contact</p>
+              <div className="space-y-1 border-t pt-4 text-sm text-slate-700">
+                <p className="font-semibold text-slate-900">Store Contact</p>
                 {listing.store.contactEmail ? <p>Email: {listing.store.contactEmail}</p> : null}
                 {listing.store.contactPhone ? <p>Phone: {listing.store.contactPhone}</p> : null}
               </div>
             ) : (
-              <div className="border-t pt-4 text-sm text-gray-600">
+              <div className="border-t pt-4 text-sm text-slate-600">
                 Contact details are visible to trusted members or store managers.
               </div>
             )}
@@ -328,15 +321,15 @@ export default function ListingDetailPage({ params }: PageProps) {
           {canMessageSeller ? (
             <SendMessageButton profileUserId={listing.store.owner.id} />
           ) : listing.status === "SOLD" ? (
-            <div className="bg-slate-100 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm">
+            <div className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-800">
               This listing is marked sold, so new buyer messages are disabled.
             </div>
           ) : sessionStatus === "authenticated" ? (
-            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-4 py-3 text-sm">
+            <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
               Trusted membership is required before you can message sellers.
             </div>
           ) : (
-            <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-xl px-4 py-3 text-sm">
+            <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
               Sign in with a trusted account to message the seller.
             </div>
           )}
@@ -344,13 +337,12 @@ export default function ListingDetailPage({ params }: PageProps) {
       </div>
 
       {relatedListings.length > 0 ? (
-        <section className="border-t pt-8">
+        <section className="border-t border-slate-200 pt-8">
           <div className="flex items-center justify-between gap-4 mb-6">
-            <h2 className="text-2xl font-bold">More from {listing.store.name}</h2>
+            <h2 className="text-2xl font-black tracking-[-0.03em] text-slate-950">More from {listing.store.name}</h2>
             <Link
               href={`/marketplace/stores/${listing.store.id}`}
-              className="text-sm font-medium hover:underline"
-              style={{ color: "#A51E30" }}
+              className="text-sm font-semibold text-[#8f1d2c] hover:underline"
             >
               View storefront
             </Link>
@@ -360,7 +352,7 @@ export default function ListingDetailPage({ params }: PageProps) {
               <Link
                 key={related.id}
                 href={`/marketplace/${related.id}`}
-                className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition"
+                className="overflow-hidden rounded-[24px] border border-white/10 bg-white/82 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_24px_55px_rgba(15,23,42,0.12)]"
               >
                 <div className="aspect-[4/3] bg-gray-100">
                   {related.photos[0]?.imageUrl ? (
@@ -383,11 +375,11 @@ export default function ListingDetailPage({ params }: PageProps) {
                       {related.status}
                     </span>
                   </div>
-                  <h3 className="font-bold text-lg mb-2">{related.title}</h3>
-                  <p className="text-2xl font-bold text-[#A51E30] mb-1">
+                  <h3 className="mb-2 text-lg font-bold text-slate-950">{related.title}</h3>
+                  <p className="mb-1 text-2xl font-bold text-[#8f1d2c]">
                     {formatPrice(related.priceCents)}
                   </p>
-                  <p className="text-xs text-gray-500">{formatDate(related.createdAt)}</p>
+                  <p className="text-xs text-slate-500">{formatDate(related.createdAt)}</p>
                 </div>
               </Link>
             ))}

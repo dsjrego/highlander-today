@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
 import ImageUpload from '@/components/shared/ImageUpload';
+import InternalPageHeader from '@/components/shared/InternalPageHeader';
 
 // Dynamic import to avoid SSR issues with TipTap (ProseMirror needs DOM)
 const TipTapEditor = dynamic(
   () => import('@/components/articles/TipTapEditor'),
-  { ssr: false, loading: () => <div className="h-[380px] border border-gray-300 rounded-lg animate-pulse bg-gray-50" /> }
+  { ssr: false, loading: () => <div className="h-[380px] animate-pulse rounded-[24px] border border-white/10 bg-white/70" /> }
 );
 
 interface Category {
@@ -178,42 +179,46 @@ export default function SubmitArticlePage() {
 
   if (sessionStatus === 'loading') {
     return (
-      <div className="flex justify-center items-center py-20">
-        <div className="text-gray-500">Loading...</div>
+      <div className="rounded-[28px] border border-white/10 bg-white/70 px-6 py-20 text-center text-slate-500 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">
+        Loading...
       </div>
     );
   }
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8 pb-3 border-b-2" style={{ borderColor: '#A51E30' }}>
-        <h1 className="text-2xl font-bold">Write an Article</h1>
-        <button
-          onClick={() => router.push('/local-life/drafts')}
-          className="text-sm font-medium hover:underline"
-          style={{ color: '#A51E30' }}
-        >
-          My Drafts
-        </button>
-      </div>
+    <div className="space-y-8">
+      <InternalPageHeader
+        title="Local Life"
+        titleClassName="text-white"
+        actions={
+          <button
+            onClick={() => router.push('/local-life/drafts')}
+            className="rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:opacity-90"
+          >
+            My Drafts
+          </button>
+        }
+      />
+      <p className="max-w-3xl text-sm leading-7 text-slate-500">
+        Draft first, then submit when the story is clear, categorized, and ready for editor review.
+      </p>
 
       {/* Messages */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
           {error}
         </div>
       )}
       {successMessage && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6">
+        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-700">
           {successMessage}
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm p-6 space-y-6">
+      <div className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur space-y-6">
         {/* Title */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-semibold text-slate-700">
             Title <span className="text-red-500">*</span>
           </label>
           <input
@@ -221,22 +226,22 @@ export default function SubmitArticlePage() {
             name="title"
             value={formData.title}
             onChange={handleInputChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             placeholder="Article title"
           />
         </div>
 
         {/* Excerpt */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-semibold text-slate-700">
             Excerpt
-            <span className="text-xs text-gray-400 ml-2 font-normal">Brief summary shown on cards</span>
+            <span className="ml-2 text-xs font-normal text-slate-400">Brief summary shown on cards</span>
           </label>
           <textarea
             name="excerpt"
             value={formData.excerpt}
             onChange={handleInputChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             rows={2}
             placeholder="Brief summary of your article (optional, but recommended)"
             maxLength={500}
@@ -256,15 +261,15 @@ export default function SubmitArticlePage() {
 
         {/* Category */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-semibold text-slate-700">
             Category <span className="text-red-500">*</span>
-            <span className="text-xs text-gray-400 ml-2 font-normal">Required for submission</span>
+            <span className="ml-2 text-xs font-normal text-slate-400">Required for submission</span>
           </label>
           <select
             name="categoryId"
             value={formData.categoryId}
             onChange={handleInputChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
           >
             <option value="">Select a category...</option>
             {groupedCategories.map((group) => (
@@ -281,9 +286,9 @@ export default function SubmitArticlePage() {
 
         {/* Tags */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-semibold text-slate-700">
             Tags
-            <span className="text-xs text-gray-400 ml-2 font-normal">Press Enter to add</span>
+            <span className="ml-2 text-xs font-normal text-slate-400">Press Enter to add</span>
           </label>
           <div className="flex gap-2 mb-2">
             <input
@@ -291,13 +296,13 @@ export default function SubmitArticlePage() {
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={handleTagKeyDown}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="flex-1 rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
               placeholder="Add a tag..."
             />
             <button
               type="button"
               onClick={addTag}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-sm font-medium"
+              className="rounded-xl bg-slate-100 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-200"
             >
               Add
             </button>
@@ -307,8 +312,7 @@ export default function SubmitArticlePage() {
               {formData.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium text-white rounded-full"
-                  style={{ backgroundColor: '#A51E30' }}
+                  className="inline-flex items-center gap-1 rounded-full bg-slate-950 px-3 py-1 text-xs font-medium text-white"
                 >
                   {tag}
                   <button
@@ -326,7 +330,7 @@ export default function SubmitArticlePage() {
 
         {/* Content — Rich Text Editor */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-semibold text-slate-700">
             Content <span className="text-red-500">*</span>
           </label>
           <TipTapEditor
@@ -337,13 +341,12 @@ export default function SubmitArticlePage() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-4 border-t border-gray-100">
+        <div className="flex gap-3 border-t border-slate-100 pt-4">
           <button
             type="button"
             onClick={() => handleSave(false)}
             disabled={isSaving || isSubmitting}
-            className="flex-1 px-6 py-3 border-2 font-semibold rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
-            style={{ borderColor: '#A51E30', color: '#A51E30' }}
+            className="flex-1 rounded-xl border border-slate-300 px-6 py-3 font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
           >
             {isSaving ? 'Saving...' : 'Save as Draft'}
           </button>
@@ -351,8 +354,7 @@ export default function SubmitArticlePage() {
             type="button"
             onClick={() => handleSave(true)}
             disabled={isSaving || isSubmitting}
-            className="flex-1 px-6 py-3 text-white font-semibold rounded-lg hover:opacity-90 transition disabled:opacity-50"
-            style={{ backgroundColor: '#A51E30' }}
+            className="flex-1 rounded-xl bg-slate-950 px-6 py-3 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
           >
             {isSubmitting ? 'Submitting...' : 'Submit for Review'}
           </button>
@@ -360,8 +362,8 @@ export default function SubmitArticlePage() {
       </div>
 
       {/* Guidelines */}
-      <div className="mt-6 p-4 bg-blue-50 border border-blue-100 rounded-lg text-sm text-gray-600">
-        <p className="font-semibold mb-2">Submission Guidelines:</p>
+      <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-4 text-sm text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
+        <p className="mb-2 font-semibold text-cyan-100/74">Submission Guidelines</p>
         <ul className="space-y-1 list-disc list-inside text-xs">
           <li>Submissions must be original or properly attributed</li>
           <li>Be respectful and follow community guidelines</li>

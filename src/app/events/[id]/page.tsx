@@ -54,19 +54,18 @@ export default function EventDetailPage() {
   }, [eventId]);
 
   if (isLoading) {
-    return <div className="flex justify-center items-center py-20 text-gray-500">Loading event...</div>;
+    return <div className="rounded-[28px] border border-white/10 bg-white/70 px-6 py-20 text-center text-slate-500 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">Loading event...</div>;
   }
 
   if (notFound || !event) {
     return (
-      <div className="text-center py-20">
-        <div className="text-6xl mb-4">📅</div>
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Event Not Found</h1>
-        <p className="text-gray-500 mb-6">This event may have been removed or is not yet published.</p>
+      <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] py-20 text-center text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
+        <p className="mb-4 text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/66">Events</p>
+        <h1 className="mb-2 text-2xl font-bold text-white">Event Not Found</h1>
+        <p className="mb-6 text-white/70">This event may have been removed or is not yet published.</p>
         <Link
           href="/events"
-          className="inline-block px-6 py-3 text-white font-semibold rounded-full hover:opacity-90 transition"
-          style={{ backgroundColor: '#A51E30' }}
+          className="inline-block rounded-full bg-white px-6 py-3 font-semibold text-slate-950 transition hover:opacity-90"
         >
           Back to Events
         </Link>
@@ -75,9 +74,9 @@ export default function EventDetailPage() {
   }
 
   return (
-    <div>
+    <div className="space-y-8">
       {event.status !== 'PUBLISHED' && (
-        <div className={`mb-6 p-3 rounded-lg text-sm font-medium ${
+        <div className={`rounded-2xl p-3 text-sm font-medium ${
           event.status === 'PENDING_REVIEW'
             ? 'bg-yellow-50 text-yellow-700 border border-yellow-200'
             : 'bg-gray-100 text-gray-700'
@@ -88,34 +87,19 @@ export default function EventDetailPage() {
         </div>
       )}
 
-      <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
-        <Link href="/events" className="hover:text-[#A51E30] transition-colors">
+      <div className="flex items-center gap-2 text-sm text-slate-400">
+        <Link href="/events" className="transition-colors hover:text-[#8f1d2c]">
           Events
         </Link>
         <span>/</span>
         <span>{event.title}</span>
       </div>
 
-      <h1 className="text-3xl font-bold text-gray-900 mb-4 leading-tight">{event.title}</h1>
-
-      <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200">
-        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-          {event.submittedBy.profilePhotoUrl ? (
-            <img src={event.submittedBy.profilePhotoUrl} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <span className="text-sm font-bold text-gray-500">
-              {event.submittedBy.firstName[0]}{event.submittedBy.lastName[0]}
-            </span>
-          )}
-        </div>
-        <div>
-          <Link
-            href={`/profile/${event.submittedBy.id}`}
-            className="font-semibold text-gray-800 hover:text-[#A51E30] transition-colors text-sm"
-          >
-            {event.submittedBy.firstName} {event.submittedBy.lastName}
-          </Link>
-          <p className="text-xs text-gray-400">
+      <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(143,29,44,0.96),rgba(10,32,51,0.94))] px-6 py-8 text-white shadow-[0_35px_80px_rgba(7,17,26,0.22)] md:px-10 md:py-10">
+        <div className="max-w-4xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/72">Event Details</p>
+          <h1 className="mt-4 text-4xl font-black leading-[0.95] tracking-[-0.05em] md:text-6xl">{event.title}</h1>
+          <p className="mt-5 max-w-3xl text-base leading-8 text-white/78 md:text-lg">
             {new Date(event.startDatetime).toLocaleDateString('en-US', {
               weekday: 'long',
               year: 'numeric',
@@ -125,53 +109,73 @@ export default function EventDetailPage() {
               minute: '2-digit',
             })}
           </p>
+          <div className="mt-6 flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-white/12">
+              {event.submittedBy.profilePhotoUrl ? (
+                <img src={event.submittedBy.profilePhotoUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-sm font-bold text-white/78">
+                  {event.submittedBy.firstName[0]}{event.submittedBy.lastName[0]}
+                </span>
+              )}
+            </div>
+            <div>
+              <Link
+                href={`/profile/${event.submittedBy.id}`}
+                className="text-sm font-semibold text-white transition-colors hover:text-cyan-200"
+              >
+                {event.submittedBy.firstName} {event.submittedBy.lastName}
+              </Link>
+              <p className="text-xs text-white/60">Organizer</p>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
       {event.photoUrl && (
-        <div className="mb-8 rounded-xl overflow-hidden">
+        <div className="overflow-hidden rounded-[28px] border border-white/10 shadow-[0_24px_55px_rgba(7,17,26,0.14)]">
           <img src={event.photoUrl} alt={event.title} className="w-full h-auto" />
         </div>
       )}
 
-      <div className="grid gap-4 bg-white rounded-xl shadow-sm p-6 mb-8">
+      <div className="grid gap-4 rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
         <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-1">When</h2>
-          <p className="text-gray-800">
+          <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-500">When</h2>
+          <p className="text-slate-800">
             {new Date(event.startDatetime).toLocaleString()}
             {event.endDatetime && ` to ${new Date(event.endDatetime).toLocaleString()}`}
           </p>
         </div>
         {event.locationText && (
           <div>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-1">Where</h2>
-            <p className="text-gray-800">{event.locationText}</p>
+            <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-500">Where</h2>
+            <p className="text-slate-800">{event.locationText}</p>
           </div>
         )}
         {event.costText && (
           <div>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-1">Cost</h2>
-            <p className="text-gray-800">{event.costText}</p>
+            <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-500">Cost</h2>
+            <p className="text-slate-800">{event.costText}</p>
           </div>
         )}
         {event.contactInfo && (
           <div>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-1">Contact</h2>
-            <p className="text-gray-800">{event.contactInfo}</p>
+            <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-500">Contact</h2>
+            <p className="text-slate-800">{event.contactInfo}</p>
           </div>
         )}
       </div>
 
       {event.description && (
-        <div className="prose prose-lg max-w-none mb-8">
+        <div className="prose prose-lg max-w-none rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur prose-p:text-slate-700">
           <p>{event.description}</p>
         </div>
       )}
 
       {event.submittedBy.bio && (
-        <div className="bg-gray-50 rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-gray-600 mb-2">About the Organizer</h3>
-          <p className="text-sm text-gray-500">{event.submittedBy.bio}</p>
+        <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-5 text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
+          <h3 className="mb-2 text-sm font-semibold text-cyan-100/70">About the Organizer</h3>
+          <p className="text-sm text-white/70">{event.submittedBy.bio}</p>
         </div>
       )}
     </div>

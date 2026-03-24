@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
+import InternalPageHeader from "@/components/shared/InternalPageHeader";
 
 interface Event {
   id: string;
@@ -96,77 +97,83 @@ export default function EventsPage() {
   }
 
   return (
-    <div>
-      <div className="flex justify-between items-center gap-4 mb-8 pb-3 border-b-2" style={{ borderColor: "#A51E30" }}>
-        <div>
-          <h1 className="text-2xl font-bold">Events</h1>
-          <p className="text-sm text-gray-500 mt-1">Community happenings, gatherings, and local activities.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {session?.user && (
-            <Link
-              href="/events/submit"
-              className="px-4 py-2 text-white text-sm font-semibold rounded-full hover:opacity-90 transition"
-              style={{ backgroundColor: "#A51E30" }}
+    <div className="space-y-8">
+      <InternalPageHeader
+        title="Events"
+        titleClassName="text-white"
+        actions={
+          <>
+            {session?.user && (
+              <Link
+                href="/events/submit"
+                className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:opacity-90"
+              >
+                Submit Event
+              </Link>
+            )}
+            <button
+              onClick={() => setViewMode("list")}
+              className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                viewMode === "list"
+                  ? "border-white bg-white text-slate-950"
+                  : "border-white/14 bg-white/8 text-white/80 hover:bg-white/12 hover:text-white"
+              }`}
             >
-              + Submit Event
-            </Link>
-          )}
-          <button
-            onClick={() => setViewMode("list")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-              viewMode === "list" ? "text-white" : "bg-white text-gray-600 shadow-sm hover:shadow-md"
-            }`}
-            style={viewMode === "list" ? { backgroundColor: "#A51E30" } : {}}
-          >
-            List View
-          </button>
-          <button
-            onClick={() => setViewMode("calendar")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-              viewMode === "calendar" ? "text-white" : "bg-white text-gray-600 shadow-sm hover:shadow-md"
-            }`}
-            style={viewMode === "calendar" ? { backgroundColor: "#A51E30" } : {}}
-          >
-            Calendar View
-          </button>
-        </div>
-      </div>
+              List View
+            </button>
+            <button
+              onClick={() => setViewMode("calendar")}
+              className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                viewMode === "calendar"
+                  ? "border-white bg-white text-slate-950"
+                  : "border-white/14 bg-white/8 text-white/80 hover:bg-white/12 hover:text-white"
+              }`}
+            >
+              Calendar View
+            </button>
+          </>
+        }
+      />
+      <p className="max-w-3xl text-sm leading-7 text-slate-500">
+        Find what&apos;s happening around Cambria Heights, switch between list and calendar
+        views, and submit events that deserve a local audience.
+      </p>
 
       {isLoading ? (
-        <p className="text-center text-gray-500">Loading events...</p>
+        <div className="rounded-[28px] border border-white/10 bg-white/70 px-6 py-12 text-center text-slate-500 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">
+          Loading events...
+        </div>
       ) : events.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-          <div className="text-6xl mb-4">📅</div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">No published events yet</h2>
-          <p className="text-gray-500 max-w-md mx-auto mb-6">
+        <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-12 text-center text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
+          <p className="mb-4 text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/66">Events</p>
+          <h2 className="mb-2 text-2xl font-bold text-white">No published events yet</h2>
+          <p className="mx-auto mb-6 max-w-md text-white/70">
             Upcoming community events will appear here as they are reviewed and published.
           </p>
           {session?.user && (
             <Link
               href="/events/submit"
-              className="inline-block px-6 py-3 text-white font-semibold rounded-full hover:opacity-90 transition"
-              style={{ backgroundColor: "#A51E30" }}
+              className="inline-block rounded-full bg-white px-6 py-3 font-semibold text-slate-950 transition hover:opacity-90"
             >
               Submit the First Event
             </Link>
           )}
         </div>
       ) : viewMode === "calendar" ? (
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
+        <div className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
           <div className="flex justify-between items-center mb-6">
             <button
               onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
-              className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+              className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200"
             >
               Previous
             </button>
-            <h2 className="text-2xl font-bold">
+            <h2 className="text-2xl font-black tracking-[-0.03em] text-slate-950">
               {MONTHS[currentMonth.getMonth()]} {currentMonth.getFullYear()}
             </h2>
             <button
               onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
-              className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+              className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200"
             >
               Next
             </button>
@@ -174,7 +181,7 @@ export default function EventsPage() {
 
           <div className="grid grid-cols-7 gap-2">
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-              <div key={day} className="text-center font-bold text-sm py-2 bg-gray-100">
+              <div key={day} className="rounded-xl bg-slate-100 py-2 text-center text-sm font-bold text-slate-600">
                 {day}
               </div>
             ))}
@@ -184,8 +191,8 @@ export default function EventsPage() {
               return (
                 <div
                   key={index}
-                  className={`border rounded-lg p-2 min-h-28 text-sm ${
-                    day ? "bg-white hover:bg-gray-50" : "bg-gray-50"
+                  className={`min-h-28 rounded-2xl border p-2 text-sm ${
+                    day ? "border-slate-200 bg-white hover:bg-slate-50" : "border-slate-100 bg-slate-50"
                   }`}
                 >
                   {day && (
@@ -196,7 +203,7 @@ export default function EventsPage() {
                           <Link
                             key={event.id}
                             href={`/events/${event.id}`}
-                            className="block bg-[#46A8CC] text-white rounded px-2 py-1 truncate text-xs"
+                            className="block truncate rounded-lg bg-[#0f5771] px-2 py-1 text-xs text-white"
                           >
                             {event.title}
                           </Link>
@@ -218,8 +225,7 @@ export default function EventsPage() {
             <Link
               key={event.id}
               href={`/events/${event.id}`}
-              className="group block bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200 border-l-4"
-              style={{ borderColor: "#A51E30" }}
+              className="group block rounded-[26px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_24px_55px_rgba(15,23,42,0.12)]"
             >
               <div className="flex gap-6">
                 {event.photoUrl && (
@@ -231,16 +237,16 @@ export default function EventsPage() {
                 )}
                 <div className="flex-1">
                   <div className="flex items-start justify-between gap-4 mb-2">
-                    <h2 className="text-xl font-bold group-hover:text-[#46A8CC] transition-colors">{event.title}</h2>
-                    <span className="text-xs font-medium px-3 py-1 rounded-full text-white flex-shrink-0" style={{ backgroundColor: "#A51E30" }}>
+                    <h2 className="text-xl font-bold text-slate-950 transition-colors group-hover:text-[#8f1d2c]">{event.title}</h2>
+                    <span className="flex-shrink-0 rounded-full bg-[#8f1d2c] px-3 py-1 text-xs font-medium text-white">
                       {new Date(event.startDatetime).toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
                       })}
                     </span>
                   </div>
-                  {event.description && <p className="text-gray-500 text-sm mb-3 line-clamp-2">{event.description}</p>}
-                  <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                  {event.description && <p className="mb-3 line-clamp-2 text-sm leading-7 text-slate-600">{event.description}</p>}
+                  <div className="flex flex-wrap gap-4 text-sm text-slate-500">
                     <span>
                       {new Date(event.startDatetime).toLocaleDateString("en-US", {
                         weekday: "long",

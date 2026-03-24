@@ -4,6 +4,7 @@ import { FormEvent, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import ImageUpload from "@/components/shared/ImageUpload";
+import InternalPageHeader from "@/components/shared/InternalPageHeader";
 
 interface ProfileData {
   firstName: string;
@@ -132,38 +133,39 @@ export default function EditProfilePage() {
   }
 
   if (isLoading) {
-    return <p className="text-center text-gray-500">Loading profile...</p>;
+    return <div className="rounded-[28px] border border-white/10 bg-white/70 p-8 text-center text-slate-500 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">Loading profile...</div>;
   }
 
   if (!profile) {
-    return <p className="text-center text-gray-500">Profile not found.</p>;
+    return <div className="rounded-[28px] border border-white/10 bg-white/70 p-8 text-center text-slate-500 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">Profile not found.</div>;
   }
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-8 border-b-2 border-[#A51E30] pb-2">
-        Edit Profile
-      </h1>
+    <div className="space-y-8">
+      <InternalPageHeader title="Profile" titleClassName="text-white" />
+      <p className="max-w-3xl text-sm leading-7 text-slate-500">
+        Keep your identity, bio, and photo current so the community knows who they are interacting with.
+      </p>
 
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">
+        <div className="rounded-xl border border-red-400 bg-red-100 px-4 py-3 text-red-700">
           {error}
         </div>
       )}
 
       {success && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-6">
+        <div className="rounded-xl border border-green-400 bg-green-100 px-4 py-3 text-green-700">
           {success}
         </div>
       )}
 
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-6 rounded-xl shadow-sm space-y-6"
+        className="space-y-6 rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur"
       >
         {/* Identity Lock Warning */}
         {profile.isIdentityLocked && profile.trustLevel === "TRUSTED" && (
-          <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+          <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4">
             <p className="text-sm text-yellow-800 mb-2">
               <strong>Identity Locked:</strong> Your account is verified and
               identity-locked for security.
@@ -176,7 +178,7 @@ export default function EditProfilePage() {
 
         {/* First Name */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-bold text-slate-700">
             First Name
           </label>
           <input
@@ -185,10 +187,10 @@ export default function EditProfilePage() {
             value={formData.firstName}
             onChange={handleInputChange}
             disabled={profile.isIdentityLocked}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC] disabled:bg-gray-100 disabled:cursor-not-allowed"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC] disabled:cursor-not-allowed disabled:bg-slate-100"
           />
           {profile.isIdentityLocked && (
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="mt-1 text-xs text-slate-500">
               This field is locked due to identity verification
             </p>
           )}
@@ -196,7 +198,7 @@ export default function EditProfilePage() {
 
         {/* Last Name */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-bold text-slate-700">
             Last Name
           </label>
           <input
@@ -205,10 +207,10 @@ export default function EditProfilePage() {
             value={formData.lastName}
             onChange={handleInputChange}
             disabled={profile.isIdentityLocked}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC] disabled:bg-gray-100 disabled:cursor-not-allowed"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC] disabled:cursor-not-allowed disabled:bg-slate-100"
           />
           {profile.isIdentityLocked && (
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="mt-1 text-xs text-slate-500">
               This field is locked due to identity verification
             </p>
           )}
@@ -216,21 +218,21 @@ export default function EditProfilePage() {
 
         {/* Email */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-bold text-slate-700">
             Email
           </label>
           <input
             type="email"
             value={profile.email}
             disabled
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed text-gray-600"
+            className="w-full cursor-not-allowed rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-slate-600"
           />
-          <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
+          <p className="mt-1 text-xs text-slate-500">Email cannot be changed</p>
         </div>
 
         {/* Date of Birth */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-bold text-slate-700">
             Date of Birth
           </label>
           <input
@@ -240,14 +242,14 @@ export default function EditProfilePage() {
             onChange={handleInputChange}
             disabled={profile.isIdentityLocked}
             max={new Date().toISOString().split("T")[0]}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC] disabled:bg-gray-100 disabled:cursor-not-allowed"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC] disabled:cursor-not-allowed disabled:bg-slate-100"
           />
           {profile.isIdentityLocked ? (
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="mt-1 text-xs text-slate-500">
               This field is locked due to identity verification
             </p>
           ) : (
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="mt-1 text-xs text-slate-500">
               Required before your account can be vouched for. Once verified, this cannot be changed.
             </p>
           )}
@@ -255,14 +257,14 @@ export default function EditProfilePage() {
 
         {/* Bio */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-bold text-slate-700">
             Bio
           </label>
           <textarea
             name="bio"
             value={formData.bio}
             onChange={handleInputChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             rows={4}
             placeholder="Tell the community about yourself"
           />
@@ -284,15 +286,14 @@ export default function EditProfilePage() {
           <button
             type="submit"
             disabled={isSaving}
-            className="flex-1 text-white font-bold py-2 rounded-full hover:shadow-md disabled:opacity-50 transition-shadow duration-200"
-            style={{ backgroundColor: "#A51E30" }}
+            className="flex-1 rounded-full bg-slate-950 py-3 font-bold text-white transition-shadow duration-200 hover:shadow-md disabled:opacity-50"
           >
             {isSaving ? "Saving..." : "Save Changes"}
           </button>
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex-1 bg-gray-300 text-gray-800 font-bold py-2 rounded-full hover:shadow-md transition-shadow duration-200"
+            className="flex-1 rounded-full border border-slate-300 py-3 font-bold text-slate-800 transition-shadow duration-200 hover:bg-slate-50 hover:shadow-md"
           >
             Cancel
           </button>
@@ -300,16 +301,16 @@ export default function EditProfilePage() {
       </form>
 
       {/* Account Settings */}
-      <div className="mt-8 bg-white p-6 rounded-xl shadow-sm">
-        <h2 className="text-2xl font-bold mb-4">Account Settings</h2>
+      <div className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
+        <h2 className="mb-4 text-2xl font-black tracking-[-0.03em] text-slate-950">Account Settings</h2>
         <div className="space-y-4">
-          <button className="w-full text-left px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+          <button className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left transition hover:bg-slate-50">
             Change Password
           </button>
-          <button className="w-full text-left px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+          <button className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left transition hover:bg-slate-50">
             Email Preferences
           </button>
-          <button className="w-full text-left px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition text-red-600">
+          <button className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left text-red-600 transition hover:bg-slate-50">
             Deactivate Account
           </button>
         </div>

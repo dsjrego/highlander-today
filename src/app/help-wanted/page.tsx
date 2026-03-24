@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import InternalPageHeader from '@/components/shared/InternalPageHeader';
 
 interface HelpWantedPost {
   id: string;
@@ -117,93 +118,93 @@ export default function HelpWantedPage() {
   const closedPosts = posts.filter((post) => post.status === 'CLOSED').length;
 
   return (
-    <div>
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8 pb-3 border-b-2" style={{ borderColor: '#A51E30' }}>
-        <div>
-          <h1 className="text-2xl font-bold">Help Wanted</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Local jobs, service requests, and short-term tasks routed through trusted community messaging.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {isTrusted ? (
-            <Link
-              href="/help-wanted/manage"
-              className="px-4 py-2 bg-white text-gray-700 text-sm font-semibold rounded-full shadow-sm hover:shadow-md transition"
+    <div className="space-y-8">
+      <InternalPageHeader
+        title="Help Wanted"
+        titleClassName="text-white"
+        actions={
+          <>
+            {isTrusted ? (
+              <Link
+                href="/help-wanted/manage"
+                className="rounded-full border border-white/14 bg-white/8 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/12"
+              >
+                My Posts
+              </Link>
+            ) : null}
+            {isTrusted ? (
+              <Link
+                href="/help-wanted/submit"
+                className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:opacity-90"
+              >
+                Post Opportunity
+              </Link>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setShowResolved((current) => !current)}
+              className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                showResolved
+                  ? 'border-white bg-white text-slate-950'
+                  : 'border-white/14 bg-white/8 text-white/80 hover:bg-white/12 hover:text-white'
+              }`}
             >
-              My Posts
-            </Link>
-          ) : null}
-          {isTrusted ? (
-            <Link
-              href="/help-wanted/submit"
-              className="px-4 py-2 text-white text-sm font-semibold rounded-full hover:opacity-90 transition"
-              style={{ backgroundColor: '#A51E30' }}
-            >
-              + Post Opportunity
-            </Link>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => setShowResolved((current) => !current)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-              showResolved ? 'text-white' : 'bg-white text-gray-600 shadow-sm hover:shadow-md'
-            }`}
-            style={showResolved ? { backgroundColor: '#A51E30' } : {}}
-          >
-            {showResolved ? 'Showing Filled / Closed' : 'Show Resolved Too'}
-          </button>
-        </div>
-      </div>
+              {showResolved ? 'Showing Filled / Closed' : 'Show Resolved Too'}
+            </button>
+          </>
+        }
+      />
+      <p className="max-w-3xl text-sm leading-7 text-slate-500">
+        Local jobs, service requests, and short-term tasks routed through trusted community messaging.
+      </p>
 
       {sessionStatus === 'authenticated' && !isTrusted ? (
-        <div className="mb-6 bg-yellow-50 border border-yellow-200 text-yellow-900 rounded-xl px-4 py-3 text-sm">
+        <div className="rounded-2xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-900">
           Trusted membership is required to post or respond to Help Wanted opportunities. You can still browse public openings while you complete the trust flow.
         </div>
       ) : null}
 
       {sessionStatus !== 'authenticated' ? (
-        <div className="mb-6 bg-blue-50 border border-blue-200 text-blue-900 rounded-xl px-4 py-3 text-sm">
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
           Public browsing is open. Sign in with a trusted account to post opportunities or respond through platform messaging after moderation.
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-          <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Open Now</p>
-          <p className="text-3xl font-bold text-gray-900">{openPosts}</p>
-          <p className="text-sm text-gray-500 mt-2">Published opportunities currently accepting responses.</p>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-5 text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
+          <p className="mb-1 text-sm font-semibold uppercase tracking-wide text-cyan-100/70">Open Now</p>
+          <p className="text-3xl font-bold text-white">{openPosts}</p>
+          <p className="mt-2 text-sm text-white/68">Published opportunities currently accepting responses.</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-          <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Recently Resolved</p>
-          <p className="text-3xl font-bold text-gray-900">{filledPosts + closedPosts}</p>
-          <p className="text-sm text-gray-500 mt-2">Filled or closed posts stay visible when resolved listings are shown.</p>
+        <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(160deg,rgba(57,20,34,0.95),rgba(20,13,24,0.95))] p-5 text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
+          <p className="mb-1 text-sm font-semibold uppercase tracking-wide text-cyan-100/70">Recently Resolved</p>
+          <p className="text-3xl font-bold text-white">{filledPosts + closedPosts}</p>
+          <p className="mt-2 text-sm text-white/68">Filled or closed posts stay visible when resolved listings are shown.</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-          <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">How It Works</p>
-          <p className="text-sm text-gray-700">
+        <div className="rounded-[26px] bg-slate-950 p-5 text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
+          <p className="mb-1 text-sm font-semibold uppercase tracking-wide text-cyan-100/70">How It Works</p>
+          <p className="text-sm text-white/72">
             Trusted posters submit opportunities, staff review them, and trusted responders contact posters through Highlander Today messages.
           </p>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-5 mb-8">
+      <div className="rounded-[28px] border border-white/10 bg-white/82 p-4 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur md:p-5">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4">
           <input
             type="search"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
             placeholder="Search opportunities, locations, schedules, or names"
           />
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => setSelectedType('ALL')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                selectedType === 'ALL' ? 'text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                selectedType === 'ALL' ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
-              style={selectedType === 'ALL' ? { backgroundColor: '#46A8CC' } : {}}
             >
               All
             </button>
@@ -212,10 +213,9 @@ export default function HelpWantedPage() {
                 key={value}
                 type="button"
                 onClick={() => setSelectedType(value as HelpWantedPost['postingType'])}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                  selectedType === value ? 'text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  selectedType === value ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
-                style={selectedType === value ? { backgroundColor: '#46A8CC' } : {}}
               >
                 {label}
               </button>
@@ -225,7 +225,7 @@ export default function HelpWantedPage() {
       </div>
 
       {isLoading ? (
-        <div className="bg-white rounded-xl shadow-sm p-12 text-center text-gray-500">
+        <div className="rounded-[28px] border border-white/10 bg-white/70 p-12 text-center text-slate-500 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">
           Loading opportunities...
         </div>
       ) : error ? (
@@ -233,17 +233,15 @@ export default function HelpWantedPage() {
           {error}
         </div>
       ) : filteredPosts.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-          <div className="text-6xl mb-4">🔨</div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">No matching opportunities yet</h2>
-          <p className="text-gray-500 max-w-md mx-auto mb-6">
+        <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-12 text-center text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
+          <h2 className="mb-2 text-xl font-bold text-white">No matching opportunities yet</h2>
+          <p className="mx-auto mb-6 max-w-md text-white/70">
             Help Wanted posts will appear here after editor review. Try a different filter, or post the first one if you are trusted.
           </p>
           {isTrusted ? (
             <Link
               href="/help-wanted/submit"
-              className="inline-block px-6 py-3 text-white font-semibold rounded-full hover:opacity-90 transition"
-              style={{ backgroundColor: '#A51E30' }}
+              className="inline-block rounded-full bg-white px-6 py-3 font-semibold text-slate-950 transition hover:opacity-90"
             >
               Post an Opportunity
             </Link>
@@ -255,8 +253,7 @@ export default function HelpWantedPage() {
             <Link
               key={post.id}
               href={`/help-wanted/${post.id}`}
-              className="group block bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200 border-l-4"
-              style={{ borderColor: '#A51E30' }}
+              className="group block rounded-[26px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_24px_55px_rgba(15,23,42,0.12)]"
             >
               <div className="flex flex-col md:flex-row gap-5">
                 {post.photoUrl ? (
@@ -273,13 +270,13 @@ export default function HelpWantedPage() {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-3">
-                    <span className="px-3 py-1 rounded-full text-xs font-semibold text-white bg-teal-700">
+                    <span className="rounded-full bg-[#0f5771] px-3 py-1 text-xs font-semibold text-white">
                       {POSTING_TYPE_LABELS[post.postingType]}
                     </span>
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${STATUS_STYLES[post.status]}`}>
                       {STATUS_LABELS[post.status]}
                     </span>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-slate-400">
                       {new Date(post.publishedAt || post.createdAt).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
@@ -289,14 +286,14 @@ export default function HelpWantedPage() {
                   </div>
 
                   <div className="flex items-start justify-between gap-4 mb-2">
-                    <h2 className="text-xl font-bold group-hover:text-[#46A8CC] transition-colors">
+                    <h2 className="text-xl font-bold text-slate-950 transition-colors group-hover:text-[#8f1d2c]">
                       {post.title}
                     </h2>
                   </div>
 
-                  <p className="text-gray-500 text-sm mb-3 line-clamp-3">{post.description}</p>
+                  <p className="mb-3 line-clamp-3 text-sm leading-7 text-slate-600">{post.description}</p>
 
-                  <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                  <div className="flex flex-wrap gap-4 text-sm text-slate-500">
                     {post.locationText ? <span>{post.locationText}</span> : null}
                     {post.scheduleText ? <span>{post.scheduleText}</span> : null}
                     {post.compensationText ? <span>{post.compensationText}</span> : null}
@@ -305,7 +302,7 @@ export default function HelpWantedPage() {
                     </span>
                   </div>
 
-                  <p className="mt-4 text-sm font-medium text-[#A51E30] group-hover:underline">
+                  <p className="mt-4 text-sm font-semibold text-[#8f1d2c] group-hover:underline">
                     View details and response rules
                   </p>
                 </div>
