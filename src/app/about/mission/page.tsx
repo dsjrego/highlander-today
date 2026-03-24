@@ -21,8 +21,8 @@ export default function AboutMissionPage() {
         <div className="mt-6 space-y-5 text-base leading-8 text-white/76">
           <p>
             Highlander Today started with a simple question: why do the digital tools that shape
-            daily life in a community &mdash; how we find out what&rsquo;s happening, where we shop,
-            who we trust, how we help each other &mdash; why do those tools always seem to be built
+            daily life in a community, how we find out what&rsquo;s happening, where we shop,
+            who we trust, how we help each other; why do those tools always seem to be built
             for someone else&rsquo;s benefit?
           </p>
           <p>
@@ -32,7 +32,7 @@ export default function AboutMissionPage() {
             more like a town, not less.
           </p>
           <p>
-            That&rsquo;s what we&rsquo;re building &mdash; starting right here in Cambria Heights,
+            That&rsquo;s what we&rsquo;re building ,; starting right here in Cambria Heights,
             in the highlands of Cambria County, Pennsylvania. Not because we think small. Because
             we believe the only honest way to build something like this is to get it right in one
             place first, with real people, before trying to bring it anywhere else.
@@ -62,14 +62,14 @@ export default function AboutMissionPage() {
             <h3 className="text-base font-bold text-white">For residents</h3>
             <p className="mt-2 text-sm leading-7 text-white/72">
               A place to find out what&rsquo;s actually happening in your community, connect with
-              people you can trust, and build a reputation that means something over time &mdash;
+              people you can trust, and build a reputation that means something over time ,;
               not just another feed full of noise.
             </p>
           </div>
           <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(160deg,rgba(57,20,34,0.95),rgba(20,13,24,0.95))] p-5 text-white">
             <h3 className="text-base font-bold text-white">For businesses and organizations</h3>
             <p className="mt-2 text-sm leading-7 text-white/72">
-              A way to stay visible to the people who live near you &mdash; not through ads, but
+              A way to stay visible to the people who live near you ,; not through ads, but
               through real participation in the community you&rsquo;re already part of.
             </p>
           </div>
@@ -78,7 +78,7 @@ export default function AboutMissionPage() {
           <h3 className="text-base font-bold text-white">For everywhere else</h3>
           <p className="mt-2 text-sm leading-7 text-white/72">
             Once we&rsquo;ve built something that genuinely works here, we want to bring it to
-            other communities too. Each town gets its own space, its own identity &mdash; but
+            other communities too. Each town gets its own space, its own identity ,; but
             connected, so that what&rsquo;s local never has to mean what&rsquo;s isolated.
           </p>
         </div>
