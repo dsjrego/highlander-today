@@ -323,7 +323,7 @@ export default function ManageHelpWantedPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 pb-3 border-b-2" style={{ borderColor: '#A51E30' }}>
         <div>
           <h1 className="text-2xl font-bold">My Help Wanted Posts</h1>

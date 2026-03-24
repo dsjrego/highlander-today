@@ -151,7 +151,7 @@ export default function HelpWantedDetailPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div>
       <div className="mb-6">
         <Link href="/help-wanted" className="text-sm font-medium hover:underline" style={{ color: '#A51E30' }}>
           Back to Help Wanted

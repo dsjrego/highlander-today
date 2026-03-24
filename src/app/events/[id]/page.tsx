@@ -75,7 +75,7 @@ export default function EventDetailPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div>
       {event.status !== 'PUBLISHED' && (
         <div className={`mb-6 p-3 rounded-lg text-sm font-medium ${
           event.status === 'PENDING_REVIEW'

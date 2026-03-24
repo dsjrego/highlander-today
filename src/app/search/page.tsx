@@ -164,7 +164,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     selectedFilter === 'all' ? 'results' : FILTER_LABELS[selectedFilter].toLowerCase();
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div>
       <section className="mb-8 rounded-[2rem] bg-gradient-to-r from-[#f4ede3] via-white to-[#d9eef6] p-6 shadow-sm">
         <h1 className="mb-3 border-b-2 border-[#A51E30] pb-3 text-2xl font-bold">Search</h1>
         <p className="mb-5 max-w-2xl text-sm leading-6 text-gray-600">

@@ -140,7 +140,7 @@ export default function EditProfilePage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div>
       <h1 className="text-2xl font-bold mb-8 border-b-2 border-[#A51E30] pb-2">
         Edit Profile
       </h1>

@@ -13,7 +13,7 @@ export default function AboutJournalPage() {
   const plannedEntries = ABOUT_JOURNAL_ENTRIES.filter((entry) => entry.status === 'planned');
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
+    <div className="space-y-8">
       <section className="rounded-[28px] border border-[#0d5770]/20 bg-[linear-gradient(160deg,#effbff_0%,#ffffff_55%,#fff6f7_100%)] p-8 shadow-sm md:p-10">
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[#0d5770]">
           Journal

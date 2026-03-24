@@ -142,7 +142,7 @@ export default function ArticleDetailPage() {
   const showStatusBanner = article.status !== 'PUBLISHED';
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div>
       {/* Status banner for non-published articles */}
       {showStatusBanner && (
         <div className={`mb-6 p-3 rounded-lg text-sm font-medium ${

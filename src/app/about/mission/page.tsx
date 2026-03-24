@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function AboutMissionPage() {
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
+    <div className="space-y-8">
       <section className="rounded-[28px] border border-[#d7a9af] bg-white p-8 shadow-sm md:p-10">
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[#A51E30]">
           Mission

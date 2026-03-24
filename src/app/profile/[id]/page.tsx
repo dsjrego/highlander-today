@@ -160,7 +160,7 @@ export default async function UserProfilePage({ params }: PageProps) {
   const recentActivities = activities.slice(0, 5);
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div>
       {/* Profile Header */}
       <div className="bg-white rounded-xl shadow-sm p-8 mb-8">
         <div className="flex items-start gap-8 mb-6">

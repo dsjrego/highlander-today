@@ -133,7 +133,7 @@ export default function MyDraftsPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div>
       {/* Header */}
       <div className="flex justify-between items-center mb-8 pb-3 border-b-2" style={{ borderColor: '#A51E30' }}>
         <h1 className="text-2xl font-bold">My Articles</h1>
