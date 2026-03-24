@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import Providers from "@/components/Providers";
 import BannerActions from "@/components/layout/BannerActions";
 import NavigationBar from "@/components/layout/NavigationBar";
@@ -44,24 +45,25 @@ export default function RootLayout({
                   <h3 className="font-bold mb-2 text-white">About</h3>
                   <p className="text-sm text-red-200">
                     Highlander Today is a community platform for local news,
-                    events, and connections.
+                    events, opportunity, and accountable local coordination.
                   </p>
                 </div>
                 <div>
                   <h3 className="font-bold mb-2 text-white">Quick Links</h3>
                   <ul className="text-sm text-red-200 space-y-1">
-                    <li><a href="/local-life" className="hover:text-white">Local Life</a></li>
-                    <li><a href="/experiences" className="hover:text-white">Experiences</a></li>
-                    <li><a href="/marketplace" className="hover:text-white">Market</a></li>
-                    <li><a href="/help-wanted" className="hover:text-white">Help Wanted</a></li>
-                    <li><a href="/roadmap" className="hover:text-white">Roadmap</a></li>
+                    <li><Link href="/local-life" className="hover:text-white">Local Life</Link></li>
+                    <li><Link href="/experiences" className="hover:text-white">Experiences</Link></li>
+                    <li><Link href="/marketplace" className="hover:text-white">Market</Link></li>
+                    <li><Link href="/help-wanted" className="hover:text-white">Help Wanted</Link></li>
+                    <li><Link href="/about" className="hover:text-white">About</Link></li>
                   </ul>
                 </div>
                 <div>
-                  <h3 className="font-bold mb-2 text-white">Legal</h3>
+                  <h3 className="font-bold mb-2 text-white">Institutional</h3>
                   <ul className="text-sm text-red-200 space-y-1">
-                    <li><a href="/terms" className="hover:text-white">Terms</a></li>
-                    <li><a href="/privacy" className="hover:text-white">Privacy</a></li>
+                    <li><Link href="/about/mission" className="hover:text-white">Mission</Link></li>
+                    <li><Link href="/about/roadmap" className="hover:text-white">About Roadmap</Link></li>
+                    <li><Link href="/about/journal" className="hover:text-white">Journal</Link></li>
                   </ul>
                 </div>
               </div>

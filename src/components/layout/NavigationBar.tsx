@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { ABOUT_NAV_ITEMS } from '@/lib/about';
 
 // -------------------------------------------------------------------
 // NAV SECTION DATA
@@ -56,6 +57,17 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
 ];
+
+const ABOUT_SECTION: NavSection = {
+  label: 'About',
+  href: '/about',
+  slug: 'about',
+  subcategories: ABOUT_NAV_ITEMS.map((item) => ({
+    label: item.label,
+    slug: item.href.replace('/about/', '') || 'about',
+    href: item.href,
+  })),
+};
 
 // -------------------------------------------------------------------
 // DROPDOWN COMPONENT
@@ -165,6 +177,8 @@ export default function NavigationBar() {
         <Link href="/help-wanted" className="text-red-100 hover:text-white transition-colors">
           Help Wanted
         </Link>
+
+        <NavDropdown section={ABOUT_SECTION} />
 
         {isSuperAdmin && (
           <Link href="/arcade" className="text-red-100 hover:text-white transition-colors">
