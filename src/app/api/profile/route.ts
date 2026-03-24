@@ -103,7 +103,13 @@ export async function PATCH(request: NextRequest) {
 
     const user = await db.user.findUnique({
       where: { id: userId },
-      select: { id: true, isIdentityLocked: true },
+      select: {
+        id: true,
+        isIdentityLocked: true,
+        firstName: true,
+        lastName: true,
+        dateOfBirth: true,
+      },
     });
 
     if (!user) {
@@ -113,8 +119,21 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const validated = UpdateProfileSchema.parse(body);
 
-    // If identity is locked, reject name and date of birth changes
-    if (user.isIdentityLocked && (validated.firstName || validated.lastName || validated.dateOfBirth)) {
+    const normalizedCurrentDob = user.dateOfBirth
+      ? user.dateOfBirth.toISOString().split('T')[0]
+      : null;
+    const normalizedIncomingDob =
+      validated.dateOfBirth === undefined
+        ? undefined
+        : validated.dateOfBirth || null;
+
+    const isChangingLockedIdentityField =
+      (validated.firstName !== undefined && validated.firstName !== user.firstName) ||
+      (validated.lastName !== undefined && validated.lastName !== user.lastName) ||
+      (normalizedIncomingDob !== undefined && normalizedIncomingDob !== normalizedCurrentDob);
+
+    // If identity is locked, reject actual name or DOB changes.
+    if (user.isIdentityLocked && isChangingLockedIdentityField) {
       return NextResponse.json(
         {
           error: 'Identity locked',

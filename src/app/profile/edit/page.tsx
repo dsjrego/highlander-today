@@ -92,10 +92,23 @@ export default function EditProfilePage() {
     setIsSaving(true);
 
     try {
+      const payload = profile?.isIdentityLocked
+        ? {
+            bio: formData.bio,
+            profilePhotoUrl: formData.profilePhotoUrl || null,
+          }
+        : {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            bio: formData.bio,
+            dateOfBirth: formData.dateOfBirth,
+            profilePhotoUrl: formData.profilePhotoUrl || null,
+          };
+
       const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
