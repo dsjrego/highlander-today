@@ -180,7 +180,7 @@ Known placeholders / partial admin areas:
 
 ### Production upload setup (Cloudflare R2)
 
-The next deployment step is production-safe upload storage. The app already uses Cloudflare R2 in production when these variables are present:
+Production uploads are already live on Cloudflare R2 for `highlander.today`. The app uses these variables when production storage is configured:
 
 ```env
 R2_ACCOUNT_ID=...
@@ -190,12 +190,12 @@ R2_BUCKET_NAME=highlander-today
 R2_PUBLIC_URL=https://cdn.example.com
 ```
 
-Operator sequence:
+Operator sequence for a fresh environment:
 
 1. Create an R2 bucket for production uploads, for example `highlander-today`.
 2. Create an R2 API token with object read/write access scoped to that bucket and save the access key ID and secret.
 3. Attach a public custom domain to the bucket, for example `cdn.highlander-today.com`.
-4. Create the required DNS record at Namecheap or in Cloudflare DNS, depending on where the domain is currently hosted, using the target Cloudflare provides for that custom domain.
+4. Create the required DNS record in the authoritative DNS provider for the domain. For the live production setup, DNS is managed in Cloudflare.
 5. Add the five variables above to the Vercel production environment.
 6. Redeploy after saving the variables.
 7. Verify production uploads from any wired form and confirm the returned file URL uses the configured `R2_PUBLIC_URL` host rather than `/uploads/...`.
@@ -205,6 +205,52 @@ Notes:
 - `R2_ACCOUNT_ID` is enough for the app to derive the S3-compatible endpoint automatically.
 - `R2_PUBLIC_URL` must be the final public asset base URL, not the private R2 API endpoint.
 - If production uploads return `Upload storage is not configured for production`, at least one required variable is missing in Vercel.
+
+## Production Auth Setup
+
+The current remaining deployment/auth work is hosted auth verification plus OAuth provider publication against the final production domain:
+
+```env
+NEXTAUTH_URL=https://highlander.today
+NEXTAUTH_SECRET=<strong-random-secret>
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+FACEBOOK_CLIENT_ID=...
+FACEBOOK_CLIENT_SECRET=...
+```
+
+Set those values in the Vercel production environment, redeploy, and verify that the deployed app is serving auth from `https://highlander.today` rather than a preview or localhost URL.
+
+For a repo-side preflight check, run:
+
+```bash
+npm run deploy:check-env -- --mode production --env-file .env
+```
+
+That command validates presence and format for the hosted auth env variables without printing secret values. It also warns if MaxMind or R2 variables are missing from the checked env file.
+
+### Production OAuth callback URLs
+
+Use these production callback URLs in the provider dashboards:
+
+- Google redirect URI: `https://highlander.today/api/auth/callback/google`
+- Facebook redirect URI: `https://highlander.today/api/auth/callback/facebook`
+
+Recommended allowed origins / app domains:
+
+- `https://highlander.today`
+- `https://www.highlander.today`
+
+### Operator checklist
+
+1. In Vercel Production env vars, confirm `NEXTAUTH_URL` is exactly `https://highlander.today`.
+2. Confirm `NEXTAUTH_SECRET` is present and does not differ across prod auth requests.
+3. Confirm the current Google and Facebook client IDs/secrets in Vercel match the rotated local values before testing production login.
+4. In Google Cloud Console, add `https://highlander.today` to Authorized JavaScript origins and `https://highlander.today/api/auth/callback/google` to Authorized redirect URIs.
+5. In the Facebook app dashboard, set the site/app domain to `highlander.today` and add `https://highlander.today/api/auth/callback/facebook` as a valid OAuth redirect URI.
+6. Move both OAuth apps out of local dev/test-only mode as required by each provider before public launch.
+7. After redeploy, test credentials login, Google login, and Facebook login on `https://highlander.today/login`.
+8. Verify each successful login creates or reuses the expected user record and records a `LoginEvent` / anomaly audit trail in production.
 
 ## Login Geolocation
 
