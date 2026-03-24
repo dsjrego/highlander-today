@@ -67,8 +67,12 @@ export default function RootLayout({
                   </ul>
                 </div>
               </div>
-              <div className="border-t border-red-800 pt-4 text-center text-sm text-red-200">
+              <div className="border-t border-red-800 pt-4 text-center text-sm text-red-200 space-y-2">
                 <p>&copy; 2024 Highlander Today. All rights reserved.</p>
+                <p className="mx-auto max-w-3xl text-xs leading-relaxed text-red-300">
+                  Highlander Today is an independent community platform and is not affiliated with
+                  the Cambria Heights School District.
+                </p>
               </div>
             </div>
           </footer>
