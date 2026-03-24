@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-03-24 (session 39 — recorded the real production domain as `highlander.today`, captured the Cloudflare R2 custom-domain blocker that requires Cloudflare-managed DNS on the same account, and clarified that upload-domain setup now depends on the DNS decision rather than just bucket credentials)
+> **Last updated:** 2026-03-24 (session 40 — completed the production DNS cutover for `highlander.today` to Cloudflare-backed Vercel routing, confirmed the R2 public upload domain path is active, bootstrapped the production super-admin with DOB backfill, and fixed the locked-profile edit bug that was blocking profile-photo updates)
 > **Purpose:** Full context for AI assistants to continue development. Read this file first each session.
 
 ---
@@ -121,7 +121,7 @@ The focus is depth of engagement in a single community before breadth.
 
 ## Tech Stack
 
-Next.js 14 (App Router) + TypeScript, PostgreSQL 16 (Docker, port **5433**), Prisma ORM, NextAuth.js v4 (CredentialsProvider + GoogleProvider + FacebookProvider + JWT — **NO PrismaAdapter**), Tailwind CSS + @tailwindcss/typography, TipTap editor (wired — rich text for articles), isomorphic-dompurify (server-side HTML sanitization), Cloudflare R2 (not yet configured), Sharp, PostgreSQL tsvector search, Jest + RTL, D3.js.
+Next.js 14 (App Router) + TypeScript, PostgreSQL 16 (Docker, port **5433**), Prisma ORM, NextAuth.js v4 (CredentialsProvider + GoogleProvider + FacebookProvider + JWT — **NO PrismaAdapter**), Tailwind CSS + @tailwindcss/typography, TipTap editor (wired — rich text for articles), isomorphic-dompurify (server-side HTML sanitization), Cloudflare R2 (production upload path configured via custom domain), Sharp, PostgreSQL tsvector search, Jest + RTL, D3.js.
 
 ---
 
@@ -254,7 +254,7 @@ src/lib/
 - **Navigation / design:** Public design system is applied, nav dropdowns work, Arcade is visible only to Super Admin, and the Experiences dropdown now links directly to `/events` for the Events entry. The `/events` page also exposes a visible `Submit Event` CTA for signed-in users. In the admin sidebar, the `/admin/stores` entry is now labeled `Store Moderation` to match the dedicated store-review workflow and the redirect notice shown in the shared content queue.
 - **Security logging:** Login events and immutable activity logs are live, including admin endpoints for investigation/export.
 - **Repository / deployment baseline:** The project is now under git and the initial `main` branch has been pushed to GitHub at `https://github.com/dsjrego/highlander-today`. Repo-facing docs/config were cleaned up for first public/private remote use: `README.md` now reflects the active product surface instead of stale scaffold routes, `.env.example` now documents the real local Docker Postgres connection on `127.0.0.1:5433`, and `src/app/api/health/route.ts` now exists so the Docker `HEALTHCHECK` hits a real endpoint.
-- **Domain management status:** The production domain is `highlander.today`, and it is currently managed at Namecheap. Future DNS, nameserver, and domain-connection instructions should assume `highlander.today` at Namecheap is the current registrar/provider unless and until DNS is intentionally moved elsewhere.
+- **Domain management status:** The production domain is `highlander.today`. Namecheap remains the registrar, but active DNS is now managed in Cloudflare and the live app routes through Vercel on `https://highlander.today`. Future DNS/domain instructions should assume registrar = Namecheap, authoritative DNS = Cloudflare unless intentionally changed again.
 
 ### PLACEHOLDER (UI exists, mock/hardcoded data)
 - Admin: dashboard
@@ -486,6 +486,9 @@ Status: complete for the current MVP loop. The roadmap-first weighting foundatio
 - **Deployment runbook follow-up:** The repo now includes explicit operator instructions for the first remaining deployment step in `README.md`: Cloudflare R2 bucket creation, scoped API credentials, public custom-domain wiring, the five Vercel env vars required by the live upload helper, and the expected verification outcome. This clarifies that the next action is provider-side configuration, not more upload-path coding.
 - **Cloudflare R2 custom-domain blocker:** Attempting to attach an R2 public custom domain before `highlander.today` is present in the same Cloudflare account and managed through Cloudflare DNS produced the dashboard error: `That domain was not found on your account. Public bucket access supports only domains on your account and managed through Cloudflare DNS.` Future sessions should treat this as a confirmed platform constraint, not a transient setup mistake.
 - **Bootstrap admin DOB follow-up:** The initial production super-admin bootstrap can still create a locked account without a DOB if the script is used before any normal profile flow. `scripts/set-user-dob.ts` now exists as a direct remediation tool for already-bootstrapped accounts, and the current production super-admin has already been backfilled successfully. The broader identity-bootstrap policy remains under review.
+- **Production DNS cutover follow-up:** `highlander.today` has now been moved to Cloudflare-managed DNS, the Vercel project domain is connected and serving valid HTTPS on the apex domain, and `www` is configured as the secondary hostname. The earlier legacy DNS/provider confusion is resolved: registrar stays at Namecheap, DNS is now authoritative in Cloudflare, and Vercel is the active app-routing target.
+- **Production uploads follow-up:** The R2 public custom domain path is now live on `cdn.highlander.today`, production profile-photo upload testing succeeded, and the remaining upload verification work is just broader surface-area smoke testing rather than core storage setup. Future sessions should treat production-safe upload storage as operationally complete unless new upload bugs surface.
+- **Locked-profile update bugfix:** Profile-photo updates for identity-locked users were failing because the edit page still submitted locked name/DOB fields and `/api/profile` rejected any locked-profile payload that merely included them. The fix now submits only editable fields for locked users and the API compares actual changes rather than field presence, so photo/bio updates no longer trip the identity-lock guard.
 
 ---
 
@@ -534,7 +537,7 @@ Run the super admin script once. After that, the Super Admin uses the admin UI t
 - **Supported types:** JPEG, PNG, WebP, GIF up to 5MB
 - **Wired flows:** article featured image, TipTap inline images, profile photo, event image, marketplace images
 - **Legacy component:** `src/components/shared/ImageUploader.tsx`
-- **Production storage path:** `/api/upload` now uses `src/lib/upload.ts` for Cloudflare R2 when the production R2 env vars are present; otherwise production uploads should be treated as misconfigured
+- **Production storage path:** `/api/upload` now uses `src/lib/upload.ts` for Cloudflare R2 in production, backed by the live custom domain `https://cdn.highlander.today`. Production profile-photo uploads have been verified against that path.
 
 ---
 
@@ -548,7 +551,7 @@ This is the current recommended launch setup for the first public deployment. It
 - **Primary database:** Neon Postgres
 - **Object storage / uploads:** Cloudflare R2
 - **Domain registrar / current DNS starting point:** Namecheap
-- **Optional DNS / edge proxy target:** Cloudflare DNS if/when the domain is intentionally moved there
+- **Authoritative DNS provider:** Cloudflare DNS
 - **Current production domain:** `highlander.today`
 - **Source control / CI trigger:** GitHub + GitHub Actions
 
@@ -611,13 +614,9 @@ That means:
 - Configure production secrets in the hosting platform
 - Before executing any of the above, provide explicit account-creation and setup instructions for any external service the owner has not already configured (at minimum: Vercel, Neon, Cloudflare/R2 if used, Google OAuth, Facebook OAuth, and any production geolocation provider). Future sessions should not assume those accounts, buckets, API credentials, or dashboard projects already exist.
 - Complete the remaining operational launch steps in this order:
-  1. Move uploads to Cloudflare R2
-  2. Replace the current production geolocation placeholder/vendor assumption as already noted elsewhere in this file
-  3. Decide whether the initial launch keeps DNS at Namecheap or moves nameservers/DNS for `highlander.today` to Cloudflare first
-  4. If keeping Namecheap DNS: create the required records there for the chosen app host and any supporting services
-  5. If moving to Cloudflare DNS: update nameservers at Namecheap, then recreate the required DNS records in Cloudflare so the R2 public custom domain can be attached from the same Cloudflare account
-  6. Set production `NEXTAUTH_URL` to the final production domain (`https://highlander.today`) after DNS/domain routing is in place
-  7. Update Google and Facebook OAuth from local-dev setup to production-ready configuration, including production redirect URIs and any required publication/review
+  1. Replace the current production geolocation placeholder/vendor assumption as already noted elsewhere in this file
+  2. Verify production `NEXTAUTH_URL` and all hosted auth env vars are aligned with the final production domain (`https://highlander.today`)
+  3. Update Google and Facebook OAuth from local-dev setup to production-ready configuration, including production redirect URIs and any required publication/review
 - Run the production bootstrap flow:
 
 ```bash

@@ -206,6 +206,21 @@ Notes:
 - `R2_PUBLIC_URL` must be the final public asset base URL, not the private R2 API endpoint.
 - If production uploads return `Upload storage is not configured for production`, at least one required variable is missing in Vercel.
 
+## Login Geolocation
+
+Login anomaly logging now expects MaxMind credentials for public-IP geolocation:
+
+```env
+MAXMIND_ACCOUNT_ID=...
+MAXMIND_LICENSE_KEY=...
+```
+
+Notes:
+
+- The active login-event path uses MaxMind GeoIP2 City over HTTPS.
+- If those variables are missing, login logging still works, but public-IP city/region/country enrichment is skipped.
+- Localhost and private-network IPs are still tagged as `localhost` / `local` for development.
+
 ## Testing and Verification
 
 Common commands:

@@ -4,6 +4,8 @@ import { db } from './db';
 // LOGIN EVENT LOGGING & ANOMALY DETECTION
 // ============================================================================
 
+const MAXMIND_CITY_ENDPOINT = 'https://geoip.maxmind.com/geoip/v2.1/city';
+
 interface LoginEventInput {
   userId: string;
   ipAddress: string;
@@ -15,6 +17,24 @@ interface GeoLocation {
   city?: string;
   region?: string;
   country?: string;
+}
+
+interface MaxMindCityResponse {
+  city?: {
+    names?: {
+      en?: string;
+    };
+  };
+  country?: {
+    names?: {
+      en?: string;
+    };
+  };
+  subdivisions?: Array<{
+    names?: {
+      en?: string;
+    };
+  }>;
 }
 
 /**
@@ -130,41 +150,65 @@ async function detectAnomaly(
 /**
  * Resolve IP to approximate geolocation.
  *
- * Uses the free ip-api.com service (no API key needed, 45 req/min limit).
+ * Uses MaxMind GeoIP2 City over HTTPS when configured.
  * Returns empty object on failure — geolocation is best-effort.
- *
- * For production, swap this with MaxMind GeoLite2 local DB for better
- * reliability and no rate limits.
  */
 async function resolveGeoLocation(ipAddress: string): Promise<GeoLocation> {
   // Skip geolocation for localhost/private IPs
-  if (
-    ipAddress === '127.0.0.1' ||
-    ipAddress === '::1' ||
-    ipAddress.startsWith('192.168.') ||
-    ipAddress.startsWith('10.') ||
-    ipAddress.startsWith('172.')
-  ) {
+  if (isPrivateOrLoopbackIp(ipAddress)) {
     return { city: 'localhost', region: 'local', country: 'local' };
   }
 
+  const maxMindAccountId = process.env.MAXMIND_ACCOUNT_ID?.trim();
+  const maxMindLicenseKey = process.env.MAXMIND_LICENSE_KEY?.trim();
+
+  if (!maxMindAccountId || !maxMindLicenseKey) {
+    return {};
+  }
+
   try {
-    const response = await fetch(`http://ip-api.com/json/${ipAddress}?fields=city,regionName,country`, {
+    const response = await fetch(`${MAXMIND_CITY_ENDPOINT}/${encodeURIComponent(ipAddress)}`, {
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${maxMindAccountId}:${maxMindLicenseKey}`).toString('base64')}`,
+      },
       signal: AbortSignal.timeout(3000), // 3 second timeout
     });
 
     if (!response.ok) return {};
 
-    const data = await response.json();
+    const data = (await response.json()) as MaxMindCityResponse;
     return {
-      city: data.city || undefined,
-      region: data.regionName || undefined,
-      country: data.country || undefined,
+      city: data.city?.names?.en || undefined,
+      region: data.subdivisions?.[0]?.names?.en || undefined,
+      country: data.country?.names?.en || undefined,
     };
   } catch {
     // Geolocation failure is not critical
     return {};
   }
+}
+
+function isPrivateOrLoopbackIp(ipAddress: string): boolean {
+  return (
+    ipAddress === '127.0.0.1' ||
+    ipAddress === '::1' ||
+    ipAddress.startsWith('192.168.') ||
+    ipAddress.startsWith('10.') ||
+    isPrivate172Range(ipAddress) ||
+    ipAddress.startsWith('fc') ||
+    ipAddress.startsWith('fd')
+  );
+}
+
+function isPrivate172Range(ipAddress: string): boolean {
+  const match = /^172\.(\d{1,3})\./.exec(ipAddress);
+
+  if (!match) {
+    return false;
+  }
+
+  const secondOctet = Number(match[1]);
+  return secondOctet >= 16 && secondOctet <= 31;
 }
 
 // ============================================================================
