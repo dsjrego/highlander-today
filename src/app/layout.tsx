@@ -35,7 +35,7 @@ export default function RootLayout({
           <NavigationBar />
 
           {/* Main Content */}
-          <main className="container mx-auto px-4 pt-6 pb-8">{children}</main>
+          <main className="container mx-auto px-4 pt-8 pb-8">{children}</main>
 
           {/* Footer */}
           <footer className="text-red-100 py-8 mt-12" style={{ backgroundColor: '#7a1222' }}>
