@@ -5,8 +5,8 @@ import { isCloudflareR2Configured, uploadFile } from '@/lib/upload';
 
 /**
  * POST /api/upload
- * Upload an image file. Saves to local filesystem for development.
- * Swap to R2/S3 in production by replacing the storage section below.
+ * Upload an image file. Uses Cloudflare R2 in production when configured,
+ * otherwise local filesystem storage in development.
  *
  * Accepts: multipart/form-data with a "file" field
  * Optional form field: "context" — one of "article", "profile", "event", "marketplace", "help-wanted"

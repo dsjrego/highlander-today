@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-03-19 (session 36 — deployment-readiness verification pass: production build now succeeds after wrapping `useSearchParams()` pages in `Suspense`, the local verification sequence is confirmed as `lint` + `test:unit` + `typecheck` + `build`, and GitHub Actions CI now runs those same gates on pushes/PRs)
+> **Last updated:** 2026-03-24 (session 39 — recorded the real production domain as `highlander.today`, captured the Cloudflare R2 custom-domain blocker that requires Cloudflare-managed DNS on the same account, and clarified that upload-domain setup now depends on the DNS decision rather than just bucket credentials)
 > **Purpose:** Full context for AI assistants to continue development. Read this file first each session.
 
 ---
@@ -10,6 +10,11 @@
 Multi-tenant community platform for Cambria Heights, PA — local content, events, a store-based market/ecommerce platform, help wanted (services/jobs postings), a reusable delivery/job marketplace, and private messaging with a trust-based membership model (members vouch for new members; revocation cascades via BFS).
 
 Full spec: `highlander-today-spec.md` (~1143 lines). Key concepts: trust levels (ANONYMOUS → REGISTERED → TRUSTED → SUSPENDED), roles (Reader → Contributor → Staff Writer → Editor → Admin → Super Admin), identity lock (DOB entry permanently locks name+DOB after vouching), red badge (untrusted), orange badge (suspended), multi-tenant by domain/slug. Brand colors: Primary `#46A8CC`, Accent `#A51E30`.
+
+Supporting planning docs:
+- `DONATIONS-TRANSPARENCY-PLAN.md` — proposed funding/transparency feature plan, provider recommendation, data model, rollout phases, and launch recommendation
+- `DIRECTORY-PLAN.md` — proposed directory model for individuals and organizations, including trusted-only messaging, user opt-in listing rules, organization roster visibility, and the recommended `Organization` / `OrganizationMembership` direction
+- `QUALIFIED-INTEREST-MARKETPLACE-PLAN.md` — proposed buyer-initiated offer / lead marketplace model where residents control access to their attention, businesses pay for qualified engagement, compensation flows primarily to the resident, and the platform acts as accountable market infrastructure rather than a traditional ad surface
 
 ---
 
@@ -150,7 +155,9 @@ Two main content sections with dropdown nav menus (`NavigationBar.tsx` client co
 
 **Experiences** (`/experiences`): `events`, `outdoor-recreation`, `sports-activities`, `classes-workshops`, `tours-attractions`, `rentals-getaways`, `entertainment-nightlife`, `seasonal` (placeholder — not yet wired)
 
-Nav: Home, Local Life (dropdown), Experiences (dropdown), Market, Help Wanted, Arcade (Super Admin only). Subcategory links use `?category=slug` query params matching `Category.slug` in DB. Nav data hardcoded in `NavigationBar.tsx` — swap to DB fetch when wiring real data. NavigationBar uses `useSession` to check role and conditionally render the Arcade link. Old `/articles` route exists for backwards compatibility.
+**About** (planned top-level nav dropdown): intended institutional/platform section, separate from Local Life and Experiences. Current agreed subpages are `Mission`, `Roadmap`, and `Blog`/`Journal`. This area should explain who Highlander Today is, how the organization thinks about technology as essential infrastructure, what it is building, and how that thinking evolves over time. Future public pages such as `Transparency` and `Support` may eventually live under this umbrella as well.
+
+Nav: Home, Local Life (dropdown), Experiences (dropdown), Market, Help Wanted, About (planned), Arcade (Super Admin only). Subcategory links use `?category=slug` query params matching `Category.slug` in DB. Nav data hardcoded in `NavigationBar.tsx` — swap to DB fetch when wiring real data. NavigationBar uses `useSession` to check role and conditionally render the Arcade link. Old `/articles` route exists for backwards compatibility.
 
 ---
 
@@ -210,6 +217,13 @@ src/lib/
 - **Community development intent:** Broad adoption in the first community matters not only for product validation, but because the company itself is intended to contribute durable local value and potentially meaningful employment over time.
 - **Credibility requirement:** Broader economic and expansion claims only become credible if the product first proves dense local adoption, visible activity, and repeat interaction loops in the initial community.
 - **Help Wanted framing:** Help Wanted should function as a trusted local opportunity board covering standard employment listings, service/help requests, and short-term gigs/tasks, while keeping all interaction inside the platform trust and messaging system.
+- **Funding transparency direction:** If/when the platform solicits donations or later earns service revenue from other communities, the product should expose public aggregate funding/expenditure reporting so the platform can be understood as accountable local infrastructure rather than an opaque service.
+- **Fund framing:** The current proposed public buckets are Community Support, Growth Fund, and Team Support, with allocations controlled by a policy record rather than hardcoded product copy so percentages can evolve without corrupting historical records.
+- **Provider recommendation:** Stripe is the current recommended third-party provider for donations because it best supports first-party transparency pages, future webhook automation, and eventual non-donation revenue flows; Givebutter is the closest fallback if speed of donation-specific launch outweighs long-term architectural fit, while GoFundMe is not the preferred foundation for this product.
+- **Launch posture for donations:** Donation support is considered strategically useful but is not a hard launch requirement; the current recommendation is to introduce fundraising only once the home community can already see clear value, visible activity, and a basic transparency surface.
+- **Public institutional voice direction:** The platform should eventually expose a first-class `About` area with stable mission/philosophy content, a public roadmap, and an evolving blog/journal so Highlander Today can explain both what it is building and the organizational worldview behind it.
+- **Technology-as-infrastructure philosophy:** A core emerging mission view is that important communication, coordination, discovery, and market-access technology increasingly functions like necessary infrastructure. The product should therefore aim for broad usefulness, accountable operation, transparent economics, and non-extractive stewardship rather than treating access alone as the thing to monetize.
+- **Near-term feature direction:** After current deployment-readiness priorities are completed, the next new feature area should be the public `About` section rather than another marketplace/community workflow. That work should cover the main-nav `About` entry plus initial `Mission`, `Roadmap`, and `Blog`/`Journal` pages.
 
 ### WORKING
 - **Core platform:** Auth, seeded DB, Prisma models, permissions/trust/audit libs, and the main API surface are live.
@@ -225,6 +239,7 @@ src/lib/
 - **Search:** `/search`, `/api/search`, and `src/lib/search.ts` are now aligned on the current schema and tenant model. Search is server-rendered, filter and pagination state live in the URL, counts are returned per content type, and result cards now use `next/image`.
 - **Admin area:** Users, trust, bans, audit log, and content moderation are live. User deletion is Super Admin only and logged before cascade delete.
 - **Marketplace / stores:** The store-based marketplace schema is live (`Store`, `StoreMember`, store-owned `MarketplaceListing`, listing types for products/food/services). `/api/marketplace`, `/api/marketplace/[id]`, `/api/stores`, `/api/stores/[id]`, and `/api/stores/[id]/approve` are wired to the current schema. Public market list/detail pages now fetch real data, buyers can browse anonymously, trusted users can message sellers from listing detail, the `/marketplace` landing page now supports direct text search across listings and stores plus a dedicated store-browsing section with stronger store-level summaries, public marketplace pages show `ACTIVE`, `PENDING`, and `SOLD` listing states with clearer buyer messaging, approved stores now have public storefront pages at `/marketplace/stores/[id]` with richer store identity/presentation, homepage marketplace cards now expose direct storefront links in addition to listing links, listing detail now links into storefronts, seller contact on storefront/detail views is gated to trusted users or store managers, sellers can create stores, dedicated admin store management is now available at `/admin/stores` (including review, filtering, approve/reject, suspend, and reinstate-to-approved controls), the shared `/admin/content` queue now focuses on articles/events only, and sellers can now manage store-owned listings from `/marketplace/stores`, including marking listings pending/sold/active, editing listings, deleting listings, and creating listings with store preselection.
+- **Directory planning:** A dedicated planning doc now exists at `DIRECTORY-PLAN.md`. Current agreed direction: people listings are opt-in, expose no phone/address, route contact only through internal messaging, restrict message initiation to `TRUSTED` users only, keep organization memberships off user directory entries, and allow organizations to choose whether to publish selected members on the organization page.
 - **Help Wanted:** `HelpWantedPost` plus the posting/compensation/status enums now exist in the Prisma schema. `/api/help-wanted`, `/api/help-wanted/[id]`, and `/api/help-wanted/[id]/approve` are wired for public browsing of approved content, trusted-user creation/edit/delete, poster close/fill transitions, editor/admin moderation, and activity-log coverage. The public Help Wanted list/detail/submit pages are live on real data at `/help-wanted`, `/help-wanted/[id]`, and `/help-wanted/submit`, detail pages open the existing messaging flow for trusted responders, uploads support a dedicated `help-wanted` context, and trusted authors now have a management dashboard at `/help-wanted/manage` plus an edit screen at `/help-wanted/[id]/edit` for draft/rejected revisions and lifecycle actions (`submit`, `resubmit`, `move to draft`, `fill`, `close`, `reopen`, `delete` where allowed).
 - **Help Wanted polish:** The active Help Wanted surfaces now do a better job explaining the moderation and messaging loop. The list page surfaces high-level counts plus stronger “how it works” framing, the detail page clarifies response rules and poster workflow, the submit/edit pages explain moderation expectations and on-platform contact rules more explicitly, and the manage dashboard now summarizes open/review/attention states with clearer lifecycle guidance for posters.
 - **Community roadmap / prioritization:** `RoadmapIdea`, `RoadmapRankingBallot`, and `RoadmapRankingItem` now exist in the Prisma schema along with roadmap-specific permission and activity-log resource types. `/api/roadmap`, `/api/roadmap/[id]`, `/api/roadmap/[id]/moderate`, and `/api/roadmap/ballot` now support trusted-user submission/edit/delete/resubmit, ordered top-five ballot saving, author/manage views, staff moderation, merge-target references, leaderboard aggregation, and public browsing of approved/planned/in-progress/shipped ideas. The public/community surface is live at `/roadmap`, `/roadmap/[id]`, `/roadmap/submit`, and `/roadmap/manage`, while staff moderation lives at `/admin/roadmap`.
@@ -234,10 +249,12 @@ src/lib/
 - **TypeScript baseline:** `npm run typecheck` (`tsc --noEmit`) now passes for the full repo again when run sequentially as part of the normal verification flow. The earlier file-level exclusions were removed after rewriting the stale helper/route surface (`src/lib/auth.ts`, `src/lib/audit.ts`, `src/lib/community.ts`, `src/lib/trust.ts`, `src/lib/upload.ts`, `/api/settings`, `/api/users/[id]/block`) to the current Prisma/session model and deleting outdated test suites that were only preserving dead schema assumptions.
 - **Build verification baseline:** `npm run build` now completes successfully for the current app surface. The deployment-readiness pass fixed App Router prerender failures on `/experiences`, `/local-life`, and `/marketplace/create` by wrapping their `useSearchParams()` usage in explicit `Suspense` boundaries so production prerendering no longer aborts on those routes.
 - **CI baseline:** `.github/workflows/ci.yml` now runs `npm run lint`, `npm run test:unit`, `npm run typecheck`, and `npm run build` on pull requests and pushes to `main`, using placeholder auth/env values plus Prisma client generation so the repo has an automated launch-readiness gate instead of relying on manual local verification alone.
+- **Credentials registration repair:** The `/register` page now has a live `/api/auth/register` route again, so email/password sign-up creates a `REGISTERED` user plus default community membership instead of failing with the generic client-side error caused by the previously missing API route.
 - **Homepage curation:** `/admin/homepage` and `/api/homepage/sections` are the active curation surface for section order, visibility, and pinning. The page now shares its types with `src/lib/homepage.ts`, and marketplace homepage cards now use store-based metadata instead of legacy seller-name framing.
 - **Navigation / design:** Public design system is applied, nav dropdowns work, Arcade is visible only to Super Admin, and the Experiences dropdown now links directly to `/events` for the Events entry. The `/events` page also exposes a visible `Submit Event` CTA for signed-in users. In the admin sidebar, the `/admin/stores` entry is now labeled `Store Moderation` to match the dedicated store-review workflow and the redirect notice shown in the shared content queue.
 - **Security logging:** Login events and immutable activity logs are live, including admin endpoints for investigation/export.
 - **Repository / deployment baseline:** The project is now under git and the initial `main` branch has been pushed to GitHub at `https://github.com/dsjrego/highlander-today`. Repo-facing docs/config were cleaned up for first public/private remote use: `README.md` now reflects the active product surface instead of stale scaffold routes, `.env.example` now documents the real local Docker Postgres connection on `127.0.0.1:5433`, and `src/app/api/health/route.ts` now exists so the Docker `HEALTHCHECK` hits a real endpoint.
+- **Domain management status:** The production domain is `highlander.today`, and it is currently managed at Namecheap. Future DNS, nameserver, and domain-connection instructions should assume `highlander.today` at Namecheap is the current registrar/provider unless and until DNS is intentionally moved elsewhere.
 
 ### PLACEHOLDER (UI exists, mock/hardcoded data)
 - Admin: dashboard
@@ -248,6 +265,8 @@ src/lib/
 - Messaging attachments UI/data model
 - Help Wanted MVP: core public list/detail/submit/respond/manage loop is live; current remaining work is validation with real usage plus any targeted refinements discovered from that usage rather than missing core workflow
 - Multi-tenant cross-site content sharing ("sister site" pull-through) is **not** implemented yet; homepage/content selection is currently per-domain/per-community only
+- Donations/transparency: product plan exists in `DONATIONS-TRANSPARENCY-PLAN.md`, but no schema, routes, admin tooling, provider integration, or public pages have been implemented yet
+- About section: concept direction is now agreed (`About` top-level nav with `Mission`, `Roadmap`, and `Blog`/`Journal`), but no routes, content models, templates, or navigation wiring have been implemented yet. This is the next planned feature track after remaining deployment-readiness work.
 
 ## Blue-Sky Brainstorming
 
@@ -463,7 +482,10 @@ Status: complete for the current MVP loop. The roadmap-first weighting foundatio
 - **Test cleanup follow-up:** Stale schema-era integration/e2e/unit tests plus the old shared `tests/helpers.ts` factory were removed rather than carried forward with dead field names and mock shapes. The remaining tests are intentionally the ones that still describe live behavior.
 - **Important implication:** Future work can use `npx tsc --noEmit` as a repo-wide gate again. Do not reintroduce blanket test/file exclusions to hide drift; either keep a slice current or delete it.
 - **Repository bootstrap follow-up:** The repo now has an initial git commit and a live GitHub remote at `https://github.com/dsjrego/highlander-today`. Alongside that bootstrap, `README.md` was rewritten to match the current app surface and setup assumptions, `.env.example` was corrected to use Docker Postgres on `127.0.0.1:5433`, and `src/app/api/health/route.ts` was added so the existing Docker health check no longer points at a missing route. These changes were repo/deployment-readiness cleanup only; no app behavior beyond the new health endpoint was changed, and no test/build verification was re-run for this documentation/bootstrap pass.
-- **Deployment verification follow-up:** The previously unverified bootstrap/deployment cleanup has now been checked with a full local verification pass. `npm run lint`, `npm run test:unit`, `npm run typecheck`, and `npm run build` all pass sequentially, and CI now mirrors that same gate on GitHub. Remaining launch blockers are operational rather than code-level: production DB provisioning/migration, OAuth app publication, production-safe upload storage, secrets management, and geolocation vendor swap.
+- **Deployment verification follow-up:** The previously unverified bootstrap/deployment cleanup has now been checked with a full local verification pass. `npm run lint`, `npm run test:unit`, `npm run typecheck`, and `npm run build` all pass sequentially, and CI now mirrors that same gate on GitHub. Production deployment is now live on Vercel with Neon bootstrapped, and the remaining launch blockers are operational rather than code-level. The intended completion order is: production-safe upload storage, geolocation vendor swap, production DNS/domain routing, then OAuth app publication against the final production domain.
+- **Deployment runbook follow-up:** The repo now includes explicit operator instructions for the first remaining deployment step in `README.md`: Cloudflare R2 bucket creation, scoped API credentials, public custom-domain wiring, the five Vercel env vars required by the live upload helper, and the expected verification outcome. This clarifies that the next action is provider-side configuration, not more upload-path coding.
+- **Cloudflare R2 custom-domain blocker:** Attempting to attach an R2 public custom domain before `highlander.today` is present in the same Cloudflare account and managed through Cloudflare DNS produced the dashboard error: `That domain was not found on your account. Public bucket access supports only domains on your account and managed through Cloudflare DNS.` Future sessions should treat this as a confirmed platform constraint, not a transient setup mistake.
+- **Bootstrap admin DOB follow-up:** The initial production super-admin bootstrap can still create a locked account without a DOB if the script is used before any normal profile flow. `scripts/set-user-dob.ts` now exists as a direct remediation tool for already-bootstrapped accounts, and the current production super-admin has already been backfilled successfully. The broader identity-bootstrap policy remains under review.
 
 ---
 
@@ -499,7 +521,8 @@ Run the super admin script once. After that, the Super Admin uses the admin UI t
 - **Alternative (OAuth bootstrap):** First user signs in via Google/Facebook OAuth, then promote to Super Admin via the script or a direct DB update. Avoids putting a password in env vars entirely.
 - **Local dev:** if you want the old seeded-admin convenience locally, run the explicit Super Admin script after `db seed` rather than re-embedding credentials in the seed.
 - **Geolocation:** Swap ip-api.com → MaxMind GeoIP for production (gotcha #18).
-- **OAuth apps:** Google and Facebook OAuth are already configured for local development, but the apps are still in dev/test mode and must be published/reviewed with production redirect URIs before production launch (gotcha #17).
+- **OAuth apps:** Google and Facebook OAuth are already configured for local development, but the apps are still in dev/test mode and must be published/reviewed with production redirect URIs before production launch (gotcha #17). Their rotated client secrets should be kept in sync between local `.env` and Vercel project environment variables before testing production auth.
+- **OAuth secret status:** The previously exposed Google and Facebook OAuth client secrets have now been rotated locally. Future deployment work should assume the current local `.env` values are newer than any previously copied values and should verify that Vercel or any other hosted environment is updated to match before testing production auth.
 
 ---
 
@@ -524,7 +547,9 @@ This is the current recommended launch setup for the first public deployment. It
 - **App hosting:** Vercel
 - **Primary database:** Neon Postgres
 - **Object storage / uploads:** Cloudflare R2
-- **DNS / edge proxy:** Cloudflare DNS
+- **Domain registrar / current DNS starting point:** Namecheap
+- **Optional DNS / edge proxy target:** Cloudflare DNS if/when the domain is intentionally moved there
+- **Current production domain:** `highlander.today`
 - **Source control / CI trigger:** GitHub + GitHub Actions
 
 ### Why this is the current recommendation
@@ -534,7 +559,8 @@ This is the current recommended launch setup for the first public deployment. It
 - Vercel is the most straightforward fit for the active Next.js surface and minimizes deployment friction while the product is still validating its first market/community.
 - Neon keeps the data layer on standard PostgreSQL rather than a proprietary database model and can scale upward before any re-architecture is needed.
 - Cloudflare R2 externalizes uploads early so production is not tied to local filesystem storage and media remains portable if app hosting changes later.
-- Cloudflare DNS keeps domain management and edge routing separate from the app host, which improves long-term portability.
+- Namecheap is now the current domain-management starting point, so the launch path can either keep DNS there initially or later move nameservers to Cloudflare if the added DNS/edge tooling is worth the extra operational step.
+- If DNS is moved to Cloudflare later, that still preserves the same long-term portability goal of keeping domain/routing concerns separate from the app host.
 
 ### Target launch budget
 
@@ -582,13 +608,16 @@ That means:
 
 - Provision production Postgres
 - Configure production `DATABASE_URL`
-- Move uploads to Cloudflare R2
 - Configure production secrets in the hosting platform
-- Set production `NEXTAUTH_URL`
-- Put the production domain behind Cloudflare DNS
-- Update Google and Facebook OAuth from local-dev setup to production-ready configuration, including production redirect URIs and any required publication/review
-- Replace the current production geolocation placeholder/vendor assumption as already noted elsewhere in this file
-- Before executing any of the above, provide explicit account-creation and setup instructions for any external service the owner has not already configured (at minimum: Vercel, Neon, Cloudflare/R2, Google OAuth, Facebook OAuth, and any production geolocation provider). Future sessions should not assume those accounts, buckets, API credentials, or dashboard projects already exist.
+- Before executing any of the above, provide explicit account-creation and setup instructions for any external service the owner has not already configured (at minimum: Vercel, Neon, Cloudflare/R2 if used, Google OAuth, Facebook OAuth, and any production geolocation provider). Future sessions should not assume those accounts, buckets, API credentials, or dashboard projects already exist.
+- Complete the remaining operational launch steps in this order:
+  1. Move uploads to Cloudflare R2
+  2. Replace the current production geolocation placeholder/vendor assumption as already noted elsewhere in this file
+  3. Decide whether the initial launch keeps DNS at Namecheap or moves nameservers/DNS for `highlander.today` to Cloudflare first
+  4. If keeping Namecheap DNS: create the required records there for the chosen app host and any supporting services
+  5. If moving to Cloudflare DNS: update nameservers at Namecheap, then recreate the required DNS records in Cloudflare so the R2 public custom domain can be attached from the same Cloudflare account
+  6. Set production `NEXTAUTH_URL` to the final production domain (`https://highlander.today`) after DNS/domain routing is in place
+  7. Update Google and Facebook OAuth from local-dev setup to production-ready configuration, including production redirect URIs and any required publication/review
 - Run the production bootstrap flow:
 
 ```bash

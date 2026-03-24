@@ -8,6 +8,7 @@ Repository:
 
 - GitHub: `https://github.com/dsjrego/highlander-today`
 - Default branch: `main`
+- Domain registrar / current provider: `Namecheap`
 
 ## Current Product Scope
 
@@ -177,6 +178,34 @@ Known placeholders / partial admin areas:
 - Production uploads now use Cloudflare R2 when the required env vars are configured
 - Local development still writes to `public/uploads/{context}/`
 
+### Production upload setup (Cloudflare R2)
+
+The next deployment step is production-safe upload storage. The app already uses Cloudflare R2 in production when these variables are present:
+
+```env
+R2_ACCOUNT_ID=...
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+R2_BUCKET_NAME=highlander-today
+R2_PUBLIC_URL=https://cdn.example.com
+```
+
+Operator sequence:
+
+1. Create an R2 bucket for production uploads, for example `highlander-today`.
+2. Create an R2 API token with object read/write access scoped to that bucket and save the access key ID and secret.
+3. Attach a public custom domain to the bucket, for example `cdn.highlander-today.com`.
+4. Create the required DNS record at Namecheap or in Cloudflare DNS, depending on where the domain is currently hosted, using the target Cloudflare provides for that custom domain.
+5. Add the five variables above to the Vercel production environment.
+6. Redeploy after saving the variables.
+7. Verify production uploads from any wired form and confirm the returned file URL uses the configured `R2_PUBLIC_URL` host rather than `/uploads/...`.
+
+Notes:
+
+- `R2_ACCOUNT_ID` is enough for the app to derive the S3-compatible endpoint automatically.
+- `R2_PUBLIC_URL` must be the final public asset base URL, not the private R2 API endpoint.
+- If production uploads return `Upload storage is not configured for production`, at least one required variable is missing in Vercel.
+
 ## Testing and Verification
 
 Common commands:
@@ -204,6 +233,10 @@ This repo is not production-ready by default. Before deployment, plan for:
 - rate limiting and email notifications
 
 The project includes a `Dockerfile`, but deployment work should happen after the repository is under source control and the remaining deployment-facing docs/config are cleaned up.
+
+Current domain-management note:
+
+- Assume Namecheap is the active registrar and current DNS starting point unless the domain is later moved to Cloudflare or another DNS provider on purpose.
 
 Minimum pre-launch verification sequence:
 
