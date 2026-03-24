@@ -127,8 +127,6 @@ function validate(options: Options, env: Record<string, string>): ValidationResu
     'NEXTAUTH_URL',
     'GOOGLE_CLIENT_ID',
     'GOOGLE_CLIENT_SECRET',
-    'FACEBOOK_CLIENT_ID',
-    'FACEBOOK_CLIENT_SECRET',
   ] as const;
 
   for (const key of requiredKeys) {
@@ -176,6 +174,16 @@ function validate(options: Options, env: Record<string, string>): ValidationResu
     warnings.push('MaxMind geolocation variables are missing; login enrichment will not work');
   } else {
     checks.push('MaxMind geolocation variables are present');
+  }
+
+  const facebookKeys = ['FACEBOOK_CLIENT_ID', 'FACEBOOK_CLIENT_SECRET'] as const;
+  const missingFacebookKeys = facebookKeys.filter((key) => !env[key]?.trim());
+  if (missingFacebookKeys.length === 0) {
+    checks.push('Facebook OAuth variables are present');
+  } else {
+    warnings.push(
+      'Facebook OAuth variables are missing; this is expected while Facebook login is disabled for launch',
+    );
   }
 
   const r2Keys = [

@@ -36,7 +36,7 @@ Not currently part of the live product:
 - TypeScript
 - PostgreSQL 16
 - Prisma ORM
-- NextAuth.js v4 with Credentials, Google, and Facebook providers
+- NextAuth.js v4 with Credentials and Google providers
 - Tailwind CSS
 - TipTap editor for rich article editing
 - isomorphic-dompurify for HTML sanitization
@@ -97,8 +97,6 @@ NEXTAUTH_URL=http://localhost:3000
 
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-FACEBOOK_CLIENT_ID=
-FACEBOOK_CLIENT_SECRET=
 ```
 
 Optional / future-facing variables include upload storage and encryption settings. See `.env.example`, but prefer the values in `PROJECT-STATUS.md` when there is a mismatch.
@@ -208,15 +206,13 @@ Notes:
 
 ## Production Auth Setup
 
-The current remaining deployment/auth work is hosted auth verification plus OAuth provider publication against the final production domain:
+The current launch auth surface is credentials plus Google OAuth on the final production domain:
 
 ```env
 NEXTAUTH_URL=https://highlander.today
 NEXTAUTH_SECRET=<strong-random-secret>
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
-FACEBOOK_CLIENT_ID=...
-FACEBOOK_CLIENT_SECRET=...
 ```
 
 Set those values in the Vercel production environment, redeploy, and verify that the deployed app is serving auth from `https://highlander.today` rather than a preview or localhost URL.
@@ -231,10 +227,9 @@ That command validates presence and format for the hosted auth env variables wit
 
 ### Production OAuth callback URLs
 
-Use these production callback URLs in the provider dashboards:
+Use this production callback URL in the Google dashboard:
 
 - Google redirect URI: `https://highlander.today/api/auth/callback/google`
-- Facebook redirect URI: `https://highlander.today/api/auth/callback/facebook`
 
 Recommended allowed origins / app domains:
 
@@ -245,12 +240,11 @@ Recommended allowed origins / app domains:
 
 1. In Vercel Production env vars, confirm `NEXTAUTH_URL` is exactly `https://highlander.today`.
 2. Confirm `NEXTAUTH_SECRET` is present and does not differ across prod auth requests.
-3. Confirm the current Google and Facebook client IDs/secrets in Vercel match the rotated local values before testing production login.
+3. Confirm the current Google client ID/secret in Vercel matches the rotated local values before testing production login.
 4. In Google Cloud Console, add `https://highlander.today` to Authorized JavaScript origins and `https://highlander.today/api/auth/callback/google` to Authorized redirect URIs.
-5. In the Facebook app dashboard, set the site/app domain to `highlander.today` and add `https://highlander.today/api/auth/callback/facebook` as a valid OAuth redirect URI.
-6. Move both OAuth apps out of local dev/test-only mode as required by each provider before public launch.
-7. After redeploy, test credentials login, Google login, and Facebook login on `https://highlander.today/login`.
-8. Verify each successful login creates or reuses the expected user record and records a `LoginEvent` / anomaly audit trail in production.
+5. Keep Facebook OAuth deferred until Meta business verification is complete; it is not part of the current launch auth surface.
+6. After redeploy, test credentials login and Google login on `https://highlander.today/login`.
+7. Verify each successful login creates or reuses the expected user record and records a `LoginEvent` / anomaly audit trail in production.
 
 ## Login Geolocation
 

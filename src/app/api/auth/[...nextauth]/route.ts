@@ -1,7 +1,6 @@
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
-import FacebookProvider from 'next-auth/providers/facebook';
 import { db } from '@/lib/db';
 import { recordLoginEvent } from '@/lib/login-events';
 import bcrypt from 'bcryptjs';
@@ -45,16 +44,12 @@ const handler = NextAuth({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
-    FacebookProvider({
-      clientId: process.env.FACEBOOK_CLIENT_ID!,
-      clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
-    }),
   ],
   session: { strategy: 'jwt' },
   callbacks: {
     async signIn({ user, account, profile }) {
-      // For OAuth providers (Google, Facebook): find or create user in our DB
-      if ((account?.provider === 'google' || account?.provider === 'facebook') && profile?.email) {
+      // For OAuth providers: find or create user in our DB.
+      if (account?.provider === 'google' && profile?.email) {
         try {
           let dbUser = await db.user.findUnique({
             where: { email: profile.email },
@@ -63,21 +58,14 @@ const handler = NextAuth({
           if (!dbUser) {
             const oauthProfile = profile as any;
 
-            // Extract name fields — Google uses given_name/family_name,
-            // Facebook uses first_name/last_name
+            // Extract Google profile fields for first login bootstrap.
             let firstName = 'Unknown';
             let lastName = '';
             let photoUrl: string | null = null;
 
-            if (account.provider === 'google') {
-              firstName = oauthProfile.given_name || profile.name?.split(' ')[0] || 'Unknown';
-              lastName = oauthProfile.family_name || profile.name?.split(' ').slice(1).join(' ') || '';
-              photoUrl = oauthProfile.picture || null;
-            } else if (account.provider === 'facebook') {
-              firstName = oauthProfile.first_name || profile.name?.split(' ')[0] || 'Unknown';
-              lastName = oauthProfile.last_name || profile.name?.split(' ').slice(1).join(' ') || '';
-              photoUrl = oauthProfile.picture?.data?.url || null;
-            }
+            firstName = oauthProfile.given_name || profile.name?.split(' ')[0] || 'Unknown';
+            lastName = oauthProfile.family_name || profile.name?.split(' ').slice(1).join(' ') || '';
+            photoUrl = oauthProfile.picture || null;
 
             dbUser = await db.user.create({
               data: {
@@ -118,12 +106,12 @@ const handler = NextAuth({
             userId: dbUser.id,
             ipAddress: ip,
             userAgent: ua,
-            provider: account.provider,
+            provider: 'google',
           }).catch(() => {}); // swallow — login logging must not block auth
 
           return true;
         } catch (err) {
-          console.error(`[SignIn] ${account.provider} OAuth error:`, err);
+          console.error('[SignIn] Google OAuth error:', err);
           return false;
         }
       }

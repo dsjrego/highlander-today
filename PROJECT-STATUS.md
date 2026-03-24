@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-03-24 (session 43 — added a repo-side deployment env checker for the remaining production auth/OAuth step, wired it into `package.json`, and verified it flags the expected localhost-vs-production `NEXTAUTH_URL` mismatch without printing secrets)
+> **Last updated:** 2026-03-24 (session 45 — removed Facebook from the active launch auth surface because Meta business verification is still pending, kept credentials plus Google as the production-ready login methods, and updated the deployment runbook/status to treat Facebook as deferred work)
 > **Purpose:** Full context for AI assistants to continue development. Read this file first each session.
 
 ---
@@ -121,7 +121,7 @@ The focus is depth of engagement in a single community before breadth.
 
 ## Tech Stack
 
-Next.js 14 (App Router) + TypeScript, PostgreSQL 16 (Docker, port **5433**), Prisma ORM, NextAuth.js v4 (CredentialsProvider + GoogleProvider + FacebookProvider + JWT — **NO PrismaAdapter**), Tailwind CSS + @tailwindcss/typography, TipTap editor (wired — rich text for articles), isomorphic-dompurify (server-side HTML sanitization), Cloudflare R2 (production upload path configured via custom domain), Sharp, PostgreSQL tsvector search, Jest + RTL, D3.js.
+Next.js 14 (App Router) + TypeScript, PostgreSQL 16 (Docker, port **5433**), Prisma ORM, NextAuth.js v4 (CredentialsProvider + GoogleProvider + JWT — **NO PrismaAdapter**), Tailwind CSS + @tailwindcss/typography, TipTap editor (wired — rich text for articles), isomorphic-dompurify (server-side HTML sanitization), Cloudflare R2 (production upload path configured via custom domain), Sharp, PostgreSQL tsvector search, Jest + RTL, D3.js.
 
 ---
 
@@ -489,8 +489,10 @@ Status: complete for the current MVP loop. The roadmap-first weighting foundatio
 - **Production DNS cutover follow-up:** `highlander.today` has now been moved to Cloudflare-managed DNS, the Vercel project domain is connected and serving valid HTTPS on the apex domain, and `www` is configured as the secondary hostname. The earlier legacy DNS/provider confusion is resolved: registrar stays at Namecheap, DNS is now authoritative in Cloudflare, and Vercel is the active app-routing target.
 - **Production uploads follow-up:** The R2 public custom domain path is now live on `cdn.highlander.today`, production profile-photo upload testing succeeded, and the remaining upload verification work is just broader surface-area smoke testing rather than core storage setup. Future sessions should treat production-safe upload storage as operationally complete unless new upload bugs surface.
 - **Production geolocation follow-up:** The login-event geolocation path now uses MaxMind GeoIP over HTTPS instead of the earlier `ip-api.com` placeholder. MaxMind account/license credentials have been added to Vercel, a production login from a public Comcast IP resolved successfully to `Patton, United States`, and the resulting `ANOMALY_LOGIN` audit entry confirmed that live production login enrichment and new-location detection are working on the deployed app. The remaining auth-related launch work is now OAuth publication and hosted auth-env verification rather than geolocation setup.
-- **Production auth runbook follow-up:** `README.md` now reflects that Cloudflare R2 uploads are already live for production and adds the concrete next-step auth checklist: `NEXTAUTH_URL=https://highlander.today`, the required hosted auth env vars, the production Google/Facebook callback URIs (`/api/auth/callback/google` and `/api/auth/callback/facebook`), and the operator verification sequence for Vercel plus provider dashboards. Future deployment work should use that README section as the canonical repo-side handoff for the remaining auth/OAuth launch work.
-- **Deployment env checker follow-up:** `scripts/check-deployment-env.ts` now provides a repo-side preflight for the remaining deployment/auth work and is exposed as `npm run deploy:check-env`. It validates the presence/format of `NEXTAUTH_*`, Google/Facebook OAuth vars, and warns on missing MaxMind/R2 config without echoing secret values. A local verification run against `.env` correctly failed only on the expected production-domain mismatch (`http://localhost:3000` vs `https://highlander.today`), confirming the script is usable for hosted-env checks before production auth testing.
+- **Production auth runbook follow-up:** `README.md` now reflects that Cloudflare R2 uploads are already live for production and that the current launch auth surface is credentials plus Google on `https://highlander.today`. The repo-side deployment instructions now treat Facebook as deferred until Meta business verification is complete rather than as an immediate launch blocker.
+- **Deployment env checker follow-up:** `scripts/check-deployment-env.ts` now provides a repo-side preflight for the remaining deployment/auth work and is exposed as `npm run deploy:check-env`. It validates the presence/format of `NEXTAUTH_*` and Google OAuth vars, warns on missing Facebook vars when Facebook login is intentionally deferred, and warns on missing MaxMind/R2 config without echoing secret values. A local verification run against `.env` correctly failed only on the expected production-domain mismatch (`http://localhost:3000` vs `https://highlander.today`), confirming the script is usable for hosted-env checks before production auth testing.
+- **Google OAuth production follow-up:** Google OAuth has now been finalized against the live production domain. The production client is configured with the `https://highlander.today` origin and `https://highlander.today/api/auth/callback/google` redirect URI, and Google sign-in is part of the active launch auth surface.
+- **Facebook OAuth deferral follow-up:** Facebook login has been removed from the active auth route and the public login/register UI because Meta business verification is still pending. Future sessions should treat Facebook OAuth as explicitly deferred post-launch or until verification is complete, not as a current production blocker.
 - **Locked-profile update bugfix:** Profile-photo updates for identity-locked users were failing because the edit page still submitted locked name/DOB fields and `/api/profile` rejected any locked-profile payload that merely included them. The fix now submits only editable fields for locked users and the API compares actual changes rather than field presence, so photo/bio updates no longer trip the identity-lock guard.
 
 ---
@@ -524,10 +526,10 @@ SUPER_ADMIN_EMAIL=... SUPER_ADMIN_PASSWORD=... npm run db:create-super-admin
 Run the super admin script once. After that, the Super Admin uses the admin UI to promote other users.
 
 ### Notes
-- **Alternative (OAuth bootstrap):** First user signs in via Google/Facebook OAuth, then promote to Super Admin via the script or a direct DB update. Avoids putting a password in env vars entirely.
+- **Alternative (OAuth bootstrap):** First user signs in via Google OAuth, then promote to Super Admin via the script or a direct DB update. Avoids putting a password in env vars entirely.
 - **Local dev:** if you want the old seeded-admin convenience locally, run the explicit Super Admin script after `db seed` rather than re-embedding credentials in the seed.
 - **Geolocation:** The production login geolocation path now uses MaxMind GeoIP and is verified live in Vercel-backed production. Keep `MAXMIND_ACCOUNT_ID` and `MAXMIND_LICENSE_KEY` in sync between any hosted environment and the currently active MaxMind account/license pair.
-- **OAuth apps:** Google and Facebook OAuth are already configured for local development, but the apps are still in dev/test mode and must be published/reviewed with production redirect URIs before production launch (gotcha #17). Their rotated client secrets should be kept in sync between local `.env` and Vercel project environment variables before testing production auth.
+- **OAuth apps:** Google OAuth is now the only active third-party login provider for launch and should remain in sync between local `.env` and Vercel when tested against production. Facebook OAuth is deferred until Meta business verification is complete.
 - **OAuth secret status:** The previously exposed Google and Facebook OAuth client secrets have now been rotated locally. Future deployment work should assume the current local `.env` values are newer than any previously copied values and should verify that Vercel or any other hosted environment is updated to match before testing production auth.
 
 ---
@@ -618,7 +620,7 @@ That means:
 - Before executing any of the above, provide explicit account-creation and setup instructions for any external service the owner has not already configured (at minimum: Vercel, Neon, Cloudflare/R2 if used, Google OAuth, Facebook OAuth, and any production geolocation provider). Future sessions should not assume those accounts, buckets, API credentials, or dashboard projects already exist.
 - Complete the remaining operational launch steps in this order:
   1. Verify production `NEXTAUTH_URL` and all hosted auth env vars are aligned with the final production domain (`https://highlander.today`)
-  2. Update Google and Facebook OAuth from local-dev setup to production-ready configuration, including production redirect URIs and any required publication/review
+  2. Verify credentials login plus Google OAuth on `https://highlander.today` and defer Facebook OAuth until Meta business verification is complete
 - Run the production bootstrap flow:
 
 ```bash

@@ -75,10 +75,6 @@ export default function RegisterPage() {
     await signIn("google", { callbackUrl: "/" });
   }
 
-  async function handleFacebookSignIn() {
-    await signIn("facebook", { callbackUrl: "/" });
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="bg-white p-8 rounded-2xl shadow-md w-full max-w-md">
@@ -197,13 +193,6 @@ export default function RegisterPage() {
             className="w-full bg-white border border-gray-300 text-gray-700 font-medium py-2 rounded-lg hover:bg-gray-50 transition"
           >
             Sign up with Google
-          </button>
-          <button
-            type="button"
-            onClick={handleFacebookSignIn}
-            className="w-full bg-white border border-gray-300 text-gray-700 font-medium py-2 rounded-lg hover:bg-gray-50 transition"
-          >
-            Sign up with Facebook
           </button>
         </div>
 
