@@ -5,7 +5,7 @@ import { ABOUT_PILLARS } from '@/lib/about';
 export const metadata: Metadata = {
   title: 'Mission | Highlander Today',
   description:
-    'Read the mission and institutional philosophy behind Highlander Today.',
+    'Why we\u2019re building Highlander Today and what we believe every community deserves.',
 };
 
 export default function AboutMissionPage() {
@@ -16,25 +16,26 @@ export default function AboutMissionPage() {
           Mission
         </p>
         <h1 className="mt-3 border-b-2 border-[#A51E30] pb-4 text-4xl font-bold text-gray-900">
-          Highlander Today exists to make local life easier to navigate and harder to exploit.
+          Every town deserves technology that actually works for the people who live there.
         </h1>
         <div className="mt-6 space-y-5 text-base leading-8 text-gray-700">
           <p>
-            The platform is built around a simple idea: local communication and coordination tools
-            increasingly shape whether a community can act like a community. News, events,
-            classifieds, recommendations, opportunities, and everyday requests for help are no
-            longer secondary. They are part of the operating system of place.
+            Highlander Today started with a simple question: why do the digital tools that shape
+            daily life in a community &mdash; how we find out what&rsquo;s happening, where we shop,
+            who we trust, how we help each other &mdash; why do those tools always seem to be built
+            for someone else&rsquo;s benefit?
           </p>
           <p>
-            Highlander Today is meant to be a dependable local system for that operating layer. It
-            should help residents answer practical questions, help businesses and organizations stay
-            visible, and help trusted people interact without the usual anonymity, spam, and
-            fragmented attention that dominate generic platforms.
+            We think the technology people use to communicate, coordinate, and do business locally
+            should work more like a utility than a slot machine. It should be dependable. It should
+            be accountable to the people who use it. And it should actually make your town feel
+            more like a town, not less.
           </p>
           <p>
-            That requires a different posture from the product itself: visible moderation,
-            accountable identity, trust progression, transparent priorities, and a bias toward
-            long-term community usefulness over short-term engagement tricks.
+            That&rsquo;s what we&rsquo;re building &mdash; starting right here in Cambria Heights,
+            in the highlands of Cambria County, Pennsylvania. Not because we think small. Because
+            we believe the only honest way to build something like this is to get it right in one
+            place first, with real people, before trying to bring it anywhere else.
           </p>
         </div>
       </section>
@@ -52,28 +53,37 @@ export default function AboutMissionPage() {
       </section>
 
       <section className="rounded-2xl border border-[#46A8CC]/30 bg-[#46A8CC]/10 p-8 shadow-sm">
-        <h2 className="text-2xl font-bold text-gray-900">What that means in practice</h2>
+        <h2 className="text-2xl font-bold text-gray-900">So what does that look like?</h2>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <div className="rounded-xl bg-white p-5">
             <h3 className="text-base font-bold text-gray-900">For residents</h3>
             <p className="mt-2 text-sm leading-7 text-gray-700">
-              A place to find trustworthy local information, respond to opportunities, message
-              people through platform accountability, and build recognition over time.
+              A place to find out what&rsquo;s actually happening in your community, connect with
+              people you can trust, and build a reputation that means something over time &mdash;
+              not just another feed full of noise.
             </p>
           </div>
           <div className="rounded-xl bg-white p-5">
-            <h3 className="text-base font-bold text-gray-900">For organizations and businesses</h3>
+            <h3 className="text-base font-bold text-gray-900">For businesses and organizations</h3>
             <p className="mt-2 text-sm leading-7 text-gray-700">
-              A local surface for discovery and participation that is rooted in real community
-              relationships instead of broad, low-intent advertising reach.
+              A way to stay visible to the people who live near you &mdash; not through ads, but
+              through real participation in the community you&rsquo;re already part of.
             </p>
           </div>
+        </div>
+        <div className="mt-6 rounded-xl bg-white p-5">
+          <h3 className="text-base font-bold text-gray-900">For everywhere else</h3>
+          <p className="mt-2 text-sm leading-7 text-gray-700">
+            Once we&rsquo;ve built something that genuinely works here, we want to bring it to
+            other communities too. Each town gets its own space, its own identity &mdash; but
+            connected, so that what&rsquo;s local never has to mean what&rsquo;s isolated.
+          </p>
         </div>
         <Link
           href="/about/roadmap"
           className="mt-6 inline-flex rounded-full bg-[#A51E30] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
         >
-          Continue to Roadmap
+          See where we&rsquo;re headed
         </Link>
       </section>
     </div>

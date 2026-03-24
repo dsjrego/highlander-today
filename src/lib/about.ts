@@ -28,7 +28,7 @@ export const ABOUT_NAV_ITEMS: AboutNavItem[] = [
   {
     label: 'Mission',
     href: '/about/mission',
-    description: 'Why Highlander Today exists and how it thinks about community infrastructure.',
+    description: 'Why we\u2019re building this and what we believe communities deserve.',
   },
   {
     label: 'Roadmap',
@@ -44,19 +44,19 @@ export const ABOUT_NAV_ITEMS: AboutNavItem[] = [
 
 export const ABOUT_PILLARS: AboutPillar[] = [
   {
-    title: 'Local technology should behave like shared infrastructure',
+    title: 'Community tools should work like community infrastructure',
     body:
-      'Communication, discovery, coordination, and market access increasingly shape whether a town feels connected or fragmented. Highlander Today treats those tools as local infrastructure, not as disposable engagement software.',
+      'Finding local news, discovering businesses, showing up to events, asking neighbors for help \u2014 these aren\u2019t luxuries. They\u2019re how a town stays a town. We build and run these tools with the same care you\u2019d expect from any essential local service: reliably, transparently, and for the community\u2019s benefit.',
   },
   {
-    title: 'Accountability matters more than raw reach',
+    title: 'Trust you can actually see',
     body:
-      'The platform is designed around real people, visible moderation, trust progression, and durable identity. The goal is not anonymous scale. The goal is a healthier local loop where actions and relationships persist over time.',
+      'We\u2019re building around real people, real names, and accountability that grows over time. Not because anonymity is always bad, but because a healthy community runs on people being willing to stand behind what they say and do.',
   },
   {
-    title: 'Usefulness comes before expansion',
+    title: 'Get it right here first',
     body:
-      'The first obligation is to make one community feel tangibly better informed and better connected. Expansion only makes sense after the core loops are producing repeat local value in the current community.',
+      'We\u2019re starting right here in the highlands of Cambria County because building for one community with honesty and care is harder \u2014 and more valuable \u2014 than building for everywhere at once. The promise is simple: make life here genuinely better before we try to bring this anywhere else.',
   },
 ];
 
@@ -86,7 +86,7 @@ export const ABOUT_JOURNAL_ENTRIES: AboutJournalEntry[] = [
     slug: 'why-highlander-today-exists',
     title: 'Why Highlander Today exists',
     summary:
-      'A public framing for why local communication and coordination tools should be treated as accountable infrastructure.',
+      'Why the digital tools that shape daily life in a community should work for the people who live there \u2014 and what we\u2019re doing about it.',
     publishedOn: 'March 24, 2026',
     href: '/about/mission',
     status: 'published',
