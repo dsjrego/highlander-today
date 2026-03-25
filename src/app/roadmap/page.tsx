@@ -47,14 +47,6 @@ interface RoadmapResponse {
   counts: Partial<Record<RoadmapIdeaStatus, number>>;
   leaderboard: RoadmapLeaderboardEntry[];
   viewerBallot: string[];
-  transparency: {
-    weightedVoterCount: number;
-    totalBallotCount: number;
-    multiplierRange: {
-      min: number;
-      max: number;
-    };
-  };
 }
 
 const STATUS_LABELS: Record<RoadmapIdeaStatus | 'ALL', string> = {
@@ -80,7 +72,6 @@ export default function RoadmapPage() {
   const [counts, setCounts] = useState<Partial<Record<RoadmapIdeaStatus, number>>>({});
   const [leaderboard, setLeaderboard] = useState<RoadmapLeaderboardEntry[]>([]);
   const [ballotIdeaIds, setBallotIdeaIds] = useState<string[]>([]);
-  const [transparency, setTransparency] = useState<RoadmapResponse['transparency'] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingBallot, setIsSavingBallot] = useState(false);
   const [error, setError] = useState('');
@@ -109,7 +100,6 @@ export default function RoadmapPage() {
       setCounts(payload.counts || {});
       setLeaderboard(payload.leaderboard || []);
       setBallotIdeaIds(payload.viewerBallot || []);
-      setTransparency(payload.transparency || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch roadmap ideas');
     } finally {
@@ -291,21 +281,6 @@ export default function RoadmapPage() {
           </p>
         </div>
       </div>
-
-      {transparency ? (
-        <div className="mb-8 bg-white rounded-xl shadow-sm border border-gray-200 p-5 text-sm text-gray-700">
-          <p className="font-semibold text-gray-900 mb-2">Weighting Transparency</p>
-          <p>
-            Roadmap ranking is primarily community ballot-driven. Admins may apply small, roadmap-only multipliers between {transparency.multiplierRange.min}% and {transparency.multiplierRange.max}% for specific users when justified.
-          </p>
-          <p className="mt-2 text-gray-500">
-            Current snapshot: {transparency.totalBallotCount} ballot{transparency.totalBallotCount === 1 ? '' : 's'} counted, with {transparency.weightedVoterCount} voter{transparency.weightedVoterCount === 1 ? '' : 's'} currently using a non-default roadmap weight.
-          </p>
-          <p className="mt-2 text-gray-500">
-            Any non-default roadmap weight is limited to this roadmap domain and logged in admin history with a stated rationale.
-          </p>
-        </div>
-      ) : null}
 
       {leaderboard.length > 0 ? (
         <div className="mb-8">
