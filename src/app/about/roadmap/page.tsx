@@ -34,7 +34,7 @@ export default function AboutRoadmapPage() {
     <div className="space-y-8">
       <section className="card card-accent rounded-[32px] p-8 md:p-10">
         <p className="card-label">Roadmap</p>
-        <h1 className="card-title card-title-hero mt-3 border-b border-white/12 pb-4 font-black leading-[0.96] md:text-6xl">
+        <h1 className="card-title card-title-lg mt-3 border-b border-white/12 pb-4 font-black leading-[0.96] md:text-6xl">
           Build complete local interaction loops first, then expand carefully.
         </h1>
         <p className="card-body mt-6 text-base">
