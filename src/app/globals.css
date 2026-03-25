@@ -4,6 +4,23 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .section-display-title {
+    display: inline-block;
+    margin-bottom: 0;
+    letter-spacing: -0.04em;
+    line-height: 0.96;
+    color: #46a8cc;
+    background-image: linear-gradient(90deg, #7ddffd 0%, #46a8cc 42%, #d45a74 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow:
+      0 1px 0 rgba(7, 17, 26, 0.18),
+      0 10px 28px rgba(70, 168, 204, 0.16);
+  }
+}
+
 /* CSS Variables for theme */
 :root {
   --color-primary: rgb(70, 168, 204);

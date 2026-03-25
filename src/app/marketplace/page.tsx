@@ -318,7 +318,7 @@ export default function MarketplacePage() {
             <p className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#8f1d2c]">
               Local Discovery
             </p>
-            <h2 className="mb-3 text-3xl font-black tracking-[-0.04em] text-slate-950">
+            <h2 className="section-display-title mb-3 text-3xl font-black">
               Browse what local stores are offering right now
             </h2>
             <p className="max-w-2xl text-slate-600">
@@ -359,7 +359,7 @@ export default function MarketplacePage() {
         <section className="mb-8">
           <div className="flex items-center justify-between gap-4 mb-4">
             <div>
-              <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950">Browse Stores</h2>
+              <h2 className="section-display-title text-3xl font-black">Browse Stores</h2>
               <p className="mt-1 text-sm text-slate-500">
                 Start with the storefront if you want to see a seller&apos;s full local presence.
               </p>

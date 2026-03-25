@@ -66,7 +66,7 @@ export default function AboutPage() {
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#8f1d2c]">
             Mission
           </p>
-          <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950">
+          <h2 className="section-display-title mt-3 text-3xl font-black">
             Build a durable local home for news, events, opportunity, and accountability.
           </h2>
           <p className="mt-4 text-sm leading-7 text-slate-600">

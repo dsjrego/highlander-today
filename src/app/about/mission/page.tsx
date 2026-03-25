@@ -56,7 +56,7 @@ export default function AboutMissionPage() {
       </section>
 
       <section className="rounded-[30px] border border-white/10 bg-white/78 p-8 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
-        <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950">So what does that look like?</h2>
+        <h2 className="section-display-title text-3xl font-black">So what does that look like?</h2>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-5 text-white">
             <h3 className="text-base font-bold text-white">For residents</h3>

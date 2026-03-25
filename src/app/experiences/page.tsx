@@ -129,7 +129,7 @@ function ExperiencesPageContent() {
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#8f1d2c]">
               Experiences
             </p>
-            <h2 className="mt-3 text-2xl font-black tracking-[-0.04em] text-slate-950">
+            <h2 className="section-display-title mt-3 text-2xl font-black">
               {sub.label}
             </h2>
             <p className="mt-3 text-sm leading-7 text-slate-600">{sub.description}</p>
@@ -158,7 +158,7 @@ function ExperiencesPageContent() {
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#8f1d2c]">
             Current State
           </p>
-          <h2 className="mt-3 text-2xl font-black tracking-[-0.04em] text-slate-950">
+          <h2 className="section-display-title mt-3 text-2xl font-black">
             Experiences is being structured as a broader discovery surface.
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">

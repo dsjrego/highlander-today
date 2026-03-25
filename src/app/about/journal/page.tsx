@@ -31,7 +31,7 @@ export default function AboutJournalPage() {
       <section className="rounded-[28px] border border-white/10 bg-white/78 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
-            <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950">Current entries</h2>
+            <h2 className="section-display-title text-3xl font-black">Current entries</h2>
             <p className="mt-1 text-sm text-slate-600">
               The first Journal release is intentionally small and grounded in the initial About
               pages.
@@ -61,7 +61,7 @@ export default function AboutJournalPage() {
       </section>
 
       <section className="rounded-[28px] border border-white/10 bg-slate-950 p-6 text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
-        <h2 className="text-3xl font-black tracking-[-0.04em] text-white">Planned next</h2>
+        <h2 className="section-display-title text-3xl font-black">Planned next</h2>
         <div className="mt-4 space-y-4">
           {plannedEntries.map((entry) => (
             <article key={entry.slug} className="rounded-[22px] border border-white/10 bg-white/5 p-5">

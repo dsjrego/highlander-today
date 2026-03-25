@@ -2,12 +2,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import type { ReactNode } from 'react';
+import InternalPageHeader from '@/components/shared/InternalPageHeader';
 import { getHomepageSectionsData, resolveHomepageCommunityId, type HomepageSectionData } from '@/lib/homepage';
 
 function SectionHeading({ children }: { children: ReactNode }) {
   return (
     <div className="mb-6 flex items-end justify-between gap-4">
-      <h2 className="text-3xl font-black tracking-[-0.04em] text-slate-950">{children}</h2>
+      <h2 className="section-display-title text-3xl font-black">{children}</h2>
       <div className="hidden h-px flex-1 bg-gradient-to-r from-[#8f1d2c]/60 to-transparent sm:block" />
     </div>
   );
@@ -215,14 +216,12 @@ export default async function Home() {
   if (visibleSections.length === 0) {
     return (
       <div className="space-y-8">
-        <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(143,29,44,0.96),rgba(10,32,51,0.94))] p-8 text-white shadow-[0_35px_80px_rgba(7,17,26,0.22)] md:p-10">
-          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/76">
-            Highlander Today
-          </p>
-          <h1 className="mt-4 max-w-4xl text-4xl font-black leading-[0.94] tracking-[-0.05em] md:text-6xl">
+        <InternalPageHeader title="Today in Cambria Heights" titleClassName="text-white" />
+        <section className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
+          <h2 className="mb-3 text-3xl font-black leading-[0.96] tracking-[-0.04em] text-slate-950 md:text-4xl">
             Make local feel alive, useful, and worth checking every day.
-          </h1>
-          <p className="mt-5 max-w-2xl text-base leading-8 text-white/78 md:text-lg">
+          </h2>
+          <p className="mb-0 max-w-3xl text-base leading-8 text-slate-600 md:text-lg">
             News, events, trust, opportunity, and real community coordination are meant to live
             together. This homepage will grow into that daily front door.
           </p>
@@ -234,18 +233,7 @@ export default async function Home() {
 
   return (
     <div className="space-y-8">
-      <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(143,29,44,0.96),rgba(10,32,51,0.94))] p-8 text-white shadow-[0_35px_80px_rgba(7,17,26,0.22)] md:p-10">
-        <p className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/76">
-          Today in Cambria Heights
-        </p>
-        <h1 className="mt-4 max-w-4xl text-4xl font-black leading-[0.94] tracking-[-0.05em] md:text-6xl">
-          A local platform built for real use, not disposable scrolling.
-        </h1>
-        <p className="mt-5 max-w-2xl text-base leading-8 text-white/78 md:text-lg">
-          Follow local stories, discover events, find help, and participate in a community space
-          designed to feel active, accountable, and genuinely useful.
-        </p>
-      </section>
+      <InternalPageHeader title="Today in Cambria Heights" titleClassName="text-white" />
       <div>{visibleSections.map((section) => renderSection(section))}</div>
     </div>
   );

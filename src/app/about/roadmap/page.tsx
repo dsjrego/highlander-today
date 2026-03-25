@@ -92,7 +92,7 @@ export default function AboutRoadmapPage() {
       </section>
 
       <section className="rounded-[28px] border border-white/10 bg-slate-950 p-8 text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
-        <h2 className="text-3xl font-black tracking-[-0.04em] text-white">Community priorities still matter</h2>
+        <h2 className="section-display-title text-3xl font-black">Community priorities still matter</h2>
         <p className="mt-4 text-sm leading-7 text-white/72">
           This institutional roadmap is separate from the live community-prioritization board. The
           public roadmap tool remains the place where trusted users can rank approved ideas and help
