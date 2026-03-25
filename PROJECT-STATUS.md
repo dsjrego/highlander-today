@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-03-25 (session 65 — fixed the live homepage-curation tenant-domain issue, added phase-1 `TenantDomain` multi-tenant foundation, and added an admin `Sites` listing page)
+> **Last updated:** 2026-03-25 (session 66 — gated banner unread-message polling on `session.user.id` so local/dev auth drift no longer spams repeated `/api/messages?limit=100` 401s)
 > **Purpose:** Full context for AI assistants to continue development. Read this file first each session.
 
 ## Overview
@@ -195,7 +195,7 @@ src/lib/
 - **Core platform:** auth, seeded DB, Prisma models, permissions/trust/audit libraries, and main APIs are live.
 - **Profile:** `/api/profile` and `/api/users/[id]` are live. Edit supports first/last name, DOB, bio, and profile photo. Identity-locked users cannot change name or DOB.
 - **Trust flow:** public profile vouching and admin trust actions are live. Vouching requires DOB, promotes `REGISTERED -> TRUSTED`, sets `isIdentityLocked`, and writes trust audit entries.
-- **Messaging:** `/api/messages` and `/api/messages/[conversationId]` use the current schema (`ConversationParticipant`, `Message.body`, `senderUserId`, `lastReadAt`). Inbox/thread pages use real data, profile pages can open/reuse threads, the banner `Messages` pill shows unread count, and blocked pairs cannot create or continue conversations.
+- **Messaging:** `/api/messages` and `/api/messages/[conversationId]` use the current schema (`ConversationParticipant`, `Message.body`, `senderUserId`, `lastReadAt`). Inbox/thread pages use real data, profile pages can open/reuse threads, the banner `Messages` pill shows unread count, and blocked pairs cannot create or continue conversations. `BannerActions.tsx` now only starts unread-count polling when the session is authenticated and `session.user.id` is present, which avoids repeated local/dev 401 noise when the client-side session state is out of sync with middleware token decoding.
 - **Blocking:** `UserBlock` is enforced across profile and messaging flows. `/api/users/[id]/block` supports lookup and block/unblock; actions are activity-logged.
 - **Articles / Local Life:** listing, submit, drafts, detail, category filtering, moderation, and approval are wired to real data. Canonical route family is `/local-life/*`; `/articles/*` only redirects.
 - **Comments:** `/api/comments` and `/api/comments/[id]` use the live schema (`body`, `authorUserId`, `status`, `parentCommentId`). `/local-life/[id]` supports posting, replying, and deleting your own comments.

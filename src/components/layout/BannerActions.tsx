@@ -8,6 +8,7 @@ const ADMIN_ROLES = ['STAFF_WRITER', 'EDITOR', 'ADMIN', 'SUPER_ADMIN'];
 
 export default function BannerActions() {
   const { data: session, status } = useSession();
+  const userId = (session?.user as { id?: string } | undefined)?.id;
   const userRole = session?.user?.role;
   const showAdmin = userRole ? ADMIN_ROLES.includes(userRole) : false;
 
@@ -27,7 +28,7 @@ export default function BannerActions() {
   }, []);
 
   useEffect(() => {
-    if (status !== 'authenticated') {
+    if (status !== 'authenticated' || !userId) {
       setUnreadCount(0);
       return;
     }
@@ -65,7 +66,7 @@ export default function BannerActions() {
       active = false;
       window.clearInterval(intervalId);
     };
-  }, [status]);
+  }, [status, userId]);
 
   return (
     <div className="flex flex-wrap items-center justify-end gap-2">
