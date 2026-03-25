@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-03-25 (session 55 — added a shared `.section-display-title` treatment in `src/app/globals.css` for large public section headings, fixed the homepage `Featured`/similar section-header visibility issue on the dark canvas, and applied the new title style across matching About, Experiences, and Marketplace surfaces)
+> **Last updated:** 2026-03-25 (session 56 — added shared `.empty-state-title` and `.empty-state-copy` treatments in `src/app/globals.css`, restyled the homepage no-sections fallback so the headline/message no longer render as plain black or white on the dark canvas, and applied the shared empty-state typography across matching public listing surfaces)
 > **Purpose:** Full context for AI assistants to continue development. Read this file first each session.
 
 ## Overview

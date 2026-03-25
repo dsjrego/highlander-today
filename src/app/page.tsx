@@ -16,8 +16,8 @@ function SectionHeading({ children }: { children: ReactNode }) {
 
 function EmptySection({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(15,24,36,0.96),rgba(8,18,29,0.96))] p-8 text-center text-sm leading-7 text-white/72 shadow-[0_20px_45px_rgba(7,17,26,0.18)]">
-      {children}
+    <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(15,24,36,0.96),rgba(8,18,29,0.96))] p-8 text-center shadow-[0_20px_45px_rgba(7,17,26,0.18)]">
+      <p className="empty-state-copy mb-0">{children}</p>
     </div>
   );
 }
@@ -218,7 +218,7 @@ export default async function Home() {
       <div className="space-y-8">
         <InternalPageHeader title="Today in Cambria Heights" titleClassName="text-white" />
         <section className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
-          <h2 className="mb-3 text-3xl font-black leading-[0.96] tracking-[-0.04em] text-slate-950 md:text-4xl">
+          <h2 className="empty-state-title mb-3">
             Make local feel alive, useful, and worth checking every day.
           </h2>
           <p className="mb-0 max-w-3xl text-base leading-8 text-slate-600 md:text-lg">

@@ -15,7 +15,7 @@ export default function AboutMissionPage() {
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-100/78">
           Mission
         </p>
-        <h1 className="mt-3 border-b border-white/12 pb-4 text-4xl font-black leading-[0.96] tracking-[-0.05em] text-white md:text-6xl">
+        <h1 className="empty-state-title mt-3 border-b border-white/12 pb-4">
           Every town deserves technology that actually works for the people who live there.
         </h1>
         <div className="mt-6 space-y-5 text-base leading-8 text-white/76">
@@ -32,7 +32,7 @@ export default function AboutMissionPage() {
             more like a town, not less.
           </p>
           <p>
-            That&rsquo;s what we&rsquo;re building ,; starting right here in Cambria Heights,
+            That&rsquo;s what we&rsquo;re building, starting right here in Cambria Heights,
             in the highlands of Cambria County, Pennsylvania. Not because we think small. Because
             we believe the only honest way to build something like this is to get it right in one
             place first, with real people, before trying to bring it anywhere else.

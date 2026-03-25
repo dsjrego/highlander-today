@@ -146,8 +146,8 @@ export default function EventsPage() {
       ) : events.length === 0 ? (
         <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-12 text-center text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
           <p className="mb-4 text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/66">Events</p>
-          <h2 className="mb-2 text-2xl font-bold text-white">No published events yet</h2>
-          <p className="mx-auto mb-6 max-w-md text-white/70">
+          <h2 className="empty-state-title mb-2">No published events yet</h2>
+          <p className="empty-state-copy mx-auto mb-6 max-w-md">
             Upcoming community events will appear here as they are reviewed and published.
           </p>
           {session?.user && (

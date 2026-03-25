@@ -164,10 +164,10 @@ function LocalLifePageContent() {
           <p className="mb-4 text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/66">
             Local Life
           </p>
-          <h2 className="mb-2 text-2xl font-bold text-white">
+          <h2 className="empty-state-title mb-2">
             {activePill ? `No ${activePill.name} articles yet` : 'No articles yet'}
           </h2>
-          <p className="mx-auto mb-6 max-w-md text-white/70">
+          <p className="empty-state-copy mx-auto mb-6 max-w-md">
             Stories, news, and perspectives from the heart of the community.
             {session?.user
               ? ' Be the first to contribute!'

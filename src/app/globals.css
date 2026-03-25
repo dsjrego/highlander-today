@@ -19,6 +19,31 @@
       0 1px 0 rgba(7, 17, 26, 0.18),
       0 10px 28px rgba(70, 168, 204, 0.16);
   }
+
+  .empty-state-title {
+    display: inline-block;
+    font-family: var(--font-sans);
+    font-size: clamp(1.5rem, 1.18rem + 1.05vw, 2.2rem);
+    font-weight: 800;
+    margin-bottom: 0;
+    letter-spacing: -0.035em;
+    line-height: 1.02;
+    color: #46a8cc;
+    background-image: linear-gradient(90deg, #9be7ff 0%, #57bbdc 45%, #e2738a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow:
+      0 1px 0 rgba(7, 17, 26, 0.16),
+      0 10px 24px rgba(70, 168, 204, 0.12);
+  }
+
+  .empty-state-copy {
+    color: #8cbfd1;
+    font-size: 0.9375rem;
+    line-height: 1.8;
+    letter-spacing: 0.01em;
+  }
 }
 
 /* CSS Variables for theme */

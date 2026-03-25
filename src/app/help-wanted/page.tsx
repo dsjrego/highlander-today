@@ -234,8 +234,8 @@ export default function HelpWantedPage() {
         </div>
       ) : filteredPosts.length === 0 ? (
         <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-12 text-center text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
-          <h2 className="mb-2 text-xl font-bold text-white">No matching opportunities yet</h2>
-          <p className="mx-auto mb-6 max-w-md text-white/70">
+          <h2 className="empty-state-title mb-2">No matching opportunities yet</h2>
+          <p className="empty-state-copy mx-auto mb-6 max-w-md">
             Help Wanted posts will appear here after editor review. Try a different filter, or post the first one if you are trusted.
           </p>
           {isTrusted ? (
