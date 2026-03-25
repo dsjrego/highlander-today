@@ -46,7 +46,7 @@ export const ABOUT_PILLARS: AboutPillar[] = [
   {
     title: 'Community tools should work like community infrastructure',
     body:
-      'Finding local news, discovering businesses, showing up to events, asking neighbors for help \u2014 these aren\u2019t luxuries. They\u2019re how a town stays a town. We build and run these tools with the same care you\u2019d expect from any essential local service: reliably, transparently, and for the community\u2019s benefit.',
+      'Finding local news, discovering businesses, showing up to events, asking neighbors for help, these aren\u2019t luxuries. They\u2019re how a town stays a town. We build and run these tools with the same care you\u2019d expect from any essential local service: reliably, transparently, and for the community\u2019s benefit.',
   },
   {
     title: 'Trust you can actually see',
@@ -56,7 +56,7 @@ export const ABOUT_PILLARS: AboutPillar[] = [
   {
     title: 'Get it right here first',
     body:
-      'We\u2019re starting right here in the highlands of Cambria County because building for one community with honesty and care is harder \u2014 and more valuable \u2014 than building for everywhere at once. The promise is simple: make life here genuinely better before we try to bring this anywhere else.',
+      'We\u2019re starting right here in the highlands of Cambria County because building for one community with honesty and care is harder, and more valuable, than building for everywhere at once. The promise is simple: make life here genuinely better before we try to bring this anywhere else.',
   },
 ];
 
@@ -86,7 +86,7 @@ export const ABOUT_JOURNAL_ENTRIES: AboutJournalEntry[] = [
     slug: 'why-highlander-today-exists',
     title: 'Why Highlander Today exists',
     summary:
-      'Why the digital tools that shape daily life in a community should work for the people who live there \u2014 and what we\u2019re doing about it.',
+      'Why the digital tools that shape daily life in a community should work for the people who live there, and what we\u2019re doing about it.',
     publishedOn: 'March 24, 2026',
     href: '/about/mission',
     status: 'published',
