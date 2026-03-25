@@ -4,20 +4,42 @@ const prisma = new PrismaClient();
 
 async function main() {
   console.log('Starting database seed...');
+  const primaryDomain = process.env.PRIMARY_COMMUNITY_DOMAIN?.trim().toLowerCase() || null;
 
   // 1. Create Community
   const community = await prisma.community.upsert({
     where: { slug: 'highlander-today' },
-    update: {},
+    update: {
+      domain: primaryDomain,
+    },
     create: {
       name: 'Highlander Today',
       slug: 'highlander-today',
+      domain: primaryDomain,
       colorPrimary: '#46A8CC',
       colorAccent: '#A51E30',
       description: 'Community news for Patton, Hastings & Carrolltown, PA',
     },
   });
   console.log('✓ Community created:', community.name);
+
+  if (primaryDomain) {
+    await prisma.tenantDomain.upsert({
+      where: { domain: primaryDomain },
+      update: {
+        communityId: community.id,
+        isPrimary: true,
+        status: 'ACTIVE',
+      },
+      create: {
+        communityId: community.id,
+        domain: primaryDomain,
+        isPrimary: true,
+        status: 'ACTIVE',
+      },
+    });
+    console.log('✓ Primary tenant domain created:', primaryDomain);
+  }
 
   // 2. Create Default Categories
   // Two top-level sections: "Local Life" (text-based content) and

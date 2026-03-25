@@ -1,4 +1,5 @@
 import { db } from './db';
+import { normalizeDomain, resolveCommunityIdByDomain } from './tenant';
 
 export interface CommunitySummary {
   id: string;
@@ -10,15 +11,6 @@ export interface CommunitySummary {
   colorPrimary: string;
   colorAccent: string;
   createdAt: Date;
-}
-
-function normalizeDomain(domain: string) {
-  return domain
-    .trim()
-    .replace(/^https?:\/\//, '')
-    .replace(/^www\./, '')
-    .split(':')[0]
-    .toLowerCase();
 }
 
 function selectCommunitySummary() {
@@ -35,46 +27,56 @@ function selectCommunitySummary() {
   } as const;
 }
 
-export async function getCommunityFromDomain(domain: string): Promise<CommunitySummary | null> {
-  const normalizedDomain = normalizeDomain(domain);
-  if (!normalizedDomain) {
-    return null;
-  }
-
-  const exactMatch = await db.community.findFirst({
+export async function ensureDefaultSiteSettings(communityId: string) {
+  await db.siteSetting.upsert({
     where: {
-      domain: {
-        equals: normalizedDomain,
-        mode: 'insensitive',
+      communityId_key: {
+        communityId,
+        key: 'comment_default_status',
       },
     },
-    select: selectCommunitySummary(),
-  });
-
-  if (exactMatch) {
-    return exactMatch;
-  }
-
-  return db.community.findFirst({
-    where: {
-      domain: {
-        equals: `www.${normalizedDomain}`,
-        mode: 'insensitive',
-      },
+    update: {},
+    create: {
+      communityId,
+      key: 'comment_default_status',
+      value: 'approved',
     },
-    select: selectCommunitySummary(),
   });
 }
 
-export function getCommunityFromSlug(slug: string): Promise<CommunitySummary | null> {
-  if (!slug.trim()) {
-    return Promise.resolve(null);
+export async function getCommunityFromDomain(domain: string): Promise<CommunitySummary | null> {
+  const communityId = await resolveCommunityIdByDomain(domain);
+  if (!communityId) {
+    return null;
   }
 
-  return db.community.findUnique({
+  const community = await db.community.findUnique({
+    where: { id: communityId },
+    select: selectCommunitySummary(),
+  });
+
+  if (community) {
+    await ensureDefaultSiteSettings(community.id);
+  }
+
+  return community;
+}
+
+export async function getCommunityFromSlug(slug: string): Promise<CommunitySummary | null> {
+  if (!slug.trim()) {
+    return null;
+  }
+
+  const community = await db.community.findUnique({
     where: { slug },
     select: selectCommunitySummary(),
   });
+
+  if (community) {
+    await ensureDefaultSiteSettings(community.id);
+  }
+
+  return community;
 }
 
 export async function getCurrentCommunity(request: {
@@ -100,6 +102,7 @@ export async function getCurrentCommunity(request: {
     });
 
     if (community) {
+      await ensureDefaultSiteSettings(community.id);
       return community;
     }
   }
@@ -147,16 +150,54 @@ export async function createCommunity(data: {
   colorPrimary?: string;
   colorAccent?: string;
 }): Promise<CommunitySummary> {
-  return db.community.create({
-    data: {
-      name: data.name,
-      slug: data.slug,
-      domain: data.domain || null,
-      description: data.description || null,
-      logoUrl: data.logoUrl || null,
-      colorPrimary: data.colorPrimary || '#46A8CC',
-      colorAccent: data.colorAccent || '#A51E30',
-    },
-    select: selectCommunitySummary(),
+  const normalizedDomain = data.domain ? normalizeDomain(data.domain) : null;
+
+  return db.$transaction(async (tx) => {
+    const community = await tx.community.create({
+      data: {
+        name: data.name,
+        slug: data.slug,
+        domain: normalizedDomain,
+        description: data.description || null,
+        logoUrl: data.logoUrl || null,
+        colorPrimary: data.colorPrimary || '#46A8CC',
+        colorAccent: data.colorAccent || '#A51E30',
+      },
+      select: selectCommunitySummary(),
+    });
+
+    if (normalizedDomain) {
+      await tx.tenantDomain.upsert({
+        where: { domain: normalizedDomain },
+        update: {
+          communityId: community.id,
+          isPrimary: true,
+          status: 'ACTIVE',
+        },
+        create: {
+          communityId: community.id,
+          domain: normalizedDomain,
+          isPrimary: true,
+          status: 'ACTIVE',
+        },
+      });
+    }
+
+    await tx.siteSetting.upsert({
+      where: {
+        communityId_key: {
+          communityId: community.id,
+          key: 'comment_default_status',
+        },
+      },
+      update: {},
+      create: {
+        communityId: community.id,
+        key: 'comment_default_status',
+        value: 'approved',
+      },
+    });
+
+    return community;
   });
 }

@@ -18,6 +18,7 @@
     "db:migrate": "prisma migrate dev --schema prisma/schema.prisma",
     "db:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
     "db:create-super-admin": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/create-super-admin.ts",
+    "db:backfill-tenant-domains": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/backfill-tenant-domains.ts",
     "db:set-user-dob": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/set-user-dob.ts",
     "deploy:check-env": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/check-deployment-env.ts",
     "db:push": "prisma db push --schema prisma/schema.prisma",

@@ -63,6 +63,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             Homepage Curation
           </a>
           <a
+            href="/admin/sites"
+            className="block rounded-lg px-4 py-2.5 font-medium text-slate-700 transition hover:bg-white hover:text-[#A51E30]"
+          >
+            Sites
+          </a>
+          <a
             href="/admin/categories"
             className="block rounded-lg px-4 py-2.5 font-medium text-slate-700 transition hover:bg-white hover:text-[#A51E30]"
           >

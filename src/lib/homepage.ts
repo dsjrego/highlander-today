@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client';
 import { db } from './db';
 import { ArticleStatus, EventStatus, MarketplaceStatus } from './constants';
+import { resolveTenantCommunityId } from './tenant';
 
 export type ManagedHomepageSectionType =
   | 'FEATURED_ARTICLES'
@@ -82,91 +83,8 @@ type HomepageSectionWithPins = Prisma.HomepageSectionGetPayload<{
   };
 }>;
 
-function normalizeDomain(domain: string) {
-  return domain
-    .trim()
-    .replace(/^https?:\/\//, '')
-    .replace(/^www\./, '')
-    .split(':')[0]
-    .toLowerCase();
-}
-
-function isLocalDevelopmentHost(domain: string) {
-  return domain === 'localhost' || domain === '127.0.0.1';
-}
-
-async function resolveHomepageCommunityIdByDomain(domain: string) {
-  const normalizedDomain = normalizeDomain(domain);
-
-  if (!normalizedDomain) {
-    return null;
-  }
-
-  const exactMatch = await db.community.findFirst({
-    where: {
-      domain: {
-        equals: normalizedDomain,
-        mode: 'insensitive',
-      },
-    },
-    select: { id: true },
-  });
-
-  if (exactMatch) {
-    return exactMatch.id;
-  }
-
-  const withWwwMatch = await db.community.findFirst({
-    where: {
-      domain: {
-        equals: `www.${normalizedDomain}`,
-        mode: 'insensitive',
-      },
-    },
-    select: { id: true },
-  });
-
-  if (withWwwMatch) {
-    return withWwwMatch.id;
-  }
-
-  if (isLocalDevelopmentHost(normalizedDomain)) {
-    return (await db.community.findFirst({
-      select: { id: true },
-      orderBy: { createdAt: 'asc' },
-    }))?.id;
-  }
-
-  return null;
-}
-
 export async function resolveHomepageCommunityId(options?: ResolveHomepageCommunityOptions) {
-  if (options?.preferredCommunityId) {
-    return options.preferredCommunityId;
-  }
-
-  if (options?.preferredDomain) {
-    const communityId = await resolveHomepageCommunityIdByDomain(options.preferredDomain);
-    if (communityId) {
-      return communityId;
-    }
-  }
-
-  if (options?.host) {
-    const communityId = await resolveHomepageCommunityIdByDomain(options.host);
-    if (communityId) {
-      return communityId;
-    }
-  }
-
-  if (options?.preferredDomain || options?.host) {
-    return null;
-  }
-
-  return (await db.community.findFirst({
-    select: { id: true },
-    orderBy: { createdAt: 'asc' },
-  }))?.id;
+  return resolveTenantCommunityId(options);
 }
 
 export async function ensureHomepageSections(communityId: string): Promise<HomepageSectionWithPins[]> {
