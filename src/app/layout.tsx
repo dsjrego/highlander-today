@@ -3,6 +3,8 @@ import Link from "next/link";
 import Providers from "@/components/Providers";
 import BannerActions from "@/components/layout/BannerActions";
 import NavigationBar from "@/components/layout/NavigationBar";
+import { ABOUT_NAV_ITEMS } from "@/lib/about";
+import { SUPPORT_NAV_ITEMS } from "@/lib/support";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -87,17 +89,22 @@ export default function RootLayout({
           <main className="relative z-0 container mx-auto px-4 pb-10 pt-0">{children}</main>
 
           {/* Footer */}
-          <footer className="mt-12 border-t border-white/10 bg-[#07111a] text-white">
+          <footer className="mt-12 border-t border-white/10 bg-[linear-gradient(135deg,#091a28_0%,#0f2941_34%,#8f1d2c_100%)] text-white">
             <div className="container mx-auto px-4 py-10">
-              <div className="mb-8 grid gap-5 md:grid-cols-3">
-                <div>
-                  <h3 className="mb-3 text-xl font-bold text-white">About</h3>
-                  <p className="text-sm leading-7 text-white/70">
-                    Highlander Today is a community platform for local news,
-                    events, opportunity, and accountable local coordination.
-                  </p>
+              <div className="mb-8 grid gap-8 text-center md:grid-cols-3">
+                <div className="flex flex-col items-center">
+                  <h3 className="mb-3 text-xl font-bold text-white">Support</h3>
+                  <ul className="space-y-2 text-sm text-cyan-200">
+                    {SUPPORT_NAV_ITEMS.map((item) => (
+                      <li key={item.href}>
+                        <Link href={item.href} className="hover:text-white">
+                          {item.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <div>
+                <div className="flex flex-col items-center">
                   <h3 className="mb-3 text-xl font-bold text-white">Quick Links</h3>
                   <ul className="space-y-2 text-sm text-cyan-200">
                     <li><Link href="/local-life" className="hover:text-white">Local Life</Link></li>
@@ -107,12 +114,16 @@ export default function RootLayout({
                     <li><Link href="/about" className="hover:text-white">About</Link></li>
                   </ul>
                 </div>
-                <div>
-                  <h3 className="mb-3 text-xl font-bold text-white">Institutional</h3>
+                <div className="flex flex-col items-center">
+                  <h3 className="mb-3 text-xl font-bold text-white">Highlander Today</h3>
                   <ul className="space-y-2 text-sm text-cyan-200">
-                    <li><Link href="/about/mission" className="hover:text-white">Mission</Link></li>
-                    <li><Link href="/about/roadmap" className="hover:text-white">About Roadmap</Link></li>
-                    <li><Link href="/about/journal" className="hover:text-white">Blog</Link></li>
+                    {ABOUT_NAV_ITEMS.map((item) => (
+                      <li key={item.href}>
+                        <Link href={item.href} className="hover:text-white">
+                          {item.label}
+                        </Link>
+                      </li>
+                    ))}
                   </ul>
                 </div>
               </div>
