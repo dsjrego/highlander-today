@@ -5,6 +5,42 @@
 @tailwind utilities;
 
 @layer components {
+  .card {
+    border-radius: 26px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1.5rem;
+    color: #ffffff;
+    box-shadow: 0 24px 55px rgba(7, 17, 26, 0.18);
+  }
+
+  .card-dark {
+    background: linear-gradient(160deg, rgba(17, 34, 52, 0.97), rgba(8, 20, 33, 0.97));
+  }
+
+  .card-accent {
+    background: linear-gradient(145deg, rgba(143, 29, 44, 0.96), rgba(10, 32, 51, 0.94));
+  }
+
+  .card-deep {
+    background: linear-gradient(160deg, rgba(57, 20, 34, 0.95), rgba(20, 13, 24, 0.95));
+  }
+
+  .card-subtle {
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: none;
+  }
+
+  .card-label {
+    display: block;
+    margin-bottom: 0;
+    color: #9be7ff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.28em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
   .section-display-title {
     display: inline-block;
     margin-bottom: 0;
@@ -20,8 +56,9 @@
       0 10px 28px rgba(70, 168, 204, 0.16);
   }
 
-  .empty-state-title {
-    display: inline-block;
+  .empty-state-title,
+  .empty-slate-title,
+  .card-title {
     font-family: var(--font-sans);
     font-size: clamp(1.5rem, 1.18rem + 1.05vw, 2.2rem);
     font-weight: 800;
@@ -36,6 +73,39 @@
     text-shadow:
       0 1px 0 rgba(7, 17, 26, 0.16),
       0 10px 24px rgba(70, 168, 204, 0.12);
+  }
+
+  .card-title {
+    display: block;
+    margin-top: 0.75rem;
+  }
+
+  .card-title-hero {
+    font-size: clamp(1.5rem, 1.18rem + 1.05vw, 2.2rem);
+  }
+
+  .card-title-lg {
+    font-size: 1.5rem;
+    line-height: 1.2;
+  }
+
+  .card-title-md {
+    font-size: 1.25rem;
+    line-height: 1.25;
+  }
+
+  .card-title-sm {
+    font-size: 1rem;
+    line-height: 1.35;
+  }
+
+  .card-body {
+    margin-top: 1rem;
+    margin-bottom: 0;
+    color: rgba(255, 255, 255, 0.86);
+    font-size: 0.9375rem;
+    line-height: 1.9;
+    letter-spacing: 0.01em;
   }
 
   .empty-state-copy {

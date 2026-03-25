@@ -14,25 +14,23 @@ export default function AboutJournalPage() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(143,29,44,0.96),rgba(10,32,51,0.94))] p-8 text-white shadow-[0_35px_80px_rgba(7,17,26,0.22)] md:p-10">
-        <p className="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-100/78">
-          Journal
-        </p>
-        <h1 className="mt-3 border-b border-white/12 pb-4 text-4xl font-black leading-[0.96] tracking-[-0.05em] text-white md:text-6xl">
+      <section className="card card-accent rounded-[32px] p-8 md:p-10">
+        <p className="card-label">Journal</p>
+        <h1 className="card-title card-title-hero mt-3 border-b border-white/12 pb-4 font-black leading-[0.96] md:text-6xl">
           A public record of what Highlander Today is learning, building, and changing.
         </h1>
-        <p className="mt-6 text-base leading-8 text-white/76">
+        <p className="card-body mt-6 text-base">
           The Journal is the institutional counterpart to day-to-day platform activity. It is where
           Highlander Today can explain decisions, publish essays about local technology and
           accountability, and show how the product evolves over time.
         </p>
       </section>
 
-      <section className="rounded-[28px] border border-white/10 bg-white/78 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
+      <section className="card card-dark rounded-[28px] p-6">
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
             <h2 className="section-display-title text-3xl font-black">Current entries</h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="card-body mt-1">
               The first Journal release is intentionally small and grounded in the initial About
               pages.
             </p>
@@ -40,15 +38,13 @@ export default function AboutJournalPage() {
         </div>
         <div className="mt-6 grid gap-4">
           {publishedEntries.map((entry) => (
-            <article
-              key={entry.slug}
-              className="rounded-[24px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-5 text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]"
-            >
+            <article key={entry.slug} className="card card-subtle rounded-[24px] p-5">
+              <p className="card-label">Published</p>
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                <h3 className="text-xl font-bold text-white">{entry.title}</h3>
-                <span className="text-sm font-medium text-cyan-100/68">{entry.publishedOn}</span>
+                <h3 className="card-title card-title-md mt-0">{entry.title}</h3>
+                <span className="text-sm font-medium text-cyan-100/80">{entry.publishedOn}</span>
               </div>
-              <p className="mt-3 text-sm leading-7 text-white/72">{entry.summary}</p>
+              <p className="card-body mt-3">{entry.summary}</p>
               <Link
                 href={entry.href}
                 className="mt-4 inline-flex text-sm font-semibold text-cyan-200 hover:underline"
@@ -60,18 +56,18 @@ export default function AboutJournalPage() {
         </div>
       </section>
 
-      <section className="rounded-[28px] border border-white/10 bg-slate-950 p-6 text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
+      <section className="card card-dark rounded-[28px] p-6">
         <h2 className="section-display-title text-3xl font-black">Planned next</h2>
         <div className="mt-4 space-y-4">
           {plannedEntries.map((entry) => (
-            <article key={entry.slug} className="rounded-[22px] border border-white/10 bg-white/5 p-5">
+            <article key={entry.slug} className="card card-subtle rounded-[22px] p-5">
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                <h3 className="text-lg font-bold text-white">{entry.title}</h3>
+                <h3 className="card-title card-title-sm mt-0">{entry.title}</h3>
                 <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-950">
                   Planned
                 </span>
               </div>
-              <p className="mt-3 text-sm leading-7 text-white/72">{entry.summary}</p>
+              <p className="card-body mt-3">{entry.summary}</p>
             </article>
           ))}
         </div>

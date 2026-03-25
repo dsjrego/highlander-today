@@ -46,30 +46,21 @@ export default function AboutPage() {
 
       <section className="grid gap-4 md:grid-cols-3">
         {ABOUT_PILLARS.map((pillar) => (
-          <article
-            key={pillar.title}
-            className="rounded-[26px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-6 text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]"
-          >
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-100/68">
-              Pillar
-            </p>
-            <h2 className="mt-4 border-b border-white/10 pb-3 text-2xl font-bold text-white">
-              {pillar.title}
-            </h2>
-            <p className="mt-4 text-sm leading-7 text-white/72">{pillar.body}</p>
+          <article key={pillar.title} className="card card-dark">
+            <p className="card-label">Pillar</p>
+            <h2 className="card-title card-title-lg border-b border-white/10 pb-3">{pillar.title}</h2>
+            <p className="card-body">{pillar.body}</p>
           </article>
         ))}
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-[28px] border border-white/10 bg-white/78 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#8f1d2c]">
-            Mission
-          </p>
-          <h2 className="section-display-title mt-3 text-3xl font-black">
+        <div className="card card-accent rounded-[28px] p-6">
+          <p className="card-label">Mission</p>
+          <h2 className="card-title card-title-hero font-black">
             Build a durable local home for news, events, opportunity, and accountability.
           </h2>
-          <p className="mt-4 text-sm leading-7 text-slate-600">
+          <p className="card-body">
             The long-term aim is not simply to publish articles or host listings. It is to create a
             dependable local system people can return to when they need to know what is happening,
             who can help, what is available, and how to participate.
@@ -82,20 +73,18 @@ export default function AboutPage() {
           </Link>
         </div>
 
-        <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-6 text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-100/74">
-            Product Direction
-          </p>
+        <div className="card card-dark rounded-[28px] p-6">
+          <p className="card-label">Product Direction</p>
           <div className="mt-4 space-y-4">
             {ABOUT_ROADMAP_STAGES.map((stage) => (
-              <div key={stage.title} className="rounded-2xl border border-white/10 bg-white/6 p-4">
+              <div key={stage.title} className="card card-subtle rounded-2xl p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-base font-bold text-white">{stage.title}</h3>
+                  <h3 className="card-title card-title-sm mt-0">{stage.title}</h3>
                   <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-950">
                     {stage.status}
                   </span>
                 </div>
-                <p className="mt-2 text-sm leading-6 text-white/70">{stage.body}</p>
+                <p className="card-body mt-2">{stage.body}</p>
               </div>
             ))}
           </div>
