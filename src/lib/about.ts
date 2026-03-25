@@ -36,7 +36,7 @@ export const ABOUT_NAV_ITEMS: AboutNavItem[] = [
     description: 'What the platform has already built and what comes next.',
   },
   {
-    label: 'Journal',
+    label: 'Blog',
     href: '/about/journal',
     description: 'An evolving public record of the product and organizational point of view.',
   },

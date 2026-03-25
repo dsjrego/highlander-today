@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { ABOUT_NAV_ITEMS } from '@/lib/about';
+import { SUPPORT_NAV_ITEMS } from '@/lib/support';
 
 // -------------------------------------------------------------------
 // NAV SECTION DATA
@@ -65,6 +66,17 @@ const ABOUT_SECTION: NavSection = {
   subcategories: ABOUT_NAV_ITEMS.map((item) => ({
     label: item.label,
     slug: item.href.replace('/about/', '') || 'about',
+    href: item.href,
+  })),
+};
+
+const SUPPORT_SECTION: NavSection = {
+  label: 'Support',
+  href: '/support',
+  slug: 'support',
+  subcategories: SUPPORT_NAV_ITEMS.map((item) => ({
+    label: item.label,
+    slug: item.href.replace('/support/', '') || 'support',
     href: item.href,
   })),
 };
@@ -195,6 +207,8 @@ export default function NavigationBar() {
         </Link>
 
         <NavDropdown section={ABOUT_SECTION} />
+
+        {isSuperAdmin && <NavDropdown section={SUPPORT_SECTION} />}
 
         {isSuperAdmin && (
           <Link
