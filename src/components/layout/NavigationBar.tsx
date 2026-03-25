@@ -106,24 +106,33 @@ function NavDropdown({ section }: { section: NavSection }) {
       onMouseLeave={handleMouseLeave}
     >
       {/* Trigger */}
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-haspopup="menu"
-        className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-cyan-300 transition hover:border-cyan-300/25 hover:bg-white/[0.11] hover:text-white"
-        onClick={() => setOpen((current) => !current)}
-      >
-        {section.label}
-        <svg
-          className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
+      <div className="flex items-stretch overflow-hidden rounded-full border border-white/10 bg-white/[0.06] text-sm font-semibold text-cyan-300 transition hover:border-cyan-300/25 hover:bg-white/[0.11] hover:text-white">
+        <Link
+          href={section.href}
+          className="px-4 py-2 transition hover:bg-white/[0.05]"
+          onClick={() => setOpen(false)}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
+          {section.label}
+        </Link>
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-haspopup="menu"
+          aria-label={`Toggle ${section.label} submenu`}
+          className="border-l border-white/10 px-2.5 transition hover:bg-white/[0.08]"
+          onClick={() => setOpen((current) => !current)}
+        >
+          <svg
+            className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-180' : ''}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
 
       {/* Dropdown panel */}
       {open && (
@@ -131,15 +140,6 @@ function NavDropdown({ section }: { section: NavSection }) {
           className="absolute left-0 top-full z-50 mt-2 w-64 rounded-2xl border border-white/10 bg-[#111827]/95 py-2 shadow-2xl backdrop-blur"
           role="menu"
         >
-          {/* "View all" link */}
-          <Link
-            href={section.href}
-            className="mb-1 block border-b border-white/10 px-4 py-3 text-sm font-semibold text-cyan-200 hover:bg-white/5"
-            onClick={() => setOpen(false)}
-          >
-            View All {section.label}
-          </Link>
-
           {section.subcategories.map((sub) => (
             <Link
               key={sub.slug}
