@@ -5,6 +5,62 @@
 @tailwind utilities;
 
 @layer components {
+  .page {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .page-header {
+    overflow: hidden;
+    border-radius: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(145deg, rgba(143, 29, 44, 0.96), rgba(10, 32, 51, 0.94));
+    padding: 1.125rem 1.5rem;
+    color: #ffffff;
+    box-shadow: 0 35px 80px rgba(7, 17, 26, 0.22);
+  }
+
+  .page-header-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .page-label {
+    display: block;
+    margin-bottom: 0;
+    color: rgba(155, 231, 255, 0.74);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.28em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  .page-title {
+    margin-bottom: 0;
+    color: #ffffff;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.32em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .page-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
   .card {
     border-radius: 26px;
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -113,6 +169,18 @@
     font-size: 0.9375rem;
     line-height: 1.8;
     letter-spacing: 0.01em;
+  }
+
+  @screen md {
+    .page-header {
+      padding: 1.25rem 2.5rem;
+    }
+
+    .page-header-inner {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
   }
 }
 
