@@ -67,6 +67,13 @@ export default function AdminDashboard() {
             <p className="font-semibold text-[#46A8CC]">Manage Stores</p>
             <p className="text-sm text-gray-600">Review, approve, reject, and suspend storefronts</p>
           </a>
+          <a
+            href="/admin/homepage"
+            className="p-4 border border-gray-300 rounded-lg hover:border-[#46A8CC] hover:bg-blue-50 transition"
+          >
+            <p className="font-semibold text-[#46A8CC]">Homepage Curation</p>
+            <p className="text-sm text-gray-600">Reorder sections, toggle visibility, and pin homepage content</p>
+          </a>
         </div>
       </div>
 
