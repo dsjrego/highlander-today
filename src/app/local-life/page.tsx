@@ -6,9 +6,10 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import InternalPageHeader from '@/components/shared/InternalPageHeader';
 import ArticleCreateAction from '@/components/articles/ArticleCreateAction';
-import { NAV_SECTIONS } from '@/components/layout/NavigationBar';
+import { LOCAL_LIFE_CATEGORY_HREF_OVERRIDES } from '@/lib/category-config';
 
 interface CategoryPill {
+  id: string;
   name: string;
   slug: string;
   href?: string;
@@ -45,13 +46,8 @@ function LocalLifePageContent() {
   const activeCategory = searchParams.get('category');
   const pageParam = parseInt(searchParams.get('page') || '1');
   const { data: session } = useSession();
-  const localLifeSection = NAV_SECTIONS.find((section) => section.slug === 'local-life');
-  const categoryPills: CategoryPill[] = (localLifeSection?.subcategories || []).map((sub) => ({
-    name: sub.label,
-    slug: sub.slug,
-    href: sub.href,
-  }));
 
+  const [categoryPills, setCategoryPills] = useState<CategoryPill[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -59,6 +55,29 @@ function LocalLifePageContent() {
   const activePill = categoryPills.find((c) => c.slug === activeCategory);
 
   // Fetch published articles, filtered by category if selected
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const res = await fetch('/api/categories?parent=local-life');
+        if (!res.ok) return;
+
+        const data = await res.json();
+        setCategoryPills(
+          (data.categories || []).map((category: { id: string; name: string; slug: string }) => ({
+            id: category.id,
+            name: category.name,
+            slug: category.slug,
+            href: LOCAL_LIFE_CATEGORY_HREF_OVERRIDES[category.slug],
+          }))
+        );
+      } catch (err) {
+        console.error('Failed to fetch Local Life categories:', err);
+      }
+    }
+
+    fetchCategories();
+  }, []);
+
   useEffect(() => {
     async function fetchArticles() {
       setIsLoading(true);
@@ -98,7 +117,7 @@ function LocalLifePageContent() {
         <div className="flex flex-wrap gap-2">
           {categoryPills.map((cat) => (
             <Link
-              key={cat.slug}
+              key={cat.id}
               href={cat.href || `/local-life?category=${cat.slug}`}
               className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
                 activeCategory === cat.slug

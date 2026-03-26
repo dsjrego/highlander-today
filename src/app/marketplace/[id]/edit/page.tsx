@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import FormCard from "@/components/shared/FormCard";
 import ImageUpload from "@/components/shared/ImageUpload";
 
 interface ListingDetail {
@@ -205,10 +206,11 @@ export default function EditListingPage({ params }: PageProps) {
         </div>
       ) : null}
 
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-6 rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur md:p-8"
-      >
+      <FormCard>
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6"
+        >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="mb-2 block text-sm font-semibold text-slate-700">
@@ -338,7 +340,8 @@ export default function EditListingPage({ params }: PageProps) {
             Cancel
           </button>
         </div>
-      </form>
+        </form>
+      </FormCard>
     </div>
   );
 }

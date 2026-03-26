@@ -3,6 +3,7 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import FormCard from '@/components/shared/FormCard';
 import ImageUpload from '@/components/shared/ImageUpload';
 import InternalPageHeader from '@/components/shared/InternalPageHeader';
 
@@ -190,10 +191,11 @@ export default function SubmitHelpWantedPage() {
         </div>
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-6 rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur md:p-8"
-      >
+      <FormCard>
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6"
+        >
         <div>
           <label className="mb-2 block text-sm font-bold text-slate-700">
             Posting Type *
@@ -359,7 +361,8 @@ export default function SubmitHelpWantedPage() {
             Cancel
           </button>
         </div>
-      </form>
+        </form>
+      </FormCard>
     </div>
   );
 }

@@ -1,232 +1,502 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from 'react';
+import FormCard, { FormCardActions } from '@/components/shared/FormCard';
 
-interface Category {
+type CategoryRecord = {
   id: string;
   name: string;
-  type: "articles" | "events" | "marketplace";
-  description: string;
-  active: boolean;
-  itemCount: number;
+  slug: string;
+  parentCategoryId: string | null;
+  sortOrder: number;
+  isArchived: boolean;
+  parentCategory: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+  _count: {
+    articles: number;
+    childCategories: number;
+  };
+};
+
+type EditableCategory = Record<
+  string,
+  {
+    name: string;
+    slug: string;
+    sortOrder: number;
+    isArchived: boolean;
+    parentCategoryId: string | null;
+  }
+>;
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function sortCategories<T extends { sortOrder: number; name: string }>(categories: T[]) {
+  return [...categories].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
 }
 
 export default function CategoryManagerPage() {
-  const [categories, setCategories] = useState<Category[]>([
-    {
-      id: "1",
-      name: "News",
-      type: "articles",
-      description: "Breaking news and updates",
-      active: true,
-      itemCount: 145,
-    },
-    {
-      id: "2",
-      name: "Community",
-      type: "articles",
-      description: "Community events and announcements",
-      active: true,
-      itemCount: 89,
-    },
-    {
-      id: "3",
-      name: "Education",
-      type: "articles",
-      description: "Education-related content",
-      active: true,
-      itemCount: 34,
-    },
-    {
-      id: "4",
-      name: "Community",
-      type: "events",
-      description: "Community gatherings and events",
-      active: true,
-      itemCount: 45,
-    },
-    {
-      id: "5",
-      name: "Sports",
-      type: "events",
-      description: "Sports and recreation events",
-      active: true,
-      itemCount: 28,
-    },
-    {
-      id: "6",
-      name: "Electronics",
-      type: "marketplace",
-      description: "Electronics and gadgets",
-      active: true,
-      itemCount: 234,
-    },
-    {
-      id: "7",
-      name: "Furniture",
-      type: "marketplace",
-      description: "Furniture and home decor",
-      active: true,
-      itemCount: 156,
-    },
-  ]);
-
+  const [categories, setCategories] = useState<CategoryRecord[]>([]);
+  const [editable, setEditable] = useState<EditableCategory>({});
   const [newCategory, setNewCategory] = useState({
-    name: "",
-    type: "articles",
-    description: "",
+    name: '',
+    slug: '',
+    parentCategoryId: '',
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState<string | null>(null);
+  const [isReordering, setIsReordering] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  const toggleCategory = (id: string) => {
-    setCategories(
-      categories.map((cat) =>
-        cat.id === id ? { ...cat, active: !cat.active } : cat
-      )
-    );
-  };
+  async function loadCategories() {
+    setIsLoading(true);
+    setError('');
 
-  const handleAddCategory = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newCategory.name.trim()) {
-      setCategories([
-        ...categories,
-        {
-          id: Date.now().toString(),
-          name: newCategory.name,
-          type: newCategory.type as Category["type"],
-          description: newCategory.description,
-          active: true,
-          itemCount: 0,
-        },
-      ]);
-      setNewCategory({ name: "", type: "articles", description: "" });
+    try {
+      const res = await fetch('/api/admin/categories');
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Failed to load categories');
+        return;
+      }
+
+      const nextCategories = sortCategories((data.categories || []) as CategoryRecord[]);
+      setCategories(nextCategories);
+      setEditable(
+        Object.fromEntries(
+          nextCategories.map((category: CategoryRecord) => [
+            category.id,
+            {
+              name: category.name,
+              slug: category.slug,
+              sortOrder: category.sortOrder,
+              isArchived: category.isArchived,
+              parentCategoryId: category.parentCategoryId,
+            },
+          ])
+        )
+      );
+    } catch {
+      setError('Failed to load categories');
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }
 
-  const categoryTypes = ["articles", "events", "marketplace"];
+  useEffect(() => {
+    loadCategories();
+  }, []);
 
-  return (
-    <div>
-      <h1 className="text-4xl font-bold mb-8 text-[#46A8CC]">
-        Category Management
-      </h1>
+  const topLevelCategories = useMemo(
+    () => sortCategories(categories.filter((category) => category.parentCategoryId === null)),
+    [categories]
+  );
 
-      {/* Add New Category */}
-      <div className="bg-white p-6 rounded-lg border border-gray-200 mb-8">
-        <h2 className="text-2xl font-bold mb-4">Add New Category</h2>
-        <form onSubmit={handleAddCategory} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <input
-              type="text"
-              value={newCategory.name}
-              onChange={(e) =>
-                setNewCategory({ ...newCategory, name: e.target.value })
-              }
-              placeholder="Category name"
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
-            />
-            <select
-              value={newCategory.type}
-              onChange={(e) =>
-                setNewCategory({
-                  ...newCategory,
-                  type: e.target.value,
-                })
-              }
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
-            >
-              {categoryTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type.charAt(0).toUpperCase() + type.slice(1)}
+  const categoriesById = useMemo(
+    () => new Map(categories.map((category) => [category.id, category])),
+    [categories]
+  );
+
+  const childrenByParentId = useMemo(() => {
+    return categories.reduce<Record<string, CategoryRecord[]>>((acc, category) => {
+      if (!category.parentCategoryId) return acc;
+      if (!acc[category.parentCategoryId]) acc[category.parentCategoryId] = [];
+      acc[category.parentCategoryId].push(category);
+      acc[category.parentCategoryId] = sortCategories(acc[category.parentCategoryId]);
+      return acc;
+    }, {});
+  }, [categories]);
+
+  const descendantsById = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+
+    function collect(categoryId: string): Set<string> {
+      if (map.has(categoryId)) return map.get(categoryId)!;
+      const descendants = new Set<string>();
+      for (const child of childrenByParentId[categoryId] || []) {
+        descendants.add(child.id);
+        for (const nested of collect(child.id)) {
+          descendants.add(nested);
+        }
+      }
+      map.set(categoryId, descendants);
+      return descendants;
+    }
+
+    for (const category of categories) {
+      collect(category.id);
+    }
+
+    return map;
+  }, [categories, childrenByParentId]);
+
+  async function handleCreateCategory(event: React.FormEvent) {
+    event.preventDefault();
+    setIsCreating(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const res = await fetch('/api/admin/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newCategory.name,
+          slug: newCategory.slug || slugify(newCategory.name),
+          parentCategoryId: newCategory.parentCategoryId || null,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Failed to create category');
+        return;
+      }
+
+      setSuccess('Category created');
+      setNewCategory({ name: '', slug: '', parentCategoryId: '' });
+      await loadCategories();
+    } catch {
+      setError('Failed to create category');
+    } finally {
+      setIsCreating(false);
+    }
+  }
+
+  function updateDraft(categoryId: string, changes: Partial<EditableCategory[string]>) {
+    setEditable((current) => ({
+      ...current,
+      [categoryId]: {
+        ...current[categoryId],
+        ...changes,
+      },
+    }));
+  }
+
+  async function moveCategory(categoryId: string, direction: 'up' | 'down') {
+    const draft = editable[categoryId];
+    if (!draft) return;
+
+    const siblings = sortCategories(
+      categories.filter((category) => category.parentCategoryId === draft.parentCategoryId)
+    );
+    const currentIndex = siblings.findIndex((category) => category.id === categoryId);
+    if (currentIndex === -1) return;
+
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= siblings.length) return;
+
+    const target = siblings[targetIndex];
+    const targetDraft = editable[target.id];
+    if (!targetDraft) return;
+
+    const originalDraft = draft;
+
+    updateDraft(categoryId, { sortOrder: targetDraft.sortOrder });
+    updateDraft(target.id, { sortOrder: draft.sortOrder });
+
+    setIsReordering(categoryId);
+    setError('');
+    setSuccess('');
+
+    try {
+      const res = await fetch('/api/admin/categories/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          updates: [
+            { id: categoryId, sortOrder: targetDraft.sortOrder },
+            { id: target.id, sortOrder: originalDraft.sortOrder },
+          ],
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        updateDraft(categoryId, { sortOrder: originalDraft.sortOrder });
+        updateDraft(target.id, { sortOrder: targetDraft.sortOrder });
+        setError(data.error || 'Failed to reorder category');
+        return;
+      }
+
+      setSuccess('Category order updated');
+      await loadCategories();
+    } catch {
+      updateDraft(categoryId, { sortOrder: originalDraft.sortOrder });
+      updateDraft(target.id, { sortOrder: targetDraft.sortOrder });
+      setError('Failed to reorder category');
+    } finally {
+      setIsReordering(null);
+    }
+  }
+
+  async function handleSaveCategory(categoryId: string) {
+    const draft = editable[categoryId];
+    if (!draft) return;
+
+    setIsSaving(categoryId);
+    setError('');
+    setSuccess('');
+
+    try {
+      const res = await fetch(`/api/admin/categories/${categoryId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: draft.name,
+          slug: draft.slug || slugify(draft.name),
+          sortOrder: draft.sortOrder,
+          isArchived: draft.isArchived,
+          parentCategoryId: draft.parentCategoryId,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Failed to update category');
+        return;
+      }
+
+      setSuccess('Category updated');
+      await loadCategories();
+    } catch {
+      setError('Failed to update category');
+    } finally {
+      setIsSaving(null);
+    }
+  }
+
+  function CategoryEditorRow({ category }: { category: CategoryRecord }) {
+    const draft = editable[category.id];
+    if (!draft) return null;
+
+    const siblingCategories = sortCategories(
+      categories.filter((candidate) => candidate.parentCategoryId === draft.parentCategoryId)
+    );
+    const siblingIndex = siblingCategories.findIndex((candidate) => candidate.id === category.id);
+    const disallowedParentIds = descendantsById.get(category.id) ?? new Set<string>();
+
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_200px_120px_auto]">
+          <input
+            type="text"
+            value={draft.name}
+            onChange={(event) => {
+              const name = event.target.value;
+              updateDraft(category.id, { name, slug: slugify(name) });
+            }}
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950"
+          />
+          <input
+            type="text"
+            value={draft.slug}
+            onChange={(event) => updateDraft(category.id, { slug: slugify(event.target.value) })}
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950"
+          />
+          <select
+            value={draft.parentCategoryId ?? ''}
+            onChange={(event) =>
+              updateDraft(category.id, {
+                parentCategoryId: event.target.value || null,
+              })
+            }
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950"
+          >
+            <option value="">Top-level category</option>
+            {topLevelCategories
+              .filter((candidate) => candidate.id !== category.id && !disallowedParentIds.has(candidate.id))
+              .map((candidate) => (
+                <option key={candidate.id} value={candidate.id}>
+                  {candidate.name}
                 </option>
               ))}
-            </select>
-            <textarea
-              value={newCategory.description}
-              onChange={(e) =>
-                setNewCategory({ ...newCategory, description: e.target.value })
-              }
-              placeholder="Description"
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
-            />
+          </select>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => moveCategory(category.id, 'up')}
+              disabled={siblingIndex <= 0 || isReordering === category.id}
+              className="btn btn-neutral min-w-0 px-3"
+            >
+              ↑
+            </button>
+            <button
+              type="button"
+              onClick={() => moveCategory(category.id, 'down')}
+              disabled={siblingIndex === -1 || siblingIndex >= siblingCategories.length - 1 || isReordering === category.id}
+              className="btn btn-neutral min-w-0 px-3"
+            >
+              ↓
+            </button>
           </div>
+          <label className="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700">
+            <input
+              type="checkbox"
+              checked={!draft.isArchived}
+              onChange={(event) => updateDraft(category.id, { isArchived: !event.target.checked })}
+              className="h-4 w-4 rounded border-slate-300"
+            />
+            Active
+          </label>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs text-slate-500">
+            Parent: {draft.parentCategoryId ? categoriesById.get(draft.parentCategoryId)?.name ?? 'Unknown' : 'Top-level'}
+            {' · '}
+            Order: {draft.sortOrder}
+            {' · '}
+            Articles: {category._count.articles}
+            {' · '}
+            Children: {category._count.childCategories}
+          </p>
           <button
-            type="submit"
-            className="px-6 py-2 bg-[#46A8CC] text-white rounded-lg hover:bg-blue-700 transition font-semibold"
+            type="button"
+            onClick={() => handleSaveCategory(category.id)}
+            disabled={isSaving === category.id}
+            className="btn btn-primary"
           >
-            Add Category
+            {isSaving === category.id ? 'Saving...' : 'Save'}
           </button>
-        </form>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-4xl font-bold text-[#46A8CC]">Category Management</h1>
+        <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-600">
+          Maintain the DB-backed category taxonomy, reassign parents, and reorder the hierarchy that powers Local Life and related surfaces.
+        </p>
       </div>
 
-      {/* Categories by Type */}
-      <div className="space-y-8">
-        {categoryTypes.map((type) => {
-          const typeCategories = categories.filter((c) => c.type === type);
-          return (
-            <div key={type}>
-              <h2 className="text-2xl font-bold mb-4 capitalize">
-                {type} Categories
-              </h2>
-              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b bg-gray-50">
-                      <th className="px-6 py-3 text-left text-sm font-bold">
-                        Name
-                      </th>
-                      <th className="px-6 py-3 text-left text-sm font-bold">
-                        Description
-                      </th>
-                      <th className="px-6 py-3 text-left text-sm font-bold">
-                        Items
-                      </th>
-                      <th className="px-6 py-3 text-left text-sm font-bold">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-sm font-bold">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {typeCategories.map((cat) => (
-                      <tr key={cat.id} className="border-b hover:bg-gray-50">
-                        <td className="px-6 py-3 font-semibold">{cat.name}</td>
-                        <td className="px-6 py-3 text-sm text-gray-600">
-                          {cat.description}
-                        </td>
-                        <td className="px-6 py-3 text-sm">{cat.itemCount}</td>
-                        <td className="px-6 py-3">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={cat.active}
-                              onChange={() => toggleCategory(cat.id)}
-                              className="w-5 h-5 rounded border-gray-300 text-[#46A8CC]"
-                            />
-                            <span className="text-sm">
-                              {cat.active ? "Active" : "Inactive"}
-                            </span>
-                          </label>
-                        </td>
-                        <td className="px-6 py-3 text-sm space-x-2">
-                          <button className="text-[#46A8CC] hover:underline">
-                            Edit
-                          </button>
-                          <span className="text-gray-300">•</span>
-                          <button className="text-red-600 hover:underline">
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+      {error ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">{error}</div>
+      ) : null}
+      {success ? (
+        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-700">{success}</div>
+      ) : null}
+
+      <FormCard>
+        <form onSubmit={handleCreateCategory} className="space-y-4">
+          <div>
+            <h2 className="text-xl font-bold text-slate-950">Add Category</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              New categories are written directly to the database and invalidate cached category reads automatically.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">Name</label>
+              <input
+                type="text"
+                value={newCategory.name}
+                onChange={(event) =>
+                  setNewCategory((current) => ({
+                    ...current,
+                    name: event.target.value,
+                    slug: slugify(event.target.value),
+                  }))
+                }
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950"
+                placeholder="Category name"
+                required
+              />
             </div>
-          );
-        })}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">Slug</label>
+              <input
+                type="text"
+                value={newCategory.slug}
+                onChange={(event) =>
+                  setNewCategory((current) => ({
+                    ...current,
+                    slug: slugify(event.target.value),
+                  }))
+                }
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950"
+                placeholder="category-slug"
+                required
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">Parent</label>
+              <select
+                value={newCategory.parentCategoryId}
+                onChange={(event) =>
+                  setNewCategory((current) => ({
+                    ...current,
+                    parentCategoryId: event.target.value,
+                  }))
+                }
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950"
+              >
+                <option value="">Top-level category</option>
+                {topLevelCategories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <FormCardActions>
+            <button type="submit" disabled={isCreating} className="btn btn-primary">
+              {isCreating ? 'Creating...' : 'Add Category'}
+            </button>
+          </FormCardActions>
+        </form>
+      </FormCard>
+
+      <div className="space-y-6">
+        {isLoading ? (
+          <div className="rounded-xl border border-slate-200 bg-white px-6 py-10 text-center text-slate-500">
+            Loading categories...
+          </div>
+        ) : (
+          <>
+            <FormCard>
+              <div className="space-y-5">
+                <div className="border-b border-slate-200/80 pb-4">
+                  <h2 className="text-2xl font-bold text-slate-950">All Categories</h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Edit any row directly. Parent reassignment is limited to top-level categories and cycle-safe.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  {topLevelCategories.map((parent) => (
+                    <div key={parent.id} className="space-y-4">
+                      <CategoryEditorRow category={parent} />
+                      {(childrenByParentId[parent.id] || []).map((child) => (
+                        <div key={child.id} className="pl-4 md:pl-8">
+                          <CategoryEditorRow category={child} />
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </FormCard>
+          </>
+        )}
       </div>
     </div>
   );

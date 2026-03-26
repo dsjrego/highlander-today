@@ -16,6 +16,9 @@ interface PageProps {
   params: {
     id: string;
   };
+  searchParams?: {
+    tab?: string;
+  };
 }
 
 async function getUserProfile(id: string) {
@@ -199,7 +202,7 @@ function ProfileOwnerCard({
   );
 }
 
-export default async function UserProfilePage({ params }: PageProps) {
+export default async function UserProfilePage({ params, searchParams }: PageProps) {
   const session = await getServerSession(authOptions);
   const profile = await getUserProfile(params.id);
 
@@ -471,6 +474,7 @@ export default async function UserProfilePage({ params }: PageProps) {
         titleClassName="text-white"
       />
       <ProfileTabs
+        initialActiveTabId={searchParams?.tab}
         tabs={[
           { id: "about", label: "About", content: aboutTab },
           { id: "marketplace", label: "Marketplace", content: marketplaceTab },

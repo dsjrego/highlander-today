@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import FormCard from '@/components/shared/FormCard';
 
 type RoadmapIdeaStatus = 'SUBMITTED' | 'UNDER_REVIEW' | 'DECLINED';
 
@@ -145,10 +146,11 @@ export default function EditRoadmapIdeaPage() {
         </div>
       ) : null}
 
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-6 rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur md:p-8"
-      >
+      <FormCard>
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6"
+        >
         <div>
           <label className="mb-2 block text-sm font-bold text-slate-700">Idea Title *</label>
           <input
@@ -198,7 +200,8 @@ export default function EditRoadmapIdeaPage() {
             {isSaving ? 'Saving...' : status === 'DECLINED' ? 'Save and Resubmit' : 'Save Changes'}
           </button>
         </div>
-      </form>
+        </form>
+      </FormCard>
     </div>
   );
 }

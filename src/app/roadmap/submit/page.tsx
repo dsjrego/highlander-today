@@ -3,6 +3,7 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import FormCard from '@/components/shared/FormCard';
 import InternalPageHeader from '@/components/shared/InternalPageHeader';
 
 export default function SubmitRoadmapIdeaPage() {
@@ -147,10 +148,11 @@ export default function SubmitRoadmapIdeaPage() {
         </div>
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white p-6 md:p-8 rounded-xl border border-gray-200 shadow-sm space-y-6"
-      >
+      <FormCard>
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6"
+        >
         <div>
           <label className="block text-sm font-bold text-gray-700 mb-2">
             Idea Title *
@@ -213,7 +215,8 @@ export default function SubmitRoadmapIdeaPage() {
             {isLoading ? 'Submitting...' : 'Submit Idea'}
           </button>
         </div>
-      </form>
+        </form>
+      </FormCard>
     </div>
   );
 }

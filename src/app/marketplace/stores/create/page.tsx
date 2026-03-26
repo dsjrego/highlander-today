@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import FormCard from "@/components/shared/FormCard";
 import ImageUpload from "@/components/shared/ImageUpload";
 import InternalPageHeader from "@/components/shared/InternalPageHeader";
 
@@ -104,10 +105,11 @@ export default function CreateStorePage() {
         </div>
       ) : null}
 
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8 space-y-6"
-      >
+      <FormCard>
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6"
+        >
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">
             Store Name
@@ -224,7 +226,8 @@ export default function CreateStorePage() {
             Cancel
           </Link>
         </div>
-      </form>
+        </form>
+      </FormCard>
 
       <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-gray-700">
         <p className="font-semibold mb-2">Approval notes</p>

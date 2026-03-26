@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { getAboutNavItems } from '@/lib/about';
+import { LOCAL_LIFE_CATEGORY_HREF_OVERRIDES } from '@/lib/category-config';
 import { SUPPORT_NAV_ITEMS } from '@/lib/support';
 
 // -------------------------------------------------------------------
@@ -26,22 +27,15 @@ export interface NavSection {
   subcategories: NavSubcategory[];
 }
 
+const LOCAL_LIFE_FALLBACK_SECTION: NavSection = {
+  label: 'Local Life',
+  href: '/local-life',
+  slug: 'local-life',
+  subcategories: [],
+};
+
 export const NAV_SECTIONS: NavSection[] = [
-  {
-    label: 'Local Life',
-    href: '/local-life',
-    slug: 'local-life',
-    subcategories: [
-      { label: 'Local Stores',             slug: 'local-stores', href: '/marketplace/stores' },
-      { label: 'Our People',               slug: 'people' },
-      { label: 'Recipes & Food',           slug: 'recipes-food' },
-      { label: 'Gardening & Nature',       slug: 'outdoors-tips' },
-      { label: 'Arts & Music',             slug: 'arts-creativity' },
-      { label: 'History & Heritage',       slug: 'history-heritage' },
-      { label: 'Guides & How-Tos',         slug: 'guides' },
-      { label: 'Opinion',                  slug: 'opinion-commentary' },
-    ],
-  },
+  LOCAL_LIFE_FALLBACK_SECTION,
   {
     label: 'Experiences',
     href: '/experiences',
@@ -165,6 +159,33 @@ export default function NavigationBar() {
   const { data: session } = useSession();
   const userRole = session?.user?.role;
   const isSuperAdmin = userRole === 'SUPER_ADMIN';
+  const [localLifeSection, setLocalLifeSection] = useState<NavSection>(LOCAL_LIFE_FALLBACK_SECTION);
+
+  useEffect(() => {
+    async function fetchLocalLifeCategories() {
+      try {
+        const res = await fetch('/api/categories?parent=local-life');
+        if (!res.ok) return;
+
+        const data = await res.json();
+        setLocalLifeSection({
+          label: 'Local Life',
+          href: '/local-life',
+          slug: 'local-life',
+          subcategories: (data.categories || []).map((category: { name: string; slug: string }) => ({
+            label: category.name,
+            slug: category.slug,
+            href: LOCAL_LIFE_CATEGORY_HREF_OVERRIDES[category.slug],
+          })),
+        });
+      } catch (err) {
+        console.error('Failed to fetch Local Life navigation categories:', err);
+      }
+    }
+
+    fetchLocalLifeCategories();
+  }, []);
+
   const aboutSection: NavSection = {
     label: 'About',
     href: '/about',
@@ -187,7 +208,7 @@ export default function NavigationBar() {
           Home
         </Link>
 
-        {NAV_SECTIONS.map((section) => (
+        {[localLifeSection, ...NAV_SECTIONS.filter((section) => section.slug !== 'local-life')].map((section) => (
           <NavDropdown key={section.slug} section={section} />
         ))}
 

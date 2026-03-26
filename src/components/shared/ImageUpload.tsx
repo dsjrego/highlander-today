@@ -30,6 +30,8 @@ interface ImageUploadProps {
   helperText?: string;
   /** Whether to show a circular preview (for profile photos) */
   circular?: boolean;
+  /** Whether to show the single-image card maintenance UI */
+  singleCard?: boolean;
   /** Compact mode — smaller drop zone, no grid */
   compact?: boolean;
 }
@@ -44,6 +46,7 @@ export default function ImageUpload({
   labelClassName,
   helperText,
   circular = false,
+  singleCard = false,
   compact = false,
 }: ImageUploadProps) {
   const resolvedLabelClassName = labelClassName ?? 'mb-2 block text-sm font-semibold text-gray-700';
@@ -127,10 +130,13 @@ export default function ImageUpload({
     e.target.value = '';
   };
 
-  // ── Profile photo uploader: always use the same card row, with a
-  //    placeholder when no photo exists, instead of the generic drop zone.
-  if (circular) {
+  // Single-image card uploader: use the same maintenance pattern as the
+  // profile photo surface, with a stable preview/placeholder and explicit
+  // change/remove actions instead of the generic drop zone.
+  if (circular || singleCard) {
     const hasImage = value.length > 0;
+    const imageLabel = label ?? 'Image';
+    const uploadLabel = circular ? 'Photo' : 'Image';
 
     return (
       <div className="w-full">
@@ -140,21 +146,37 @@ export default function ImageUpload({
           </label>
         )}
         <div className="flex flex-col items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-center">
-          <div className="relative h-32 w-32 overflow-hidden rounded-full border-2 border-slate-200 bg-slate-200">
+          <div
+            className={`relative overflow-hidden border-2 border-slate-200 bg-slate-200 ${
+              circular ? 'h-32 w-32 rounded-full' : 'aspect-[4/3] w-full rounded-[24px]'
+            }`}
+          >
             {hasImage ? (
               <div
-                aria-label="Profile photo preview"
+                aria-label={`${imageLabel} preview`}
                 className="h-full w-full bg-cover bg-center bg-no-repeat"
                 style={{ backgroundImage: `url("${value[0]}")` }}
               />
             ) : (
               <div
                 aria-hidden="true"
-                className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.95),rgba(203,213,225,0.9))] text-slate-500"
+                className={`flex h-full w-full items-center justify-center text-slate-500 ${
+                  circular
+                    ? 'bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.95),rgba(203,213,225,0.9))]'
+                    : 'bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(226,232,240,0.95))]'
+                }`}
               >
-                <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6.75a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0ZM4.5 19.125a7.5 7.5 0 0115 0" />
-                </svg>
+                {circular ? (
+                  <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6.75a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0ZM4.5 19.125a7.5 7.5 0 0115 0" />
+                  </svg>
+                ) : (
+                  <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                    <rect x="3.75" y="5.25" width="16.5" height="13.5" rx="2.25" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m7.5 15 3.2-3.2a1.5 1.5 0 0 1 2.121 0L16.5 15.5" />
+                    <circle cx="9" cy="9" r="1.25" />
+                  </svg>
+                )}
               </div>
             )}
             {hasImage && onRemove && (
@@ -172,10 +194,16 @@ export default function ImageUpload({
           </div>
           <div className="w-full">
             <p className="text-sm font-semibold text-slate-800">
-              {hasImage ? 'Current photo' : 'No profile photo yet'}
+              {hasImage
+                ? circular
+                  ? 'Current photo'
+                  : `Current ${imageLabel.toLowerCase()}`
+                : circular
+                  ? 'No profile photo yet'
+                  : `No ${imageLabel.toLowerCase()} yet`}
             </p>
             <p className="mt-1 text-xs text-slate-500">
-              JPG, PNG, WebP, or GIF only.
+              {helperText || 'JPG, PNG, WebP, or GIF only.'}
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-3">
@@ -185,7 +213,7 @@ export default function ImageUpload({
               disabled={isUploading}
               className="btn btn-primary"
             >
-              {isUploading ? 'Uploading...' : hasImage ? 'Change Photo' : 'Upload Photo'}
+              {isUploading ? 'Uploading...' : hasImage ? `Change ${uploadLabel}` : `Upload ${uploadLabel}`}
             </button>
             {hasImage && onRemove && (
               <button

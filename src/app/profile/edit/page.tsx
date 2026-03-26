@@ -3,6 +3,7 @@
 import { FormEvent, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import FormCard, { FormCardActions } from "@/components/shared/FormCard";
 import ImageUpload from "@/components/shared/ImageUpload";
 import InternalPageHeader from "@/components/shared/InternalPageHeader";
 import PageHeaderAvatarDialog from "@/components/shared/PageHeaderAvatarDialog";
@@ -186,7 +187,7 @@ export default function EditProfilePage() {
         </StatusMessage>
       )}
 
-      <section className="rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(241,245,249,0.94))] p-5 shadow-[0_24px_55px_rgba(15,23,42,0.16)] backdrop-blur md:p-7">
+      <FormCard>
         <form
           onSubmit={handleSubmit}
           className="space-y-4"
@@ -341,26 +342,26 @@ export default function EditProfilePage() {
               </div>
 
               {/* Submit Button */}
-              <div className="flex flex-wrap justify-start gap-3 pt-1">
+              <FormCardActions>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="btn btn-primary min-w-[160px]"
+                  className="btn btn-primary"
                 >
                   {isSaving ? "Saving..." : "Save Changes"}
                 </button>
                 <button
                   type="button"
                   onClick={() => router.back()}
-                  className="btn btn-secondary min-w-[140px] border border-red-600"
+                  className="btn btn-secondary border border-red-600"
                 >
                   Cancel
                 </button>
-              </div>
+              </FormCardActions>
             </div>
           </div>
         </form>
-      </section>
+      </FormCard>
 
     </div>
   );

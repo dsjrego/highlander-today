@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
+import FormCard, { FormCardActions } from '@/components/shared/FormCard';
 import ImageUpload from '@/components/shared/ImageUpload';
 import InternalPageHeader from '@/components/shared/InternalPageHeader';
 
@@ -18,19 +19,21 @@ interface Category {
   name: string;
   slug: string;
   parentCategoryId: string | null;
+  sortOrder: number;
   parentCategory: { id: string; name: string; slug: string } | null;
 }
 
-interface GroupedCategories {
-  parentName: string;
-  children: Category[];
+interface FormCategoryOption {
+  id: string;
+  label: string;
+  slug: string;
 }
 
 export default function SubmitArticlePage() {
   const router = useRouter();
-  const { status: sessionStatus } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
 
-  const [groupedCategories, setGroupedCategories] = useState<GroupedCategories[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<FormCategoryOption[]>([]);
   const [formData, setFormData] = useState({
     title: '',
     excerpt: '',
@@ -45,33 +48,26 @@ export default function SubmitArticlePage() {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Fetch all categories from DB and group subcategories by parent
+  // Fetch Local Life categories from the DB-backed cached categories endpoint.
   useEffect(() => {
     async function fetchCategories() {
       try {
-        const res = await fetch('/api/categories');
+        const res = await fetch('/api/categories?parent=local-life');
         if (res.ok) {
           const data = await res.json();
           const allCats: Category[] = data.categories || [];
+          const orderedOptions = allCats
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+            .map((category) => ({
+              id: category.id,
+              label: category.name,
+              slug: category.slug,
+            }));
 
-          // Only show subcategories (those with a parent), grouped by parent name
-          const subcats = allCats.filter((c) => c.parentCategoryId && c.parentCategory);
-          const grouped: Record<string, Category[]> = {};
-          for (const cat of subcats) {
-            const parentName = cat.parentCategory!.name;
-            if (!grouped[parentName]) grouped[parentName] = [];
-            grouped[parentName].push(cat);
-          }
+          setCategoryOptions(orderedOptions);
 
-          // Convert to sorted array
-          const result: GroupedCategories[] = Object.entries(grouped)
-            .map(([parentName, children]) => ({ parentName, children }))
-            .sort((a, b) => a.parentName.localeCompare(b.parentName));
-
-          setGroupedCategories(result);
-
-          if (result.length === 0) {
-            console.warn('[Submit] No subcategories found — seed may need to run');
+          if (orderedOptions.length === 0) {
+            console.warn('[Submit] No Local Life categories found');
           }
         } else {
           const errData = await res.json().catch(() => ({}));
@@ -189,19 +185,35 @@ export default function SubmitArticlePage() {
     <div className="space-y-8">
       <InternalPageHeader
         title="Local Life"
+        description="Draft first, then submit when the story is clear, categorized, and ready for editor review."
         titleClassName="text-white"
         actions={
           <button
-            onClick={() => router.push('/local-life/drafts')}
-            className="rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:opacity-90"
+            onClick={() => {
+              const userId = (session?.user as { id?: string } | undefined)?.id;
+              router.push(userId ? `/profile/${userId}?tab=local-life` : '/profile');
+            }}
+            className="page-header-action"
           >
-            My Drafts
+            <svg
+              aria-hidden="true"
+              className="h-4 w-4"
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            >
+              <path strokeLinecap="round" d="M6 5.5h8" />
+              <path strokeLinecap="round" d="M6 10h8" />
+              <path strokeLinecap="round" d="M6 14.5h8" />
+              <circle cx="3.5" cy="5.5" r="0.75" fill="currentColor" stroke="none" />
+              <circle cx="3.5" cy="10" r="0.75" fill="currentColor" stroke="none" />
+              <circle cx="3.5" cy="14.5" r="0.75" fill="currentColor" stroke="none" />
+            </svg>
+            My Articles
           </button>
         }
       />
-      <p className="max-w-3xl text-sm leading-7 text-slate-500">
-        Draft first, then submit when the story is clear, categorized, and ready for editor review.
-      </p>
 
       {/* Messages */}
       {error && (
@@ -215,151 +227,154 @@ export default function SubmitArticlePage() {
         </div>
       )}
 
-      <div className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur space-y-6">
-        {/* Title */}
-        <div>
-          <label className="mb-2 block text-sm font-semibold text-slate-700">
-            Title <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="title"
-            value={formData.title}
-            onChange={handleInputChange}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
-            placeholder="Article title"
-          />
-        </div>
+      <FormCard>
+        <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+          <div>
+            <ImageUpload
+              label="Featured Image"
+              helperText="Hero image shown at the top of your article"
+              labelClassName="form-label text-slate-500"
+              context="article"
+              maxFiles={1}
+              singleCard
+              value={formData.featuredImageUrl ? [formData.featuredImageUrl] : []}
+              onUpload={(img) => setFormData((prev) => ({ ...prev, featuredImageUrl: img.url }))}
+              onRemove={() => setFormData((prev) => ({ ...prev, featuredImageUrl: '' }))}
+            />
+          </div>
 
-        {/* Excerpt */}
-        <div>
-          <label className="mb-2 block text-sm font-semibold text-slate-700">
-            Excerpt
-            <span className="ml-2 text-xs font-normal text-slate-400">Brief summary shown on cards</span>
-          </label>
-          <textarea
-            name="excerpt"
-            value={formData.excerpt}
-            onChange={handleInputChange}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
-            rows={2}
-            placeholder="Brief summary of your article (optional, but recommended)"
-            maxLength={500}
-          />
-        </div>
-
-        {/* Featured Image */}
-        <ImageUpload
-          label="Featured Image"
-          helperText="Hero image shown at the top of your article"
-          context="article"
-          maxFiles={1}
-          value={formData.featuredImageUrl ? [formData.featuredImageUrl] : []}
-          onUpload={(img) => setFormData((prev) => ({ ...prev, featuredImageUrl: img.url }))}
-          onRemove={() => setFormData((prev) => ({ ...prev, featuredImageUrl: '' }))}
-        />
-
-        {/* Category */}
-        <div>
-          <label className="mb-2 block text-sm font-semibold text-slate-700">
-            Category <span className="text-red-500">*</span>
-            <span className="ml-2 text-xs font-normal text-slate-400">Required for submission</span>
-          </label>
-          <select
-            name="categoryId"
-            value={formData.categoryId}
-            onChange={handleInputChange}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
-          >
-            <option value="">Select a category...</option>
-            {groupedCategories.map((group) => (
-              <optgroup key={group.parentName} label={group.parentName}>
-                {group.children.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
+          <div className="space-y-6">
+            {/* Category */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
+                Category <span className="text-red-500">*</span>
+                <span className="ml-2 text-xs font-normal text-slate-400">Required for submission</span>
+              </label>
+              <select
+                name="categoryId"
+                value={formData.categoryId}
+                onChange={handleInputChange}
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+              >
+                <option value="">Select a category...</option>
+                {categoryOptions.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.label}
                   </option>
                 ))}
-              </optgroup>
-            ))}
-          </select>
-        </div>
-
-        {/* Tags */}
-        <div>
-          <label className="mb-2 block text-sm font-semibold text-slate-700">
-            Tags
-            <span className="ml-2 text-xs font-normal text-slate-400">Press Enter to add</span>
-          </label>
-          <div className="flex gap-2 mb-2">
-            <input
-              type="text"
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={handleTagKeyDown}
-              className="flex-1 rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
-              placeholder="Add a tag..."
-            />
-            <button
-              type="button"
-              onClick={addTag}
-              className="rounded-xl bg-slate-100 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-200"
-            >
-              Add
-            </button>
-          </div>
-          {formData.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {formData.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="inline-flex items-center gap-1 rounded-full bg-slate-950 px-3 py-1 text-xs font-medium text-white"
-                >
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => removeTag(tag)}
-                    className="hover:text-red-200 ml-1"
-                  >
-                    &times;
-                  </button>
-                </span>
-              ))}
+              </select>
             </div>
-          )}
-        </div>
 
-        {/* Content — Rich Text Editor */}
-        <div>
-          <label className="mb-2 block text-sm font-semibold text-slate-700">
-            Content <span className="text-red-500">*</span>
-          </label>
-          <TipTapEditor
-            content={formData.body}
-            onChange={(html) => setFormData((prev) => ({ ...prev, body: html }))}
-            placeholder="Write your article here..."
-          />
-        </div>
+            {/* Title */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
+                Title <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                placeholder="Article title"
+              />
+            </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-3 border-t border-slate-100 pt-4">
-          <button
-            type="button"
-            onClick={() => handleSave(false)}
-            disabled={isSaving || isSubmitting}
-            className="flex-1 rounded-xl border border-slate-300 px-6 py-3 font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
-          >
-            {isSaving ? 'Saving...' : 'Save as Draft'}
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSave(true)}
-            disabled={isSaving || isSubmitting}
-            className="flex-1 rounded-xl bg-slate-950 px-6 py-3 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-          >
-            {isSubmitting ? 'Submitting...' : 'Submit for Review'}
-          </button>
+            {/* Excerpt */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
+                Excerpt
+                <span className="ml-2 text-xs font-normal text-slate-400">Brief summary shown on cards</span>
+              </label>
+              <textarea
+                name="excerpt"
+                value={formData.excerpt}
+                onChange={handleInputChange}
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                rows={2}
+                placeholder="Brief summary of your article (optional, but recommended)"
+                maxLength={500}
+              />
+            </div>
+
+            {/* Content — Rich Text Editor */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
+                Content <span className="text-red-500">*</span>
+              </label>
+              <TipTapEditor
+                content={formData.body}
+                onChange={(html) => setFormData((prev) => ({ ...prev, body: html }))}
+                placeholder="Write your article here..."
+              />
+            </div>
+
+            {/* Tags */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
+                Tags
+                <span className="ml-2 text-xs font-normal text-slate-400">Press Enter to add</span>
+              </label>
+              <div className="mb-2 flex gap-2">
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={handleTagKeyDown}
+                  className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                  placeholder="Add a tag..."
+                />
+                <button
+                  type="button"
+                  onClick={addTag}
+                  className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                >
+                  Add
+                </button>
+              </div>
+              {formData.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {formData.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center gap-1 rounded-full bg-slate-950 px-3 py-1 text-xs font-medium text-white"
+                    >
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => removeTag(tag)}
+                        className="ml-1 hover:text-red-200"
+                      >
+                        &times;
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <FormCardActions className="border-t border-slate-200/80 pt-4">
+              <button
+                type="button"
+                onClick={() => handleSave(false)}
+                disabled={isSaving || isSubmitting}
+                className="btn btn-neutral"
+              >
+                {isSaving ? 'Saving...' : 'Save as Draft'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSave(true)}
+                disabled={isSaving || isSubmitting}
+                className="btn btn-primary"
+              >
+                {isSubmitting ? 'Submitting...' : 'Submit for Review'}
+              </button>
+            </FormCardActions>
+          </div>
         </div>
-      </div>
+      </FormCard>
 
       {/* Guidelines */}
       <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-4 text-sm text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">

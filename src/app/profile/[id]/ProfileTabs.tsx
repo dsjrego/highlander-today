@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 
 export interface ProfileTabItem {
   id: string;
@@ -10,11 +10,19 @@ export interface ProfileTabItem {
 
 interface ProfileTabsProps {
   tabs: ProfileTabItem[];
+  initialActiveTabId?: string;
 }
 
-export default function ProfileTabs({ tabs }: ProfileTabsProps) {
+export default function ProfileTabs({ tabs, initialActiveTabId }: ProfileTabsProps) {
   const safeTabs = useMemo(() => tabs.filter((tab) => tab.content !== null), [tabs]);
-  const [activeTabId, setActiveTabId] = useState(safeTabs[0]?.id ?? "");
+  const normalizedInitialTabId = safeTabs.some((tab) => tab.id === initialActiveTabId)
+    ? initialActiveTabId
+    : safeTabs[0]?.id ?? "";
+  const [activeTabId, setActiveTabId] = useState(normalizedInitialTabId);
+
+  useEffect(() => {
+    setActiveTabId(normalizedInitialTabId);
+  }, [normalizedInitialTabId]);
 
   const activeTab = safeTabs.find((tab) => tab.id === activeTabId) ?? safeTabs[0];
 
