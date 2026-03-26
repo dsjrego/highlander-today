@@ -140,6 +140,9 @@ export default function EditProfilePage() {
     return <div className="rounded-[28px] border border-white/10 bg-white/70 p-8 text-center text-slate-500 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">Profile not found.</div>;
   }
 
+  const showDobPrompt =
+    !profile.dateOfBirth && Boolean((session?.user as any)?.oauthNeedsProfileRedirect);
+
   return (
     <div className="space-y-8">
       <InternalPageHeader title="Profile" titleClassName="text-white" />
@@ -150,6 +153,13 @@ export default function EditProfilePage() {
       {error && (
         <div className="rounded-xl border border-red-400 bg-red-100 px-4 py-3 text-red-700">
           {error}
+        </div>
+      )}
+
+      {showDobPrompt && (
+        <div className="rounded-xl border border-red-400 bg-red-100 px-4 py-3 text-red-700">
+          Date of birth is not displayed publicly. It is optional here, but leaving it blank may
+          restrict access to some features and it is required before a user can become trusted.
         </div>
       )}
 
