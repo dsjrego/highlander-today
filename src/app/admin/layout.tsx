@@ -1,6 +1,11 @@
 import { ReactNode } from "react";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
+export default async function AdminLayout({ children }: { children: ReactNode }) {
+  const session = await getServerSession(authOptions);
+  const isSuperAdmin = session?.user?.role === 'SUPER_ADMIN';
+
   return (
     <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] flex min-h-screen w-screen bg-[#f7f8fa]">
       {/* Admin Sidebar */}
@@ -44,12 +49,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           >
             Content Approvals
           </a>
-          <a
-            href="/admin/roadmap"
-            className="block rounded-lg px-4 py-2.5 font-medium text-slate-700 transition hover:bg-white hover:text-[#A51E30]"
-          >
-            Roadmap Moderation
-          </a>
+          {isSuperAdmin ? (
+            <a
+              href="/admin/roadmap"
+              className="block rounded-lg px-4 py-2.5 font-medium text-slate-700 transition hover:bg-white hover:text-[#A51E30]"
+            >
+              Roadmap Moderation
+            </a>
+          ) : null}
           <a
             href="/admin/stores"
             className="block rounded-lg px-4 py-2.5 font-medium text-slate-700 transition hover:bg-white hover:text-[#A51E30]"

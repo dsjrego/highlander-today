@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { ABOUT_NAV_ITEMS } from '@/lib/about';
+import { getAboutNavItems } from '@/lib/about';
 import { SUPPORT_NAV_ITEMS } from '@/lib/support';
 
 // -------------------------------------------------------------------
@@ -58,17 +58,6 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
 ];
-
-const ABOUT_SECTION: NavSection = {
-  label: 'About',
-  href: '/about',
-  slug: 'about',
-  subcategories: ABOUT_NAV_ITEMS.map((item) => ({
-    label: item.label,
-    slug: item.href.replace('/about/', '') || 'about',
-    href: item.href,
-  })),
-};
 
 const SUPPORT_SECTION: NavSection = {
   label: 'Support',
@@ -176,6 +165,16 @@ export default function NavigationBar() {
   const { data: session } = useSession();
   const userRole = session?.user?.role;
   const isSuperAdmin = userRole === 'SUPER_ADMIN';
+  const aboutSection: NavSection = {
+    label: 'About',
+    href: '/about',
+    slug: 'about',
+    subcategories: getAboutNavItems(isSuperAdmin).map((item) => ({
+      label: item.label,
+      slug: item.href.replace('/about/', '') || 'about',
+      href: item.href,
+    })),
+  };
 
   return (
     <nav>
@@ -206,7 +205,7 @@ export default function NavigationBar() {
           Help Wanted
         </Link>
 
-        <NavDropdown section={ABOUT_SECTION} />
+        <NavDropdown section={aboutSection} />
 
         {isSuperAdmin && <NavDropdown section={SUPPORT_SECTION} />}
 

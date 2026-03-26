@@ -13,7 +13,7 @@ const SHIPPED_AREAS = [
   'Events and Experiences entry points',
   'Store-based marketplace discovery and seller workflows',
   'Help Wanted posting, moderation, and trusted responder messaging',
-  'Community roadmap voting and bounded domain-specific weighting',
+  'An internal roadmap workflow with moderation, weighting controls, and audit history',
   'Private messaging, trust progression, and audit logging',
 ];
 
@@ -91,17 +91,17 @@ export default function AboutRoadmapPage() {
       </section>
 
       <section className="card card-dark rounded-[28px] p-8">
-        <h2 className="section-display-title text-3xl font-black">Community priorities still matter</h2>
+        <h2 className="section-display-title text-3xl font-black">Internal planning still matters</h2>
         <p className="card-body mt-4">
-          This institutional roadmap is separate from the live community-prioritization board. The
-          public roadmap tool remains the place where trusted users can rank approved ideas and help
-          surface what matters most locally.
+          This institutional roadmap is separate from the rest of the public product surface. The
+          live roadmap tools are now limited to Super Admin use while the broader platform focus
+          stays on local publishing, events, marketplace, Help Wanted, and messaging loops.
         </p>
         <Link
           href="/roadmap"
           className="mt-6 inline-flex rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:opacity-90"
         >
-          View Community Roadmap
+          View Internal Roadmap
         </Link>
       </section>
     </div>

@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { ABOUT_PILLARS } from '@/lib/about';
 
 export const metadata: Metadata = {
@@ -8,7 +10,10 @@ export const metadata: Metadata = {
     'Why we\u2019re building Highlander Today and what we believe every community deserves.',
 };
 
-export default function AboutMissionPage() {
+export default async function AboutMissionPage() {
+  const session = await getServerSession(authOptions);
+  const isSuperAdmin = session?.user?.role === 'SUPER_ADMIN';
+
   return (
     <div className="space-y-8">
       <section className="card card-accent rounded-[32px] p-8 md:p-10">
@@ -78,12 +83,14 @@ export default function AboutMissionPage() {
             connected, so that what&rsquo;s local never has to mean what&rsquo;s isolated.
           </p>
         </div>
-        <Link
-          href="/about/roadmap"
-          className="mt-6 inline-flex rounded-full bg-[#8f1d2c] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
-        >
-          See where we&rsquo;re headed
-        </Link>
+        {isSuperAdmin ? (
+          <Link
+            href="/about/roadmap"
+            className="mt-6 inline-flex rounded-full bg-[#8f1d2c] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+          >
+            See where we&rsquo;re headed
+          </Link>
+        ) : null}
       </section>
     </div>
   );

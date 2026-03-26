@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ABOUT_NAV_ITEMS, ABOUT_PILLARS, ABOUT_ROADMAP_STAGES } from '@/lib/about';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { ABOUT_PILLARS, ABOUT_ROADMAP_STAGES, getAboutNavItems } from '@/lib/about';
 
 export const metadata: Metadata = {
   title: 'About | Highlander Today',
@@ -8,7 +10,11 @@ export const metadata: Metadata = {
     'Learn the mission, roadmap, and evolving public philosophy behind Highlander Today.',
 };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const session = await getServerSession(authOptions);
+  const isSuperAdmin = session?.user?.role === 'SUPER_ADMIN';
+  const aboutNavItems = getAboutNavItems(isSuperAdmin);
+
   return (
     <div className="space-y-10">
       <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(143,29,44,0.96),rgba(10,32,51,0.94))] text-white shadow-[0_35px_80px_rgba(7,17,26,0.22)]">
@@ -31,7 +37,7 @@ export default function AboutPage() {
               This section covers
             </p>
             <ul className="mt-4 space-y-4 text-sm leading-6 text-white/78">
-              {ABOUT_NAV_ITEMS.map((item) => (
+              {aboutNavItems.map((item) => (
                 <li key={item.href}>
                   <Link href={item.href} className="font-semibold text-white hover:text-cyan-200">
                     {item.label}
@@ -88,12 +94,14 @@ export default function AboutPage() {
               </div>
             ))}
           </div>
-          <Link
-            href="/about/roadmap"
-            className="mt-6 inline-flex rounded-full border border-white/20 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white hover:text-slate-950"
-          >
-            See the Roadmap
-          </Link>
+          {isSuperAdmin ? (
+            <Link
+              href="/about/roadmap"
+              className="mt-6 inline-flex rounded-full border border-white/20 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white hover:text-slate-950"
+            >
+              See the Roadmap
+            </Link>
+          ) : null}
         </div>
       </section>
     </div>

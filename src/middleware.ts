@@ -6,6 +6,27 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const token = await getToken({ req: request });
+  const isSuperAdmin = token?.role === 'SUPER_ADMIN';
+  const isRoadmapUiRoute =
+    pathname === '/roadmap' ||
+    pathname.startsWith('/roadmap/') ||
+    pathname === '/about/roadmap' ||
+    pathname === '/admin/roadmap';
+  const isRoadmapApiRoute =
+    pathname === '/api/roadmap' ||
+    pathname.startsWith('/api/roadmap/') ||
+    pathname === '/api/admin/roadmap/weights';
+
+  if ((isRoadmapUiRoute || isRoadmapApiRoute) && !isSuperAdmin) {
+    if (isRoadmapApiRoute) {
+      return NextResponse.json(
+        { error: 'Roadmap is restricted to Super Admins' },
+        { status: 403 }
+      );
+    }
+
+    return NextResponse.redirect(new URL('/', request.url));
+  }
 
   // Protected UI routes — redirect to login if unauthenticated
   const protectedPaths = ['/admin', '/messages', '/profile/edit', '/local-life/submit', '/local-life/drafts', '/marketplace/create', '/marketplace/stores', '/marketplace/stores/create'];
@@ -49,6 +70,9 @@ export const config = {
     '/marketplace/stores',
     '/marketplace/stores/:path*',
     '/marketplace/stores/create',
+    '/roadmap',
+    '/roadmap/:path*',
+    '/about/roadmap',
     '/api/:path*',
   ],
 };

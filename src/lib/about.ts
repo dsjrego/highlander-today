@@ -24,7 +24,7 @@ export interface AboutJournalEntry {
   status: 'published' | 'planned';
 }
 
-export const ABOUT_NAV_ITEMS: AboutNavItem[] = [
+const ALL_ABOUT_NAV_ITEMS: AboutNavItem[] = [
   {
     label: 'Mission',
     href: '/about/mission',
@@ -41,6 +41,12 @@ export const ABOUT_NAV_ITEMS: AboutNavItem[] = [
     description: 'An evolving public record of the product and organizational point of view.',
   },
 ];
+
+export function getAboutNavItems(isSuperAdmin = false): AboutNavItem[] {
+  return ALL_ABOUT_NAV_ITEMS.filter(
+    (item) => isSuperAdmin || item.href !== '/about/roadmap'
+  );
+}
 
 export const ABOUT_PILLARS: AboutPillar[] = [
   {
@@ -65,7 +71,7 @@ export const ABOUT_ROADMAP_STAGES: AboutRoadmapStage[] = [
     title: 'Live now: core community loops',
     status: 'live',
     body:
-      'Highlander Today already supports local content, events, store-based marketplace discovery, Help Wanted posting, private messaging, trust progression, and community roadmap input with bounded weighting.',
+      'Highlander Today already supports local content, events, store-based marketplace discovery, Help Wanted posting, private messaging, and trust progression.',
   },
   {
     title: 'Current track: institutional voice',
@@ -77,7 +83,7 @@ export const ABOUT_ROADMAP_STAGES: AboutRoadmapStage[] = [
     title: 'Next up: richer publishing inside About',
     status: 'next',
     body:
-      'After the first About release, the likely next layer is richer editorial publishing for the Journal and a more developed public roadmap narrative that ties shipped work, open questions, and future bets together.',
+      'After the first About release, the likely next layer is richer editorial publishing for the Journal and a more developed institutional roadmap narrative that ties shipped work, open questions, and future bets together.',
   },
 ];
 
@@ -95,7 +101,7 @@ export const ABOUT_JOURNAL_ENTRIES: AboutJournalEntry[] = [
     slug: 'what-we-are-building-next',
     title: 'What we are building next',
     summary:
-      'A concise explanation of the current roadmap direction and why institutional clarity matters before new marketplace expansion.',
+      'A concise explanation of the current internal roadmap direction and why institutional clarity matters before new marketplace expansion.',
     publishedOn: 'March 24, 2026',
     href: '/about/roadmap',
     status: 'published',

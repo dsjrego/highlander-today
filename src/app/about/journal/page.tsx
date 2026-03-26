@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { ABOUT_JOURNAL_ENTRIES } from '@/lib/about';
 
 export const metadata: Metadata = {
@@ -8,8 +10,12 @@ export const metadata: Metadata = {
     'The Highlander Today Journal records product direction, mission, and changes in thinking over time.',
 };
 
-export default function AboutJournalPage() {
-  const publishedEntries = ABOUT_JOURNAL_ENTRIES.filter((entry) => entry.status === 'published');
+export default async function AboutJournalPage() {
+  const session = await getServerSession(authOptions);
+  const isSuperAdmin = session?.user?.role === 'SUPER_ADMIN';
+  const publishedEntries = ABOUT_JOURNAL_ENTRIES.filter(
+    (entry) => entry.status === 'published' && (isSuperAdmin || entry.href !== '/about/roadmap')
+  );
   const plannedEntries = ABOUT_JOURNAL_ENTRIES.filter((entry) => entry.status === 'planned');
 
   return (

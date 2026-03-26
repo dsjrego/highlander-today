@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getServerSession } from "next-auth";
 import Providers from "@/components/Providers";
 import BannerActions from "@/components/layout/BannerActions";
 import NavigationBar from "@/components/layout/NavigationBar";
-import { ABOUT_NAV_ITEMS } from "@/lib/about";
+import { authOptions } from "@/lib/auth";
+import { getAboutNavItems } from "@/lib/about";
 import { SUPPORT_NAV_ITEMS } from "@/lib/support";
 import "./globals.css";
 
@@ -13,11 +15,15 @@ export const metadata: Metadata = {
     "A community platform for news, events, market, and help wanted services.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await getServerSession(authOptions);
+  const isSuperAdmin = session?.user?.role === 'SUPER_ADMIN';
+  const aboutNavItems = getAboutNavItems(isSuperAdmin);
+
   return (
     <html lang="en">
       <body className="bg-[#07111a] text-gray-900">
@@ -117,7 +123,7 @@ export default function RootLayout({
                 <div className="flex flex-col items-center">
                   <h3 className="mb-3 text-xl font-bold text-white">Highlander Today</h3>
                   <ul className="space-y-2 text-sm text-cyan-200">
-                    {ABOUT_NAV_ITEMS.map((item) => (
+                    {aboutNavItems.map((item) => (
                       <li key={item.href}>
                         <Link href={item.href} className="hover:text-white">
                           {item.label}
