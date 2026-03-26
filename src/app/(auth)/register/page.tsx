@@ -2,7 +2,9 @@
 
 import { signIn } from "next-auth/react";
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import AuthShell, { AuthAsideLink } from "@/components/auth/AuthShell";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -76,133 +78,133 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white p-8 rounded-2xl shadow-md w-full max-w-md">
-        <div className="border-t-4 rounded-t-2xl -mx-8 -mt-8 pt-6 px-8 mb-6" style={{ borderColor: '#A51E30', backgroundColor: '#A51E30' }}>
-          <h1 className="text-3xl font-bold text-center text-white">
-            Create Account
-          </h1>
-        </div>
-
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4 mb-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                First Name
-              </label>
-              <input
-                type="text"
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
-                placeholder="John"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Last Name
-              </label>
-              <input
-                type="text"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
-                placeholder="Doe"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
-              placeholder="you@example.com"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
-              placeholder="••••••••"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Confirm Password
-            </label>
-            <input
-              type="password"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
-              placeholder="••••••••"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full text-white font-bold py-2 rounded-full disabled:opacity-50 transition hover:opacity-90"
-            style={{ backgroundColor: '#A51E30' }}
-          >
-            {isLoading ? "Creating Account..." : "Register"}
-          </button>
-        </form>
-
-        <div className="relative mb-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">Or continue with</span>
-          </div>
-        </div>
-
-        <div className="space-y-2 mb-6">
-          <button
-            type="button"
-            onClick={handleGoogleSignIn}
-            className="w-full bg-white border border-gray-300 text-gray-700 font-medium py-2 rounded-lg hover:bg-gray-50 transition"
-          >
-            Sign up with Google
-          </button>
-        </div>
-
-        <p className="text-center text-sm text-gray-600">
-          Already have an account?{" "}
-          <a href="/login" className="text-[#46A8CC] font-semibold hover:underline">
-            Sign in here
-          </a>
+    <AuthShell
+      eyebrow="Join"
+      title="Create Account"
+      description="Start with a real-name local account, then build trust and participation from there."
+      asideTitle="Already registered?"
+      asideBody="If you already have an account, sign in to continue to messages, submissions, and the rest of the public site."
+      asideFooter={<AuthAsideLink href="/login">Back to sign in</AuthAsideLink>}
+    >
+      <div className="mb-6 rounded-[24px] border border-[#46A8CC]/20 bg-[linear-gradient(145deg,rgba(70,168,204,0.12),rgba(143,29,44,0.08))] p-5">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.28em] text-[#0f2941]">
+          New Account
         </p>
+        <h2 className="mb-0 text-2xl font-black tracking-[-0.03em] text-slate-950">Register for Highlander Today</h2>
       </div>
-    </div>
+
+      {error && (
+        <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+              First Name
+            </label>
+            <input
+              type="text"
+              name="firstName"
+              value={formData.firstName}
+              onChange={handleChange}
+              required
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+              placeholder="John"
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+              Last Name
+            </label>
+            <input
+              type="text"
+              name="lastName"
+              value={formData.lastName}
+              onChange={handleChange}
+              required
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+              placeholder="Doe"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+            Email
+          </label>
+          <input
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            required
+            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+            placeholder="you@example.com"
+          />
+        </div>
+
+        <div>
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+            Password
+          </label>
+          <input
+            type="password"
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            required
+            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+            placeholder="••••••••"
+          />
+        </div>
+
+        <div>
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+            Confirm Password
+          </label>
+          <input
+            type="password"
+            name="confirmPassword"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            required
+            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+            placeholder="••••••••"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="w-full rounded-full bg-[#8f1d2c] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#7d1927] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isLoading ? "Creating Account..." : "Register"}
+        </button>
+      </form>
+
+      <div className="my-6 flex items-center gap-3">
+        <div className="h-px flex-1 bg-slate-200" />
+        <span className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Or continue with</span>
+        <div className="h-px flex-1 bg-slate-200" />
+      </div>
+
+      <button
+        type="button"
+        onClick={handleGoogleSignIn}
+        className="w-full rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+      >
+        Sign up with Google
+      </button>
+
+      <p className="mt-6 text-center text-sm text-slate-600">
+        Already have an account?{" "}
+        <Link href="/login" className="font-semibold text-[#8f1d2c] transition hover:text-[#46A8CC]">
+          Sign in here
+        </Link>
+      </p>
+    </AuthShell>
   );
 }

@@ -8,6 +8,7 @@ const RegisterSchema = z.object({
   lastName: z.string().trim().min(1).max(255),
   email: z.string().trim().email().max(255),
   password: z.string().min(8).max(255),
+  dateOfBirth: z.string().trim().optional().or(z.literal('')),
 });
 
 const DEFAULT_ALLOW_REGISTRATION = true;
@@ -92,6 +93,7 @@ export async function POST(request: NextRequest) {
         firstName: validated.firstName,
         lastName: validated.lastName,
         passwordHash,
+        dateOfBirth: validated.dateOfBirth ? new Date(validated.dateOfBirth) : null,
         trustLevel: 'REGISTERED',
         memberships: {
           create: {
