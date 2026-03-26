@@ -276,45 +276,6 @@ export default async function UserProfilePage({ params }: PageProps) {
     </>
   );
 
-  // Build activity feed from real data
-  const activities: { label: string; title: string; date: Date; href?: string }[] = [];
-
-  for (const article of profile.articles) {
-    activities.push({
-      label: "Posted a news article",
-      title: article.title,
-      date: new Date(article.createdAt),
-      href: `/local-life/${article.id}`,
-    });
-  }
-  for (const listing of profile.marketplaceListings) {
-    activities.push({
-      label: "Created a marketplace listing",
-      title: listing.title,
-      date: new Date(listing.createdAt),
-      href: `/marketplace/${listing.id}`,
-    });
-  }
-  for (const event of profile.eventsSubmitted) {
-    activities.push({
-      label: "Submitted an event",
-      title: event.title,
-      date: new Date(event.startDatetime),
-      href: `/events/${event.id}`,
-    });
-  }
-  for (const post of profile.helpWantedPosts) {
-    activities.push({
-      label: "Posted to Help Wanted",
-      title: post.title,
-      date: new Date(post.createdAt),
-      href: `/help-wanted/${post.id}`,
-    });
-  }
-
-  // Sort by date descending, take top 5
-  activities.sort((a, b) => b.date.getTime() - a.date.getTime());
-  const recentActivities = activities.slice(0, 5);
   const tabCardClass =
     "rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(241,245,249,0.94))] p-6 shadow-[0_24px_55px_rgba(15,23,42,0.16)] backdrop-blur md:p-8";
   const statusCardClass =
@@ -348,7 +309,6 @@ export default async function UserProfilePage({ params }: PageProps) {
           ? `Filled • ${timeAgo(new Date(post.createdAt))}`
           : `Closed • ${timeAgo(new Date(post.createdAt))}`,
   }));
-  const tabGridClass = `grid grid-cols-1 gap-6${isOwnProfile ? " xl:grid-cols-2" : ""}`;
 
   const aboutTab = (
     <div className="space-y-6">
@@ -389,17 +349,7 @@ export default async function UserProfilePage({ params }: PageProps) {
   const marketplaceTab = (
     <section className={tabCardClass}>
       <div className="space-y-6">
-        <div className={tabGridClass}>
-          <ProfileContentCard
-            title={isOwnProfile ? "Your Listings" : `What ${profile.firstName} Is Selling`}
-            description={
-              isOwnProfile
-                ? "This is the public-facing list of the marketplace listings on your profile."
-                : "Browse the marketplace listings currently shown on this member's profile."
-            }
-            emptyMessage={isOwnProfile ? "You have no active listings yet." : "No active listings yet."}
-            items={marketplaceItems}
-          />
+        {isOwnProfile ? (
           <ProfileOwnerCard
             isOwnProfile={isOwnProfile}
             ownerTitle="Manage Marketplace"
@@ -407,7 +357,14 @@ export default async function UserProfilePage({ params }: PageProps) {
             emptyMessage="You have no marketplace listings to manage yet."
             items={marketplaceItems}
           />
-        </div>
+        ) : (
+          <ProfileContentCard
+            title={`What ${profile.firstName} Is Selling`}
+            description="Browse the marketplace listings currently shown on this member's profile."
+            emptyMessage="No active listings yet."
+            items={marketplaceItems}
+          />
+        )}
       </div>
     </section>
   );
@@ -415,17 +372,7 @@ export default async function UserProfilePage({ params }: PageProps) {
   const experiencesTab = (
     <section className={tabCardClass}>
       <div className="space-y-6">
-        <div className={tabGridClass}>
-          <ProfileContentCard
-            title={isOwnProfile ? "Your Experiences" : `${profile.firstName}'s Experiences`}
-            description={
-              isOwnProfile
-                ? "This is the public-facing list of experiences currently attached to your profile."
-                : "Browse the experiences this member has shared."
-            }
-            emptyMessage={isOwnProfile ? "You have not shared any approved experiences yet." : "No approved experiences yet."}
-            items={experienceItems}
-          />
+        {isOwnProfile ? (
           <ProfileOwnerCard
             isOwnProfile={isOwnProfile}
             ownerTitle="Manage Experiences"
@@ -433,7 +380,14 @@ export default async function UserProfilePage({ params }: PageProps) {
             emptyMessage="You have no experiences to manage yet."
             items={experienceItems}
           />
-        </div>
+        ) : (
+          <ProfileContentCard
+            title={`${profile.firstName}'s Experiences`}
+            description="Browse the experiences this member has shared."
+            emptyMessage="No approved experiences yet."
+            items={experienceItems}
+          />
+        )}
       </div>
     </section>
   );
@@ -441,21 +395,7 @@ export default async function UserProfilePage({ params }: PageProps) {
   const localLifeTab = (
     <section className={tabCardClass}>
       <div className="space-y-6">
-        <div className={tabGridClass}>
-          <ProfileContentCard
-            title={isOwnProfile ? "Your Local Life Posts" : `${profile.firstName}'s Local Life`}
-            description={
-              isOwnProfile
-                ? "This is the public-facing list of Local Life posts visible from your profile."
-                : "Browse the Local Life posts this member has published."
-            }
-            emptyMessage={
-              isOwnProfile
-                ? "You have not published any Local Life articles yet."
-                : "No published Local Life articles yet."
-            }
-            items={localLifeItems}
-          />
+        {isOwnProfile ? (
           <ProfileOwnerCard
             isOwnProfile={isOwnProfile}
             ownerTitle="Manage Local Life"
@@ -463,7 +403,14 @@ export default async function UserProfilePage({ params }: PageProps) {
             emptyMessage="You have no Local Life posts to manage yet."
             items={localLifeItems}
           />
-        </div>
+        ) : (
+          <ProfileContentCard
+            title={`${profile.firstName}'s Local Life`}
+            description="Browse the Local Life posts this member has published."
+            emptyMessage="No published Local Life articles yet."
+            items={localLifeItems}
+          />
+        )}
       </div>
     </section>
   );
@@ -471,21 +418,7 @@ export default async function UserProfilePage({ params }: PageProps) {
   const helpWantedTab = (
     <section className={tabCardClass}>
       <div className="space-y-6">
-        <div className={tabGridClass}>
-          <ProfileContentCard
-            title={isOwnProfile ? "Your Help Wanted Posts" : `${profile.firstName}'s Help Wanted`}
-            description={
-              isOwnProfile
-                ? "This is the public-facing list of your Help Wanted posts visible from your profile."
-                : "Browse the Help Wanted posts this member has shared."
-            }
-            emptyMessage={
-              isOwnProfile
-                ? "You have not published any Help Wanted posts yet."
-                : "No Help Wanted posts are visible yet."
-            }
-            items={helpWantedItems}
-          />
+        {isOwnProfile ? (
           <ProfileOwnerCard
             isOwnProfile={isOwnProfile}
             ownerTitle="Manage Help Wanted"
@@ -493,7 +426,14 @@ export default async function UserProfilePage({ params }: PageProps) {
             emptyMessage="You have no Help Wanted posts to manage yet."
             items={helpWantedItems}
           />
-        </div>
+        ) : (
+          <ProfileContentCard
+            title={`${profile.firstName}'s Help Wanted`}
+            description="Browse the Help Wanted posts this member has shared."
+            emptyMessage="No Help Wanted posts are visible yet."
+            items={helpWantedItems}
+          />
+        )}
       </div>
     </section>
   );
@@ -512,38 +452,6 @@ export default async function UserProfilePage({ params }: PageProps) {
           Deactivate Account
         </button>
       </div>
-    </section>
-  ) : null;
-
-  const recentActivityTab = isOwnProfile ? (
-    <section className={tabCardClass}>
-      <h2 className="mb-6 text-2xl font-bold">Recent Activity</h2>
-
-      {recentActivities.length > 0 ? (
-        <div className="space-y-4">
-          {recentActivities.map((activity, idx) => (
-            <div
-              key={idx}
-              className="border-l-4 py-2 pl-4"
-              style={{ borderColor: "#A51E30" }}
-            >
-              <p className="font-semibold">{activity.label}</p>
-              <p className="text-sm text-gray-600">
-                {activity.href ? (
-                  <Link href={activity.href} className="hover:underline">
-                    &ldquo;{activity.title}&rdquo;
-                  </Link>
-                ) : (
-                  <>&ldquo;{activity.title}&rdquo;</>
-                )}
-              </p>
-              <p className="text-xs text-gray-500">{timeAgo(activity.date)}</p>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-gray-500">No recent activity yet.</p>
-      )}
     </section>
   ) : null;
 
@@ -570,7 +478,6 @@ export default async function UserProfilePage({ params }: PageProps) {
           { id: "local-life", label: "Local Life", content: localLifeTab },
           { id: "help-wanted", label: "Help Wanted", content: helpWantedTab },
           { id: "account-settings", label: "Account Settings", content: accountSettingsTab },
-          { id: "recent-activity", label: "Recent Activity", content: recentActivityTab },
         ]}
       />
     </div>
