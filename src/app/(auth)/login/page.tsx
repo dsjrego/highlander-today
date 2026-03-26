@@ -1,14 +1,16 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AuthShell, { AuthAsideLink } from "@/components/auth/AuthShell";
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<"sign-in" | "sign-up">("sign-in");
+  const [activeTab, setActiveTab] = useState<"sign-in" | "sign-up">(
+    searchParams.get("mode") === "sign-up" ? "sign-up" : "sign-in"
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showSignInPassword, setShowSignInPassword] = useState(false);
@@ -27,6 +29,10 @@ export default function LoginPage() {
     dateOfBirth: "",
   });
   const callbackUrl = searchParams.get("callbackUrl") || "/";
+
+  useEffect(() => {
+    setActiveTab(searchParams.get("mode") === "sign-up" ? "sign-up" : "sign-in");
+  }, [searchParams]);
 
   async function handleSignInSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -112,7 +118,8 @@ export default function LoginPage() {
   }
 
   async function handleGoogleSignIn() {
-    await signIn("google", { callbackUrl });
+    const socialLandingUrl = `/social-landing?returnTo=${encodeURIComponent(callbackUrl)}`;
+    await signIn("google", { callbackUrl: socialLandingUrl });
   }
 
   function PasswordVisibilityButton({
@@ -167,7 +174,7 @@ export default function LoginPage() {
       description="Use your Highlander Today account to return to conversations, manage your activity, and keep local participation tied to real people."
       asideTitle="Create a local account"
       asideBody="Registration opens the door to messaging, submissions, and the trust path that unlocks more community participation."
-      asideFooter={<AuthAsideLink href="/register">Create account</AuthAsideLink>}
+      asideFooter={<AuthAsideLink href="/login?mode=sign-up">Create account</AuthAsideLink>}
     >
       <div className="mx-auto grid w-full max-w-6xl items-start gap-4 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:gap-6">
         <div className="rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(241,245,249,0.94))] p-5 shadow-[0_24px_55px_rgba(15,23,42,0.16)] backdrop-blur md:p-7">

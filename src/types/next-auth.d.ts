@@ -10,6 +10,7 @@ declare module 'next-auth' {
       image?: string | null;
       role?: string;
       trust_level?: string;
+      oauthNeedsProfileRedirect?: boolean;
     };
   }
 }
@@ -19,5 +20,6 @@ declare module 'next-auth/jwt' {
     id?: string;
     role?: string;
     trust_level?: string;
+    oauthNeedsProfileRedirect?: boolean;
   }
 }

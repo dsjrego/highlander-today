@@ -1,5 +1,7 @@
 import { Metadata } from "next";
+import { getServerSession } from "next-auth";
 import { db } from "@/lib/db";
+import { authOptions } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import EditProfileButton from "./EditProfileButton";
@@ -124,11 +126,14 @@ function timeAgo(date: Date): string {
 }
 
 export default async function UserProfilePage({ params }: PageProps) {
+  const session = await getServerSession(authOptions);
   const profile = await getUserProfile(params.id);
 
   if (!profile) {
     notFound();
   }
+
+  const isOwnProfile = (session?.user as { id?: string } | undefined)?.id === profile.id;
 
   const community = profile.memberships?.[0]?.community?.name ?? null;
   const totalPosts =
@@ -212,6 +217,22 @@ export default async function UserProfilePage({ params }: PageProps) {
           </div>
         )}
       </div>
+
+      {isOwnProfile && !profile.dateOfBirth && (
+        <section className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 px-6 py-5 text-amber-900 shadow-sm">
+          <h2 className="text-lg font-semibold">Add your date of birth</h2>
+          <p className="mt-2 text-sm leading-6">
+            Date of birth is not displayed publicly. It is optional here, but leaving it blank may
+            restrict access to some features and it is required before a user can become trusted.
+          </p>
+          <Link
+            href="/profile/edit"
+            className="mt-4 inline-flex rounded-full bg-[#8f1d2c] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#7d1927]"
+          >
+            Update Profile
+          </Link>
+        </section>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-8">

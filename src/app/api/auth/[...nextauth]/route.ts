@@ -54,6 +54,7 @@ const handler = NextAuth({
           let dbUser = await db.user.findUnique({
             where: { email: profile.email },
           });
+          let isNewSocialUser = false;
 
           if (!dbUser) {
             const oauthProfile = profile as any;
@@ -77,6 +78,7 @@ const handler = NextAuth({
                 trustLevel: 'REGISTERED',
               },
             });
+            isNewSocialUser = true;
 
             // Create community membership (default community)
             const community = await db.community.findFirst();
@@ -93,6 +95,7 @@ const handler = NextAuth({
 
           // Stash the DB user ID on the user object so the jwt callback can read it
           user.id = dbUser.id;
+          (user as any).oauthNeedsProfileRedirect = isNewSocialUser;
 
           // Record login event for OAuth provider (fire-and-forget)
           const headersList = headers();
@@ -143,6 +146,7 @@ const handler = NextAuth({
         // For Google OAuth, user.id was set to our DB id in signIn callback
         // For credentials, user.id is already our DB id
         token.id = user.id;
+        token.oauthNeedsProfileRedirect = Boolean((user as any).oauthNeedsProfileRedirect);
 
         // Fetch membership role
         try {
@@ -173,6 +177,7 @@ const handler = NextAuth({
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
         (session.user as any).trust_level = token.trust_level;
+        (session.user as any).oauthNeedsProfileRedirect = Boolean(token.oauthNeedsProfileRedirect);
       }
       return session;
     },

@@ -84,11 +84,11 @@ export const Masthead: React.FC<MastheadProps> = ({
                   Login
                 </Link>
                 <Link
-                  href="/register"
+                  href="/login?mode=sign-up"
                   className="text-sm font-medium px-4 py-2 rounded text-white"
                   style={{ backgroundColor: '#46A8CC' }}
                 >
-                  Register
+                  Sign Up
                 </Link>
               </div>
             )}
