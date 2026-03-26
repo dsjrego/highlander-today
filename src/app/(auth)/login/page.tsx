@@ -173,7 +173,7 @@ export default function LoginPage() {
         <div className="rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(241,245,249,0.94))] p-5 shadow-[0_24px_55px_rgba(15,23,42,0.16)] backdrop-blur md:p-7">
           <div className="mb-6 flex min-h-[60px] items-center rounded-[24px] border border-[#8f1d2c]/15 bg-[linear-gradient(145deg,rgba(143,29,44,0.1),rgba(70,168,204,0.08))] px-4 py-2 text-left">
             <p className="mb-0 text-xs font-semibold uppercase tracking-[0.28em] text-[#8f1d2c]">
-              Social In/Up
+              Social Sign In/Up
             </p>
           </div>
 
