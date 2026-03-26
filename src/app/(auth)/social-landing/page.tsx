@@ -30,7 +30,7 @@ export default function SocialLandingPage() {
     const returnTo = getSafeReturnTo(searchParams.get("returnTo"));
     const needsProfileRedirect = Boolean((session?.user as any)?.oauthNeedsProfileRedirect);
 
-    router.replace(needsProfileRedirect ? "/profile" : returnTo);
+    router.replace(needsProfileRedirect ? "/profile/edit" : returnTo);
   }, [router, searchParams, session, status]);
 
   return (
