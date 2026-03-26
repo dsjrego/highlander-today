@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import InternalPageHeader from '@/components/shared/InternalPageHeader';
+import ArticleCreateAction from '@/components/articles/ArticleCreateAction';
 
 interface Article {
   id: string;
@@ -137,25 +138,7 @@ export default function MyDraftsPage() {
     <div className="space-y-8">
       <InternalPageHeader
         title="My Articles"
-        actions={
-          <Link
-            href="/local-life/submit"
-            className="inline-flex items-center rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-950 transition hover:opacity-90"
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 16 16"
-              className="h-3.5 w-3.5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            >
-              <path d="M8 3.25v9.5M3.25 8h9.5" />
-            </svg>
-            Write Article
-          </Link>
-        }
+        actions={<ArticleCreateAction />}
       />
 
       {/* Status filter pills */}

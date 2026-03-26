@@ -5,10 +5,13 @@ import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import InternalPageHeader from '@/components/shared/InternalPageHeader';
+import ArticleCreateAction from '@/components/articles/ArticleCreateAction';
+import { NAV_SECTIONS } from '@/components/layout/NavigationBar';
 
 interface CategoryPill {
   name: string;
   slug: string;
+  href?: string;
 }
 
 interface Article {
@@ -42,33 +45,20 @@ function LocalLifePageContent() {
   const activeCategory = searchParams.get('category');
   const pageParam = parseInt(searchParams.get('page') || '1');
   const { data: session } = useSession();
+  const localLifeSection = NAV_SECTIONS.find((section) => section.slug === 'local-life');
+  const categoryPills: CategoryPill[] = (localLifeSection?.subcategories || []).map((sub) => ({
+    name: sub.label,
+    slug: sub.slug,
+    href: sub.href,
+  }));
 
   const [articles, setArticles] = useState<Article[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [parentCategories, setParentCategories] = useState<CategoryPill[]>([]);
 
-  const activePill = parentCategories.find((c) => c.slug === activeCategory);
+  const activePill = categoryPills.find((c) => c.slug === activeCategory);
 
-  // Fetch top-level categories for the filter pills
-  useEffect(() => {
-    async function fetchParentCategories() {
-      try {
-        const res = await fetch('/api/categories?top=true');
-        if (res.ok) {
-          const data = await res.json();
-          setParentCategories(
-            (data.categories || []).map((c: any) => ({ name: c.name, slug: c.slug }))
-          );
-        }
-      } catch (err) {
-        console.error('Failed to fetch parent categories:', err);
-      }
-    }
-    fetchParentCategories();
-  }, []);
-
-  // Fetch published articles, filtered by parent category if selected
+  // Fetch published articles, filtered by category if selected
   useEffect(() => {
     async function fetchArticles() {
       setIsLoading(true);
@@ -76,10 +66,8 @@ function LocalLifePageContent() {
         let url = `/api/articles?page=${pageParam}&limit=12`;
 
         if (activeCategory) {
-          // Filter by parent category — gets all articles whose category's parent matches
-          url += `&parentCategory=${activeCategory}`;
+          url += `&category=${activeCategory}`;
         }
-        // No filter = all published articles
 
         const res = await fetch(url);
         if (res.ok) {
@@ -102,50 +90,20 @@ function LocalLifePageContent() {
       <InternalPageHeader
         title="Local Life"
         titleClassName="text-white"
-        actions={
-          session?.user ? (
-            <Link
-              href="/local-life/submit"
-              className="inline-flex items-center rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-950 transition hover:opacity-90"
-            >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 16 16"
-                className="h-3.5 w-3.5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              >
-                <path d="M8 3.25v9.5M3.25 8h9.5" />
-              </svg>
-              Write Article
-            </Link>
-          ) : null
-        }
+        actions={<ArticleCreateAction />}
       />
 
-      {/* Category pills — loaded from DB */}
-      {parentCategories.length > 0 && (
+      {/* Category pills */}
+      {categoryPills.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          <Link
-            href="/local-life"
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-              !activeCategory
-                ? 'border border-white/10 bg-slate-950 text-white'
-                : 'border border-slate-200 bg-white/80 text-slate-600 shadow-[0_10px_25px_rgba(15,23,42,0.05)] hover:bg-white'
-            }`}
-          >
-            All
-          </Link>
-          {parentCategories.map((cat) => (
+          {categoryPills.map((cat) => (
             <Link
               key={cat.slug}
-              href={`/local-life?category=${cat.slug}`}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+              href={cat.href || `/local-life?category=${cat.slug}`}
+              className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
                 activeCategory === cat.slug
-                  ? 'border border-white/10 bg-slate-950 text-white'
-                  : 'border border-slate-200 bg-white/80 text-slate-600 shadow-[0_10px_25px_rgba(15,23,42,0.05)] hover:bg-white'
+                  ? 'border border-cyan-300/60 bg-slate-950/90 text-cyan-200 shadow-[0_10px_25px_rgba(15,23,42,0.22)]'
+                  : 'border border-cyan-200/25 bg-white/[0.04] text-cyan-300 hover:border-cyan-300/70 hover:bg-cyan-300/12 hover:text-cyan-100 hover:shadow-[0_12px_26px_rgba(34,211,238,0.12)]'
               }`}
             >
               {cat.name}
@@ -160,7 +118,7 @@ function LocalLifePageContent() {
           Loading articles...
         </div>
       ) : articles.length === 0 ? (
-        <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-12 text-center text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
+        <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] px-12 pt-12 pb-8 text-center text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
           <p className="mb-4 text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/66">
             Local Life
           </p>
@@ -173,14 +131,6 @@ function LocalLifePageContent() {
               ? ' Be the first to contribute!'
               : ' Check back soon for community-contributed content.'}
           </p>
-          {session?.user && (
-            <Link
-              href="/local-life/submit"
-              className="inline-block rounded-full bg-white px-6 py-3 font-semibold text-slate-950 transition hover:opacity-90"
-            >
-              Write an Article
-            </Link>
-          )}
         </div>
       ) : (
         <>
