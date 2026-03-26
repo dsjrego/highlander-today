@@ -2,11 +2,13 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import ArticlePreview from '@/components/articles/ArticlePreview';
 
 interface Author {
   id: string;
   firstName: string;
   lastName: string;
+  profilePhotoUrl: string | null;
   trustLevel: string;
 }
 
@@ -15,6 +17,7 @@ interface PendingArticle {
   title: string;
   excerpt: string | null;
   body: string;
+  featuredImageUrl: string | null;
   status: string;
   author: Author;
   category: { id: string; name: string; slug: string } | null;
@@ -350,17 +353,27 @@ export default function ContentApprovalPage() {
 
                       {isExpanded && (
                         <div className="border-t border-gray-100 bg-gray-50 p-5">
-                          <h4 className="text-sm font-semibold text-gray-600 mb-3">Article Content Preview:</h4>
-                          <div className="bg-white rounded-lg p-4 border border-gray-200 prose prose-sm max-w-none max-h-96 overflow-y-auto" dangerouslySetInnerHTML={{ __html: article.body }} />
-                          {article.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-3">
-                              {article.tags.map((at) => (
-                                <span key={at.tag.id} className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
-                                  #{at.tag.name}
-                                </span>
-                              ))}
-                            </div>
-                          )}
+                          <ArticlePreview
+                            title={article.title}
+                            excerpt={article.excerpt}
+                            body={article.body}
+                            featuredImageUrl={article.featuredImageUrl}
+                            categoryName={article.category?.name}
+                            tags={article.tags.map((at) => at.tag.name)}
+                            author={{
+                              firstName: article.author.firstName,
+                              lastName: article.author.lastName,
+                              profilePhotoUrl: article.author.profilePhotoUrl,
+                              trustLevel: article.author.trustLevel,
+                            }}
+                            publishedLabel={`Submitted ${new Date(article.updatedAt).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })}`}
+                            previewDescription="This preview uses the reader-facing Local Life article layout so you can review the story closer to how it would appear when published."
+                          />
                         </div>
                       )}
                     </div>

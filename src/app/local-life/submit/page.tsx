@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
+import ArticlePreview from '@/components/articles/ArticlePreview';
 import FormCard, { FormCardActions } from '@/components/shared/FormCard';
 import ImageUpload from '@/components/shared/ImageUpload';
 import InternalPageHeader from '@/components/shared/InternalPageHeader';
@@ -43,6 +44,7 @@ export default function SubmitArticlePage() {
     featuredImageUrl: '',
   });
   const [tagInput, setTagInput] = useState('');
+  const [viewMode, setViewMode] = useState<'write' | 'preview'>('write');
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -181,6 +183,22 @@ export default function SubmitArticlePage() {
     );
   }
 
+  const sessionName = session?.user?.name?.trim() || 'You';
+  const nameParts = sessionName.split(/\s+/).filter(Boolean);
+  const previewAuthor = session?.user
+    ? {
+        firstName: nameParts.slice(0, -1).join(' ') || nameParts[0] || 'You',
+        lastName: nameParts.length > 1 ? nameParts[nameParts.length - 1] : '',
+      }
+    : null;
+  const selectedCategory = categoryOptions.find((category) => category.id === formData.categoryId);
+  const previewDate = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
   return (
     <div className="space-y-8">
       <InternalPageHeader
@@ -228,152 +246,188 @@ export default function SubmitArticlePage() {
       )}
 
       <FormCard>
-        <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
           <div>
-            <ImageUpload
-              label="Featured Image"
-              helperText="Hero image shown at the top of your article"
-              labelClassName="form-label text-slate-500"
-              context="article"
-              maxFiles={1}
-              singleCard
-              value={formData.featuredImageUrl ? [formData.featuredImageUrl] : []}
-              onUpload={(img) => setFormData((prev) => ({ ...prev, featuredImageUrl: img.url }))}
-              onRemove={() => setFormData((prev) => ({ ...prev, featuredImageUrl: '' }))}
-            />
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
+              Editor
+            </p>
+            <h2 className="mt-1 text-xl font-bold text-slate-950">Write and preview your article</h2>
           </div>
-
-          <div className="space-y-6">
-            {/* Category */}
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
-                Category <span className="text-red-500">*</span>
-                <span className="ml-2 text-xs font-normal text-slate-400">Required for submission</span>
-              </label>
-              <select
-                name="categoryId"
-                value={formData.categoryId}
-                onChange={handleInputChange}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
-              >
-                <option value="">Select a category...</option>
-                {categoryOptions.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Title */}
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
-                Title <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
-                placeholder="Article title"
-              />
-            </div>
-
-            {/* Excerpt */}
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
-                Excerpt
-                <span className="ml-2 text-xs font-normal text-slate-400">Brief summary shown on cards</span>
-              </label>
-              <textarea
-                name="excerpt"
-                value={formData.excerpt}
-                onChange={handleInputChange}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
-                rows={2}
-                placeholder="Brief summary of your article (optional, but recommended)"
-                maxLength={500}
-              />
-            </div>
-
-            {/* Content — Rich Text Editor */}
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
-                Content <span className="text-red-500">*</span>
-              </label>
-              <TipTapEditor
-                content={formData.body}
-                onChange={(html) => setFormData((prev) => ({ ...prev, body: html }))}
-                placeholder="Write your article here..."
-              />
-            </div>
-
-            {/* Tags */}
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
-                Tags
-                <span className="ml-2 text-xs font-normal text-slate-400">Press Enter to add</span>
-              </label>
-              <div className="mb-2 flex gap-2">
-                <input
-                  type="text"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={handleTagKeyDown}
-                  className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
-                  placeholder="Add a tag..."
-                />
-                <button
-                  type="button"
-                  onClick={addTag}
-                  className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-                >
-                  Add
-                </button>
-              </div>
-              {formData.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {formData.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="inline-flex items-center gap-1 rounded-full bg-slate-950 px-3 py-1 text-xs font-medium text-white"
-                    >
-                      {tag}
-                      <button
-                        type="button"
-                        onClick={() => removeTag(tag)}
-                        className="ml-1 hover:text-red-200"
-                      >
-                        &times;
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Action Buttons */}
-            <FormCardActions className="border-t border-slate-200/80 pt-4">
-              <button
-                type="button"
-                onClick={() => handleSave(false)}
-                disabled={isSaving || isSubmitting}
-                className="btn btn-neutral"
-              >
-                {isSaving ? 'Saving...' : 'Save as Draft'}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSave(true)}
-                disabled={isSaving || isSubmitting}
-                className="btn btn-primary"
-              >
-                {isSubmitting ? 'Submitting...' : 'Submit for Review'}
-              </button>
-            </FormCardActions>
+          <div className="inline-flex rounded-full border border-slate-200 bg-slate-100 p-1">
+            <button
+              type="button"
+              onClick={() => setViewMode('write')}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                viewMode === 'write' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'
+              }`}
+            >
+              Writing
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('preview')}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                viewMode === 'preview' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'
+              }`}
+            >
+              Article Preview
+            </button>
           </div>
         </div>
+
+        {viewMode === 'write' ? (
+          <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+            <div>
+              <ImageUpload
+                label="Featured Image"
+                helperText="Hero image shown at the top of your article"
+                labelClassName="form-label text-slate-500"
+                context="article"
+                maxFiles={1}
+                singleCard
+                value={formData.featuredImageUrl ? [formData.featuredImageUrl] : []}
+                onUpload={(img) => setFormData((prev) => ({ ...prev, featuredImageUrl: img.url }))}
+                onRemove={() => setFormData((prev) => ({ ...prev, featuredImageUrl: '' }))}
+              />
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Category <span className="text-red-500">*</span>
+                  <span className="ml-2 text-xs font-normal text-slate-400">Required for submission</span>
+                </label>
+                <select
+                  name="categoryId"
+                  value={formData.categoryId}
+                  onChange={handleInputChange}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                >
+                  <option value="">Select a category...</option>
+                  {categoryOptions.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                  placeholder="Article title"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Excerpt
+                  <span className="ml-2 text-xs font-normal text-slate-400">Brief summary shown on cards</span>
+                </label>
+                <textarea
+                  name="excerpt"
+                  value={formData.excerpt}
+                  onChange={handleInputChange}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                  rows={2}
+                  placeholder="Brief summary of your article (optional, but recommended)"
+                  maxLength={500}
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Content <span className="text-red-500">*</span>
+                </label>
+                <TipTapEditor
+                  content={formData.body}
+                  onChange={(html) => setFormData((prev) => ({ ...prev, body: html }))}
+                  placeholder="Write your article here..."
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Tags
+                  <span className="ml-2 text-xs font-normal text-slate-400">Press Enter to add</span>
+                </label>
+                <div className="mb-2 flex gap-2">
+                  <input
+                    type="text"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={handleTagKeyDown}
+                    className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                    placeholder="Add a tag..."
+                  />
+                  <button
+                    type="button"
+                    onClick={addTag}
+                    className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                  >
+                    Add
+                  </button>
+                </div>
+                {formData.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {formData.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center gap-1 rounded-full bg-slate-950 px-3 py-1 text-xs font-medium text-white"
+                      >
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => removeTag(tag)}
+                          className="ml-1 hover:text-red-200"
+                        >
+                          &times;
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <ArticlePreview
+            title={formData.title}
+            excerpt={formData.excerpt}
+            body={formData.body}
+            featuredImageUrl={formData.featuredImageUrl}
+            categoryName={selectedCategory?.label}
+            tags={formData.tags}
+            author={previewAuthor}
+            publishedLabel={previewDate}
+          />
+        )}
+
+        <FormCardActions className="mt-6 border-t border-slate-200/80 pt-4">
+          <button
+            type="button"
+            onClick={() => handleSave(false)}
+            disabled={isSaving || isSubmitting}
+            className="btn btn-neutral"
+          >
+            {isSaving ? 'Saving...' : 'Save as Draft'}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSave(true)}
+            disabled={isSaving || isSubmitting}
+            className="btn btn-primary"
+          >
+            {isSubmitting ? 'Submitting...' : 'Submit for Review'}
+          </button>
+        </FormCardActions>
       </FormCard>
 
       {/* Guidelines */}
