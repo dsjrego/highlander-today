@@ -32,6 +32,20 @@ type EditableCategory = Record<
   }
 >;
 
+type CategoryEditorRowProps = {
+  category: CategoryRecord;
+  draft: EditableCategory[string];
+  topLevelCategories: CategoryRecord[];
+  categories: CategoryRecord[];
+  categoriesById: Map<string, CategoryRecord>;
+  descendantsById: Map<string, Set<string>>;
+  isReordering: string | null;
+  isSaving: string | null;
+  updateDraft: (categoryId: string, changes: Partial<EditableCategory[string]>) => void;
+  moveCategory: (categoryId: string, direction: 'up' | 'down') => void;
+  handleSaveCategory: (categoryId: string) => void;
+};
+
 function slugify(value: string) {
   return value
     .toLowerCase()
@@ -42,6 +56,113 @@ function slugify(value: string) {
 
 function sortCategories<T extends { sortOrder: number; name: string }>(categories: T[]) {
   return [...categories].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+}
+
+function CategoryEditorRow({
+  category,
+  draft,
+  topLevelCategories,
+  categories,
+  categoriesById,
+  descendantsById,
+  isReordering,
+  isSaving,
+  updateDraft,
+  moveCategory,
+  handleSaveCategory,
+}: CategoryEditorRowProps) {
+  const siblingCategories = sortCategories(
+    categories.filter((candidate) => candidate.parentCategoryId === draft.parentCategoryId)
+  );
+  const siblingIndex = siblingCategories.findIndex((candidate) => candidate.id === category.id);
+  const disallowedParentIds = descendantsById.get(category.id) ?? new Set<string>();
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_200px_120px_auto]">
+        <input
+          type="text"
+          value={draft.name}
+          onChange={(event) => {
+            const name = event.target.value;
+            updateDraft(category.id, { name, slug: slugify(name) });
+          }}
+          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950"
+        />
+        <input
+          type="text"
+          value={draft.slug}
+          onChange={(event) => updateDraft(category.id, { slug: slugify(event.target.value) })}
+          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950"
+        />
+        <select
+          value={draft.parentCategoryId ?? ''}
+          onChange={(event) =>
+            updateDraft(category.id, {
+              parentCategoryId: event.target.value || null,
+            })
+          }
+          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950"
+        >
+          <option value="">Top-level category</option>
+          {topLevelCategories
+            .filter((candidate) => candidate.id !== category.id && !disallowedParentIds.has(candidate.id))
+            .map((candidate) => (
+              <option key={candidate.id} value={candidate.id}>
+                {candidate.name}
+              </option>
+            ))}
+        </select>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => moveCategory(category.id, 'up')}
+            disabled={siblingIndex <= 0 || isReordering === category.id}
+            className="btn btn-neutral min-w-0 px-3"
+          >
+            ↑
+          </button>
+          <button
+            type="button"
+            onClick={() => moveCategory(category.id, 'down')}
+            disabled={siblingIndex === -1 || siblingIndex >= siblingCategories.length - 1 || isReordering === category.id}
+            className="btn btn-neutral min-w-0 px-3"
+          >
+            ↓
+          </button>
+        </div>
+        <label className="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700">
+          <input
+            type="checkbox"
+            checked={!draft.isArchived}
+            onChange={(event) => updateDraft(category.id, { isArchived: !event.target.checked })}
+            className="h-4 w-4 rounded border-slate-300"
+          />
+          Active
+        </label>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs text-slate-500">
+          Parent: {draft.parentCategoryId ? categoriesById.get(draft.parentCategoryId)?.name ?? 'Unknown' : 'Top-level'}
+          {' · '}
+          Order: {draft.sortOrder}
+          {' · '}
+          Articles: {category._count.articles}
+          {' · '}
+          Children: {category._count.childCategories}
+        </p>
+        <button
+          type="button"
+          onClick={() => handleSaveCategory(category.id)}
+          disabled={isSaving === category.id}
+          className="btn btn-primary"
+        >
+          {isSaving === category.id ? 'Saving...' : 'Save'}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export default function CategoryManagerPage() {
@@ -278,104 +399,6 @@ export default function CategoryManagerPage() {
     }
   }
 
-  function CategoryEditorRow({ category }: { category: CategoryRecord }) {
-    const draft = editable[category.id];
-    if (!draft) return null;
-
-    const siblingCategories = sortCategories(
-      categories.filter((candidate) => candidate.parentCategoryId === draft.parentCategoryId)
-    );
-    const siblingIndex = siblingCategories.findIndex((candidate) => candidate.id === category.id);
-    const disallowedParentIds = descendantsById.get(category.id) ?? new Set<string>();
-
-    return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-4">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_200px_120px_auto]">
-          <input
-            type="text"
-            value={draft.name}
-            onChange={(event) => {
-              const name = event.target.value;
-              updateDraft(category.id, { name, slug: slugify(name) });
-            }}
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950"
-          />
-          <input
-            type="text"
-            value={draft.slug}
-            onChange={(event) => updateDraft(category.id, { slug: slugify(event.target.value) })}
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950"
-          />
-          <select
-            value={draft.parentCategoryId ?? ''}
-            onChange={(event) =>
-              updateDraft(category.id, {
-                parentCategoryId: event.target.value || null,
-              })
-            }
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950"
-          >
-            <option value="">Top-level category</option>
-            {topLevelCategories
-              .filter((candidate) => candidate.id !== category.id && !disallowedParentIds.has(candidate.id))
-              .map((candidate) => (
-                <option key={candidate.id} value={candidate.id}>
-                  {candidate.name}
-                </option>
-              ))}
-          </select>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => moveCategory(category.id, 'up')}
-              disabled={siblingIndex <= 0 || isReordering === category.id}
-              className="btn btn-neutral min-w-0 px-3"
-            >
-              ↑
-            </button>
-            <button
-              type="button"
-              onClick={() => moveCategory(category.id, 'down')}
-              disabled={siblingIndex === -1 || siblingIndex >= siblingCategories.length - 1 || isReordering === category.id}
-              className="btn btn-neutral min-w-0 px-3"
-            >
-              ↓
-            </button>
-          </div>
-          <label className="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700">
-            <input
-              type="checkbox"
-              checked={!draft.isArchived}
-              onChange={(event) => updateDraft(category.id, { isArchived: !event.target.checked })}
-              className="h-4 w-4 rounded border-slate-300"
-            />
-            Active
-          </label>
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs text-slate-500">
-            Parent: {draft.parentCategoryId ? categoriesById.get(draft.parentCategoryId)?.name ?? 'Unknown' : 'Top-level'}
-            {' · '}
-            Order: {draft.sortOrder}
-            {' · '}
-            Articles: {category._count.articles}
-            {' · '}
-            Children: {category._count.childCategories}
-          </p>
-          <button
-            type="button"
-            onClick={() => handleSaveCategory(category.id)}
-            disabled={isSaving === category.id}
-            className="btn btn-primary"
-          >
-            {isSaving === category.id ? 'Saving...' : 'Save'}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8">
       <div>
@@ -484,10 +507,38 @@ export default function CategoryManagerPage() {
                 <div className="space-y-4">
                   {topLevelCategories.map((parent) => (
                     <div key={parent.id} className="space-y-4">
-                      <CategoryEditorRow category={parent} />
+                      {editable[parent.id] ? (
+                        <CategoryEditorRow
+                          category={parent}
+                          draft={editable[parent.id]}
+                          topLevelCategories={topLevelCategories}
+                          categories={categories}
+                          categoriesById={categoriesById}
+                          descendantsById={descendantsById}
+                          isReordering={isReordering}
+                          isSaving={isSaving}
+                          updateDraft={updateDraft}
+                          moveCategory={moveCategory}
+                          handleSaveCategory={handleSaveCategory}
+                        />
+                      ) : null}
                       {(childrenByParentId[parent.id] || []).map((child) => (
                         <div key={child.id} className="pl-4 md:pl-8">
-                          <CategoryEditorRow category={child} />
+                          {editable[child.id] ? (
+                            <CategoryEditorRow
+                              category={child}
+                              draft={editable[child.id]}
+                              topLevelCategories={topLevelCategories}
+                              categories={categories}
+                              categoriesById={categoriesById}
+                              descendantsById={descendantsById}
+                              isReordering={isReordering}
+                              isSaving={isSaving}
+                              updateDraft={updateDraft}
+                              moveCategory={moveCategory}
+                              handleSaveCategory={handleSaveCategory}
+                            />
+                          ) : null}
                         </div>
                       ))}
                     </div>
