@@ -2,6 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
+import StatusMessage from '@/components/shared/StatusMessage';
 
 interface BlockStatusResponse {
   blockedByYou: boolean;
@@ -148,19 +149,13 @@ export default function ProfileInteractionControls({
   }
 
   if (status !== 'authenticated' || isOwnProfile) {
-    return (
-      <div className="flex gap-4 mt-8">
-        <button className="flex-1 bg-gray-300 text-gray-800 px-6 py-3 rounded-full font-semibold hover:shadow-md transition-shadow duration-200">
-          Report User
-        </button>
-      </div>
-    );
+    return null;
   }
 
   const controlsDisabled = isLoadingStatus || !blockStatus;
 
   return (
-    <div className="mt-8">
+    <div>
       <div className="flex gap-4">
         <button
           type="button"
@@ -194,10 +189,6 @@ export default function ProfileInteractionControls({
                 : 'Block User'}
           </button>
         ) : null}
-
-        <button className="flex-1 bg-gray-300 text-gray-800 px-6 py-3 rounded-full font-semibold hover:shadow-md transition-shadow duration-200">
-          Report User
-        </button>
       </div>
 
       {blockStatus?.blockedByYou ? (
@@ -212,7 +203,11 @@ export default function ProfileInteractionControls({
         </p>
       ) : null}
 
-      {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
+      {error ? (
+        <StatusMessage variant="error" title="Profile action failed" className="mt-3">
+          <p>{error}</p>
+        </StatusMessage>
+      ) : null}
     </div>
   );
 }

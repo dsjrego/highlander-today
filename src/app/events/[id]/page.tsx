@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import UserAvatar from '@/components/shared/UserAvatar';
 
 interface EventDetail {
   id: string;
@@ -21,6 +22,7 @@ interface EventDetail {
     lastName: string;
     profilePhotoUrl: string | null;
     bio: string | null;
+    trustLevel: string;
   };
 }
 
@@ -110,15 +112,14 @@ export default function EventDetailPage() {
             })}
           </p>
           <div className="mt-6 flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-white/12">
-              {event.submittedBy.profilePhotoUrl ? (
-                <img src={event.submittedBy.profilePhotoUrl} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-sm font-bold text-white/78">
-                  {event.submittedBy.firstName[0]}{event.submittedBy.lastName[0]}
-                </span>
-              )}
-            </div>
+            <UserAvatar
+              firstName={event.submittedBy.firstName}
+              lastName={event.submittedBy.lastName}
+              profilePhotoUrl={event.submittedBy.profilePhotoUrl}
+              trustLevel={event.submittedBy.trustLevel}
+              className="h-11 w-11"
+              initialsClassName="bg-white/12 text-sm text-white/78"
+            />
             <div>
               <Link
                 href={`/profile/${event.submittedBy.id}`}

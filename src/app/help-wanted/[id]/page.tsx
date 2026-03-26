@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import SendMessageButton from '@/app/profile/[id]/SendMessageButton';
+import UserAvatar from '@/components/shared/UserAvatar';
 
 interface HelpWantedDetail {
   id: string;
@@ -206,15 +207,14 @@ export default function HelpWantedDetailPage() {
       <h1 className="text-4xl font-black leading-[0.95] tracking-[-0.05em] md:text-6xl">{post.title}</h1>
 
       <div className="mt-6 flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-white/12">
-          {post.author.profilePhotoUrl ? (
-            <img src={post.author.profilePhotoUrl} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <span className="text-sm font-bold text-white/78">
-              {post.author.firstName[0]}{post.author.lastName[0]}
-            </span>
-          )}
-        </div>
+        <UserAvatar
+          firstName={post.author.firstName}
+          lastName={post.author.lastName}
+          profilePhotoUrl={post.author.profilePhotoUrl}
+          trustLevel={post.author.trustLevel}
+          className="h-11 w-11"
+          initialsClassName="bg-white/12 text-sm text-white/78"
+        />
         <div>
           <Link
             href={`/profile/${post.author.id}`}

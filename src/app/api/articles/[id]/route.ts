@@ -34,6 +34,7 @@ export async function GET(
             lastName: true,
             profilePhotoUrl: true,
             bio: true,
+            trustLevel: true,
           },
         },
         category: {

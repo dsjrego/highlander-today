@@ -2,6 +2,75 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
 
+const SYSTEM_USER_EMAIL = 'system@highlander.today';
+
+function getDisplayName(user: { firstName: string; lastName: string }) {
+  return `${user.firstName} ${user.lastName}`.trim();
+}
+
+async function ensureSystemUser() {
+  return db.user.upsert({
+    where: { email: SYSTEM_USER_EMAIL },
+    update: {
+      firstName: 'Highlander',
+      lastName: 'System',
+      trustLevel: 'TRUSTED',
+      isIdentityLocked: true,
+    },
+    create: {
+      email: SYSTEM_USER_EMAIL,
+      firstName: 'Highlander',
+      lastName: 'System',
+      trustLevel: 'TRUSTED',
+      isIdentityLocked: true,
+      dateOfBirth: new Date('1900-01-01T00:00:00.000Z'),
+    },
+    select: { id: true },
+  });
+}
+
+async function sendMissingDobSystemMessage(params: {
+  actorName: string;
+  targetUserId: string;
+}) {
+  const systemUser = await ensureSystemUser();
+  const now = new Date();
+
+  const existingConversation = await db.conversation.findFirst({
+    where: {
+      AND: [
+        { participants: { some: { userId: systemUser.id } } },
+        { participants: { some: { userId: params.targetUserId } } },
+      ],
+    },
+    select: { id: true },
+  });
+
+  const conversationId = existingConversation
+    ? existingConversation.id
+    : (
+        await db.conversation.create({
+          data: {
+            participants: {
+              create: [
+                { userId: systemUser.id, lastReadAt: now },
+                { userId: params.targetUserId, lastReadAt: now },
+              ],
+            },
+          },
+          select: { id: true },
+        })
+      ).id;
+
+  await db.message.create({
+    data: {
+      conversationId,
+      senderUserId: systemUser.id,
+      body: `${params.actorName} tried to vouch for you but could not complete it because your date of birth is not on file yet. Edit your profile to add your date of birth, then they can try again.`,
+    },
+  });
+}
+
 /**
  * POST /api/users/[id]/vouch — Vouch for a user
  * Creates a VouchRecord and promotes the target to TRUSTED
@@ -46,6 +115,19 @@ export async function POST(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Get voucher to validate trust level
+    const voucher = await db.user.findUnique({
+      where: { id: actorId },
+      select: { id: true, trustLevel: true, firstName: true, lastName: true },
+    });
+
+    if (!voucher || voucher.trustLevel !== 'TRUSTED') {
+      return NextResponse.json(
+        { error: 'You must be TRUSTED to vouch for users' },
+        { status: 403 }
+      );
+    }
+
     if (targetUser.trustLevel === 'SUSPENDED') {
       return NextResponse.json(
         { error: 'Cannot vouch for a suspended user' },
@@ -62,22 +144,19 @@ export async function POST(
 
     // Target must have date of birth filled out before they can be vouched for
     if (!targetUser.dateOfBirth) {
+      await sendMissingDobSystemMessage({
+        actorName: getDisplayName(voucher),
+        targetUserId: targetId,
+      });
+
       return NextResponse.json(
-        { error: 'This user must fill out their date of birth before they can be vouched for' },
+        {
+          code: 'DATE_OF_BIRTH_REQUIRED',
+          error: 'This user must fill out their date of birth before they can be vouched for',
+          message:
+            'This user needs to enter their date of birth before they can be vouched for. They have been sent a system message letting them know.',
+        },
         { status: 400 }
-      );
-    }
-
-    // Get voucher to validate trust level
-    const voucher = await db.user.findUnique({
-      where: { id: actorId },
-      select: { id: true, trustLevel: true },
-    });
-
-    if (!voucher || voucher.trustLevel !== 'TRUSTED') {
-      return NextResponse.json(
-        { error: 'You must be TRUSTED to vouch for users' },
-        { status: 403 }
       );
     }
 

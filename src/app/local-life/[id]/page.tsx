@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { CommentThread, type ThreadComment } from '@/components/articles/CommentThread';
+import UserAvatar from '@/components/shared/UserAvatar';
 
 interface Author {
   id: string;
@@ -12,6 +13,7 @@ interface Author {
   lastName: string;
   profilePhotoUrl: string | null;
   bio: string | null;
+  trustLevel: string;
 }
 
 interface Article {
@@ -191,15 +193,14 @@ export default function ArticleDetailPage() {
             </p>
           )}
           <div className="mt-6 flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-white/12">
-              {article.author.profilePhotoUrl ? (
-                <img src={article.author.profilePhotoUrl} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <span className="text-sm font-bold text-white/78">
-                  {article.author.firstName[0]}{article.author.lastName[0]}
-                </span>
-              )}
-            </div>
+            <UserAvatar
+              firstName={article.author.firstName}
+              lastName={article.author.lastName}
+              profilePhotoUrl={article.author.profilePhotoUrl}
+              trustLevel={article.author.trustLevel}
+              className="h-11 w-11"
+              initialsClassName="bg-white/12 text-sm text-white/78"
+            />
             <div>
               <Link
                 href={`/profile/${article.author.id}`}
@@ -251,15 +252,14 @@ export default function ArticleDetailPage() {
         <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-5 text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
           <h3 className="mb-2 text-sm font-semibold text-cyan-100/70">About the Author</h3>
           <div className="flex items-start gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/12">
-              {article.author.profilePhotoUrl ? (
-                <img src={article.author.profilePhotoUrl} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-sm font-bold text-white/78">
-                  {article.author.firstName[0]}{article.author.lastName[0]}
-                </span>
-              )}
-            </div>
+            <UserAvatar
+              firstName={article.author.firstName}
+              lastName={article.author.lastName}
+              profilePhotoUrl={article.author.profilePhotoUrl}
+              trustLevel={article.author.trustLevel}
+              className="h-12 w-12"
+              initialsClassName="bg-white/12 text-sm text-white/78"
+            />
             <div>
               <Link
                 href={`/profile/${article.author.id}`}

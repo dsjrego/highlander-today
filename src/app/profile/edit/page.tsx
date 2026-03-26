@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import ImageUpload from "@/components/shared/ImageUpload";
 import InternalPageHeader from "@/components/shared/InternalPageHeader";
+import PageHeaderAvatarDialog from "@/components/shared/PageHeaderAvatarDialog";
+import StatusMessage from "@/components/shared/StatusMessage";
 
 interface ProfileData {
   firstName: string;
@@ -142,18 +144,16 @@ export default function EditProfilePage() {
 
   const showDobPrompt =
     !profile.dateOfBirth && Boolean((session?.user as any)?.oauthNeedsProfileRedirect);
-  const headerIcon = profile.profilePhotoUrl ? (
-    <div
-      className="h-16 w-16 rounded-full border-2 border-white/25 bg-cover bg-center bg-no-repeat shadow-[0_10px_24px_rgba(7,17,26,0.24)]"
-      style={{ backgroundImage: `url("${profile.profilePhotoUrl}")` }}
-      aria-hidden="true"
+  const headerIcon = (
+    <PageHeaderAvatarDialog
+      firstName={profile.firstName}
+      lastName={profile.lastName}
+      profilePhotoUrl={profile.profilePhotoUrl}
+      trustLevel={profile.trustLevel}
+      className="h-16 w-16"
+      imageClassName="border-2 border-white/25 shadow-[0_10px_24px_rgba(7,17,26,0.24)]"
+      initialsClassName="border-2 border-white/20 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),rgba(155,231,255,0.08))] text-cyan-50/90 text-xl shadow-[0_10px_24px_rgba(7,17,26,0.24)]"
     />
-  ) : (
-    <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white/20 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),rgba(155,231,255,0.08))] text-cyan-50/90 shadow-[0_10px_24px_rgba(7,17,26,0.24)]">
-      <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6.75a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0ZM4.5 19.125a7.5 7.5 0 0115 0" />
-      </svg>
-    </div>
   );
 
   return (
@@ -166,22 +166,24 @@ export default function EditProfilePage() {
       />
 
       {error && (
-        <div className="rounded-xl border border-red-400 bg-red-100 px-4 py-3 text-red-700">
-          {error}
-        </div>
+        <StatusMessage variant="error" title="Profile update failed">
+          <p>{error}</p>
+        </StatusMessage>
       )}
 
       {showDobPrompt && (
-        <div className="rounded-xl border border-red-400 bg-red-100 px-4 py-3 text-red-700">
-          Date of birth is not displayed publicly. It is optional here, but leaving it blank may
-          restrict access to some features and it is required before a user can become trusted.
-        </div>
+        <StatusMessage variant="warning" title="Add your date of birth">
+          <p>
+            Date of birth is not displayed publicly. It is optional here, but leaving it blank may
+            restrict access to some features and it is required before a user can become trusted.
+          </p>
+        </StatusMessage>
       )}
 
       {success && (
-        <div className="rounded-xl border border-green-400 bg-green-100 px-4 py-3 text-green-700">
-          {success}
-        </div>
+        <StatusMessage variant="success" title="Profile updated">
+          <p>{success}</p>
+        </StatusMessage>
       )}
 
       <section className="rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(241,245,249,0.94))] p-5 shadow-[0_24px_55px_rgba(15,23,42,0.16)] backdrop-blur md:p-7">
