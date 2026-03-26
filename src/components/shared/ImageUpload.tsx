@@ -24,6 +24,8 @@ interface ImageUploadProps {
   value?: string[];
   /** Label text */
   label?: string;
+  /** Optional label class override */
+  labelClassName?: string;
   /** Helper text shown below the drop zone */
   helperText?: string;
   /** Whether to show a circular preview (for profile photos) */
@@ -39,10 +41,13 @@ export default function ImageUpload({
   maxFiles = 1,
   value = [],
   label,
+  labelClassName,
   helperText,
   circular = false,
   compact = false,
 }: ImageUploadProps) {
+  const resolvedLabelClassName = labelClassName ?? 'mb-2 block text-sm font-semibold text-gray-700';
+
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState('');
@@ -50,6 +55,7 @@ export default function ImageUpload({
   const inputId = useId();
 
   const canAddMore = value.length < maxFiles;
+  const openPicker = () => inputRef.current?.showPicker?.() ?? inputRef.current?.click();
 
   const uploadFile = useCallback(
     async (file: File) => {
@@ -121,21 +127,41 @@ export default function ImageUpload({
     e.target.value = '';
   };
 
-  // ── Single circular preview (profile photo style) ──────────────
-  if (circular && value.length > 0) {
+  // ── Profile photo uploader: always use the same card row, with a
+  //    placeholder when no photo exists, instead of the generic drop zone.
+  if (circular) {
+    const hasImage = value.length > 0;
+
     return (
-      <div>
+      <div className="w-full">
         {label && (
-          <label className="block text-sm font-semibold text-gray-700 mb-2">{label}</label>
+          <label htmlFor={inputId} className={resolvedLabelClassName}>
+            {label}
+          </label>
         )}
-        <div className="flex items-center gap-4">
-          <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200">
-            <img src={value[0]} alt="Profile" className="w-full h-full object-cover" />
-            {onRemove && (
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-center">
+          <div className="relative h-32 w-32 overflow-hidden rounded-full border-2 border-slate-200 bg-slate-200">
+            {hasImage ? (
+              <div
+                aria-label="Profile photo preview"
+                className="h-full w-full bg-cover bg-center bg-no-repeat"
+                style={{ backgroundImage: `url("${value[0]}")` }}
+              />
+            ) : (
+              <div
+                aria-hidden="true"
+                className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.95),rgba(203,213,225,0.9))] text-slate-500"
+              >
+                <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6.75a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0ZM4.5 19.125a7.5 7.5 0 0115 0" />
+                </svg>
+              </div>
+            )}
+            {hasImage && onRemove && (
               <button
                 type="button"
                 onClick={() => onRemove(value[0])}
-                className="!p-0 absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity hover:opacity-100"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                   <line x1="18" y1="6" x2="6" y2="18" />
@@ -144,14 +170,33 @@ export default function ImageUpload({
               </button>
             )}
           </div>
-          <button
-            type="button"
-            onClick={() => inputRef.current?.showPicker?.() ?? inputRef.current?.click()}
-            disabled={isUploading}
-            className="!px-4 !py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
-          >
-            {isUploading ? 'Uploading...' : 'Change Photo'}
-          </button>
+          <div className="w-full">
+            <p className="text-sm font-semibold text-slate-800">
+              {hasImage ? 'Current photo' : 'No profile photo yet'}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              JPG, PNG, WebP, or GIF only.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={openPicker}
+              disabled={isUploading}
+              className="btn btn-primary"
+            >
+              {isUploading ? 'Uploading...' : hasImage ? 'Change Photo' : 'Upload Photo'}
+            </button>
+            {hasImage && onRemove && (
+              <button
+                type="button"
+                onClick={() => onRemove(value[0])}
+                className="btn btn-danger"
+              >
+                Remove
+              </button>
+            )}
+          </div>
           <input
             id={inputId}
             ref={inputRef}
@@ -167,26 +212,33 @@ export default function ImageUpload({
   }
 
   return (
-    <div>
+    <div className="w-full">
       {label && (
-        <label className="block text-sm font-semibold text-gray-700 mb-2">{label}</label>
+        <label htmlFor={inputId} className={resolvedLabelClassName}>
+          {label}
+        </label>
       )}
 
       {/* Existing image previews */}
       {value.length > 0 && (
-        <div className={`mb-3 ${maxFiles > 1 ? 'grid grid-cols-2 sm:grid-cols-3 gap-3' : ''}`}>
+        <div className={`mb-3 ${maxFiles > 1 ? 'grid grid-cols-2 gap-3 sm:grid-cols-3' : ''}`}>
           {value.map((url) => (
-            <div key={url} className="relative group rounded-lg overflow-hidden border border-gray-200">
-              <img
-                src={url}
-                alt="Uploaded"
-                className={`w-full object-cover ${maxFiles > 1 ? 'h-28' : 'h-48'}`}
+            <div
+              key={url}
+              className={`group relative overflow-hidden rounded-xl border border-slate-200 bg-slate-100 ${
+                maxFiles > 1 ? 'aspect-square' : 'aspect-[4/3] w-full max-w-xl'
+              }`}
+            >
+              <div
+                aria-label="Uploaded image preview"
+                className="h-full w-full bg-cover bg-center bg-no-repeat"
+                style={{ backgroundImage: `url("${url}")` }}
               />
               {onRemove && (
                 <button
                   type="button"
                   onClick={() => onRemove(url)}
-                  className="!p-0 absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                  className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-500 text-white opacity-0 transition-opacity hover:bg-red-600 group-hover:opacity-100"
                 >
                   &times;
                 </button>
@@ -195,6 +247,16 @@ export default function ImageUpload({
           ))}
         </div>
       )}
+
+      <input
+        id={inputId}
+        ref={inputRef}
+        type="file"
+        accept={ACCEPT_ATTRIBUTE}
+        multiple={maxFiles > 1}
+        onChange={handleChange}
+        className="sr-only"
+      />
 
       {/* Drop zone */}
       {canAddMore && (
@@ -210,16 +272,6 @@ export default function ImageUpload({
               : 'border-gray-300 bg-gray-50 hover:border-gray-400'
           } ${compact ? 'p-4' : 'p-6'}`}
         >
-          <input
-            id={inputId}
-            ref={inputRef}
-            type="file"
-            accept={ACCEPT_ATTRIBUTE}
-            multiple={maxFiles > 1}
-            onChange={handleChange}
-            className="sr-only"
-          />
-
           {isUploading ? (
             <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
               <svg className="animate-spin h-5 w-5 text-[#46A8CC]" viewBox="0 0 24 24">

@@ -142,13 +142,28 @@ export default function EditProfilePage() {
 
   const showDobPrompt =
     !profile.dateOfBirth && Boolean((session?.user as any)?.oauthNeedsProfileRedirect);
+  const headerIcon = profile.profilePhotoUrl ? (
+    <div
+      className="h-16 w-16 rounded-full border-2 border-white/25 bg-cover bg-center bg-no-repeat shadow-[0_10px_24px_rgba(7,17,26,0.24)]"
+      style={{ backgroundImage: `url("${profile.profilePhotoUrl}")` }}
+      aria-hidden="true"
+    />
+  ) : (
+    <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white/20 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),rgba(155,231,255,0.08))] text-cyan-50/90 shadow-[0_10px_24px_rgba(7,17,26,0.24)]">
+      <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6.75a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0ZM4.5 19.125a7.5 7.5 0 0115 0" />
+      </svg>
+    </div>
+  );
 
   return (
     <div className="space-y-8">
-      <InternalPageHeader title="Profile" titleClassName="text-white" />
-      <p className="max-w-3xl text-sm leading-7 text-slate-500">
-        Keep your identity, bio, and photo current so the community knows who they are interacting with.
-      </p>
+      <InternalPageHeader
+        icon={headerIcon}
+        title="Edit Profile"
+        description="Keep your identity, bio, and photo current so the community knows who they are interacting with."
+        titleClassName="text-white"
+      />
 
       {error && (
         <div className="rounded-xl border border-red-400 bg-red-100 px-4 py-3 text-red-700">
@@ -169,162 +184,182 @@ export default function EditProfilePage() {
         </div>
       )}
 
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-6 rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur"
-      >
-        {/* Identity Lock Warning */}
-        {profile.isIdentityLocked && profile.trustLevel === "TRUSTED" && (
-          <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-            <p className="text-sm text-yellow-800 mb-2">
-              <strong>Identity Locked:</strong> Your account is verified and
-              identity-locked for security.
-            </p>
-            <p className="text-xs text-yellow-700">
-              Name and date of birth cannot be changed after verification.
-            </p>
+      <section className="rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(241,245,249,0.94))] p-5 shadow-[0_24px_55px_rgba(15,23,42,0.16)] backdrop-blur md:p-7">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4"
+        >
+          {/* Identity Lock Warning */}
+          {profile.isIdentityLocked && profile.trustLevel === "TRUSTED" && (
+            <div className="flex min-h-[44px] items-center rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-1.5">
+              <p className="m-0 text-sm leading-5 text-yellow-800">
+                <strong>Identity Locked:</strong> Name and date of birth cannot be changed after verification.
+              </p>
+            </div>
+          )}
+
+          <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+            <div>
+              <ImageUpload
+                label="Profile Photo"
+                labelClassName="form-label text-slate-500"
+                context="profile"
+                maxFiles={1}
+                circular
+                value={formData.profilePhotoUrl ? [formData.profilePhotoUrl] : []}
+                onUpload={(img) => setFormData((prev) => ({ ...prev, profilePhotoUrl: img.url }))}
+                onRemove={() => setFormData((prev) => ({ ...prev, profilePhotoUrl: "" }))}
+              />
+            </div>
+
+            <div className="space-y-4">
+              {/* First Name */}
+              <div>
+                <label className="form-label text-slate-500">
+                  First Name
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleInputChange}
+                    disabled={profile.isIdentityLocked}
+                    className={`form-input border-slate-500 bg-white text-slate-950 disabled:border-slate-500 disabled:bg-slate-100 disabled:text-slate-600 ${profile.isIdentityLocked ? "pr-9" : ""}`.trim()}
+                  />
+                  {profile.isIdentityLocked ? (
+                    <span className="group absolute inset-y-0 right-3 flex items-center">
+                      <span className="text-slate-400" aria-hidden="true">
+                        <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75">
+                          <circle cx="10" cy="10" r="7" />
+                          <path d="M5.5 14.5 14.5 5.5" strokeLinecap="round" />
+                        </svg>
+                      </span>
+                      <span className="pointer-events-none absolute right-0 top-full z-10 mt-2 w-max max-w-[220px] rounded-lg bg-slate-950 px-2.5 py-1.5 text-[11px] font-medium leading-4 text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                        This field is locked due to identity verification.
+                      </span>
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* Last Name */}
+              <div>
+                <label className="form-label text-slate-500">
+                  Last Name
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleInputChange}
+                    disabled={profile.isIdentityLocked}
+                    className={`form-input border-slate-500 bg-white text-slate-950 disabled:border-slate-500 disabled:bg-slate-100 disabled:text-slate-600 ${profile.isIdentityLocked ? "pr-9" : ""}`.trim()}
+                  />
+                  {profile.isIdentityLocked ? (
+                    <span className="group absolute inset-y-0 right-3 flex items-center">
+                      <span className="text-slate-400" aria-hidden="true">
+                        <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75">
+                          <circle cx="10" cy="10" r="7" />
+                          <path d="M5.5 14.5 14.5 5.5" strokeLinecap="round" />
+                        </svg>
+                      </span>
+                      <span className="pointer-events-none absolute right-0 top-full z-10 mt-2 w-max max-w-[220px] rounded-lg bg-slate-950 px-2.5 py-1.5 text-[11px] font-medium leading-4 text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                        This field is locked due to identity verification.
+                      </span>
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="form-label text-slate-500">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={profile.email}
+                  disabled
+                  className="form-input border-slate-500 bg-white text-slate-950 disabled:border-slate-500 disabled:bg-slate-100 disabled:text-slate-600"
+                />
+                <p className="mt-1 text-xs text-slate-500">Email cannot be changed</p>
+              </div>
+
+              {/* Date of Birth */}
+              <div>
+                <label className="form-label text-slate-500">
+                  Date of Birth
+                </label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    name="dateOfBirth"
+                    value={formData.dateOfBirth}
+                    onChange={handleInputChange}
+                    disabled={profile.isIdentityLocked}
+                    max={new Date().toISOString().split("T")[0]}
+                    className={`form-input border-slate-500 bg-white text-slate-950 disabled:border-slate-500 disabled:bg-slate-100 disabled:text-slate-600 ${profile.isIdentityLocked ? "pr-9" : ""}`.trim()}
+                  />
+                  {profile.isIdentityLocked ? (
+                    <span className="group absolute inset-y-0 right-3 flex items-center">
+                      <span className="text-slate-400" aria-hidden="true">
+                        <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75">
+                          <circle cx="10" cy="10" r="7" />
+                          <path d="M5.5 14.5 14.5 5.5" strokeLinecap="round" />
+                        </svg>
+                      </span>
+                      <span className="pointer-events-none absolute right-0 top-full z-10 mt-2 w-max max-w-[220px] rounded-lg bg-slate-950 px-2.5 py-1.5 text-[11px] font-medium leading-4 text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                        This field is locked due to identity verification.
+                      </span>
+                    </span>
+                  ) : null}
+                </div>
+                {!profile.isIdentityLocked ? (
+                  <p className="mt-1 text-xs text-slate-500">
+                    Required before your account can be vouched for. Once verified, this cannot be changed.
+                  </p>
+                ) : null}
+              </div>
+
+              {/* Bio */}
+              <div>
+                <label className="form-label text-slate-500">
+                  Bio
+                </label>
+                <textarea
+                  name="bio"
+                  value={formData.bio}
+                  onChange={handleInputChange}
+                  className="form-textarea border-slate-500 bg-white text-slate-950 disabled:border-slate-500 disabled:bg-slate-100 disabled:text-slate-600"
+                  rows={4}
+                  placeholder="Tell the community about yourself"
+                />
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex flex-wrap justify-start gap-3 pt-1">
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="btn btn-primary min-w-[160px]"
+                >
+                  {isSaving ? "Saving..." : "Save Changes"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.back()}
+                  className="btn btn-secondary min-w-[140px] border border-red-600"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
-        )}
+        </form>
+      </section>
 
-        {/* First Name */}
-        <div>
-          <label className="mb-2 block text-sm font-bold text-slate-700">
-            First Name
-          </label>
-          <input
-            type="text"
-            name="firstName"
-            value={formData.firstName}
-            onChange={handleInputChange}
-            disabled={profile.isIdentityLocked}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC] disabled:cursor-not-allowed disabled:bg-slate-100"
-          />
-          {profile.isIdentityLocked && (
-            <p className="mt-1 text-xs text-slate-500">
-              This field is locked due to identity verification
-            </p>
-          )}
-        </div>
-
-        {/* Last Name */}
-        <div>
-          <label className="mb-2 block text-sm font-bold text-slate-700">
-            Last Name
-          </label>
-          <input
-            type="text"
-            name="lastName"
-            value={formData.lastName}
-            onChange={handleInputChange}
-            disabled={profile.isIdentityLocked}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC] disabled:cursor-not-allowed disabled:bg-slate-100"
-          />
-          {profile.isIdentityLocked && (
-            <p className="mt-1 text-xs text-slate-500">
-              This field is locked due to identity verification
-            </p>
-          )}
-        </div>
-
-        {/* Email */}
-        <div>
-          <label className="mb-2 block text-sm font-bold text-slate-700">
-            Email
-          </label>
-          <input
-            type="email"
-            value={profile.email}
-            disabled
-            className="w-full cursor-not-allowed rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-slate-600"
-          />
-          <p className="mt-1 text-xs text-slate-500">Email cannot be changed</p>
-        </div>
-
-        {/* Date of Birth */}
-        <div>
-          <label className="mb-2 block text-sm font-bold text-slate-700">
-            Date of Birth
-          </label>
-          <input
-            type="date"
-            name="dateOfBirth"
-            value={formData.dateOfBirth}
-            onChange={handleInputChange}
-            disabled={profile.isIdentityLocked}
-            max={new Date().toISOString().split("T")[0]}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC] disabled:cursor-not-allowed disabled:bg-slate-100"
-          />
-          {profile.isIdentityLocked ? (
-            <p className="mt-1 text-xs text-slate-500">
-              This field is locked due to identity verification
-            </p>
-          ) : (
-            <p className="mt-1 text-xs text-slate-500">
-              Required before your account can be vouched for. Once verified, this cannot be changed.
-            </p>
-          )}
-        </div>
-
-        {/* Bio */}
-        <div>
-          <label className="mb-2 block text-sm font-bold text-slate-700">
-            Bio
-          </label>
-          <textarea
-            name="bio"
-            value={formData.bio}
-            onChange={handleInputChange}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
-            rows={4}
-            placeholder="Tell the community about yourself"
-          />
-        </div>
-
-        {/* Photo Upload */}
-        <ImageUpload
-          label="Profile Photo"
-          context="profile"
-          maxFiles={1}
-          circular
-          value={formData.profilePhotoUrl ? [formData.profilePhotoUrl] : []}
-          onUpload={(img) => setFormData((prev) => ({ ...prev, profilePhotoUrl: img.url }))}
-          onRemove={() => setFormData((prev) => ({ ...prev, profilePhotoUrl: "" }))}
-        />
-
-        {/* Submit Button */}
-        <div className="flex gap-4">
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="flex-1 rounded-full bg-slate-950 py-3 font-bold text-white transition-shadow duration-200 hover:shadow-md disabled:opacity-50"
-          >
-            {isSaving ? "Saving..." : "Save Changes"}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="flex-1 rounded-full border border-slate-300 py-3 font-bold text-slate-800 transition-shadow duration-200 hover:bg-slate-50 hover:shadow-md"
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
-
-      {/* Account Settings */}
-      <div className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
-        <h2 className="mb-4 text-2xl font-black tracking-[-0.03em] text-slate-950">Account Settings</h2>
-        <div className="space-y-4">
-          <button className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left transition hover:bg-slate-50">
-            Change Password
-          </button>
-          <button className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left transition hover:bg-slate-50">
-            Email Preferences
-          </button>
-          <button className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left text-red-600 transition hover:bg-slate-50">
-            Deactivate Account
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

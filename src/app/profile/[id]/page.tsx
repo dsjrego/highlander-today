@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { authOptions } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import InternalPageHeader from "@/components/shared/InternalPageHeader";
 import EditProfileButton from "./EditProfileButton";
 import ProfileInteractionControls from "./ProfileInteractionControls";
 import VouchSection from "./VouchSection";
@@ -140,6 +141,22 @@ export default async function UserProfilePage({ params }: PageProps) {
     profile._count.articles +
     profile._count.eventsSubmitted +
     profile._count.marketplaceListings;
+  const headerDescriptionParts = [
+    community ? `Community: ${community}` : null,
+    `Joined ${new Date(profile.createdAt).toLocaleDateString()}`,
+  ].filter(Boolean);
+  const headerIcon = profile.profilePhotoUrl ? (
+    <div
+      className="h-16 w-16 rounded-full border-2 border-white/25 bg-cover bg-center bg-no-repeat shadow-[0_10px_24px_rgba(7,17,26,0.24)]"
+      style={{ backgroundImage: `url("${profile.profilePhotoUrl}")` }}
+      aria-hidden="true"
+    />
+  ) : (
+    <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white/20 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),rgba(155,231,255,0.08))] text-cyan-50/90 shadow-[0_10px_24px_rgba(7,17,26,0.24)] text-xl font-bold">
+      {profile.firstName.charAt(0)}
+      {profile.lastName.charAt(0)}
+    </div>
+  );
 
   // Build activity feed from real data
   const activities: { label: string; title: string; date: Date; href?: string }[] = [];
@@ -165,9 +182,16 @@ export default async function UserProfilePage({ params }: PageProps) {
   const recentActivities = activities.slice(0, 5);
 
   return (
-    <div>
+    <div className="space-y-8">
+      <InternalPageHeader
+        icon={headerIcon}
+        title={`${profile.firstName} ${profile.lastName}`}
+        description={headerDescriptionParts.join(" • ")}
+        titleClassName="text-white"
+      />
+
       {/* Profile Header */}
-      <div className="bg-white rounded-xl shadow-sm p-8 mb-8">
+      <div className="rounded-xl bg-white p-8 shadow-sm">
         <div className="flex items-start gap-8 mb-6">
           {profile.profilePhotoUrl ? (
             <img
@@ -235,7 +259,7 @@ export default async function UserProfilePage({ params }: PageProps) {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-3 gap-4">
         <div className="bg-white p-6 rounded-xl shadow-sm text-center">
           <p className="text-3xl font-bold text-[#46A8CC]">
             {profile.vouchesReceived.length}
@@ -253,6 +277,23 @@ export default async function UserProfilePage({ params }: PageProps) {
           <p className="text-sm text-gray-600">News Articles</p>
         </div>
       </div>
+
+      {isOwnProfile && (
+        <section className="rounded-xl bg-white p-6 shadow-sm">
+          <h2 className="mb-4 text-2xl font-bold">Account Settings</h2>
+          <div className="space-y-4">
+            <button className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left transition hover:bg-slate-50">
+              Change Password
+            </button>
+            <button className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left transition hover:bg-slate-50">
+              Email Preferences
+            </button>
+            <button className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left text-red-600 transition hover:bg-slate-50">
+              Deactivate Account
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* Vouch Section */}
       {profile.trustLevel !== "TRUSTED" && profile.trustLevel !== "SUSPENDED" && (
