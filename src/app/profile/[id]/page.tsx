@@ -44,6 +44,7 @@ async function getUserProfile(id: string) {
       select: {
         articles: true,
         eventsSubmitted: true,
+        helpWantedPosts: true,
         marketplaceListings: true,
       },
     },
@@ -76,6 +77,17 @@ async function getUserProfile(id: string) {
         id: true,
         title: true,
         startDatetime: true,
+      },
+    },
+    helpWantedPosts: {
+      where: { status: { in: ["PUBLISHED", "FILLED", "CLOSED"] } },
+      orderBy: { createdAt: "desc" },
+      take: 3,
+      select: {
+        id: true,
+        title: true,
+        createdAt: true,
+        status: true,
       },
     },
   });
@@ -198,10 +210,6 @@ export default async function UserProfilePage({ params }: PageProps) {
   const isOwnProfile = (session?.user as { id?: string } | undefined)?.id === profile.id;
 
   const community = profile.memberships?.[0]?.community?.name ?? null;
-  const totalPosts =
-    profile._count.articles +
-    profile._count.eventsSubmitted +
-    profile._count.marketplaceListings;
   const headerDescriptionParts = [
     community ? `Community: ${community}` : null,
     `Joined ${new Date(profile.createdAt).toLocaleDateString()}`,
@@ -295,6 +303,14 @@ export default async function UserProfilePage({ params }: PageProps) {
       href: `/events/${event.id}`,
     });
   }
+  for (const post of profile.helpWantedPosts) {
+    activities.push({
+      label: "Posted to Help Wanted",
+      title: post.title,
+      date: new Date(post.createdAt),
+      href: `/help-wanted/${post.id}`,
+    });
+  }
 
   // Sort by date descending, take top 5
   activities.sort((a, b) => b.date.getTime() - a.date.getTime());
@@ -320,6 +336,17 @@ export default async function UserProfilePage({ params }: PageProps) {
     title: article.title,
     href: `/local-life/${article.id}`,
     meta: timeAgo(new Date(article.createdAt)),
+  }));
+  const helpWantedItems: ProfileContentCardItem[] = profile.helpWantedPosts.map((post) => ({
+    id: post.id,
+    title: post.title,
+    href: `/help-wanted/${post.id}`,
+    meta:
+      post.status === "PUBLISHED"
+        ? `Open • ${timeAgo(new Date(post.createdAt))}`
+        : post.status === "FILLED"
+          ? `Filled • ${timeAgo(new Date(post.createdAt))}`
+          : `Closed • ${timeAgo(new Date(post.createdAt))}`,
   }));
   const tabGridClass = `grid grid-cols-1 gap-6${isOwnProfile ? " xl:grid-cols-2" : ""}`;
 
@@ -441,6 +468,36 @@ export default async function UserProfilePage({ params }: PageProps) {
     </section>
   );
 
+  const helpWantedTab = (
+    <section className={tabCardClass}>
+      <div className="space-y-6">
+        <div className={tabGridClass}>
+          <ProfileContentCard
+            title={isOwnProfile ? "Your Help Wanted Posts" : `${profile.firstName}'s Help Wanted`}
+            description={
+              isOwnProfile
+                ? "This is the public-facing list of your Help Wanted posts visible from your profile."
+                : "Browse the Help Wanted posts this member has shared."
+            }
+            emptyMessage={
+              isOwnProfile
+                ? "You have not published any Help Wanted posts yet."
+                : "No Help Wanted posts are visible yet."
+            }
+            items={helpWantedItems}
+          />
+          <ProfileOwnerCard
+            isOwnProfile={isOwnProfile}
+            ownerTitle="Manage Help Wanted"
+            ownerDescription="For now this mirrors your Help Wanted posts. Later this card can become a hiring and response management surface."
+            emptyMessage="You have no Help Wanted posts to manage yet."
+            items={helpWantedItems}
+          />
+        </div>
+      </div>
+    </section>
+  );
+
   const accountSettingsTab = isOwnProfile ? (
     <section className={tabCardClass}>
       <h2 className="mb-4 text-2xl font-bold">Account Settings</h2>
@@ -511,6 +568,7 @@ export default async function UserProfilePage({ params }: PageProps) {
           { id: "marketplace", label: "Marketplace", content: marketplaceTab },
           { id: "experiences", label: "Experiences", content: experiencesTab },
           { id: "local-life", label: "Local Life", content: localLifeTab },
+          { id: "help-wanted", label: "Help Wanted", content: helpWantedTab },
           { id: "account-settings", label: "Account Settings", content: accountSettingsTab },
           { id: "recent-activity", label: "Recent Activity", content: recentActivityTab },
         ]}
