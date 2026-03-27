@@ -18,6 +18,7 @@ interface PendingArticle {
   excerpt: string | null;
   body: string;
   featuredImageUrl: string | null;
+  featuredImageCaption: string | null;
   status: string;
   author: Author;
   category: { id: string; name: string; slug: string } | null;
@@ -358,6 +359,7 @@ export default function ContentApprovalPage() {
                             excerpt={article.excerpt}
                             body={article.body}
                             featuredImageUrl={article.featuredImageUrl}
+                            featuredImageCaption={article.featuredImageCaption}
                             categoryName={article.category?.name}
                             tags={article.tags.map((at) => at.tag.name)}
                             author={{

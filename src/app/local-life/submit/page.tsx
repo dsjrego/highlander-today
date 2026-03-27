@@ -42,6 +42,7 @@ export default function SubmitArticlePage() {
     categoryId: '',
     tags: [] as string[],
     featuredImageUrl: '',
+    featuredImageCaption: '',
   });
   const [tagInput, setTagInput] = useState('');
   const [viewMode, setViewMode] = useState<'write' | 'preview'>('write');
@@ -148,6 +149,7 @@ export default function SubmitArticlePage() {
           excerpt: formData.excerpt || undefined,
           categoryId: formData.categoryId || undefined,
           featuredImageUrl: formData.featuredImageUrl || undefined,
+          featuredImageCaption: formData.featuredImageCaption.trim() || undefined,
           tags: formData.tags.length > 0 ? formData.tags : undefined,
           status: submitForReview ? 'PENDING_REVIEW' : 'DRAFT',
         }),
@@ -287,8 +289,33 @@ export default function SubmitArticlePage() {
                 singleCard
                 value={formData.featuredImageUrl ? [formData.featuredImageUrl] : []}
                 onUpload={(img) => setFormData((prev) => ({ ...prev, featuredImageUrl: img.url }))}
-                onRemove={() => setFormData((prev) => ({ ...prev, featuredImageUrl: '' }))}
+                onRemove={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    featuredImageUrl: '',
+                    featuredImageCaption: '',
+                  }))
+                }
               />
+              {formData.featuredImageUrl ? (
+                <div className="mt-4">
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Photo Caption
+                    <span className="ml-2 text-xs font-normal text-slate-400">
+                      Optional credit or context shown below the image
+                    </span>
+                  </label>
+                  <textarea
+                    name="featuredImageCaption"
+                    value={formData.featuredImageCaption}
+                    onChange={handleInputChange}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                    rows={3}
+                    maxLength={300}
+                    placeholder="Photo by..., or a short caption explaining what readers are seeing."
+                  />
+                </div>
+              ) : null}
             </div>
 
             <div className="space-y-6">
@@ -403,6 +430,7 @@ export default function SubmitArticlePage() {
             excerpt={formData.excerpt}
             body={formData.body}
             featuredImageUrl={formData.featuredImageUrl}
+            featuredImageCaption={formData.featuredImageCaption}
             categoryName={selectedCategory?.label}
             tags={formData.tags}
             author={previewAuthor}

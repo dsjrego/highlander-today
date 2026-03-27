@@ -23,6 +23,7 @@ interface Article {
   excerpt: string | null;
   body: string;
   featuredImageUrl: string | null;
+  featuredImageCaption: string | null;
   status: string;
   publishedAt: string | null;
   createdAt: string;
@@ -216,13 +217,18 @@ export default function ArticleDetailPage() {
 
       {/* Featured image */}
       {article.featuredImageUrl && (
-        <div className="overflow-hidden rounded-[28px] border border-white/10 shadow-[0_24px_55px_rgba(7,17,26,0.14)]">
+        <figure className="overflow-hidden rounded-[28px] border border-white/10 bg-white/82 shadow-[0_24px_55px_rgba(7,17,26,0.14)]">
           <img
             src={article.featuredImageUrl}
             alt={article.title}
             className="w-full h-auto"
           />
-        </div>
+          {article.featuredImageCaption?.trim() ? (
+            <figcaption className="border-t border-slate-200/80 px-5 py-4 text-sm leading-6 text-slate-600 md:px-6">
+              {article.featuredImageCaption.trim()}
+            </figcaption>
+          ) : null}
+        </figure>
       )}
 
       {/* Article body */}

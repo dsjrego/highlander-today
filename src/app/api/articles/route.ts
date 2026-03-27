@@ -12,6 +12,7 @@ const CreateArticleSchema = z.object({
   categoryId: z.string().uuid().optional(),
   tags: z.array(z.string()).optional(),
   featuredImageUrl: z.string().optional(),
+  featuredImageCaption: z.string().max(300).optional(),
   status: z.enum(['DRAFT', 'PENDING_REVIEW']).optional().default('DRAFT'),
 });
 
@@ -187,6 +188,7 @@ export async function POST(request: NextRequest) {
         excerpt: validated.excerpt || null,
         body: validated.body,
         featuredImageUrl: validated.featuredImageUrl || null,
+        featuredImageCaption: validated.featuredImageCaption?.trim() || null,
         status: validated.status,
         categoryId: validated.categoryId,
         authorUserId: userId,

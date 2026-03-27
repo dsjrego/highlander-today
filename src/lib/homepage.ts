@@ -21,6 +21,7 @@ export interface HomepageContentItem {
   metadata?: string;
   secondaryUrl?: string;
   secondaryLabel?: string;
+  searchText?: string;
 }
 
 export interface HomepageSectionData {
@@ -51,12 +52,12 @@ export const HOMEPAGE_SECTION_CONFIG: Record<ManagedHomepageSectionType, Section
   FEATURED_ARTICLES: {
     title: 'Featured',
     contentType: 'ARTICLE',
-    maxItems: 2,
+    maxItems: 1,
   },
   LATEST_NEWS: {
     title: 'Latest News',
     contentType: 'ARTICLE',
-    maxItems: 4,
+    maxItems: 5,
   },
   UPCOMING_EVENTS: {
     title: 'Upcoming Events',
@@ -219,7 +220,12 @@ async function getArticleCandidates(communityId: string, limit: number) {
     imageUrl: article.featuredImageUrl ?? undefined,
     url: `/local-life/${article.id}`,
     metadata: formatArticleMetadata(article),
+    searchText: `${article.title} ${article.author.lastName}`.toLowerCase(),
   }));
+}
+
+export async function getHomepageArticleCandidates(communityId: string, limit = 100) {
+  return getArticleCandidates(communityId, limit);
 }
 
 async function getEventCandidates(communityId: string, limit: number) {

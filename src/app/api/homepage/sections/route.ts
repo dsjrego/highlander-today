@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import {
   DEFAULT_SECTION_ORDER,
   ensureHomepageSections,
+  getHomepageArticleCandidates,
   getHomepageSectionsData,
   HOMEPAGE_SECTION_CONFIG,
   resolveHomepageCommunityId,
@@ -33,6 +34,13 @@ function getExpectedContentType(sectionType: ManagedHomepageSectionType): Homepa
   return HOMEPAGE_SECTION_CONFIG[sectionType].contentType;
 }
 
+function getSectionInput(
+  sections: Array<z.infer<typeof HomepageSectionInputSchema>>,
+  sectionType: ManagedHomepageSectionType
+) {
+  return sections.find((section) => section.sectionType === sectionType) ?? null;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const communityId = await resolveHomepageCommunityId({
@@ -46,7 +54,8 @@ export async function GET(request: NextRequest) {
     }
 
     const sections = await getHomepageSectionsData(communityId);
-    return NextResponse.json({ sections });
+    const articleCandidates = await getHomepageArticleCandidates(communityId);
+    return NextResponse.json({ sections, articleCandidates });
   } catch (error) {
     console.error('Error fetching homepage sections:', error);
     return NextResponse.json(
@@ -113,6 +122,26 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    const featuredSection = getSectionInput(validated.sections, 'FEATURED_ARTICLES');
+    const latestNewsSection = getSectionInput(validated.sections, 'LATEST_NEWS');
+
+    if (featuredSection && latestNewsSection) {
+      const featuredArticleIds = new Set(
+        featuredSection.pinnedItems.map((item) => item.contentId)
+      );
+
+      const duplicateArticleId = latestNewsSection.pinnedItems.find((item) =>
+        featuredArticleIds.has(item.contentId)
+      )?.contentId;
+
+      if (duplicateArticleId) {
+        return NextResponse.json(
+          { error: 'A homepage article cannot be pinned in both Hero and Latest News.' },
+          { status: 400 }
+        );
+      }
+    }
+
     await db.$transaction(async (tx) => {
       for (const section of validated.sections) {
         await tx.homepageSection.update({
@@ -142,7 +171,8 @@ export async function PUT(request: NextRequest) {
     });
 
     const sections = await getHomepageSectionsData(communityId);
-    return NextResponse.json({ sections });
+    const articleCandidates = await getHomepageArticleCandidates(communityId);
+    return NextResponse.json({ sections, articleCandidates });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

@@ -211,6 +211,7 @@ model Article {
   excerpt          String?
   body             String
   featuredImageUrl String?
+  featuredImageCaption String?      @map("featured_image_caption")
   status           ArticleStatus @default(DRAFT)
   categoryId       String?       @db.Uuid
   publishedAt      DateTime?

@@ -10,8 +10,10 @@ const UpdateArticleSchema = z.object({
   body: z.string().min(10).optional(),
   excerpt: z.string().max(500).optional(),
   categoryId: z.string().uuid().optional(),
+  status: z.enum(['DRAFT', 'PENDING_REVIEW', 'PUBLISHED', 'UNPUBLISHED']).optional(),
   tags: z.array(z.string()).optional(),
   featuredImageUrl: z.string().optional().nullable(),
+  featuredImageCaption: z.string().max(300).optional().nullable(),
 });
 
 /**
@@ -147,7 +149,17 @@ export async function PATCH(
     if (validated.body !== undefined) updateData.body = sanitizeArticleHtml(validated.body);
     if (validated.excerpt !== undefined) updateData.excerpt = validated.excerpt;
     if (validated.featuredImageUrl !== undefined) updateData.featuredImageUrl = validated.featuredImageUrl;
+    if (validated.featuredImageCaption !== undefined) {
+      updateData.featuredImageCaption = validated.featuredImageCaption?.trim() || null;
+    }
     if (validated.categoryId !== undefined) updateData.categoryId = validated.categoryId;
+    if (validated.status !== undefined) {
+      updateData.status = validated.status;
+
+      if (validated.status === 'PUBLISHED' && !article.publishedAt) {
+        updateData.publishedAt = new Date();
+      }
+    }
 
     // Handle tags: replace all
     if (validated.tags !== undefined) {

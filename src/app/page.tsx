@@ -75,7 +75,6 @@ function renderFeaturedSection(section: HomepageSectionData) {
 
   return (
     <section key={section.id} className="mb-14">
-      <SectionHeading>{section.title}</SectionHeading>
       {section.displayItems.length === 0 ? (
         <EmptySection>Featured stories will appear here once editors publish them.</EmptySection>
       ) : (
@@ -116,7 +115,6 @@ function renderFeaturedSection(section: HomepageSectionData) {
 function renderLatestNewsSection(section: HomepageSectionData) {
   return (
     <section key={section.id} className="mb-14">
-      <SectionHeading>{section.title}</SectionHeading>
       {section.displayItems.length === 0 ? (
         <EmptySection>Latest published articles will appear here.</EmptySection>
       ) : (

@@ -14,6 +14,7 @@ interface ArticlePreviewProps {
   excerpt?: string | null;
   body?: string;
   featuredImageUrl?: string | null;
+  featuredImageCaption?: string | null;
   categoryName?: string | null;
   tags?: string[];
   author?: ArticlePreviewAuthor | null;
@@ -36,6 +37,7 @@ export default function ArticlePreview({
   excerpt,
   body,
   featuredImageUrl,
+  featuredImageCaption,
   categoryName,
   tags = [],
   author,
@@ -94,10 +96,15 @@ export default function ArticlePreview({
       </section>
 
       {featuredImageUrl ? (
-        <div className="overflow-hidden rounded-[28px] border border-white/10 shadow-[0_24px_55px_rgba(7,17,26,0.14)]">
+        <figure className="overflow-hidden rounded-[28px] border border-white/10 bg-white/82 shadow-[0_24px_55px_rgba(7,17,26,0.14)]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={featuredImageUrl} alt={title?.trim() || 'Article preview'} className="h-auto w-full" />
-        </div>
+          {featuredImageCaption?.trim() ? (
+            <figcaption className="border-t border-slate-200/80 px-5 py-4 text-sm leading-6 text-slate-600 md:px-6">
+              {featuredImageCaption.trim()}
+            </figcaption>
+          ) : null}
+        </figure>
       ) : null}
 
       <section className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
