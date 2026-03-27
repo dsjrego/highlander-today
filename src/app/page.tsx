@@ -6,15 +6,6 @@ import InternalPageHeader from '@/components/shared/InternalPageHeader';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { getHomepageSectionsData, resolveHomepageCommunityId, type HomepageSectionData } from '@/lib/homepage';
 
-function SectionHeading({ children }: { children: ReactNode }) {
-  return (
-    <div className="mb-6 flex items-end justify-between gap-4">
-      <h2 className="section-display-title text-3xl font-black">{children}</h2>
-      <div className="hidden h-px flex-1 bg-gradient-to-r from-[#8f1d2c]/60 to-transparent sm:block" />
-    </div>
-  );
-}
-
 function EmptySection({ children }: { children: ReactNode }) {
   return (
     <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(15,24,36,0.96),rgba(8,18,29,0.96))] p-8 text-center shadow-[0_20px_45px_rgba(7,17,26,0.18)]">
@@ -160,98 +151,6 @@ function renderLatestNewsSection(section: HomepageSectionData) {
   );
 }
 
-function renderEventsSection(section: HomepageSectionData) {
-  return (
-    <section key={section.id}>
-      <SectionHeading>{section.title}</SectionHeading>
-      {section.displayItems.length === 0 ? (
-        <EmptySection>Upcoming community events will appear here once they are published.</EmptySection>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {section.displayItems.map((item) => (
-            <Link
-              key={`${item.contentType}-${item.contentId}`}
-              href={item.url}
-            className="group rounded-[24px] border border-white/10 bg-[linear-gradient(160deg,rgba(57,20,34,0.95),rgba(20,13,24,0.95))] p-6 shadow-[0_20px_45px_rgba(7,17,26,0.18)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_26px_55px_rgba(7,17,26,0.24)]"
-            >
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-pink-200/70">
-                Upcoming
-              </p>
-              <h3 className="mb-2 text-lg font-bold text-white transition-colors group-hover:text-pink-100">
-                {item.title}
-              </h3>
-              {item.metadata && <p className="text-sm text-white/68">{item.metadata}</p>}
-            </Link>
-          ))}
-        </div>
-      )}
-      <div className="mt-4">
-        <Link href="/events" className="text-sm font-semibold text-[#8f1d2c] hover:underline">
-          View all events →
-        </Link>
-      </div>
-    </section>
-  );
-}
-
-function renderMarketplaceSection(section: HomepageSectionData) {
-  return (
-    <section key={section.id}>
-      <SectionHeading>{section.title}</SectionHeading>
-      {section.displayItems.length === 0 ? (
-        <EmptySection>Recent market listings will appear here as approved local stores publish them.</EmptySection>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {section.displayItems.map((item) => (
-            <article
-              key={`${item.contentType}-${item.contentId}`}
-              className="overflow-hidden rounded-[24px] border border-white/10 bg-white/80 shadow-[0_15px_35px_rgba(15,23,42,0.06)] backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_20px_45px_rgba(15,23,42,0.1)]"
-            >
-              <Link href={item.url} className="group block">
-                {item.imageUrl && (
-                  <div className="relative h-36 w-full bg-slate-100">
-                    <Image
-                      src={item.imageUrl}
-                      alt={item.title}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                )}
-                <div className="p-5">
-                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#0f2941]/70">
-                    Market
-                  </p>
-                  <h3 className="mb-1 text-lg font-bold text-slate-950 transition-colors group-hover:text-[#8f1d2c]">
-                    {item.title}
-                  </h3>
-                  {item.metadata && <p className="mb-2 text-xs text-slate-400">{item.metadata}</p>}
-                  {item.description && <p className="line-clamp-2 text-sm leading-6 text-slate-600">{item.description}</p>}
-                </div>
-              </Link>
-              {item.secondaryUrl && item.secondaryLabel ? (
-                <div className="px-4 pb-4">
-                  <Link
-                    href={item.secondaryUrl}
-                    className="text-sm font-semibold text-[#8f1d2c] hover:underline"
-                  >
-                    {item.secondaryLabel} →
-                  </Link>
-                </div>
-              ) : null}
-            </article>
-          ))}
-        </div>
-      )}
-      <div className="mt-4">
-        <Link href="/marketplace" className="text-sm font-semibold text-[#8f1d2c] hover:underline">
-          View market and stores →
-        </Link>
-      </div>
-    </section>
-  );
-}
-
 function renderComingSoonPanel(title: string, description: string) {
   return (
     <section className="admin-card flex aspect-square w-full max-w-[240px] flex-col rounded-[28px] border-white/12 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] shadow-[0_25px_60px_rgba(7,17,26,0.18)]">
@@ -266,19 +165,6 @@ function renderComingSoonPanel(title: string, description: string) {
       </div>
     </section>
   );
-}
-
-function renderSection(section: HomepageSectionData) {
-  switch (section.sectionType) {
-    case 'FEATURED_ARTICLES':
-      return renderFeaturedSection(section);
-    case 'LATEST_NEWS':
-      return renderLatestNewsSection(section);
-    case 'UPCOMING_EVENTS':
-      return renderEventsSection(section);
-    case 'RECENT_MARKETPLACE':
-      return renderMarketplaceSection(section);
-  }
 }
 
 export default async function Home() {
