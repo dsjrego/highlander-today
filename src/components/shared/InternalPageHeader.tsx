@@ -29,6 +29,8 @@ export default function InternalPageHeader({
   actionsClassName,
   titleClassName,
 }: InternalPageHeaderProps) {
+  const hasActions = actions !== undefined && actions !== null && actions !== false;
+
   return (
     <section className={`page-header ${className ?? ''}`.trim()}>
       <div className={`page-header-inner ${innerClassName ?? ''}`.trim()}>
@@ -40,7 +42,12 @@ export default function InternalPageHeader({
             {description ? <p className="page-description">{description}</p> : null}
           </div>
         </div>
-        {actions ? <div className={`page-actions ${actionsClassName ?? ''}`.trim()}>{actions}</div> : null}
+        <div
+          className={`page-actions ${!hasActions ? 'page-actions-placeholder' : ''} ${actionsClassName ?? ''}`.trim()}
+          aria-hidden={hasActions ? undefined : true}
+        >
+          {actions}
+        </div>
       </div>
     </section>
   );

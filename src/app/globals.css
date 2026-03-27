@@ -87,6 +87,10 @@
     gap: 0.5rem;
   }
 
+  .page-actions-placeholder {
+    min-height: 2.25rem;
+  }
+
   .page-header-action {
     display: inline-flex;
     align-items: center;

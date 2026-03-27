@@ -19,6 +19,12 @@ export interface HomepageContentItem {
   imageUrl?: string;
   url: string;
   metadata?: string;
+  author?: {
+    firstName: string;
+    lastName: string;
+    profilePhotoUrl?: string;
+    trustLevel?: string;
+  };
   secondaryUrl?: string;
   secondaryLabel?: string;
   searchText?: string;
@@ -202,7 +208,7 @@ async function getArticleCandidates(communityId: string, limit: number) {
     },
     include: {
       author: {
-        select: { firstName: true, lastName: true },
+        select: { firstName: true, lastName: true, profilePhotoUrl: true, trustLevel: true },
       },
       category: {
         select: { name: true },
@@ -220,6 +226,12 @@ async function getArticleCandidates(communityId: string, limit: number) {
     imageUrl: article.featuredImageUrl ?? undefined,
     url: `/local-life/${article.id}`,
     metadata: formatArticleMetadata(article),
+    author: {
+      firstName: article.author.firstName,
+      lastName: article.author.lastName,
+      profilePhotoUrl: article.author.profilePhotoUrl ?? undefined,
+      trustLevel: article.author.trustLevel ?? undefined,
+    },
     searchText: `${article.title} ${article.author.lastName}`.toLowerCase(),
   }));
 }
