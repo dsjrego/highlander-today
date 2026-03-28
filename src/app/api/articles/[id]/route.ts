@@ -46,7 +46,10 @@ export async function GET(
           include: { tag: true },
         },
         comments: {
-          where: { status: 'APPROVED' },
+          where: {
+            status: 'APPROVED',
+            parentCommentId: null,
+          },
           include: {
             author: {
               select: {

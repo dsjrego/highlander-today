@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface CommentAuthor {
   id: string;
@@ -23,6 +23,7 @@ interface CommentThreadProps {
   onDeleteComment?: (commentId: string) => Promise<void>;
   canDeleteComment?: (comment: ThreadComment) => boolean;
   isAuthenticated?: boolean;
+  canComment?: boolean;
   isLoading?: boolean;
 }
 
@@ -39,14 +40,30 @@ function getTrustClasses(trustLevel: string) {
   }
 }
 
+function TrustedCheckIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden="true">
+      <circle cx="8" cy="8" r="7" fill="#16a34a" />
+      <path
+        d="M5 8.2 7 10l4-4.2"
+        stroke="#fff"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 const CommentItem: React.FC<{
   comment: ThreadComment;
   onReply: (parentId: string, body: string) => Promise<void>;
   onDelete?: (commentId: string) => Promise<void>;
   canDeleteComment?: (comment: ThreadComment) => boolean;
   isAuthenticated?: boolean;
+  canComment?: boolean;
   depth: number;
-}> = ({ comment, onReply, onDelete, canDeleteComment, isAuthenticated = false, depth }) => {
+}> = ({ comment, onReply, onDelete, canDeleteComment, isAuthenticated = false, canComment = false, depth }) => {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyBody, setReplyBody] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,82 +86,97 @@ const CommentItem: React.FC<{
 
   return (
     <div style={{ marginLeft: depth > 0 ? `${Math.min(depth * 2, 8)}rem` : 0 }}>
-      <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
-        <div className="flex items-center justify-between mb-3">
+      <div className="relative mb-2 rounded-lg border border-gray-200 bg-white p-2 text-[12px]">
+        {onDelete && canDeleteComment?.(comment) ? (
+          <button
+            onClick={async () => {
+              setError('');
+              try {
+                await onDelete(comment.id);
+              } catch (err) {
+                setError(err instanceof Error ? err.message : 'Failed to delete comment');
+              }
+            }}
+            className="absolute right-2 top-2 inline-flex items-center justify-center p-0 m-0 leading-none"
+            aria-label="Delete comment"
+            title="Delete"
+          >
+            <span className="text-[17px] leading-none text-rose-700" aria-hidden="true">
+              ✕
+            </span>
+          </button>
+        ) : null}
+
+        <div className="mb-1.5 flex items-start justify-between gap-3">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-gray-900">
+            <span className="text-[13px] font-semibold text-gray-900">
               {comment.author.firstName} {comment.author.lastName}
             </span>
-            <span className={`text-xs px-2 py-0.5 rounded-full ${getTrustClasses(comment.author.trustLevel)}`}>
-              {comment.author.trustLevel}
-            </span>
+            {comment.author.trustLevel === 'TRUSTED' ? (
+              <span className="inline-flex items-center" title="Trusted user" aria-label="Trusted user">
+                <TrustedCheckIcon />
+              </span>
+            ) : (
+              <span className={`rounded-full px-2 py-0.5 text-xs ${getTrustClasses(comment.author.trustLevel)}`}>
+                {comment.author.trustLevel}
+              </span>
+            )}
           </div>
-          <time className="text-xs text-gray-500">
-            {new Date(comment.createdAt).toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </time>
+          <div className="flex items-center gap-[5px] pr-4">
+            <time className="text-[10px] text-gray-500">
+              {new Date(comment.createdAt).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </time>
+          </div>
         </div>
 
-        <p className="text-gray-700 text-sm mb-4 whitespace-pre-wrap">{comment.body}</p>
+        <p className="mb-2 text-[12px] whitespace-pre-wrap text-gray-700">{comment.body}</p>
 
-        <div className="flex gap-3 text-xs">
-          {isAuthenticated && (
-            <button
-              onClick={() => setShowReplyForm((value) => !value)}
-              className="text-gray-600 hover:text-gray-900 font-medium"
-            >
-              Reply
-            </button>
-          )}
-          {onDelete && canDeleteComment?.(comment) && (
-            <button
-              onClick={async () => {
-                setError('');
-                try {
-                  await onDelete(comment.id);
-                } catch (err) {
-                  setError(err instanceof Error ? err.message : 'Failed to delete comment');
-                }
-              }}
-              className="text-red-600 hover:text-red-900 font-medium"
-            >
-              Delete
-            </button>
-          )}
-        </div>
+        {isAuthenticated && canComment ? (
+          <button
+            onClick={() => setShowReplyForm((value) => !value)}
+            className="inline-flex items-center justify-center p-0 m-0 leading-none"
+            aria-label={showReplyForm ? 'Close reply form' : 'Reply'}
+            title="Reply"
+          >
+            <span className="text-[18px] leading-none text-slate-700" aria-hidden="true">
+              ↩
+            </span>
+          </button>
+        ) : null}
 
         {error && (
-          <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <div className="mt-1.5 rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-[12px] text-red-700">
             {error}
           </div>
         )}
 
         {showReplyForm && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
+          <div className="mt-2 border-t border-gray-200 pt-2">
             <textarea
               value={replyBody}
               onChange={(e) => setReplyBody(e.target.value)}
               placeholder="Write a reply..."
-              className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-lg border border-gray-300 p-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
               rows={3}
             />
-            <div className="flex gap-2 mt-3">
+            <div className="mt-1.5 flex gap-2">
               <button
                 onClick={handleReplySubmit}
                 disabled={isSubmitting || !replyBody.trim()}
-                className="px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-50"
+                className="rounded-lg px-4 py-2 text-[12px] font-medium text-white disabled:opacity-50"
                 style={{ backgroundColor: '#46A8CC' }}
               >
                 {isSubmitting ? 'Posting...' : 'Post Reply'}
               </button>
               <button
                 onClick={() => setShowReplyForm(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                className="rounded-lg bg-gray-100 px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-200"
               >
                 Cancel
               </button>
@@ -163,6 +195,7 @@ const CommentItem: React.FC<{
               onDelete={onDelete}
               canDeleteComment={canDeleteComment}
               isAuthenticated={isAuthenticated}
+              canComment={canComment}
               depth={depth + 1}
             />
           ))}
@@ -178,11 +211,21 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
   onDeleteComment,
   canDeleteComment,
   isAuthenticated = false,
+  canComment = false,
   isLoading = false,
 }) => {
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [showTrustInfoDialog, setShowTrustInfoDialog] = useState(false);
+  const newCommentRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    const textarea = newCommentRef.current;
+    if (!textarea) return;
+    textarea.style.height = '0px';
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [newComment]);
 
   async function handleAddComment() {
     if (!newComment.trim()) return;
@@ -199,43 +242,105 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
   }
 
   return (
-    <div className="bg-gray-50 rounded-lg p-6">
-      <h3 className="text-xl font-bold mb-6">Comments</h3>
+    <div className="rounded-lg bg-gray-50 p-3">
+      <h3 className="mb-3 text-[1rem] font-bold">Comments</h3>
 
-      {isAuthenticated ? (
-        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-8">
+      {isAuthenticated && canComment ? (
+        <div className="mb-4 rounded-lg border border-gray-200 bg-white p-2">
           {error && (
-            <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <div className="mb-1.5 rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-[12px] text-red-700">
               {error}
             </div>
           )}
-          <textarea
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Add a comment..."
-            className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#46A8CC] mb-3"
-            rows={4}
-            disabled={isSubmitting || isLoading}
-          />
-          <div className="flex justify-end">
+          <div className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white p-2 focus-within:ring-2 focus-within:ring-[#46A8CC]">
+            <textarea
+              ref={newCommentRef}
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Add a comment..."
+              className="h-[20px] min-h-0 flex-1 resize-none overflow-hidden border-0 bg-transparent p-0 text-[12px] leading-5 focus:outline-none"
+              rows={1}
+              disabled={isSubmitting || isLoading}
+            />
             <button
               onClick={handleAddComment}
               disabled={isSubmitting || isLoading || !newComment.trim()}
-              className="px-6 py-2 text-white rounded-lg font-medium disabled:opacity-50"
+              className="rounded-lg px-4 py-2 text-[12px] font-medium text-white disabled:opacity-50"
               style={{ backgroundColor: '#46A8CC' }}
             >
               {isSubmitting ? 'Posting...' : 'Post Comment'}
             </button>
           </div>
         </div>
+      ) : isAuthenticated ? (
+        <div className="mb-4 rounded-lg border border-sky-200 bg-sky-50 p-2 text-[12px] text-slate-700">
+          <div className="flex items-start gap-2">
+            <button
+              type="button"
+              onClick={() => setShowTrustInfoDialog(true)}
+              className="inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-sky-600 text-[11px] font-semibold leading-none text-white"
+              aria-label="Why trusted users only can comment"
+              title="Why trusted users only can comment"
+            >
+              i
+            </button>
+            <div>
+              <p className="m-0 font-medium text-sky-900">You must be a trusted user to comment.</p>
+            </div>
+          </div>
+        </div>
       ) : (
-        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-8 text-sm text-gray-500">
+        <div className="mb-4 rounded-lg border border-gray-200 bg-white p-2 text-[12px] text-gray-500">
           Sign in to join the discussion.
         </div>
       )}
 
+      {showTrustInfoDialog ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/78 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="trusted-comment-dialog-title"
+          onClick={() => setShowTrustInfoDialog(false)}
+        >
+          <div
+            className="relative w-full max-w-lg rounded-[28px] border border-white/10 bg-[linear-gradient(165deg,rgba(17,34,52,0.98),rgba(10,24,38,0.98))] p-4 shadow-[0_28px_80px_rgba(2,8,23,0.55)] md:p-5"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/72">
+                  Commenting Access
+                </p>
+                <h2 id="trusted-comment-dialog-title" className="mt-2 text-xl font-semibold tracking-tight text-white">
+                  Trusted users only
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTrustInfoDialog(false)}
+                className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="rounded-[22px] border border-white/10 bg-slate-950/30 p-4 text-sm leading-6 text-slate-200">
+              <p className="m-0">
+                Someone in the community must vouch for you as a real member of the community
+                before you can comment.
+              </p>
+              <p className="mt-3 mb-0">
+                This helps prevent bots and other anonymous or misleading behavior, and keeps
+                discussion tied to real accountable community members.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {comments.length === 0 ? (
-        <p className="text-gray-500 text-center py-8">No comments yet. Be the first to comment.</p>
+        <p className="py-4 text-center text-[12px] text-gray-500">No comments yet. Be the first to comment.</p>
       ) : (
         comments.map((comment) => (
           <CommentItem
@@ -245,6 +350,7 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
             onDelete={onDeleteComment}
             canDeleteComment={canDeleteComment}
             isAuthenticated={isAuthenticated}
+            canComment={canComment}
             depth={0}
           />
         ))

@@ -142,9 +142,11 @@ export default function ArticleDetailPage() {
 
   // Draft/pending indicator for authors/editors
   const showStatusBanner = article.status !== 'PUBLISHED';
+  const viewerTrustLevel = session?.user?.trust_level || '';
+  const canComment = viewerTrustLevel === 'TRUSTED';
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {/* Status banner for non-published articles */}
       {showStatusBanner && (
         <div className={`rounded-2xl p-3 text-sm font-medium ${
@@ -178,131 +180,114 @@ export default function ArticleDetailPage() {
         )}
       </div>
 
-      <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(143,29,44,0.96),rgba(10,32,51,0.94))] px-6 py-8 text-white shadow-[0_35px_80px_rgba(7,17,26,0.22)] md:px-10 md:py-10">
-        <div className="max-w-4xl">
-          {article.category && (
-            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/72">
-              {article.category.name}
-            </p>
-          )}
-          <h1 className="mt-4 text-4xl font-black leading-[0.95] tracking-[-0.05em] md:text-6xl">
-            {article.title}
-          </h1>
-          {article.excerpt && (
-            <p className="mt-5 max-w-3xl text-base leading-8 text-white/78 md:text-lg">
-              {article.excerpt}
-            </p>
-          )}
-          <div className="mt-6 flex items-center gap-3">
-            <UserAvatar
-              firstName={article.author.firstName}
-              lastName={article.author.lastName}
-              profilePhotoUrl={article.author.profilePhotoUrl}
-              trustLevel={article.author.trustLevel}
-              className="h-11 w-11"
-              initialsClassName="bg-white/12 text-sm text-white/78"
-            />
-            <div>
-              <Link
-                href={`/profile/${article.author.id}`}
-                className="text-sm font-semibold text-white transition-colors hover:text-cyan-200"
-              >
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(300px,1fr)] xl:items-start">
+        <div className="min-w-0 space-y-0.5">
+          <article className="article-card">
+            <div className="article-card-header">
+              <div className="article-card-header-content">
+                <h1 className="article-card-header-title">{article.title}</h1>
+              </div>
+              <div className="article-card-header-actions">
+                <span className="article-card-header-badge">Article</span>
+              </div>
+            </div>
+
+            {article.featuredImageUrl ? (
+              <figure className="article-card-image">
+                <img
+                  src={article.featuredImageUrl}
+                  alt={article.title}
+                  className="article-card-image-element"
+                />
+                <figcaption className="article-card-image-hero-caption">
+                  {article.featuredImageCaption?.trim() ||
+                    'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'}
+                </figcaption>
+              </figure>
+            ) : null}
+
+            <div className="article-card-body">
+              <p className="article-card-date">{publishedDate || 'Not published yet'}</p>
+              <p className="article-card-author">
                 {article.author.firstName} {article.author.lastName}
-              </Link>
-              {publishedDate && <p className="text-xs text-white/60">{publishedDate}</p>}
+              </p>
+              <div
+                className="article-card-content"
+                dangerouslySetInnerHTML={{ __html: article.body }}
+              />
+            </div>
+
+            <div className="article-card-footer">
+              <span>{article.category?.name || 'Local Life'}</span>
+              <div className="article-card-footer-actions">
+                <Link href="/local-life" className="article-card-footer-link">
+                  Back to Local Life
+                </Link>
+              </div>
+            </div>
+          </article>
+
+          {article.status === 'PUBLISHED' && (
+            <div className="w-full overflow-hidden rounded-[28px] border border-white/10 bg-white/82 p-0 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
+              <CommentThread
+                comments={article.comments || []}
+                onAddComment={handleAddComment}
+                onDeleteComment={handleDeleteComment}
+                canDeleteComment={(comment) =>
+                  session?.user?.id === comment.author.id ||
+                  ['EDITOR', 'ADMIN', 'SUPER_ADMIN'].includes(session?.user?.role || '')
+                }
+                isAuthenticated={Boolean(session?.user)}
+                canComment={canComment}
+              />
+            </div>
+          )}
+        </div>
+
+        <aside className="space-y-5 xl:sticky xl:top-6">
+          {article.tags.length > 0 && (
+            <div className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#2c7f9e]">Tags</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {article.tags.map((at) => (
+                  <span
+                    key={at.tag.id}
+                    className="rounded-full bg-slate-950 px-3 py-1 text-xs font-medium text-white"
+                  >
+                    #{at.tag.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-5 text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200">Author</p>
+            <div className="mt-4 flex items-start gap-3">
+              <UserAvatar
+                firstName={article.author.firstName}
+                lastName={article.author.lastName}
+                profilePhotoUrl={article.author.profilePhotoUrl}
+                trustLevel={article.author.trustLevel}
+                className="h-12 w-12"
+                initialsClassName="bg-white/12 text-sm text-white/78"
+              />
+              <div>
+                <Link
+                  href={`/profile/${article.author.id}`}
+                  className="font-semibold text-white transition-colors hover:text-cyan-200"
+                >
+                  {article.author.firstName} {article.author.lastName}
+                </Link>
+                {article.author.bio ? (
+                  <p className="mt-2 text-sm text-white/70">{article.author.bio}</p>
+                ) : (
+                  <p className="mt-2 text-sm text-white/50">No author bio yet.</p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Featured image */}
-      {article.featuredImageUrl && (
-        <figure className="overflow-hidden rounded-[28px] border border-white/10 bg-white/82 shadow-[0_24px_55px_rgba(7,17,26,0.14)]">
-          <img
-            src={article.featuredImageUrl}
-            alt={article.title}
-            className="w-full h-auto"
-          />
-          {article.featuredImageCaption?.trim() ? (
-            <figcaption className="border-t border-slate-200/80 px-5 py-4 text-sm leading-6 text-slate-600 md:px-6">
-              {article.featuredImageCaption.trim()}
-            </figcaption>
-          ) : null}
-        </figure>
-      )}
-
-      {/* Article body */}
-      <section className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
-        <div
-          className="prose prose-lg max-w-none prose-headings:text-slate-950 prose-p:text-slate-700 prose-li:text-slate-700 prose-a:text-[#8f1d2c]"
-          dangerouslySetInnerHTML={{ __html: article.body }}
-        />
-      </section>
-
-      {/* Tags */}
-      {article.tags.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {article.tags.map((at) => (
-            <span
-              key={at.tag.id}
-              className="rounded-full bg-slate-950 px-3 py-1 text-xs font-medium text-white"
-            >
-              #{at.tag.name}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* About the author */}
-      {article.author.bio && (
-        <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-5 text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
-          <h3 className="mb-2 text-sm font-semibold text-cyan-100/70">About the Author</h3>
-          <div className="flex items-start gap-3">
-            <UserAvatar
-              firstName={article.author.firstName}
-              lastName={article.author.lastName}
-              profilePhotoUrl={article.author.profilePhotoUrl}
-              trustLevel={article.author.trustLevel}
-              className="h-12 w-12"
-              initialsClassName="bg-white/12 text-sm text-white/78"
-            />
-            <div>
-              <Link
-                href={`/profile/${article.author.id}`}
-                className="font-semibold text-white transition-colors hover:text-cyan-200"
-              >
-                {article.author.firstName} {article.author.lastName}
-              </Link>
-              <p className="mt-1 text-sm text-white/70">{article.author.bio}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Comments */}
-      {article.status === 'PUBLISHED' && (
-        <div className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
-          <CommentThread
-            comments={article.comments || []}
-            onAddComment={handleAddComment}
-            onDeleteComment={handleDeleteComment}
-            canDeleteComment={(comment) =>
-              session?.user?.id === comment.author.id ||
-              ['EDITOR', 'ADMIN', 'SUPER_ADMIN'].includes(session?.user?.role || '')
-            }
-            isAuthenticated={Boolean(session?.user)}
-          />
-        </div>
-      )}
-
-      {/* Back link */}
-      <div>
-        <Link
-          href="/local-life"
-          className="text-sm font-semibold text-[#8f1d2c] hover:underline"
-        >
-          &larr; Back to Local Life
-        </Link>
+        </aside>
       </div>
     </div>
   );

@@ -71,9 +71,17 @@ export async function POST(request: NextRequest) {
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
+    const userTrustLevel = request.headers.get('x-user-trust-level') || '';
 
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (userTrustLevel !== 'TRUSTED') {
+      return NextResponse.json(
+        { error: 'You must be a trusted user to comment' },
+        { status: 403 }
+      );
     }
 
     if (!checkPermission(userRole, 'comments:create')) {
