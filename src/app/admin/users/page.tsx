@@ -27,13 +27,6 @@ interface User {
   vouchesReceived: number;
 }
 
-interface Stats {
-  totalUsers: number;
-  trustedCount: number;
-  registeredCount: number;
-  suspendedCount: number;
-}
-
 interface Pagination {
   page: number;
   limit: number;
@@ -142,7 +135,6 @@ function MessageUserDialog({
 export default function UsersPage() {
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
-  const [stats, setStats] = useState<Stats | null>(null);
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
     limit: 25,
@@ -193,7 +185,6 @@ export default function UsersPage() {
         const data = await response.json();
         setUsers(data.users);
         setPagination(data.pagination);
-        setStats(data.stats);
       } catch (fetchError: unknown) {
         setError(getErrorMessage(fetchError, 'Failed to fetch users'));
       } finally {
