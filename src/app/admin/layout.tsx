@@ -70,6 +70,12 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             Categories
           </a>
           <a
+            href="/admin/content-architecture"
+            className="block rounded-lg px-3 py-[5px] font-medium text-slate-700 transition hover:bg-white hover:text-[#A51E30]"
+          >
+            Content Architecture
+          </a>
+          <a
             href="/admin/users"
             className="block rounded-lg px-3 py-[5px] font-medium text-slate-700 transition hover:bg-white hover:text-[#A51E30]"
           >

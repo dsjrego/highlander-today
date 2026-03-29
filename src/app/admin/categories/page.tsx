@@ -1,12 +1,21 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { BookOpenText } from 'lucide-react';
 import FormCard, { FormCardActions } from '@/components/shared/FormCard';
+import {
+  CATEGORY_CONTENT_MODELS,
+  CATEGORY_CONTENT_MODEL_LABELS,
+  CategoryContentModel,
+  getCategoryGuidance,
+} from '@/lib/admin-content-reference';
 
 type CategoryRecord = {
   id: string;
   name: string;
   slug: string;
+  contentModel: CategoryContentModel | null;
   parentCategoryId: string | null;
   sortOrder: number;
   isArchived: boolean;
@@ -26,6 +35,7 @@ type EditableCategory = Record<
   {
     name: string;
     slug: string;
+    contentModel: CategoryContentModel | null;
     sortOrder: number;
     isArchived: boolean;
     parentCategoryId: string | null;
@@ -41,9 +51,11 @@ type CategoryEditorRowProps = {
   descendantsById: Map<string, Set<string>>;
   isReordering: string | null;
   isSaving: string | null;
+  isDeleting: string | null;
   updateDraft: (categoryId: string, changes: Partial<EditableCategory[string]>) => void;
   moveCategory: (categoryId: string, direction: 'up' | 'down') => void;
   handleSaveCategory: (categoryId: string) => void;
+  handleDeleteCategory: (category: CategoryRecord) => void;
 };
 
 function slugify(value: string) {
@@ -67,19 +79,22 @@ function CategoryEditorRow({
   descendantsById,
   isReordering,
   isSaving,
+  isDeleting,
   updateDraft,
   moveCategory,
   handleSaveCategory,
+  handleDeleteCategory,
 }: CategoryEditorRowProps) {
   const siblingCategories = sortCategories(
     categories.filter((candidate) => candidate.parentCategoryId === draft.parentCategoryId)
   );
   const siblingIndex = siblingCategories.findIndex((candidate) => candidate.id === category.id);
   const disallowedParentIds = descendantsById.get(category.id) ?? new Set<string>();
+  const guidance = getCategoryGuidance(category.slug, category.parentCategory?.slug, draft.contentModel);
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_200px_120px_auto]">
+    <div className={`rounded-2xl border p-4 ${category.isArchived ? 'border-amber-200 bg-amber-50/60' : 'border-slate-200 bg-white'}`}>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_180px_180px_120px_auto]">
         <input
           type="text"
           value={draft.name}
@@ -112,6 +127,22 @@ function CategoryEditorRow({
                 {candidate.name}
               </option>
             ))}
+        </select>
+        <select
+          value={draft.contentModel ?? ''}
+          onChange={(event) =>
+            updateDraft(category.id, {
+              contentModel: (event.target.value || null) as CategoryContentModel | null,
+            })
+          }
+          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950"
+        >
+          <option value="">No explicit model</option>
+          {CATEGORY_CONTENT_MODELS.map((contentModel) => (
+            <option key={contentModel} value={contentModel}>
+              {CATEGORY_CONTENT_MODEL_LABELS[contentModel]}
+            </option>
+          ))}
         </select>
         <div className="flex gap-2">
           <button
@@ -152,14 +183,39 @@ function CategoryEditorRow({
           {' · '}
           Children: {category._count.childCategories}
         </p>
-        <button
-          type="button"
-          onClick={() => handleSaveCategory(category.id)}
-          disabled={isSaving === category.id}
-          className="btn btn-primary"
-        >
-          {isSaving === category.id ? 'Saving...' : 'Save'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => handleDeleteCategory(category)}
+            disabled={isDeleting === category.id}
+            className="btn btn-danger"
+          >
+            {isDeleting === category.id ? 'Deleting...' : 'Delete'}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSaveCategory(category.id)}
+            disabled={isSaving === category.id}
+            className="btn btn-primary"
+          >
+            {isSaving === category.id ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Section: {guidance.sectionLabel}
+          </span>
+          <span className="rounded-full bg-cyan-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-900">
+            Primary Model: {guidance.modelLabel}
+          </span>
+        </div>
+        <p className="mt-3 text-sm leading-6 text-slate-700">{guidance.summary}</p>
+        {guidance.caution ? (
+          <p className="mt-2 text-xs leading-6 text-[#8f1d2c]">{guidance.caution}</p>
+        ) : null}
       </div>
     </div>
   );
@@ -171,21 +227,29 @@ export default function CategoryManagerPage() {
   const [newCategory, setNewCategory] = useState({
     name: '',
     slug: '',
+    contentModel: '' as '' | CategoryContentModel,
     parentCategoryId: '',
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState<string | null>(null);
   const [isReordering, setIsReordering] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [includeArchived, setIncludeArchived] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  async function loadCategories() {
+  const loadCategories = useCallback(async () => {
     setIsLoading(true);
     setError('');
 
     try {
-      const res = await fetch('/api/admin/categories');
+      const params = new URLSearchParams();
+      if (includeArchived) {
+        params.set('includeArchived', 'true');
+      }
+
+      const res = await fetch(`/api/admin/categories${params.size ? `?${params.toString()}` : ''}`);
       const data = await res.json();
 
       if (!res.ok) {
@@ -202,6 +266,7 @@ export default function CategoryManagerPage() {
             {
               name: category.name,
               slug: category.slug,
+              contentModel: category.contentModel,
               sortOrder: category.sortOrder,
               isArchived: category.isArchived,
               parentCategoryId: category.parentCategoryId,
@@ -214,11 +279,11 @@ export default function CategoryManagerPage() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [includeArchived]);
 
   useEffect(() => {
     loadCategories();
-  }, []);
+  }, [loadCategories]);
 
   const topLevelCategories = useMemo(
     () => sortCategories(categories.filter((category) => category.parentCategoryId === null)),
@@ -263,6 +328,17 @@ export default function CategoryManagerPage() {
     return map;
   }, [categories, childrenByParentId]);
 
+  const newCategoryGuidance = useMemo(() => {
+    const parentSlug =
+      topLevelCategories.find((category) => category.id === newCategory.parentCategoryId)?.slug ?? null;
+
+    return getCategoryGuidance(
+      newCategory.slug || newCategory.name,
+      parentSlug,
+      newCategory.contentModel || null
+    );
+  }, [newCategory.contentModel, newCategory.name, newCategory.parentCategoryId, newCategory.slug, topLevelCategories]);
+
   async function handleCreateCategory(event: React.FormEvent) {
     event.preventDefault();
     setIsCreating(true);
@@ -276,6 +352,7 @@ export default function CategoryManagerPage() {
         body: JSON.stringify({
           name: newCategory.name,
           slug: newCategory.slug || slugify(newCategory.name),
+          contentModel: newCategory.contentModel || null,
           parentCategoryId: newCategory.parentCategoryId || null,
         }),
       });
@@ -287,7 +364,7 @@ export default function CategoryManagerPage() {
       }
 
       setSuccess('Category created');
-      setNewCategory({ name: '', slug: '', parentCategoryId: '' });
+      setNewCategory({ name: '', slug: '', contentModel: '', parentCategoryId: '' });
       await loadCategories();
     } catch {
       setError('Failed to create category');
@@ -378,6 +455,7 @@ export default function CategoryManagerPage() {
         body: JSON.stringify({
           name: draft.name,
           slug: draft.slug || slugify(draft.name),
+          contentModel: draft.contentModel,
           sortOrder: draft.sortOrder,
           isArchived: draft.isArchived,
           parentCategoryId: draft.parentCategoryId,
@@ -399,12 +477,50 @@ export default function CategoryManagerPage() {
     }
   }
 
+  async function handleDeleteCategory(category: CategoryRecord) {
+    const confirmed = window.confirm(
+      `Delete "${category.name}" (${category.slug})? Child categories will be removed with it, and article references will be cleared.`
+    );
+
+    if (!confirmed) return;
+
+    setIsDeleting(category.id);
+    setError('');
+    setSuccess('');
+
+    try {
+      const res = await fetch(`/api/admin/categories/${category.id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Failed to delete category');
+        return;
+      }
+
+      setSuccess(`Deleted category "${category.name}"`);
+      await loadCategories();
+    } catch {
+      setError('Failed to delete category');
+    } finally {
+      setIsDeleting(null);
+    }
+  }
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-4xl font-bold text-[#46A8CC]">Category Management</h1>
         <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-600">
           Maintain the DB-backed category taxonomy, reassign parents, and reorder the hierarchy that powers Local Life and related surfaces.
+        </p>
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
+          Before creating or renaming taxonomy, review the content-model guidance in{' '}
+          <Link href="/admin/content-architecture" className="font-semibold text-[#2c7f9e] hover:text-[#A51E30]">
+            Content Architecture
+          </Link>
+          . Section purpose, subsection meaning, and storage model should stay distinct.
         </p>
       </div>
 
@@ -424,7 +540,7 @@ export default function CategoryManagerPage() {
             </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
             <div>
               <label className="mb-2 block text-sm font-semibold text-slate-700">Name</label>
               <input
@@ -478,6 +594,48 @@ export default function CategoryManagerPage() {
                 ))}
               </select>
             </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">Model type</label>
+              <select
+                value={newCategory.contentModel}
+                onChange={(event) =>
+                  setNewCategory((current) => ({
+                    ...current,
+                    contentModel: event.target.value as '' | CategoryContentModel,
+                  }))
+                }
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950"
+              >
+                <option value="">Select model type</option>
+                {CATEGORY_CONTENT_MODELS.map((contentModel) => (
+                  <option key={contentModel} value={contentModel}>
+                    {CATEGORY_CONTENT_MODEL_LABELS[contentModel]}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-2 text-xs leading-5 text-slate-500">
+                Required for subcategories. Top-level sections can stay unset.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="flex items-center gap-2">
+              <BookOpenText className="h-4 w-4 text-[#2c7f9e]" />
+              <h3 className="text-sm font-semibold text-slate-900">Inline model guidance</h3>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Section: {newCategoryGuidance.sectionLabel}
+              </span>
+              <span className="rounded-full bg-cyan-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-900">
+                Primary Model: {newCategoryGuidance.modelLabel}
+              </span>
+            </div>
+            <p className="mt-3 text-sm leading-7 text-slate-700">{newCategoryGuidance.summary}</p>
+            {newCategoryGuidance.caution ? (
+              <p className="mt-2 text-xs leading-6 text-[#8f1d2c]">{newCategoryGuidance.caution}</p>
+            ) : null}
           </div>
 
           <FormCardActions>
@@ -502,6 +660,36 @@ export default function CategoryManagerPage() {
                   <p className="mt-1 text-sm text-slate-500">
                     Edit any row directly. Parent reassignment is limited to top-level categories and cycle-safe.
                   </p>
+                  <label className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={includeArchived}
+                      onChange={(event) => setIncludeArchived(event.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300"
+                    />
+                    Include archived categories
+                  </label>
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-3">
+                  <div className="rounded-2xl border border-cyan-100 bg-cyan-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-900">Article-first</p>
+                    <p className="mt-2 text-sm leading-6 text-cyan-950">
+                      Use for history, guides, memory, moving-to content, and most Community-oriented informational taxonomy.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-900">Event / Help Wanted / Market</p>
+                    <p className="mt-2 text-sm leading-6 text-emerald-950">
+                      When a category implies a scheduled happening, hiring flow, or seller discovery, the primary model should not be Article.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-900">Architecture rule</p>
+                    <p className="mt-2 text-sm leading-6 text-amber-950">
+                      Section purpose, subsection meaning, and storage model are separate decisions. Keep them distinct while renaming or moving categories.
+                    </p>
+                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -517,9 +705,11 @@ export default function CategoryManagerPage() {
                           descendantsById={descendantsById}
                           isReordering={isReordering}
                           isSaving={isSaving}
+                          isDeleting={isDeleting}
                           updateDraft={updateDraft}
                           moveCategory={moveCategory}
                           handleSaveCategory={handleSaveCategory}
+                          handleDeleteCategory={handleDeleteCategory}
                         />
                       ) : null}
                       {(childrenByParentId[parent.id] || []).map((child) => (
@@ -534,9 +724,11 @@ export default function CategoryManagerPage() {
                               descendantsById={descendantsById}
                               isReordering={isReordering}
                               isSaving={isSaving}
+                              isDeleting={isDeleting}
                               updateDraft={updateDraft}
                               moveCategory={moveCategory}
                               handleSaveCategory={handleSaveCategory}
+                              handleDeleteCategory={handleDeleteCategory}
                             />
                           ) : null}
                         </div>

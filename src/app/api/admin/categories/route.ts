@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 import { z } from 'zod';
+import { CategoryContentModel } from '@prisma/client';
 import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
 
 const CreateCategorySchema = z.object({
   name: z.string().trim().min(1).max(120),
   slug: z.string().trim().min(1).max(120).regex(/^[a-z0-9-]+$/),
+  contentModel: z.nativeEnum(CategoryContentModel).nullable().optional(),
   parentCategoryId: z.string().uuid().nullable().optional(),
   sortOrder: z.number().int().min(0).optional(),
 });
@@ -31,18 +33,20 @@ async function getDefaultCommunityId() {
 export async function GET(request: NextRequest) {
   try {
     const userRole = request.headers.get('x-user-role') || '';
+    const includeArchived = request.nextUrl.searchParams.get('includeArchived') === 'true';
 
     if (!checkPermission(userRole, 'articles:approve')) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     const categories = await db.category.findMany({
-      where: { isArchived: false },
+      where: includeArchived ? undefined : { isArchived: false },
       orderBy: [{ parentCategoryId: 'asc' }, { sortOrder: 'asc' }, { name: 'asc' }],
       select: {
         id: true,
         name: true,
         slug: true,
+        contentModel: true,
         parentCategoryId: true,
         sortOrder: true,
         isArchived: true,
@@ -102,6 +106,13 @@ export async function POST(request: NextRequest) {
       if (!parent) {
         return NextResponse.json({ error: 'Parent category not found' }, { status: 404 });
       }
+
+      if (!validated.contentModel) {
+        return NextResponse.json(
+          { error: 'Subcategories must include a model type' },
+          { status: 400 }
+        );
+      }
     }
 
     const communityId = await getDefaultCommunityId();
@@ -122,6 +133,7 @@ export async function POST(request: NextRequest) {
         communityId,
         name: validated.name,
         slug: validated.slug,
+        contentModel: validated.contentModel ?? null,
         parentCategoryId,
         sortOrder,
       },

@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import InternalPageHeader from '@/components/shared/InternalPageHeader';
 import ArticleCreateAction from '@/components/articles/ArticleCreateAction';
-import { LOCAL_LIFE_CATEGORY_HREF_OVERRIDES } from '@/lib/category-config';
+import { getCategoryHref } from '@/lib/category-config';
 import { getArticleUiImageUrl } from '@/lib/article-images';
 
 interface CategoryPill {
@@ -68,7 +68,7 @@ function LocalLifePageContent() {
             id: category.id,
             name: category.name,
             slug: category.slug,
-            href: LOCAL_LIFE_CATEGORY_HREF_OVERRIDES[category.slug],
+            href: getCategoryHref(category.slug, 'local-life'),
           }))
         );
       } catch (err) {

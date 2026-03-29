@@ -1,72 +1,30 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { getAboutNavItems } from '@/lib/about';
-import { LOCAL_LIFE_CATEGORY_HREF_OVERRIDES } from '@/lib/category-config';
-import { SUPPORT_NAV_ITEMS } from '@/lib/support';
-
-// -------------------------------------------------------------------
-// NAV SECTION DATA
-// These labels + slugs mirror the Category table rows seeded in the DB.
-// When wiring to real data, replace this with a server-fetched prop or
-// a client-side SWR/fetch from /api/categories.
-// -------------------------------------------------------------------
+import { getCategoryHref } from '@/lib/category-config';
 
 export interface NavSubcategory {
   label: string;
-  slug: string;         // matches Category.slug in DB
+  slug: string;
   href?: string;
 }
 
 export interface NavSection {
   label: string;
-  href: string;          // top-level landing page route
-  slug: string;          // matches parent Category.slug in DB
+  href: string;
+  slug: string;
   subcategories: NavSubcategory[];
 }
 
-const LOCAL_LIFE_FALLBACK_SECTION: NavSection = {
-  label: 'Local Life',
-  href: '/local-life',
-  slug: 'local-life',
-  subcategories: [],
+type CategoryNavRecord = {
+  id: string;
+  name: string;
+  slug: string;
+  parentCategoryId: string | null;
+  sortOrder: number;
 };
-
-export const NAV_SECTIONS: NavSection[] = [
-  LOCAL_LIFE_FALLBACK_SECTION,
-  {
-    label: 'Experiences',
-    href: '/experiences',
-    slug: 'experiences',
-    subcategories: [
-      { label: 'Events',                  slug: 'events', href: '/events' },
-      { label: 'Outdoor Recreation',      slug: 'outdoor-recreation' },
-      { label: 'Sports & Activities',     slug: 'sports-activities' },
-      { label: 'Classes & Workshops',     slug: 'classes-workshops' },
-      { label: 'Tours & Attractions',     slug: 'tours-attractions' },
-      { label: 'Rentals & Getaways',      slug: 'rentals-getaways' },
-      { label: 'Entertainment & Nightlife', slug: 'entertainment-nightlife' },
-      { label: 'Seasonal Activities',     slug: 'seasonal' },
-    ],
-  },
-];
-
-const SUPPORT_SECTION: NavSection = {
-  label: 'Support',
-  href: '/support',
-  slug: 'support',
-  subcategories: SUPPORT_NAV_ITEMS.map((item) => ({
-    label: item.label,
-    slug: item.href.replace('/support/', '') || 'support',
-    href: item.href,
-  })),
-};
-
-// -------------------------------------------------------------------
-// DROPDOWN COMPONENT
-// -------------------------------------------------------------------
 
 function NavDropdown({ section }: { section: NavSection }) {
   const [open, setOpen] = useState(false);
@@ -104,7 +62,7 @@ function NavDropdown({ section }: { section: NavSection }) {
       <div className="flex items-stretch overflow-hidden rounded-full border border-white/10 bg-white/[0.06] text-sm font-semibold text-cyan-300 transition hover:border-cyan-300/25 hover:bg-white/[0.11] hover:text-white">
         <Link
           href={section.href}
-          className="px-4 py-2 transition hover:bg-white/[0.05]"
+          className="px-4 py-2 text-cyan-300 transition hover:bg-white/[0.05] hover:text-white"
           onClick={() => setOpen(false)}
         >
           {section.label}
@@ -151,93 +109,78 @@ function NavDropdown({ section }: { section: NavSection }) {
   );
 }
 
-// -------------------------------------------------------------------
-// MAIN NAVIGATION BAR
-// -------------------------------------------------------------------
+function NavLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-cyan-300 transition hover:border-cyan-300/25 hover:bg-white/[0.11] hover:text-white"
+    >
+      {label}
+    </Link>
+  );
+}
 
 export default function NavigationBar() {
-  const { data: session } = useSession();
-  const userRole = session?.user?.role;
-  const isSuperAdmin = userRole === 'SUPER_ADMIN';
-  const [localLifeSection, setLocalLifeSection] = useState<NavSection>(LOCAL_LIFE_FALLBACK_SECTION);
+  useSession();
+  const [categories, setCategories] = useState<CategoryNavRecord[]>([]);
 
   useEffect(() => {
-    async function fetchLocalLifeCategories() {
+    async function fetchCategories() {
       try {
-        const res = await fetch('/api/categories?parent=local-life');
+        const res = await fetch('/api/categories');
         if (!res.ok) return;
 
         const data = await res.json();
-        setLocalLifeSection({
-          label: 'Local Life',
-          href: '/local-life',
-          slug: 'local-life',
-          subcategories: (data.categories || []).map((category: { name: string; slug: string }) => ({
-            label: category.name,
-            slug: category.slug,
-            href: LOCAL_LIFE_CATEGORY_HREF_OVERRIDES[category.slug],
-          })),
-        });
+        setCategories(data.categories || []);
       } catch (err) {
-        console.error('Failed to fetch Local Life navigation categories:', err);
+        console.error('Failed to fetch navigation categories:', err);
       }
     }
 
-    fetchLocalLifeCategories();
+    fetchCategories();
   }, []);
 
-  const aboutSection: NavSection = {
-    label: 'About',
-    href: '/about',
-    slug: 'about',
-    subcategories: getAboutNavItems(isSuperAdmin).map((item) => ({
-      label: item.label,
-      slug: item.href.replace('/about/', '') || 'about',
-      href: item.href,
-    })),
-  };
+  const dynamicSections = useMemo(() => {
+    const topLevelCategories = [...categories]
+      .filter((category) => category.parentCategoryId === null)
+      .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+
+    return topLevelCategories.map((topLevelCategory) => {
+      const children = categories
+        .filter((category) => category.parentCategoryId === topLevelCategory.id)
+        .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+
+      return {
+        label: topLevelCategory.name,
+        href: getCategoryHref(topLevelCategory.slug),
+        slug: topLevelCategory.slug,
+        subcategories: children.map((child) => ({
+          label: child.name,
+          slug: child.slug,
+          href: getCategoryHref(child.slug, topLevelCategory.slug),
+        })),
+      } satisfies NavSection;
+    });
+  }, [categories]);
 
   return (
     <nav>
       <div className="overflow-visible">
         <div className="flex flex-wrap items-center gap-2">
-        <Link
-          href="/"
-          className="rounded-full border border-white/25 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-cyan-300 transition hover:bg-white/[0.12] hover:text-white"
-        >
-          Home
-        </Link>
-
-        {[localLifeSection, ...NAV_SECTIONS.filter((section) => section.slug !== 'local-life')].map((section) => (
-          <NavDropdown key={section.slug} section={section} />
-        ))}
-
-        <Link
-          href="/marketplace"
-          className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-cyan-300 transition hover:border-cyan-300/25 hover:bg-white/[0.11] hover:text-white"
-        >
-          Market
-        </Link>
-
-        <Link
-          href="/help-wanted"
-          className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-cyan-300 transition hover:border-cyan-300/25 hover:bg-white/[0.11] hover:text-white"
-        >
-          Help Wanted
-        </Link>
-
-        <NavDropdown section={aboutSection} />
-
-        {isSuperAdmin && <NavDropdown section={SUPPORT_SECTION} />}
-
-        {isSuperAdmin && (
           <Link
-            href="/arcade"
-            className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-cyan-300 transition hover:border-cyan-300/25 hover:bg-white/[0.11] hover:text-white"
+            href="/"
+            className="rounded-full border border-white/25 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-cyan-300 transition hover:bg-white/[0.12] hover:text-white"
           >
-            Arcade
+            Home
           </Link>
-        )}
+
+          {dynamicSections.map((section) =>
+            section.subcategories.length > 0 ? (
+              <NavDropdown key={section.slug} section={section} />
+            ) : (
+              <NavLink key={section.slug} href={section.href} label={section.label} />
+            )
+          )}
         </div>
       </div>
     </nav>

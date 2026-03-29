@@ -74,6 +74,13 @@ export default function AdminDashboard() {
             <p className="font-semibold text-[#46A8CC]">Homepage Curation</p>
             <p className="text-sm text-gray-600">Reorder sections, toggle visibility, and pin homepage content</p>
           </a>
+          <a
+            href="/admin/content-architecture"
+            className="p-4 border border-gray-300 rounded-lg hover:border-[#46A8CC] hover:bg-blue-50 transition"
+          >
+            <p className="font-semibold text-[#46A8CC]">Content Architecture</p>
+            <p className="text-sm text-gray-600">Reference section purpose, model boundaries, and category guidance before editing taxonomy</p>
+          </a>
         </div>
       </div>
 

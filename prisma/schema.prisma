@@ -270,6 +270,7 @@ model Category {
   communityId      String? @db.Uuid
   name             String
   slug             String
+  contentModel     CategoryContentModel?
   parentCategoryId String? @db.Uuid
   sortOrder        Int     @default(0)
   isArchived       Boolean @default(false)
@@ -283,6 +284,15 @@ model Category {
   @@index([communityId])
   @@index([parentCategoryId])
   @@map("categories")
+}
+
+enum CategoryContentModel {
+  ARTICLE
+  EVENT
+  HELP_WANTED
+  MARKETPLACE
+  MIXED
+  PLANNED
 }
 
 model Comment {

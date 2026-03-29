@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 import { z } from 'zod';
+import { CategoryContentModel } from '@prisma/client';
 import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
 
 const UpdateCategorySchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
   slug: z.string().trim().min(1).max(120).regex(/^[a-z0-9-]+$/).optional(),
+  contentModel: z.nativeEnum(CategoryContentModel).nullable().optional(),
   parentCategoryId: z.string().uuid().nullable().optional(),
   sortOrder: z.number().int().min(0).optional(),
   isArchived: z.boolean().optional(),
@@ -33,7 +35,7 @@ export async function PATCH(
 
     const existingCategory = await db.category.findUnique({
       where: { id: params.id },
-      select: { id: true, slug: true },
+      select: { id: true, slug: true, parentCategoryId: true, contentModel: true },
     });
 
     if (!existingCategory) {
@@ -91,11 +93,24 @@ export async function PATCH(
       }
     }
 
+    const nextParentCategoryId =
+      validated.parentCategoryId !== undefined ? validated.parentCategoryId : existingCategory.parentCategoryId;
+    const nextContentModel =
+      validated.contentModel !== undefined ? validated.contentModel : existingCategory.contentModel;
+
+    if (nextParentCategoryId && !nextContentModel) {
+      return NextResponse.json(
+        { error: 'Subcategories must include a model type' },
+        { status: 400 }
+      );
+    }
+
     const category = await db.category.update({
       where: { id: params.id },
       data: {
         ...(validated.name !== undefined ? { name: validated.name } : {}),
         ...(validated.slug !== undefined ? { slug: validated.slug } : {}),
+        ...(validated.contentModel !== undefined ? { contentModel: validated.contentModel } : {}),
         ...(validated.parentCategoryId !== undefined ? { parentCategoryId: validated.parentCategoryId } : {}),
         ...(validated.sortOrder !== undefined ? { sortOrder: validated.sortOrder } : {}),
         ...(validated.isArchived !== undefined ? { isArchived: validated.isArchived } : {}),
@@ -112,5 +127,41 @@ export async function PATCH(
 
     console.error('Error updating category:', error);
     return NextResponse.json({ error: 'Failed to update category' }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const userRole = request.headers.get('x-user-role') || '';
+
+    if (!checkPermission(userRole, 'articles:approve')) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
+
+    const existingCategory = await db.category.findUnique({
+      where: { id: params.id },
+      select: { id: true, name: true, slug: true },
+    });
+
+    if (!existingCategory) {
+      return NextResponse.json({ error: 'Category not found' }, { status: 404 });
+    }
+
+    await db.category.delete({
+      where: { id: params.id },
+    });
+
+    revalidateTag('categories');
+
+    return NextResponse.json({
+      success: true,
+      deletedCategory: existingCategory,
+    });
+  } catch (error) {
+    console.error('Error deleting category:', error);
+    return NextResponse.json({ error: 'Failed to delete category' }, { status: 500 });
   }
 }

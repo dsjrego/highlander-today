@@ -123,7 +123,7 @@ export default async function RootLayout({
                   <h3 className="mb-3 text-xl font-bold text-white">Quick Links</h3>
                   <ul className="space-y-2 text-sm text-cyan-200">
                     <li><Link href="/local-life" className="hover:text-white">Local Life</Link></li>
-                    <li><Link href="/experiences" className="hover:text-white">Experiences</Link></li>
+                    <li><Link href="/experiences" className="hover:text-white">Community</Link></li>
                     <li><Link href="/marketplace" className="hover:text-white">Market</Link></li>
                     <li><Link href="/help-wanted" className="hover:text-white">Help Wanted</Link></li>
                     <li><Link href="/about" className="hover:text-white">About</Link></li>
