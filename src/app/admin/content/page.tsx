@@ -1,7 +1,9 @@
+/* eslint-disable @next/next/no-img-element */
+
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import ArticlePreview from '@/components/articles/ArticlePreview';
 
 interface Author {
@@ -95,11 +97,7 @@ export default function ContentApprovalPage() {
   const [rejectionReason, setRejectionReason] = useState('');
   const [rejectTarget, setRejectTarget] = useState<{ type: 'article' | 'event' | 'helpWanted'; id: string } | null>(null);
 
-  useEffect(() => {
-    fetchPendingContent();
-  }, []);
-
-  async function fetchPendingContent() {
+  const fetchPendingContent = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await fetch('/api/admin/content');
@@ -108,14 +106,18 @@ export default function ContentApprovalPage() {
         setArticles(data.articles || []);
         setEvents(data.events || []);
         setHelpWantedPosts(data.helpWantedPosts || []);
-        setStats(data.stats || stats);
+        setStats((prev) => data.stats || prev);
       }
     } catch (err) {
       console.error('Failed to fetch pending content:', err);
     } finally {
       setIsLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    void fetchPendingContent();
+  }, [fetchPendingContent]);
 
   function updateStatsAfterDecision(type: 'article' | 'event' | 'helpWanted', approved: boolean) {
     setStats((prev) => ({
