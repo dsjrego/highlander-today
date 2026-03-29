@@ -35,6 +35,7 @@ const getCachedCategories = unstable_cache(
         name: true,
         slug: true,
         contentModel: true,
+        minTrustLevel: true,
         parentCategoryId: true,
         sortOrder: true,
         parentCategory: {

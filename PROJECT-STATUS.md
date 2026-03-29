@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-03-29 (session 97)
+> **Last updated:** 2026-03-29 (session 100)
 > **Purpose:** Fast-start context for the next session. Read this file first, then open only the supporting docs relevant to the active slice.
 > **Detailed reference:** `PROJECT-STATUS-REFERENCE.md` preserves the fuller implementation ledger, rollout history, verification notes, deployment runbook, and infrastructure rationale that used to live here.
 
@@ -19,6 +19,12 @@
 > **Session 96 note:** the dedicated `/profile/edit` route was removed and its contents were folded into the owner-only `Account Settings` tab on `/profile/[id]`. That tab now appears first for the profile owner, the owner no longer sees the `About` tab, the public-facing content tabs were simplified to `Articles` and `Events`, locked identity fields now open a no-JS dialog-style popover instead of showing the old warning pill, the directory-listing control now sits at the top of the settings form, and the profile header metadata now reads `[community name] • Last seen: <date>` using the latest `LoginEvent`.
 >
 > **Session 97 note:** the public navigation bar now treats top-level categories with children as dropdown triggers only rather than clickable destinations, so users must choose a child category instead of landing on filler parent pages. The admin sidebar also now alternates row background tones to reduce visual monotony while preserving the compact operational layout.
+>
+> **Session 98 note:** invitation and outbound email planning is now documented in `INVITATION-EMAIL-PLAN.md`, covering the proposed trusted-member email invite flow, quota-aware outbound send queue, provider direction, and post-registration in-system vouch prompts.
+>
+> **Session 99 note:** outbound email foundations are now wired for Brevo via env-driven config, a reusable `src/lib/email.ts` transactional sender, `.env.example` / deployment-env validation coverage, and a protected admin test route at `/api/admin/email/test` for controlled verification before building invitations on top.
+>
+> **Session 100 note:** live Brevo testing confirmed the app can send transactional email, but first-send inbox placement hit Gmail spam. Treat outbound email as supporting infrastructure rather than the primary trust bootstrap. The current product conclusion is to prioritize in-product trust mechanisms like visible new-member presence and direct vouch-request flows over email-dependent onboarding.
 
 ## Product Snapshot
 
@@ -208,6 +214,7 @@ Use these instead of growing this file again:
 - `COMMUNITY-SECTION-PLAN.md` — planned `Community` top-level section
 - `CONTENT-ANALYTICS-PLAN.md` — first-party analytics/reaction plan
 - `DIRECTORY-PLAN.md` — organization/directory direction
+- `INVITATION-EMAIL-PLAN.md` — invitation system and outbound transactional email direction
 - `LOCAL-CREATOR-NETWORK-PLAN.md` — creator/show/episode direction
 - `OBITUARIES-PLAN.md` — obituary/memorial system direction
 - `MONETIZATION-PLAN.md` — funding/revenue sequencing

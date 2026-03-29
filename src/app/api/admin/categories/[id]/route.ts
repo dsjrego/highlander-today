@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 import { z } from 'zod';
-import { CategoryContentModel } from '@prisma/client';
+import { CategoryContentModel, TrustLevel } from '@prisma/client';
 import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
 
@@ -9,6 +9,7 @@ const UpdateCategorySchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
   slug: z.string().trim().min(1).max(120).regex(/^[a-z0-9-]+$/).optional(),
   contentModel: z.nativeEnum(CategoryContentModel).nullable().optional(),
+  minTrustLevel: z.nativeEnum(TrustLevel).optional(),
   parentCategoryId: z.string().uuid().nullable().optional(),
   sortOrder: z.number().int().min(0).optional(),
   isArchived: z.boolean().optional(),
@@ -35,7 +36,7 @@ export async function PATCH(
 
     const existingCategory = await db.category.findUnique({
       where: { id: params.id },
-      select: { id: true, slug: true, parentCategoryId: true, contentModel: true },
+      select: { id: true, slug: true, parentCategoryId: true, contentModel: true, minTrustLevel: true },
     });
 
     if (!existingCategory) {
@@ -111,6 +112,7 @@ export async function PATCH(
         ...(validated.name !== undefined ? { name: validated.name } : {}),
         ...(validated.slug !== undefined ? { slug: validated.slug } : {}),
         ...(validated.contentModel !== undefined ? { contentModel: validated.contentModel } : {}),
+        ...(validated.minTrustLevel !== undefined ? { minTrustLevel: validated.minTrustLevel } : {}),
         ...(validated.parentCategoryId !== undefined ? { parentCategoryId: validated.parentCategoryId } : {}),
         ...(validated.sortOrder !== undefined ? { sortOrder: validated.sortOrder } : {}),
         ...(validated.isArchived !== undefined ? { isArchived: validated.isArchived } : {}),

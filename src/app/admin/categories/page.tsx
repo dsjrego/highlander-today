@@ -9,11 +9,22 @@ import {
   CategoryContentModel,
 } from '@/lib/admin-content-reference';
 
+const CATEGORY_TRUST_LEVELS = ['ANONYMOUS', 'REGISTERED', 'TRUSTED', 'SUSPENDED'] as const;
+type CategoryTrustLevel = (typeof CATEGORY_TRUST_LEVELS)[number];
+
+const CATEGORY_TRUST_LEVEL_LABELS: Record<CategoryTrustLevel, string> = {
+  ANONYMOUS: 'Public',
+  REGISTERED: 'Registered',
+  TRUSTED: 'Trusted+',
+  SUSPENDED: 'Suspended only',
+};
+
 type CategoryRecord = {
   id: string;
   name: string;
   slug: string;
   contentModel: CategoryContentModel | null;
+  minTrustLevel: CategoryTrustLevel;
   parentCategoryId: string | null;
   sortOrder: number;
   isArchived: boolean;
@@ -34,6 +45,7 @@ type EditableCategory = Record<
     name: string;
     slug: string;
     contentModel: CategoryContentModel | null;
+    minTrustLevel: CategoryTrustLevel;
     sortOrder: number;
     isArchived: boolean;
     parentCategoryId: string | null;
@@ -169,6 +181,23 @@ function CategoryEditorRow({
           ))}
         </select>
       </td>
+      <td className="admin-list-cell">
+        <select
+          value={draft.minTrustLevel}
+          onChange={(event) =>
+            updateDraft(category.id, {
+              minTrustLevel: event.target.value as CategoryTrustLevel,
+            })
+          }
+          className="admin-list-cell-select min-w-[10rem]"
+        >
+          {CATEGORY_TRUST_LEVELS.map((trustLevel) => (
+            <option key={trustLevel} value={trustLevel}>
+              {CATEGORY_TRUST_LEVEL_LABELS[trustLevel]}
+            </option>
+          ))}
+        </select>
+      </td>
       <td className="admin-list-cell">{draft.sortOrder}</td>
       <td className="admin-list-cell">
         <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
@@ -238,6 +267,7 @@ export default function CategoryManagerPage() {
     name: '',
     slug: '',
     contentModel: '' as '' | CategoryContentModel,
+    minTrustLevel: 'ANONYMOUS' as CategoryTrustLevel,
     parentCategoryId: '',
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -289,6 +319,7 @@ export default function CategoryManagerPage() {
               name: category.name,
               slug: category.slug,
               contentModel: category.contentModel,
+              minTrustLevel: category.minTrustLevel,
               sortOrder: category.sortOrder,
               isArchived: category.isArchived,
               parentCategoryId: category.parentCategoryId,
@@ -386,6 +417,7 @@ export default function CategoryManagerPage() {
           name: newCategory.name,
           slug: newCategory.slug || slugify(newCategory.name),
           contentModel: newCategory.contentModel || null,
+          minTrustLevel: newCategory.minTrustLevel,
           parentCategoryId: newCategory.parentCategoryId || null,
         }),
       });
@@ -397,7 +429,13 @@ export default function CategoryManagerPage() {
       }
 
       setSuccess('Menu item created');
-      setNewCategory({ name: '', slug: '', contentModel: '', parentCategoryId: '' });
+      setNewCategory({
+        name: '',
+        slug: '',
+        contentModel: '',
+        minTrustLevel: 'ANONYMOUS',
+        parentCategoryId: '',
+      });
       await loadCategories();
     } catch {
       setError('Failed to create menu item');
@@ -495,6 +533,7 @@ export default function CategoryManagerPage() {
           name: draft.name,
           slug: draft.slug || slugify(draft.name),
           contentModel: draft.contentModel,
+          minTrustLevel: draft.minTrustLevel,
           sortOrder: draft.sortOrder,
           isArchived: draft.isArchived,
           parentCategoryId: draft.parentCategoryId,
@@ -618,6 +657,7 @@ export default function CategoryManagerPage() {
                                 <th className="admin-list-header-cell">Slug</th>
                                 <th className="admin-list-header-cell">Parent</th>
                                 <th className="admin-list-header-cell">Model</th>
+                                <th className="admin-list-header-cell">Min Trust</th>
                                 <th className="admin-list-header-cell">Order</th>
                                 <th className="admin-list-header-cell">Status</th>
                                 <th className="admin-list-header-cell">Usage</th>
@@ -651,7 +691,7 @@ export default function CategoryManagerPage() {
                                 )
                               ) : (
                                 <tr className="admin-list-row">
-                                  <td className="admin-list-empty" colSpan={8}>
+                                  <td className="admin-list-empty" colSpan={9}>
                                     No categories found.
                                   </td>
                                 </tr>
@@ -670,7 +710,7 @@ export default function CategoryManagerPage() {
                       <h2 className="text-xl font-bold text-slate-950">Add Menu Item</h2>
                     </div>
 
-                    <div className="grid gap-4 md:grid-cols-4">
+                    <div className="grid gap-4 md:grid-cols-5">
                       <div>
                         <label className="mb-2 block text-sm font-semibold text-slate-700">Name</label>
                         <input
@@ -745,6 +785,28 @@ export default function CategoryManagerPage() {
                         </select>
                         <p className="mt-2 text-xs leading-5 text-slate-500">
                           Required for subcategories. Top-level sections can stay unset.
+                        </p>
+                      </div>
+                      <div>
+                        <label className="mb-2 block text-sm font-semibold text-slate-700">Min trust</label>
+                        <select
+                          value={newCategory.minTrustLevel}
+                          onChange={(event) =>
+                            setNewCategory((current) => ({
+                              ...current,
+                              minTrustLevel: event.target.value as CategoryTrustLevel,
+                            }))
+                          }
+                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950"
+                        >
+                          {CATEGORY_TRUST_LEVELS.map((trustLevel) => (
+                            <option key={trustLevel} value={trustLevel}>
+                              {CATEGORY_TRUST_LEVEL_LABELS[trustLevel]}
+                            </option>
+                          ))}
+                        </select>
+                        <p className="mt-2 text-xs leading-5 text-slate-500">
+                          Default is public. Raise this for trusted-only sections like Help Us Grow.
                         </p>
                       </div>
                     </div>

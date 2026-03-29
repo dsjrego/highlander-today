@@ -201,6 +201,16 @@ function validate(options: Options, env: Record<string, string>): ValidationResu
     checks.push('R2 upload variables are present');
   }
 
+  const emailKeys = ['BREVO_API_KEY', 'EMAIL_FROM', 'EMAIL_FROM_NAME'] as const;
+  const missingEmailKeys = emailKeys.filter((key) => !env[key]?.trim());
+  if (missingEmailKeys.length > 0) {
+    warnings.push(
+      `Outbound email variables missing: ${missingEmailKeys.join(', ')}; invitation and transactional email sending will be disabled`,
+    );
+  } else {
+    checks.push('Outbound email variables are present');
+  }
+
   return {
     ok: errors.length === 0,
     errors,

@@ -22,9 +22,32 @@ type CategoryNavRecord = {
   id: string;
   name: string;
   slug: string;
+  minTrustLevel: 'ANONYMOUS' | 'REGISTERED' | 'TRUSTED' | 'SUSPENDED';
   parentCategoryId: string | null;
   sortOrder: number;
 };
+
+const TRUST_LEVEL_RANK: Record<CategoryNavRecord['minTrustLevel'], number> = {
+  ANONYMOUS: 0,
+  REGISTERED: 1,
+  TRUSTED: 2,
+  SUSPENDED: 3,
+};
+
+function getViewerTrustRank(
+  trustLevel: CategoryNavRecord['minTrustLevel'] | undefined,
+  role: string | undefined
+) {
+  if (role && ['CONTRIBUTOR', 'STAFF_WRITER', 'EDITOR', 'ADMIN', 'SUPER_ADMIN'].includes(role)) {
+    return TRUST_LEVEL_RANK.TRUSTED;
+  }
+
+  if (!trustLevel) {
+    return TRUST_LEVEL_RANK.ANONYMOUS;
+  }
+
+  return TRUST_LEVEL_RANK[trustLevel];
+}
 
 function NavDropdown({ section }: { section: NavSection }) {
   const [open, setOpen] = useState(false);
@@ -113,7 +136,7 @@ function NavLink({ href, label }: { href: string; label: string }) {
 }
 
 export default function NavigationBar() {
-  useSession();
+  const { data: session } = useSession();
   const [categories, setCategories] = useState<CategoryNavRecord[]>([]);
 
   useEffect(() => {
@@ -133,13 +156,25 @@ export default function NavigationBar() {
   }, []);
 
   const dynamicSections = useMemo(() => {
+    const viewerTrustRank = getViewerTrustRank(
+      session?.user?.trust_level as CategoryNavRecord['minTrustLevel'] | undefined,
+      session?.user?.role
+    );
     const topLevelCategories = [...categories]
-      .filter((category) => category.parentCategoryId === null)
+      .filter(
+        (category) =>
+          category.parentCategoryId === null &&
+          viewerTrustRank >= TRUST_LEVEL_RANK[category.minTrustLevel]
+      )
       .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
 
     return topLevelCategories.map((topLevelCategory) => {
       const children = categories
-        .filter((category) => category.parentCategoryId === topLevelCategory.id)
+        .filter(
+          (category) =>
+            category.parentCategoryId === topLevelCategory.id &&
+            viewerTrustRank >= TRUST_LEVEL_RANK[category.minTrustLevel]
+        )
         .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
 
       return {
@@ -153,7 +188,7 @@ export default function NavigationBar() {
         })),
       } satisfies NavSection;
     });
-  }, [categories]);
+  }, [categories, session?.user?.role, session?.user?.trust_level]);
 
   return (
     <nav>

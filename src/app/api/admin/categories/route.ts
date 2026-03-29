@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 import { z } from 'zod';
-import { CategoryContentModel } from '@prisma/client';
+import { CategoryContentModel, TrustLevel } from '@prisma/client';
 import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
 
@@ -9,6 +9,7 @@ const CreateCategorySchema = z.object({
   name: z.string().trim().min(1).max(120),
   slug: z.string().trim().min(1).max(120).regex(/^[a-z0-9-]+$/),
   contentModel: z.nativeEnum(CategoryContentModel).nullable().optional(),
+  minTrustLevel: z.nativeEnum(TrustLevel).optional(),
   parentCategoryId: z.string().uuid().nullable().optional(),
   sortOrder: z.number().int().min(0).optional(),
 });
@@ -47,6 +48,7 @@ export async function GET(request: NextRequest) {
         name: true,
         slug: true,
         contentModel: true,
+        minTrustLevel: true,
         parentCategoryId: true,
         sortOrder: true,
         isArchived: true,
@@ -134,6 +136,7 @@ export async function POST(request: NextRequest) {
         name: validated.name,
         slug: validated.slug,
         contentModel: validated.contentModel ?? null,
+        minTrustLevel: validated.minTrustLevel ?? TrustLevel.ANONYMOUS,
         parentCategoryId,
         sortOrder,
       },

@@ -462,6 +462,7 @@ model Category {
   name             String
   slug             String
   contentModel     CategoryContentModel?
+  minTrustLevel    TrustLevel            @default(ANONYMOUS)
   parentCategoryId String?               @db.Uuid
   sortOrder        Int                   @default(0)
   isArchived       Boolean               @default(false)
