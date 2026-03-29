@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-03-29 (session 94)
+> **Last updated:** 2026-03-29 (session 96)
 > **Purpose:** Fast-start context for the next session. Read this file first, then open only the supporting docs relevant to the active slice.
 > **Detailed reference:** `PROJECT-STATUS-REFERENCE.md` preserves the fuller implementation ledger, rollout history, verification notes, deployment runbook, and infrastructure rationale that used to live here.
 
@@ -13,6 +13,10 @@
 > **Session 93 note:** the admin navigation order was tightened again so `Homepage Curation` now sits directly under `Dashboard` and `Users` sits directly under `Navigation`. `/admin/users` was also rebuilt into the same compact `admin-card` / `admin-list` paradigm used by `Articles`, `Events`, `Navigation`, and `Organizations`, now showing `Email`, real `Last Seen` from latest `LoginEvent`, `Vouched By` names, color-coded inline actions with icons, and an inline `Message` dialog that sends through `/api/messages`.
 >
 > **Session 94 note:** `/directory` people rows now expose a client-side `Message` action in the contact column for authenticated viewers, opening the same inline direct-message dialog pattern used on `/admin/users` and sending through `/api/messages` before routing into the conversation thread.
+>
+> **Session 95 note:** a Vercel deployment failure was traced to an unused `stats` state declaration in `/admin/users`; that dead state path was removed so `npm run typecheck` and `next build` pass again. Repo warning cleanup also tightened the `/admin/content` fetch effect dependency and intentionally suppressed `@next/next/no-img-element` in the current raw-image preview/upload surfaces so `npm run lint` is clean again.
+>
+> **Session 96 note:** the dedicated `/profile/edit` route was removed and its contents were folded into the owner-only `Account Settings` tab on `/profile/[id]`. That tab now appears first for the profile owner, the owner no longer sees the `About` tab, the public-facing content tabs were simplified to `Articles` and `Events`, locked identity fields now open a no-JS dialog-style popover instead of showing the old warning pill, the directory-listing control now sits at the top of the settings form, and the profile header metadata now reads `[community name] • Last seen: <date>` using the latest `LoginEvent`.
 
 ## Product Snapshot
 
@@ -64,8 +68,10 @@ Current public/admin direction highlights:
 - `/admin/users` now matches that same compact admin pattern: dense table layout, email column, real last-seen timestamps from login activity, voucher names, colored/iconized manage actions, and inline admin messaging.
 - The admin sidebar now uses shared nav-item classes/structure to keep menu entries visually consistent, and `Events` is a top-level admin item alongside `Articles`, `Navigation`, and the other operational surfaces.
 - The shared public shell uses the active `Youth Local` direction and the shared `InternalPageHeader` pattern.
+- `/profile/[id]` now uses an owner-first account-settings flow: no separate edit page, owner-only `Account Settings` first, owner-hidden `About`, simplified `Articles` / `Events` tabs, privacy disclaimers on non-public fields, and `Last seen` header metadata sourced from latest `LoginEvent`.
 - `/directory` is now a real read surface rather than a placeholder shell: it queries opted-in people plus approved organizations scoped to the active community, renders a unified sortable list, supports pagination, and treats `Businesses` / `Organizations` as yellow-pages-style type dropdown pills.
 - Directory people rows now support direct messaging from the listing itself for authenticated viewers via the inline message dialog pattern already used in admin users.
+- The repo is back to a clean verification baseline: `npm run lint` and `npm run typecheck` now pass again after removing the dead `/admin/users` state and cleaning the current warning set.
 
 ## Highest-Signal Active Priorities
 

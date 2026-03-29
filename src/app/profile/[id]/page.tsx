@@ -8,8 +8,8 @@ import Link from "next/link";
 import InternalPageHeader from "@/components/shared/InternalPageHeader";
 import PageHeaderAvatarDialog from "@/components/shared/PageHeaderAvatarDialog";
 import StatusMessage from "@/components/shared/StatusMessage";
+import AccountSettingsPanel from "./AccountSettingsPanel";
 import ProfileTabs from "./ProfileTabs";
-import DirectoryOptInCard from "./DirectoryOptInCard";
 import VouchProfileButton from "./VouchProfileButton";
 import VouchSection from "./VouchSection";
 
@@ -41,6 +41,15 @@ async function getUserProfile(id: string) {
           select: { name: true },
         },
       },
+    },
+    loginEvents: {
+      select: {
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 1,
     },
     vouchesReceived: {
       select: { id: true },
@@ -215,9 +224,10 @@ export default async function UserProfilePage({ params, searchParams }: PageProp
   const isOwnProfile = (session?.user as { id?: string } | undefined)?.id === profile.id;
 
   const community = profile.memberships?.[0]?.community?.name ?? null;
+  const lastSeenAt = profile.loginEvents[0]?.createdAt ?? null;
   const headerDescriptionParts = [
-    community ? `Community: ${community}` : null,
-    `Joined ${new Date(profile.createdAt).toLocaleDateString()}`,
+    community,
+    lastSeenAt ? `Last seen: ${new Date(lastSeenAt).toLocaleDateString()}` : null,
   ].filter(Boolean);
   const headerIcon = (
     <PageHeaderAvatarDialog
@@ -232,19 +242,6 @@ export default async function UserProfilePage({ params, searchParams }: PageProp
   );
   const headerActions = (
     <>
-      {isOwnProfile ? (
-        <Link href="/profile/edit" className="page-header-action">
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-            />
-          </svg>
-          Edit Profile
-        </Link>
-      ) : null}
       {!isOwnProfile ? (
         <button type="button" className="page-header-action">
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -285,12 +282,6 @@ export default async function UserProfilePage({ params, searchParams }: PageProp
     "rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(241,245,249,0.94))] p-6 shadow-[0_24px_55px_rgba(15,23,42,0.16)] backdrop-blur md:p-8";
   const statusCardClass =
     "overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(241,245,249,0.94))] shadow-[0_24px_55px_rgba(15,23,42,0.16)] backdrop-blur";
-  const marketplaceItems: ProfileContentCardItem[] = profile.marketplaceListings.map((listing) => ({
-    id: listing.id,
-    title: listing.title,
-    href: `/marketplace/${listing.id}`,
-    meta: timeAgo(new Date(listing.createdAt)),
-  }));
   const experienceItems: ProfileContentCardItem[] = profile.eventsSubmitted.map((event) => ({
     id: event.id,
     title: event.title,
@@ -303,18 +294,6 @@ export default async function UserProfilePage({ params, searchParams }: PageProp
     href: `/local-life/${article.id}`,
     meta: timeAgo(new Date(article.createdAt)),
   }));
-  const helpWantedItems: ProfileContentCardItem[] = profile.helpWantedPosts.map((post) => ({
-    id: post.id,
-    title: post.title,
-    href: `/help-wanted/${post.id}`,
-    meta:
-      post.status === "PUBLISHED"
-        ? `Open • ${timeAgo(new Date(post.createdAt))}`
-        : post.status === "FILLED"
-          ? `Filled • ${timeAgo(new Date(post.createdAt))}`
-          : `Closed • ${timeAgo(new Date(post.createdAt))}`,
-  }));
-
   const aboutTab = (
     <div className="space-y-6">
       {isOwnProfile && !profile.dateOfBirth ? (
@@ -351,45 +330,22 @@ export default async function UserProfilePage({ params, searchParams }: PageProp
     </div>
   );
 
-  const marketplaceTab = (
+  const eventsTab = (
     <section className={tabCardClass}>
       <div className="space-y-6">
         {isOwnProfile ? (
           <ProfileOwnerCard
             isOwnProfile={isOwnProfile}
-            ownerTitle="Manage Marketplace"
-            ownerDescription="For now this mirrors your listings. Later this card can become store and inventory management."
-            emptyMessage="You have no marketplace listings to manage yet."
-            items={marketplaceItems}
-          />
-        ) : (
-          <ProfileContentCard
-            title={`What ${profile.firstName} Is Selling`}
-            description="Browse the marketplace listings currently shown on this member's profile."
-            emptyMessage="No active listings yet."
-            items={marketplaceItems}
-          />
-        )}
-      </div>
-    </section>
-  );
-
-  const experiencesTab = (
-    <section className={tabCardClass}>
-      <div className="space-y-6">
-        {isOwnProfile ? (
-          <ProfileOwnerCard
-            isOwnProfile={isOwnProfile}
-            ownerTitle="Manage Experiences"
-            ownerDescription="For now this mirrors your shared experiences. Later this card can become an experiences management surface."
-            emptyMessage="You have no experiences to manage yet."
+            ownerTitle="Manage Events"
+            ownerDescription="For now this mirrors your published events. Later this card can become an event management surface."
+            emptyMessage="You have no published events yet."
             items={experienceItems}
           />
         ) : (
           <ProfileContentCard
-            title={`${profile.firstName}'s Experiences`}
-            description="Browse the experiences this member has shared."
-            emptyMessage="No approved experiences yet."
+            title={`${profile.firstName}'s Events`}
+            description="Browse the events this member has shared."
+            emptyMessage="No published events yet."
             items={experienceItems}
           />
         )}
@@ -397,46 +353,23 @@ export default async function UserProfilePage({ params, searchParams }: PageProp
     </section>
   );
 
-  const localLifeTab = (
+  const articlesTab = (
     <section className={tabCardClass}>
       <div className="space-y-6">
         {isOwnProfile ? (
           <ProfileOwnerCard
             isOwnProfile={isOwnProfile}
-            ownerTitle="Manage Local Life"
+            ownerTitle="Manage Articles"
             ownerDescription="For now this mirrors your published Local Life posts. Later this card can become an editing and management surface."
-            emptyMessage="You have no Local Life posts to manage yet."
+            emptyMessage="You have no articles to manage yet."
             items={localLifeItems}
           />
         ) : (
           <ProfileContentCard
-            title={`${profile.firstName}'s Local Life`}
-            description="Browse the Local Life posts this member has published."
-            emptyMessage="No published Local Life articles yet."
+            title={`${profile.firstName}'s Articles`}
+            description="Browse the articles this member has published."
+            emptyMessage="No published articles yet."
             items={localLifeItems}
-          />
-        )}
-      </div>
-    </section>
-  );
-
-  const helpWantedTab = (
-    <section className={tabCardClass}>
-      <div className="space-y-6">
-        {isOwnProfile ? (
-          <ProfileOwnerCard
-            isOwnProfile={isOwnProfile}
-            ownerTitle="Manage Help Wanted"
-            ownerDescription="For now this mirrors your Help Wanted posts. Later this card can become a hiring and response management surface."
-            emptyMessage="You have no Help Wanted posts to manage yet."
-            items={helpWantedItems}
-          />
-        ) : (
-          <ProfileContentCard
-            title={`${profile.firstName}'s Help Wanted`}
-            description="Browse the Help Wanted posts this member has shared."
-            emptyMessage="No Help Wanted posts are visible yet."
-            items={helpWantedItems}
           />
         )}
       </div>
@@ -445,19 +378,7 @@ export default async function UserProfilePage({ params, searchParams }: PageProp
 
   const accountSettingsTab = isOwnProfile ? (
     <section className={tabCardClass}>
-      <h2 className="mb-4 text-2xl font-bold">Account Settings</h2>
-      <div className="space-y-4">
-        <DirectoryOptInCard initialValue={profile.isDirectoryListed} />
-        <button className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left transition hover:bg-slate-50">
-          Change Password
-        </button>
-        <button className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left transition hover:bg-slate-50">
-          Email Preferences
-        </button>
-        <button className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left text-red-600 transition hover:bg-slate-50">
-          Deactivate Account
-        </button>
-      </div>
+      <AccountSettingsPanel initialDirectoryListed={profile.isDirectoryListed} />
     </section>
   ) : null;
 
@@ -479,12 +400,10 @@ export default async function UserProfilePage({ params, searchParams }: PageProp
       <ProfileTabs
         initialActiveTabId={searchParams?.tab}
         tabs={[
-          { id: "about", label: "About", content: aboutTab },
-          { id: "marketplace", label: "Marketplace", content: marketplaceTab },
-          { id: "experiences", label: "Experiences", content: experiencesTab },
-          { id: "local-life", label: "Local Life", content: localLifeTab },
-          { id: "help-wanted", label: "Help Wanted", content: helpWantedTab },
           { id: "account-settings", label: "Account Settings", content: accountSettingsTab },
+          { id: "about", label: "About", content: isOwnProfile ? null : aboutTab },
+          { id: "articles", label: "Articles", content: articlesTab },
+          { id: "events", label: "Events", content: eventsTab },
         ]}
       />
     </div>

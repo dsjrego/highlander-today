@@ -29,7 +29,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Protected UI routes — redirect to login if unauthenticated
-  const protectedPaths = ['/admin', '/messages', '/profile/edit', '/local-life/submit', '/local-life/drafts', '/marketplace/create', '/marketplace/stores', '/marketplace/stores/create'];
+  const protectedPaths = ['/admin', '/messages', '/local-life/submit', '/local-life/drafts', '/marketplace/create', '/marketplace/stores', '/marketplace/stores/create'];
   const isProtected = protectedPaths.some((path) => pathname.startsWith(path));
 
   if (isProtected && !token) {
@@ -63,7 +63,6 @@ export const config = {
   matcher: [
     '/admin/:path*',
     '/messages/:path*',
-    '/profile/edit',
     '/local-life/submit',
     '/local-life/drafts',
     '/marketplace/create',

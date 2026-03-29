@@ -12,6 +12,11 @@ function getSafeReturnTo(value: string | null) {
   return value;
 }
 
+function getAccountSettingsHref(session: any) {
+  const userId = session?.user?.id;
+  return userId ? `/profile/${userId}?tab=account-settings` : "/";
+}
+
 export default function SocialLandingPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -30,7 +35,7 @@ export default function SocialLandingPage() {
     const returnTo = getSafeReturnTo(searchParams.get("returnTo"));
     const needsProfileRedirect = Boolean((session?.user as any)?.oauthNeedsProfileRedirect);
 
-    router.replace(needsProfileRedirect ? "/profile/edit" : returnTo);
+    router.replace(needsProfileRedirect ? getAccountSettingsHref(session) : returnTo);
   }, [router, searchParams, session, status]);
 
   return (

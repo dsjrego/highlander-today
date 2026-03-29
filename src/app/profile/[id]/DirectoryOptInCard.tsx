@@ -49,13 +49,10 @@ export default function DirectoryOptInCard({ initialValue }: DirectoryOptInCardP
     <section className="rounded-xl border border-slate-200 bg-white p-4">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="space-y-1">
-          <h3 className="text-base font-semibold text-slate-950">Directory Listing</h3>
           <p className="text-sm leading-6 text-slate-600">
-            Opt in if you want your profile included in the public directory. Communication still
-            stays inside Highlander Today messaging.
-          </p>
-          <p className="text-xs text-slate-500">
-            Default: off. No public phone number or street address is exposed.
+            <span className="font-semibold text-slate-950">Directory Listing:</span> Opt in if you
+            want your profile included in the public directory. Communication still stays inside
+            Highlander Today messaging.
           </p>
         </div>
 
