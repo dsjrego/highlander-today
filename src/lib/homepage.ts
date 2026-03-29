@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client';
 import { db } from './db';
 import { ArticleStatus, EventStatus, MarketplaceStatus } from './constants';
+import { getArticleUiImageUrl } from './article-images';
 import { resolveTenantCommunityId } from './tenant';
 
 export type ManagedHomepageSectionType =
@@ -223,7 +224,7 @@ async function getArticleCandidates(communityId: string, limit: number) {
     contentId: article.id,
     title: article.title,
     description: article.excerpt ?? undefined,
-    imageUrl: article.featuredImageUrl ?? undefined,
+    imageUrl: getArticleUiImageUrl(article.featuredImageUrl),
     url: `/local-life/${article.id}`,
     metadata: formatArticleMetadata(article),
     author: {

@@ -9,7 +9,16 @@ import { getAboutNavItems } from "@/lib/about";
 import { SUPPORT_NAV_ITEMS } from "@/lib/support";
 import "./globals.css";
 
+function getMetadataBase() {
+  try {
+    return new URL(process.env.NEXTAUTH_URL ?? "http://localhost:3000");
+  } catch {
+    return new URL("http://localhost:3000");
+  }
+}
+
 export const metadata: Metadata = {
+  metadataBase: getMetadataBase(),
   title: "Highlander Today",
   description:
     "A community platform for news, events, market, and help wanted services.",

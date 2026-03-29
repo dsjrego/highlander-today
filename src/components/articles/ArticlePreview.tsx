@@ -1,6 +1,7 @@
 'use client';
 
 import UserAvatar from '@/components/shared/UserAvatar';
+import { getArticleUiImageUrl } from '@/lib/article-images';
 
 interface ArticlePreviewAuthor {
   firstName: string;
@@ -47,6 +48,7 @@ export default function ArticlePreview({
   className,
 }: ArticlePreviewProps) {
   const hasBody = getPlainText(body).length > 0;
+  const previewImageUrl = getArticleUiImageUrl(featuredImageUrl);
 
   return (
     <div className={joinClasses('space-y-6', className)}>
@@ -95,17 +97,15 @@ export default function ArticlePreview({
         </div>
       </section>
 
-      {featuredImageUrl ? (
-        <figure className="overflow-hidden rounded-[28px] border border-white/10 bg-white/82 shadow-[0_24px_55px_rgba(7,17,26,0.14)]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={featuredImageUrl} alt={title?.trim() || 'Article preview'} className="h-auto w-full" />
-          {featuredImageCaption?.trim() ? (
-            <figcaption className="border-t border-slate-200/80 px-5 py-4 text-sm leading-6 text-slate-600 md:px-6">
-              {featuredImageCaption.trim()}
-            </figcaption>
-          ) : null}
-        </figure>
-      ) : null}
+      <figure className="overflow-hidden rounded-[28px] border border-white/10 bg-white/82 shadow-[0_24px_55px_rgba(7,17,26,0.14)]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={previewImageUrl} alt={title?.trim() || 'Article preview'} className="h-auto w-full" />
+        {featuredImageCaption?.trim() ? (
+          <figcaption className="border-t border-slate-200/80 px-5 py-4 text-sm leading-6 text-slate-600 md:px-6">
+            {featuredImageCaption.trim()}
+          </figcaption>
+        ) : null}
+      </figure>
 
       <section className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
         {hasBody ? (

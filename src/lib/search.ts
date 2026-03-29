@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { db } from './db';
+import { getArticleUiImageUrl } from './article-images';
 import { ArticleStatus, EventStatus, MarketplaceStatus } from './constants';
 
 export type SearchResultType = 'article' | 'event' | 'marketplace';
@@ -319,7 +320,7 @@ export async function searchContent(
         buildTextRelevance(trimmedQuery, [article.title, article.excerpt, article.body]) +
         (article.isFeatured ? 1 : 0),
       communityId: article.communityId,
-      imageUrl: article.featuredImageUrl ?? undefined,
+      imageUrl: getArticleUiImageUrl(article.featuredImageUrl),
       metadata: buildArticleMetadata(article),
     })),
     ...events.map((event) => ({

@@ -7,6 +7,7 @@ import Link from 'next/link';
 import InternalPageHeader from '@/components/shared/InternalPageHeader';
 import ArticleCreateAction from '@/components/articles/ArticleCreateAction';
 import { LOCAL_LIFE_CATEGORY_HREF_OVERRIDES } from '@/lib/category-config';
+import { getArticleUiImageUrl } from '@/lib/article-images';
 
 interface CategoryPill {
   id: string;
@@ -159,15 +160,13 @@ function LocalLifePageContent() {
                 key={article.id}
                 className="overflow-hidden rounded-[26px] border border-white/10 bg-white/82 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_24px_55px_rgba(15,23,42,0.12)]"
               >
-                {article.featuredImageUrl && (
-                  <div className="h-52 bg-slate-200">
-                    <img
-                      src={article.featuredImageUrl}
-                      alt={article.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
+                <div className="h-52 bg-slate-200">
+                  <img
+                    src={getArticleUiImageUrl(article.featuredImageUrl)}
+                    alt={article.title}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
 
                 <div className="p-4">
                   {article.category && (
