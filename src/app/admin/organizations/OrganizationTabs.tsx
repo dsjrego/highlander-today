@@ -44,6 +44,18 @@ interface OrganizationTabsProps {
   organizations: OrganizationRecord[];
 }
 
+interface CreateOrganizationFormState {
+  name: string;
+  directoryGroup: OrganizationRecord['directoryGroup'];
+  organizationType: string;
+  description: string;
+  websiteUrl: string;
+  contactEmail: string;
+  contactPhone: string;
+  isPublicMemberRoster: boolean;
+  status: OrganizationRecord['status'];
+}
+
 function getStatusForTab(tab: OrganizationTab): OrganizationRecord['status'] {
   switch (tab) {
     case 'pending':
@@ -110,7 +122,7 @@ export default function OrganizationTabs({ organizations }: OrganizationTabsProp
   const [createError, setCreateError] = useState('');
   const [createSuccess, setCreateSuccess] = useState('');
   const [isCreating, setIsCreating] = useState(false);
-  const [createForm, setCreateForm] = useState({
+  const [createForm, setCreateForm] = useState<CreateOrganizationFormState>({
     name: '',
     directoryGroup: 'ORGANIZATION' as OrganizationRecord['directoryGroup'],
     organizationType: ORGANIZATION_TYPE_OPTIONS.ORGANIZATION[0].value,

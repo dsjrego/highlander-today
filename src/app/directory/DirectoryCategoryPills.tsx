@@ -13,8 +13,8 @@ type DirectoryCategoryPillsProps = {
   activeCategorySlug: string | null;
   selectedBusinessType: string;
   selectedOrganizationType: string;
-  businessOptions: TypeOption[];
-  organizationOptions: TypeOption[];
+  businessOptions: readonly TypeOption[];
+  organizationOptions: readonly TypeOption[];
 };
 
 function buildDirectoryHref(category?: string | null, query?: string | null, type?: string | null) {
@@ -51,7 +51,7 @@ function DropdownPill({
   isActive: boolean;
   open: boolean;
   onToggle: () => void;
-  options: TypeOption[];
+  options: readonly TypeOption[];
   allHref: string;
   selectedType: string;
   query: string;

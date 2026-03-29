@@ -122,13 +122,16 @@ export default async function DirectoryPage({
   const dir = normalizeSortDirection(resolvedSearchParams?.dir);
   const requestHeaders = headers();
   const currentCommunity = await getCurrentCommunity({ headers: requestHeaders });
-
-  const businessTypeValues = new Set(ORGANIZATION_TYPE_OPTIONS.BUSINESS.map((option) => option.value));
-  const organizationTypeValues = new Set(ORGANIZATION_TYPE_OPTIONS.ORGANIZATION.map((option) => option.value));
   const selectedBusinessType =
-    activeCategorySlug === 'businesses' && businessTypeValues.has(selectedType) ? selectedType : '';
+    activeCategorySlug === 'businesses' &&
+    ORGANIZATION_TYPE_OPTIONS.BUSINESS.some((option) => option.value === selectedType)
+      ? selectedType
+      : '';
   const selectedOrganizationType =
-    activeCategorySlug === 'organizations' && organizationTypeValues.has(selectedType) ? selectedType : '';
+    activeCategorySlug === 'organizations' &&
+    ORGANIZATION_TYPE_OPTIONS.ORGANIZATION.some((option) => option.value === selectedType)
+      ? selectedType
+      : '';
 
   const [people, organizations] = await Promise.all([
     db.user.findMany({
