@@ -26,6 +26,12 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             Articles
           </a>
           <a
+            href="/admin/categories"
+            className="block rounded-lg px-3 py-[5px] font-medium text-slate-700 transition hover:bg-white hover:text-[#A51E30]"
+          >
+            Navigation
+          </a>
+          <a
             href="/admin/homepage"
             className="block rounded-lg px-3 py-[5px] font-medium text-slate-700 transition hover:bg-white hover:text-[#A51E30]"
           >
@@ -62,12 +68,6 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             className="block rounded-lg px-3 py-[5px] font-medium text-slate-700 transition hover:bg-white hover:text-[#A51E30]"
           >
             Bans
-          </a>
-          <a
-            href="/admin/categories"
-            className="block rounded-lg px-3 py-[5px] font-medium text-slate-700 transition hover:bg-white hover:text-[#A51E30]"
-          >
-            Categories
           </a>
           <a
             href="/admin/content-architecture"
