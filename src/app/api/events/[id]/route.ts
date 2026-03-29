@@ -15,6 +15,7 @@ const UpdateEventSchema = z.object({
   imageUrl: z.string().optional().nullable(),
   costText: z.string().max(255).optional().nullable(),
   contactInfo: z.string().max(255).optional().nullable(),
+  status: z.enum(['PENDING_REVIEW', 'PUBLISHED', 'UNPUBLISHED']).optional(),
 });
 
 function buildDatetime(dateStr: string, timeStr?: string | null): Date {
@@ -92,6 +93,7 @@ export async function PATCH(
 
     const isAuthor = event.submittedByUserId === userId;
     const hasEditorRole = checkPermission(userRole, 'events:edit');
+    const hasApprovalRole = checkPermission(userRole, 'events:approve');
 
     if (!isAuthor && !hasEditorRole) {
       return NextResponse.json(
@@ -110,6 +112,16 @@ export async function PATCH(
     if (validated.imageUrl !== undefined) updateData.photoUrl = validated.imageUrl;
     if (validated.costText !== undefined) updateData.costText = validated.costText;
     if (validated.contactInfo !== undefined) updateData.contactInfo = validated.contactInfo;
+    if (validated.status !== undefined) {
+      if (!hasApprovalRole) {
+        return NextResponse.json(
+          { error: 'Insufficient permissions to update event status' },
+          { status: 403 }
+        );
+      }
+
+      updateData.status = validated.status;
+    }
 
     if (validated.startDate) {
       updateData.startDatetime = buildDatetime(validated.startDate, validated.startTime);
@@ -121,7 +133,7 @@ export async function PATCH(
         : null;
     }
 
-    if (isAuthor && !hasEditorRole && event.status !== 'PENDING_REVIEW') {
+    if (isAuthor && !hasEditorRole && event.status !== 'PENDING_REVIEW' && validated.status === undefined) {
       updateData.status = 'PENDING_REVIEW';
     }
 

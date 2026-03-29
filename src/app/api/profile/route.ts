@@ -8,6 +8,7 @@ const UpdateProfileSchema = z.object({
   bio: z.string().max(1000).optional(),
   profilePhotoUrl: z.string().url().optional().nullable(),
   dateOfBirth: z.string().optional(),
+  isDirectoryListed: z.boolean().optional(),
 });
 
 /**
@@ -29,6 +30,7 @@ export async function GET(request: NextRequest) {
         email: true,
         bio: true,
         profilePhotoUrl: true,
+        isDirectoryListed: true,
         trustLevel: true,
         isIdentityLocked: true,
         dateOfBirth: true,
@@ -72,6 +74,7 @@ export async function GET(request: NextRequest) {
       email: user.email,
       bio: user.bio,
       profilePhotoUrl: user.profilePhotoUrl,
+      isDirectoryListed: user.isDirectoryListed,
       trustLevel: user.trustLevel,
       isIdentityLocked: user.isIdentityLocked,
       dateOfBirth: user.dateOfBirth,
@@ -153,6 +156,9 @@ export async function PATCH(request: NextRequest) {
     if (validated.dateOfBirth !== undefined) {
       updateData.dateOfBirth = validated.dateOfBirth ? new Date(validated.dateOfBirth) : null;
     }
+    if (validated.isDirectoryListed !== undefined) {
+      updateData.isDirectoryListed = validated.isDirectoryListed;
+    }
 
     const updated = await db.user.update({
       where: { id: userId },
@@ -164,6 +170,7 @@ export async function PATCH(request: NextRequest) {
         email: true,
         bio: true,
         profilePhotoUrl: true,
+        isDirectoryListed: true,
         trustLevel: true,
         isIdentityLocked: true,
         createdAt: true,

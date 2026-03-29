@@ -27,19 +27,20 @@ model Community {
   updatedAt    DateTime @updatedAt
 
   // Relations
-  memberships         UserCommunityMembership[]
-  articles            Article[]
-  events              Event[]
-  stores              Store[]
-  marketplaceListings MarketplaceListing[]
-  helpWantedPosts     HelpWantedPost[]
-  roadmapIdeas       RoadmapIdea[]
-  roadmapBallots     RoadmapRankingBallot[]
+  memberships            UserCommunityMembership[]
+  articles               Article[]
+  events                 Event[]
+  stores                 Store[]
+  organizations          Organization[]
+  marketplaceListings    MarketplaceListing[]
+  helpWantedPosts        HelpWantedPost[]
+  roadmapIdeas           RoadmapIdea[]
+  roadmapBallots         RoadmapRankingBallot[]
   domainInfluenceWeights DomainInfluenceWeight[]
-  homepageSections    HomepageSection[]
-  domains             TenantDomain[]
-  categories          Category[]
-  siteSettings        SiteSetting[]
+  homepageSections       HomepageSection[]
+  domains                TenantDomain[]
+  categories             Category[]
+  siteSettings           SiteSetting[]
 
   @@map("communities")
 }
@@ -66,18 +67,19 @@ enum TenantDomainStatus {
 }
 
 model User {
-  id               String     @id @default(uuid()) @db.Uuid
-  email            String     @unique
-  passwordHash     String?
-  firstName        String
-  lastName         String
-  dateOfBirth      DateTime?
-  profilePhotoUrl  String?
-  bio              String?
-  trustLevel       TrustLevel @default(ANONYMOUS)
-  isIdentityLocked Boolean    @default(false)
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
+  id                String     @id @default(uuid()) @db.Uuid
+  email             String     @unique
+  passwordHash      String?
+  firstName         String
+  lastName          String
+  dateOfBirth       DateTime?
+  profilePhotoUrl   String?
+  bio               String?
+  isDirectoryListed Boolean    @default(false)
+  trustLevel        TrustLevel @default(ANONYMOUS)
+  isIdentityLocked  Boolean    @default(false)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
 
   // Relations
   memberships              UserCommunityMembership[]
@@ -105,6 +107,10 @@ model User {
   ownedStores              Store[]                   @relation("storeOwner")
   approvedStores           Store[]                   @relation("storeApprovedBy")
   storeMemberships         StoreMember[]
+  createdOrganizations     Organization[]            @relation("organizationCreatedBy")
+  approvedOrganizations    Organization[]            @relation("organizationApprovedBy")
+  organizationMemberships  OrganizationMembership[]
+  organizationContacts     OrganizationContact[]
 
   @@map("users")
 }
@@ -114,6 +120,37 @@ enum TrustLevel {
   REGISTERED
   TRUSTED
   SUSPENDED
+}
+
+enum OrganizationDirectoryGroup {
+  BUSINESS
+  GOVERNMENT
+  ORGANIZATION
+}
+
+enum OrganizationStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum OrganizationMembershipRole {
+  OWNER
+  MANAGER
+  STAFF
+  BOARD_MEMBER
+  VOLUNTEER
+  PASTOR
+  OFFICIAL
+  ADMINISTRATOR
+}
+
+enum OrganizationMembershipStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+  REMOVED
 }
 
 // ============================================================================
@@ -199,26 +236,180 @@ model BannedEmail {
 }
 
 // ============================================================================
+// DIRECTORY / ORGANIZATIONS
+// ============================================================================
+
+model Organization {
+  id                   String                     @id @default(uuid()) @db.Uuid
+  communityId          String                     @db.Uuid
+  createdByUserId      String                     @db.Uuid
+  approvedByUserId     String?                    @db.Uuid
+  name                 String
+  slug                 String
+  description          String?
+  logoUrl              String?
+  bannerUrl            String?
+  websiteUrl           String?
+  contactEmail         String?
+  contactPhone         String?
+  directoryGroup       OrganizationDirectoryGroup
+  organizationType     String
+  isPublicMemberRoster Boolean                    @default(false)
+  status               OrganizationStatus         @default(PENDING_APPROVAL)
+  approvedAt           DateTime?
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+
+  // Relations
+  community   Community                @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  createdBy   User                     @relation("organizationCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  approvedBy  User?                    @relation("organizationApprovedBy", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  memberships OrganizationMembership[]
+  locations   OrganizationLocation[]
+  departments OrganizationDepartment[]
+  contacts    OrganizationContact[]
+
+  @@unique([communityId, slug])
+  @@index([communityId])
+  @@index([createdByUserId])
+  @@index([approvedByUserId])
+  @@index([directoryGroup])
+  @@index([organizationType])
+  @@index([status])
+  @@map("organizations")
+}
+
+model OrganizationMembership {
+  id               String                       @id @default(uuid()) @db.Uuid
+  organizationId   String                       @db.Uuid
+  userId           String                       @db.Uuid
+  role             OrganizationMembershipRole   @default(MANAGER)
+  status           OrganizationMembershipStatus @default(PENDING)
+  title            String?
+  isPublic         Boolean                      @default(false)
+  isPrimaryContact Boolean                      @default(false)
+  joinedAt         DateTime                     @default(now())
+  updatedAt        DateTime                     @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@index([role])
+  @@index([status])
+  @@map("organization_memberships")
+}
+
+model OrganizationLocation {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  label          String?
+  addressLine1   String?
+  addressLine2   String?
+  city           String?
+  state          String?
+  postalCode     String?
+  municipality   String?
+  contactEmail   String?
+  contactPhone   String?
+  websiteUrl     String?
+  hoursSummary   String?
+  isPrimary      Boolean  @default(false)
+  isPublic       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  organization Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  departments  OrganizationDepartment[]
+  contacts     OrganizationContact[]
+
+  @@index([organizationId])
+  @@index([municipality])
+  @@map("organization_locations")
+}
+
+model OrganizationDepartment {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  locationId     String?  @db.Uuid
+  name           String
+  slug           String?
+  description    String?
+  contactEmail   String?
+  contactPhone   String?
+  websiteUrl     String?
+  hoursSummary   String?
+  isPublic       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  organization Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  location     OrganizationLocation? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  contacts     OrganizationContact[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([locationId])
+  @@map("organization_departments")
+}
+
+model OrganizationContact {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  departmentId   String?  @db.Uuid
+  locationId     String?  @db.Uuid
+  userId         String?  @db.Uuid
+  label          String?
+  name           String?
+  title          String?
+  email          String?
+  phone          String?
+  websiteUrl     String?
+  isPublic       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  organization Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  department   OrganizationDepartment? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  location     OrganizationLocation?   @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  user         User?                   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([departmentId])
+  @@index([locationId])
+  @@index([userId])
+  @@map("organization_contacts")
+}
+
+// ============================================================================
 // ARTICLES & CONTENT
 // ============================================================================
 
 model Article {
-  id               String        @id @default(uuid()) @db.Uuid
-  communityId      String        @db.Uuid
-  authorUserId     String        @db.Uuid
-  title            String
-  slug             String
-  excerpt          String?
-  body             String
-  featuredImageUrl String?
-  featuredImageCaption String?      @map("featured_image_caption")
-  status           ArticleStatus @default(DRAFT)
-  categoryId       String?       @db.Uuid
-  publishedAt      DateTime?
-  isFeatured       Boolean       @default(false)
-  featuredOrder    Int?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  id                   String        @id @default(uuid()) @db.Uuid
+  communityId          String        @db.Uuid
+  authorUserId         String        @db.Uuid
+  title                String
+  slug                 String
+  excerpt              String?
+  body                 String
+  featuredImageUrl     String?
+  featuredImageCaption String?       @map("featured_image_caption")
+  status               ArticleStatus @default(DRAFT)
+  categoryId           String?       @db.Uuid
+  publishedAt          DateTime?
+  isFeatured           Boolean       @default(false)
+  featuredOrder        Int?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
 
   // Relations
   community Community    @relation(fields: [communityId], references: [id], onDelete: Cascade)
@@ -266,14 +457,14 @@ model ArticleTag {
 }
 
 model Category {
-  id               String  @id @default(uuid()) @db.Uuid
-  communityId      String? @db.Uuid
+  id               String                @id @default(uuid()) @db.Uuid
+  communityId      String?               @db.Uuid
   name             String
   slug             String
   contentModel     CategoryContentModel?
-  parentCategoryId String? @db.Uuid
-  sortOrder        Int     @default(0)
-  isArchived       Boolean @default(false)
+  parentCategoryId String?               @db.Uuid
+  sortOrder        Int                   @default(0)
+  isArchived       Boolean               @default(false)
 
   // Relations
   community       Community? @relation(fields: [communityId], references: [id], onDelete: Cascade)
@@ -442,10 +633,10 @@ model RoadmapIdea {
   updatedAt        DateTime          @updatedAt
 
   // Relations
-  community   Community             @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  author      User                  @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
-  mergedInto  RoadmapIdea?          @relation("roadmapIdeaMerge", fields: [mergedIntoIdeaId], references: [id], onDelete: SetNull)
-  mergedIdeas RoadmapIdea[]         @relation("roadmapIdeaMerge")
+  community   Community            @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  author      User                 @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  mergedInto  RoadmapIdea?         @relation("roadmapIdeaMerge", fields: [mergedIntoIdeaId], references: [id], onDelete: SetNull)
+  mergedIdeas RoadmapIdea[]        @relation("roadmapIdeaMerge")
   ballotItems RoadmapRankingItem[]
 
   @@index([communityId])
@@ -485,10 +676,10 @@ model RoadmapRankingBallot {
 }
 
 model RoadmapRankingItem {
-  id        String @id @default(uuid()) @db.Uuid
-  ballotId  String @db.Uuid
-  ideaId    String @db.Uuid
-  rank      Int
+  id       String @id @default(uuid()) @db.Uuid
+  ballotId String @db.Uuid
+  ideaId   String @db.Uuid
+  rank     Int
 
   // Relations
   ballot RoadmapRankingBallot @relation(fields: [ballotId], references: [id], onDelete: Cascade)
@@ -501,14 +692,14 @@ model RoadmapRankingItem {
 }
 
 model DomainInfluenceWeight {
-  id                    String                  @id @default(uuid()) @db.Uuid
-  communityId           String                  @db.Uuid
-  userId                String                  @db.Uuid
-  domain                InfluenceDomain
-  multiplierPercent     Int                     @default(100)
-  rationale             String?
-  createdAt             DateTime                @default(now())
-  updatedAt             DateTime                @updatedAt
+  id                String          @id @default(uuid()) @db.Uuid
+  communityId       String          @db.Uuid
+  userId            String          @db.Uuid
+  domain            InfluenceDomain
+  multiplierPercent Int             @default(100)
+  rationale         String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
   // Relations
   community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)

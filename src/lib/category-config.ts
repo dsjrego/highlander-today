@@ -2,6 +2,7 @@ export const CATEGORY_HREF_OVERRIDES: Record<string, string> = {
   'local-life': '/local-life',
   'experiences': '/experiences',
   'community': '/community',
+  'directory': '/directory',
   'market': '/marketplace',
   'marketplace': '/marketplace',
   'help-wanted': '/help-wanted',

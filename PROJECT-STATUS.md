@@ -1,10 +1,12 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-03-29 (session 88)
+> **Last updated:** 2026-03-29 (session 91)
 > **Purpose:** Fast-start context for the next session. Read this file first, then open only the supporting docs relevant to the active slice.
 > **Detailed reference:** `PROJECT-STATUS-REFERENCE.md` preserves the fuller implementation ledger, rollout history, verification notes, deployment runbook, and infrastructure rationale that used to live here.
 
 > **Open polish note:** the live `/profile/[id]` header still needs one more pass on avatar click-target density. The clickable avatar boundary was tightened already, but the user still wants the avatar/content grouping to feel more compressed on that page specifically.
+
+> **Session 91 note:** directory foundations are now live. `User` now supports opt-in directory inclusion, Prisma now includes `Organization` / `OrganizationMembership` plus structured organization child models, `/admin/organizations` now exists as a compact admin moderation/create surface, and `/directory` now reads real opted-in people plus approved organizations with unified results, yellow-pages-style type dropdown pills for businesses/organizations, sorting, and pagination.
 
 ## Product Snapshot
 
@@ -44,15 +46,18 @@ Major live foundations:
 - Marketplace: store-based listings, storefronts, admin store moderation, trusted buyer messaging
 - Help Wanted: public browse, trusted posting/responding, moderation, manage/edit flows
 - Homepage curation, search, uploads, admin moderation surfaces
+- Directory foundations: opted-in people, organization schema, organizations admin moderation/create, and public directory browse
 - Roadmap and roadmap weighting exist but are now `SUPER_ADMIN`-only internal tooling
 
 Current public/admin direction highlights:
 
 - Public navbar now reads top-level categories and child dropdowns dynamically from the DB; `Home` remains fixed.
 - `/admin/content-architecture` exists as a read-only internal reference page.
+- `/admin/organizations` now exists as a compact admin management surface aligned with the same dense operational paradigm as `/admin/articles` and `/admin/events`.
 - `/admin/categories` has effectively become the **Navigation Menu** admin surface, with compact table-style editing, expand/collapse for nested items, reorder controls, and an `Add Area` tab.
-- The admin sidebar now places `Navigation` directly below `Articles`.
+- The admin sidebar now uses shared nav-item classes/structure to keep menu entries visually consistent, and `Events` is a top-level admin item alongside `Articles`, `Navigation`, and the other operational surfaces.
 - The shared public shell uses the active `Youth Local` direction and the shared `InternalPageHeader` pattern.
+- `/directory` is now a real read surface rather than a placeholder shell: it queries opted-in people plus approved organizations scoped to the active community, renders a unified sortable list, supports pagination, and treats `Businesses` / `Organizations` as yellow-pages-style type dropdown pills.
 
 ## Highest-Signal Active Priorities
 
@@ -61,6 +66,7 @@ Current public/admin direction highlights:
 - Implement first-party analytics/reaction instrumentation from `CONTENT-ANALYTICS-PLAN.md`.
 - Continue the About/institutional-content track where it improves public trust and clarity.
 - Preserve compact, dense operational design in admin rather than drifting toward spacious public-page layouts.
+- Continue the directory build with public organization detail pages, richer organization editing, and later self-claim/self-management flows.
 
 ## What Is Still Partial Or Pending
 
@@ -68,7 +74,8 @@ Current public/admin direction highlights:
 - Experiences is still only partially real; non-event experience categories remain directional placeholders.
 - Multi-tenant provisioning is only phase 1; there is no full Super Admin create/edit site/domain workflow yet.
 - Cross-site sister-site pull-through is not implemented.
-- Donations/transparency, sourcing/citations, organizations/directory, creator network, and delivery/jobs remain planned follow-on work.
+- Donations/transparency, sourcing/citations, creator network, and delivery/jobs remain planned follow-on work.
+- Directory exists as an early live foundation now, but public organization detail pages, richer organization editing, and self-claim/self-management flows are still pending.
 - Article video embeds are still pending and should land before any delivery/jobs push.
 
 For the detailed milestone ladder and phase-by-phase remaining work, read `PROJECT-STATUS-REFERENCE.md`.
@@ -128,6 +135,7 @@ prisma/
 src/app/
   admin/
   api/
+  directory/
   local-life/
   events/
   marketplace/
@@ -146,6 +154,7 @@ src/components/
   shared/
 src/lib/
   db.ts
+  organization-taxonomy.ts
   permissions.ts
   search.ts
   homepage.ts

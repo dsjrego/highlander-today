@@ -9,6 +9,7 @@ import InternalPageHeader from "@/components/shared/InternalPageHeader";
 import PageHeaderAvatarDialog from "@/components/shared/PageHeaderAvatarDialog";
 import StatusMessage from "@/components/shared/StatusMessage";
 import ProfileTabs from "./ProfileTabs";
+import DirectoryOptInCard from "./DirectoryOptInCard";
 import VouchProfileButton from "./VouchProfileButton";
 import VouchSection from "./VouchSection";
 
@@ -29,6 +30,7 @@ async function getUserProfile(id: string) {
     email: true,
     bio: true,
     profilePhotoUrl: true,
+    isDirectoryListed: true,
     trustLevel: true,
     dateOfBirth: true,
     createdAt: true,
@@ -445,6 +447,7 @@ export default async function UserProfilePage({ params, searchParams }: PageProp
     <section className={tabCardClass}>
       <h2 className="mb-4 text-2xl font-bold">Account Settings</h2>
       <div className="space-y-4">
+        <DirectoryOptInCard initialValue={profile.isDirectoryListed} />
         <button className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left transition hover:bg-slate-50">
           Change Password
         </button>
