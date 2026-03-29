@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { headers } from 'next/headers';
 import InternalPageHeader from '@/components/shared/InternalPageHeader';
 import DirectoryCategoryPills from './DirectoryCategoryPills';
+import DirectoryMessageAction from './DirectoryMessageAction';
 import { getCurrentCommunity } from '@/lib/community';
 import { db } from '@/lib/db';
 import { ORGANIZATION_TYPE_OPTIONS } from '@/lib/organization-taxonomy';
@@ -24,6 +25,7 @@ type DirectoryRow = {
   type: string;
   detail: string;
   contact: string;
+  messageUserId?: string;
 };
 
 type DirectorySortKey = 'name' | 'section' | 'type';
@@ -219,7 +221,7 @@ export default async function DirectoryPage({
   ]);
 
   const rows: DirectoryRow[] = [
-    ...(activeCategorySlug === null || activeCategorySlug === 'people'
+        ...(activeCategorySlug === null || activeCategorySlug === 'people'
       ? people.map((person) => ({
           id: person.id,
           name: `${person.lastName}, ${person.firstName}`,
@@ -228,6 +230,7 @@ export default async function DirectoryPage({
           type: 'Person',
           detail: person.bio?.trim() || 'Opted-in directory listing',
           contact: 'Message through Highlander Today',
+          messageUserId: person.id,
         }))
       : []),
     ...organizations.map((organization) => ({
@@ -374,7 +377,13 @@ export default async function DirectoryPage({
                       <td className="admin-list-cell">{row.section}</td>
                       <td className="admin-list-cell">{row.type}</td>
                       <td className="admin-list-cell">{row.detail}</td>
-                      <td className="admin-list-cell">{row.contact}</td>
+                      <td className="admin-list-cell">
+                        {row.messageUserId ? (
+                          <DirectoryMessageAction userId={row.messageUserId} userName={row.name} />
+                        ) : (
+                          row.contact
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

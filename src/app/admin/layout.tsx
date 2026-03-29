@@ -4,17 +4,17 @@ import { authOptions } from '@/lib/auth';
 
 const adminNavItems = [
   { href: '/admin', label: 'Dashboard' },
+  { href: '/admin/homepage', label: 'Homepage Curation' },
   { href: '/admin/articles', label: 'Articles' },
   { href: '/admin/events', label: 'Events' },
   { href: '/admin/organizations', label: 'Organizations' },
   { href: '/admin/categories', label: 'Navigation' },
-  { href: '/admin/homepage', label: 'Homepage Curation' },
+  { href: '/admin/users', label: 'Users' },
   { href: '/admin/content', label: 'Content Approvals' },
   { href: '/admin/stores', label: 'Store Moderation' },
   { href: '/admin/trust', label: 'Trust Management' },
   { href: '/admin/bans', label: 'Bans' },
   { href: '/admin/content-architecture', label: 'Content Architecture' },
-  { href: '/admin/users', label: 'Users' },
   { href: '/admin/sites', label: 'Sites' },
   { href: '/admin/audit', label: 'Audit Log' },
   { href: '/admin/settings', label: 'Settings' },
@@ -25,9 +25,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const isSuperAdmin = session?.user?.role === 'SUPER_ADMIN';
   const visibleNavItems = isSuperAdmin
     ? [
-        ...adminNavItems.slice(0, 6),
+        ...adminNavItems.slice(0, 7),
         { href: '/admin/roadmap', label: 'Roadmap Moderation' as const },
-        ...adminNavItems.slice(6),
+        ...adminNavItems.slice(7),
       ]
     : adminNavItems;
 

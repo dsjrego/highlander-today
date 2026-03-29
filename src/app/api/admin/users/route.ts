@@ -83,6 +83,28 @@ export async function GET(request: NextRequest) {
               communityId: true,
             },
           },
+          loginEvents: {
+            select: {
+              createdAt: true,
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+            take: 1,
+          },
+          vouchesReceived: {
+            select: {
+              voucherUser: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
           _count: {
             select: {
               articles: true,
@@ -111,11 +133,14 @@ export async function GET(request: NextRequest) {
       communityId: user.memberships[0]?.communityId || null,
       profilePhotoUrl: user.profilePhotoUrl,
       isIdentityLocked: user.isIdentityLocked,
-      createdAt: user.createdAt,
+      lastSeenAt: user.loginEvents[0]?.createdAt ?? null,
       postCount:
         user._count.articles +
         user._count.eventsSubmitted +
         user._count.marketplaceListings,
+      vouchedBy: user.vouchesReceived.map((vouch) =>
+        `${vouch.voucherUser.firstName} ${vouch.voucherUser.lastName}`.trim()
+      ),
       vouchesGiven: user._count.vouchesGiven,
       vouchesReceived: user._count.vouchesReceived,
     }));

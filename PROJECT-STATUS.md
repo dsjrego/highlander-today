@@ -1,12 +1,18 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-03-29 (session 91)
+> **Last updated:** 2026-03-29 (session 94)
 > **Purpose:** Fast-start context for the next session. Read this file first, then open only the supporting docs relevant to the active slice.
 > **Detailed reference:** `PROJECT-STATUS-REFERENCE.md` preserves the fuller implementation ledger, rollout history, verification notes, deployment runbook, and infrastructure rationale that used to live here.
 
 > **Open polish note:** the live `/profile/[id]` header still needs one more pass on avatar click-target density. The clickable avatar boundary was tightened already, but the user still wants the avatar/content grouping to feel more compressed on that page specifically.
 
 > **Session 91 note:** directory foundations are now live. `User` now supports opt-in directory inclusion, Prisma now includes `Organization` / `OrganizationMembership` plus structured organization child models, `/admin/organizations` now exists as a compact admin moderation/create surface, and `/directory` now reads real opted-in people plus approved organizations with unified results, yellow-pages-style type dropdown pills for businesses/organizations, sorting, and pagination.
+>
+> **Session 92 note:** after the directory rollout hit production, the live `/directory` runtime error was traced to the production database not yet having the new schema. The fix was a production `npx prisma db push --schema prisma/schema.prisma`, which added `users.isDirectoryListed` and the new `organizations` table set. Treat that schema push as required whenever deploying the new directory models to an environment that has not been updated yet.
+>
+> **Session 93 note:** the admin navigation order was tightened again so `Homepage Curation` now sits directly under `Dashboard` and `Users` sits directly under `Navigation`. `/admin/users` was also rebuilt into the same compact `admin-card` / `admin-list` paradigm used by `Articles`, `Events`, `Navigation`, and `Organizations`, now showing `Email`, real `Last Seen` from latest `LoginEvent`, `Vouched By` names, color-coded inline actions with icons, and an inline `Message` dialog that sends through `/api/messages`.
+>
+> **Session 94 note:** `/directory` people rows now expose a client-side `Message` action in the contact column for authenticated viewers, opening the same inline direct-message dialog pattern used on `/admin/users` and sending through `/api/messages` before routing into the conversation thread.
 
 ## Product Snapshot
 
@@ -55,9 +61,11 @@ Current public/admin direction highlights:
 - `/admin/content-architecture` exists as a read-only internal reference page.
 - `/admin/organizations` now exists as a compact admin management surface aligned with the same dense operational paradigm as `/admin/articles` and `/admin/events`.
 - `/admin/categories` has effectively become the **Navigation Menu** admin surface, with compact table-style editing, expand/collapse for nested items, reorder controls, and an `Add Area` tab.
+- `/admin/users` now matches that same compact admin pattern: dense table layout, email column, real last-seen timestamps from login activity, voucher names, colored/iconized manage actions, and inline admin messaging.
 - The admin sidebar now uses shared nav-item classes/structure to keep menu entries visually consistent, and `Events` is a top-level admin item alongside `Articles`, `Navigation`, and the other operational surfaces.
 - The shared public shell uses the active `Youth Local` direction and the shared `InternalPageHeader` pattern.
 - `/directory` is now a real read surface rather than a placeholder shell: it queries opted-in people plus approved organizations scoped to the active community, renders a unified sortable list, supports pagination, and treats `Businesses` / `Organizations` as yellow-pages-style type dropdown pills.
+- Directory people rows now support direct messaging from the listing itself for authenticated viewers via the inline message dialog pattern already used in admin users.
 
 ## Highest-Signal Active Priorities
 
@@ -177,6 +185,7 @@ src/lib/
 10. The repo still uses `prisma db push` style rollout rather than checked-in migrations.
 11. The admin area is intentionally desktop-first and compact.
 12. Production launch auth is credentials + Google OAuth; Facebook remains intentionally deferred.
+13. The directory rollout requires the target environment to have the new Prisma schema applied. If `/directory` throws runtime Prisma errors about missing `organizations` or `users.isDirectoryListed`, run `npx prisma db push --schema prisma/schema.prisma` against that environment's database.
 
 For the full gotcha list, verification notes, and deployment constraints, read `PROJECT-STATUS-REFERENCE.md`.
 
