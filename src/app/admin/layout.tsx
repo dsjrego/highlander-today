@@ -38,8 +38,12 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         <h2 className="text-2xl font-bold text-[#2c7f9e]">Admin</h2>
 
         <nav className="admin-sidebar-nav">
-          {visibleNavItems.map((item) => (
-            <a key={item.href} href={item.href} className="admin-sidebar-link">
+          {visibleNavItems.map((item, index) => (
+            <a
+              key={item.href}
+              href={item.href}
+              className={`admin-sidebar-link ${index % 2 === 0 ? "admin-sidebar-link-even" : "admin-sidebar-link-odd"}`}
+            >
               {item.label}
             </a>
           ))}

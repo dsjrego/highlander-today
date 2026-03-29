@@ -779,6 +779,14 @@
       color 160ms ease;
   }
 
+  .admin-sidebar-link-even {
+    background: rgba(255, 255, 255, 0.38);
+  }
+
+  .admin-sidebar-link-odd {
+    background: rgba(226, 232, 240, 0.62);
+  }
+
   .admin-sidebar-link:hover {
     background: #ffffff;
     color: #A51E30;

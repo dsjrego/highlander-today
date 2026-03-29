@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-03-29 (session 96)
+> **Last updated:** 2026-03-29 (session 97)
 > **Purpose:** Fast-start context for the next session. Read this file first, then open only the supporting docs relevant to the active slice.
 > **Detailed reference:** `PROJECT-STATUS-REFERENCE.md` preserves the fuller implementation ledger, rollout history, verification notes, deployment runbook, and infrastructure rationale that used to live here.
 
@@ -17,6 +17,8 @@
 > **Session 95 note:** a Vercel deployment failure was traced to an unused `stats` state declaration in `/admin/users`; that dead state path was removed so `npm run typecheck` and `next build` pass again. Repo warning cleanup also tightened the `/admin/content` fetch effect dependency and intentionally suppressed `@next/next/no-img-element` in the current raw-image preview/upload surfaces so `npm run lint` is clean again.
 >
 > **Session 96 note:** the dedicated `/profile/edit` route was removed and its contents were folded into the owner-only `Account Settings` tab on `/profile/[id]`. That tab now appears first for the profile owner, the owner no longer sees the `About` tab, the public-facing content tabs were simplified to `Articles` and `Events`, locked identity fields now open a no-JS dialog-style popover instead of showing the old warning pill, the directory-listing control now sits at the top of the settings form, and the profile header metadata now reads `[community name] • Last seen: <date>` using the latest `LoginEvent`.
+>
+> **Session 97 note:** the public navigation bar now treats top-level categories with children as dropdown triggers only rather than clickable destinations, so users must choose a child category instead of landing on filler parent pages. The admin sidebar also now alternates row background tones to reduce visual monotony while preserving the compact operational layout.
 
 ## Product Snapshot
 
@@ -62,11 +64,12 @@ Major live foundations:
 Current public/admin direction highlights:
 
 - Public navbar now reads top-level categories and child dropdowns dynamically from the DB; `Home` remains fixed.
+- Top-level public nav items that have children are now non-clickable dropdown triggers; users select a child category instead of navigating to a parent placeholder page.
 - `/admin/content-architecture` exists as a read-only internal reference page.
 - `/admin/organizations` now exists as a compact admin management surface aligned with the same dense operational paradigm as `/admin/articles` and `/admin/events`.
 - `/admin/categories` has effectively become the **Navigation Menu** admin surface, with compact table-style editing, expand/collapse for nested items, reorder controls, and an `Add Area` tab.
 - `/admin/users` now matches that same compact admin pattern: dense table layout, email column, real last-seen timestamps from login activity, voucher names, colored/iconized manage actions, and inline admin messaging.
-- The admin sidebar now uses shared nav-item classes/structure to keep menu entries visually consistent, and `Events` is a top-level admin item alongside `Articles`, `Navigation`, and the other operational surfaces.
+- The admin sidebar now uses shared nav-item classes/structure plus alternating row backgrounds to keep menu entries visually consistent, and `Events` is a top-level admin item alongside `Articles`, `Navigation`, and the other operational surfaces.
 - The shared public shell uses the active `Youth Local` direction and the shared `InternalPageHeader` pattern.
 - `/profile/[id]` now uses an owner-first account-settings flow: no separate edit page, owner-only `Account Settings` first, owner-hidden `About`, simplified `Articles` / `Events` tabs, privacy disclaimers on non-public fields, and `Last seen` header metadata sourced from latest `LoginEvent`.
 - `/directory` is now a real read surface rather than a placeholder shell: it queries opted-in people plus approved organizations scoped to the active community, renders a unified sortable list, supports pagination, and treats `Businesses` / `Organizations` as yellow-pages-style type dropdown pills.

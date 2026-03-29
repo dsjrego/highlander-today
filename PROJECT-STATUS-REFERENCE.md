@@ -3,7 +3,7 @@
 > Companion to `PROJECT-STATUS.md`.
 > This file preserves the fuller implementation ledger, rollout history, verification notes, deployment/bootstrap runbook, upload snapshot, and infrastructure rationale.
 
-> **Last updated:** 2026-03-29 (session 95 — documented directory person-to-person messaging from `/directory`, the `/admin/users` Vercel build fix, and the repo-wide lint warning cleanup)
+> **Last updated:** 2026-03-29 (session 97 — documented the `/profile/[id]` account-settings consolidation, owner/public profile-tab simplification, `Last seen` profile header metadata, non-clickable top-level nav parents with child-only selection, and alternating admin-sidebar row backgrounds)
 > **Purpose:** Detailed companion context for AI assistants. Read `PROJECT-STATUS.md` first each session, then use this file for the fuller historical/reference detail when needed.
 
 > **Open polish note:** the live `/profile/[id]` header still needs one more pass on avatar click-target density. The pill/ovoid button boundary around the clickable page-header avatar was reduced, and the profile header has page-specific tighter spacing overrides now, but the user still considers the space around the avatar/content too loose; next pass should make the clickable avatar boundary hug the image even more tightly and continue compressing that profile-header layout specifically rather than broadening the shared default further.

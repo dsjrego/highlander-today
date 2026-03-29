@@ -59,33 +59,25 @@ function NavDropdown({ section }: { section: NavSection }) {
       onMouseLeave={handleMouseLeave}
     >
       {/* Trigger */}
-      <div className="flex items-stretch overflow-hidden rounded-full border border-white/10 bg-white/[0.06] text-sm font-semibold text-cyan-300 transition hover:border-cyan-300/25 hover:bg-white/[0.11] hover:text-white">
-        <Link
-          href={section.href}
-          className="px-4 py-2 text-cyan-300 transition hover:bg-white/[0.05] hover:text-white"
-          onClick={() => setOpen(false)}
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-label={`Toggle ${section.label} submenu`}
+        className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-cyan-300 transition hover:border-cyan-300/25 hover:bg-white/[0.11] hover:text-white"
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span>{section.label}</span>
+        <svg
+          className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-180' : ''}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
         >
-          {section.label}
-        </Link>
-        <button
-          type="button"
-          aria-expanded={open}
-          aria-haspopup="menu"
-          aria-label={`Toggle ${section.label} submenu`}
-          className="border-l border-white/10 px-2.5 transition hover:bg-white/[0.08]"
-          onClick={() => setOpen((current) => !current)}
-        >
-          <svg
-            className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-180' : ''}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-      </div>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
 
       {/* Dropdown panel */}
       {open && (
