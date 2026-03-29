@@ -1,0 +1,17 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="htIconBg" x1="96" y1="64" x2="424" y2="456" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#54C3E6"/>
+      <stop offset="1" stop-color="#A51E30"/>
+    </linearGradient>
+    <linearGradient id="htIconInner" x1="128" y1="96" x2="384" y2="416" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6FAFCC" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#A51E30" stop-opacity="0.7"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="#07111A"/>
+  <rect x="86" y="70" width="340" height="372" rx="60" transform="rotate(8 86 70)" fill="url(#htIconBg)"/>
+  <rect x="110" y="94" width="292" height="324" rx="44" transform="rotate(8 110 94)" fill="url(#htIconInner)" stroke="rgba(255,255,255,0.22)" stroke-width="4"/>
+  <path d="M184 177.5L214.2 181.7L204.9 248.6L263.6 256.8L272.9 189.9L303.1 194.1L278 373.7L247.8 369.5L257.8 297.7L199.1 289.5L189.1 361.3L158.9 357.1L184 177.5Z" fill="#F8FBFF"/>
+  <path d="M317.6 196.1L417.1 210L412.8 240.9L382.4 236.7L361.1 389L324.9 383.9L346.2 231.6L314.8 227.2L317.6 196.1Z" fill="#F8FBFF"/>
+</svg>

@@ -127,30 +127,46 @@ export default function OpenGraphImage() {
               justifyContent: 'center',
               width: 260,
               height: 300,
-              borderRadius: 44,
-              background: 'linear-gradient(180deg, rgba(84,195,230,0.98), rgba(165,30,48,0.96))',
               boxShadow: '0 28px 70px rgba(0, 0, 0, 0.34)',
               transform: 'rotate(8deg)',
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 224,
-                height: 264,
-                borderRadius: 36,
-                border: '2px solid rgba(255,255,255,0.22)',
-                background: 'rgba(7,17,26,0.22)',
-                color: '#f8fbff',
-                fontSize: 108,
-                fontWeight: 900,
-                letterSpacing: '-0.08em',
-              }}
+            <svg
+              viewBox="0 0 512 512"
+              width="260"
+              height="300"
+              xmlns="http://www.w3.org/2000/svg"
             >
-              HT
-            </div>
+              <defs>
+                <linearGradient id="htOgIconBg" x1="96" y1="64" x2="424" y2="456" gradientUnits="userSpaceOnUse">
+                  <stop offset="0" stopColor="#54C3E6" />
+                  <stop offset="1" stopColor="#A51E30" />
+                </linearGradient>
+                <linearGradient id="htOgIconInner" x1="128" y1="96" x2="384" y2="416" gradientUnits="userSpaceOnUse">
+                  <stop offset="0" stopColor="#6FAFCC" stopOpacity="0.9" />
+                  <stop offset="1" stopColor="#A51E30" stopOpacity="0.7" />
+                </linearGradient>
+              </defs>
+              <rect x="86" y="70" width="340" height="372" rx="60" fill="url(#htOgIconBg)" />
+              <rect
+                x="110"
+                y="94"
+                width="292"
+                height="324"
+                rx="44"
+                fill="url(#htOgIconInner)"
+                stroke="rgba(255,255,255,0.22)"
+                strokeWidth="4"
+              />
+              <path
+                d="M184 177.5L214.2 181.7L204.9 248.6L263.6 256.8L272.9 189.9L303.1 194.1L278 373.7L247.8 369.5L257.8 297.7L199.1 289.5L189.1 361.3L158.9 357.1L184 177.5Z"
+                fill="#F8FBFF"
+              />
+              <path
+                d="M317.6 196.1L417.1 210L412.8 240.9L382.4 236.7L361.1 389L324.9 383.9L346.2 231.6L314.8 227.2L317.6 196.1Z"
+                fill="#F8FBFF"
+              />
+            </svg>
           </div>
         </div>
       </div>
