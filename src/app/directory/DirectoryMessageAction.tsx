@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { createPortal } from 'react-dom';
 
 type MessageDialogState = {
   userId: string;
@@ -30,8 +31,8 @@ function MessageUserDialog({
   onCancel: () => void;
   onSubmit: () => Promise<void>;
 }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+  const dialog = (
+    <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/50 p-4">
       <div
         role="dialog"
         aria-modal="true"
@@ -86,6 +87,12 @@ function MessageUserDialog({
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  return createPortal(dialog, document.body);
 }
 
 export default function DirectoryMessageAction({
@@ -101,9 +108,14 @@ export default function DirectoryMessageAction({
   const [messageBody, setMessageBody] = useState('');
   const [messageError, setMessageError] = useState<string | null>(null);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   const currentUserId = (session?.user as { id?: string } | undefined)?.id;
   const isOwnProfile = currentUserId === userId;
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleOpenMessageDialog = () => {
     if (status !== 'authenticated' || isOwnProfile) {
@@ -182,7 +194,7 @@ export default function DirectoryMessageAction({
         Message
       </button>
 
-      {messageDialog ? (
+      {isMounted && messageDialog ? (
         <MessageUserDialog
           userName={messageDialog.userName}
           value={messageBody}

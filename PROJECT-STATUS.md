@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-03-29 (session 100)
+> **Last updated:** 2026-03-29 (session 101)
 > **Purpose:** Fast-start context for the next session. Read this file first, then open only the supporting docs relevant to the active slice.
 > **Detailed reference:** `PROJECT-STATUS-REFERENCE.md` preserves the fuller implementation ledger, rollout history, verification notes, deployment runbook, and infrastructure rationale that used to live here.
 
@@ -25,6 +25,8 @@
 > **Session 99 note:** outbound email foundations are now wired for Brevo via env-driven config, a reusable `src/lib/email.ts` transactional sender, `.env.example` / deployment-env validation coverage, and a protected admin test route at `/api/admin/email/test` for controlled verification before building invitations on top.
 >
 > **Session 100 note:** live Brevo testing confirmed the app can send transactional email, but first-send inbox placement hit Gmail spam. Treat outbound email as supporting infrastructure rather than the primary trust bootstrap. The current product conclusion is to prioritize in-product trust mechanisms like visible new-member presence and direct vouch-request flows over email-dependent onboarding.
+>
+> **Session 101 note:** trust bootstrap now has a first in-product implementation. `Category` supports `minTrustLevel` (default `ANONYMOUS`) so trusted-only nav items can stay DB-driven, and the new `/help-us-grow` route is now a trusted/staff-only stewardship surface showing same-community `REGISTERED` members with join dates plus per-row `Message` actions in the same table language as `/directory`. The message-thread header now also exposes `Vouch` when the other participant is still `REGISTERED`, and the vouch flow now treats elevated roles (`CONTRIBUTOR` and above) as trust-capable rather than requiring literal `TRUSTED`. Any environment receiving this change must run `npx prisma db push --schema prisma/schema.prisma` so `categories.minTrustLevel` exists before the categories APIs load.
 
 ## Product Snapshot
 
@@ -80,6 +82,8 @@ Current public/admin direction highlights:
 - `/profile/[id]` now uses an owner-first account-settings flow: no separate edit page, owner-only `Account Settings` first, owner-hidden `About`, simplified `Articles` / `Events` tabs, privacy disclaimers on non-public fields, and `Last seen` header metadata sourced from latest `LoginEvent`.
 - `/directory` is now a real read surface rather than a placeholder shell: it queries opted-in people plus approved organizations scoped to the active community, renders a unified sortable list, supports pagination, and treats `Businesses` / `Organizations` as yellow-pages-style type dropdown pills.
 - Directory people rows now support direct messaging from the listing itself for authenticated viewers via the inline message dialog pattern already used in admin users.
+- Trusted/staff-only trust-bootstrap is now live through `/help-us-grow`: same-community `REGISTERED` members are listed alphabetically with join dates and row-level messaging so existing trusted members can recognize people they know and start verification conversations inside the product.
+- Message threads now expose a direct `Vouch` entry point in the header when the other participant is still `REGISTERED`, reducing the need to leave the conversation to complete trust escalation.
 - The repo is back to a clean verification baseline: `npm run lint` and `npm run typecheck` now pass again after removing the dead `/admin/users` state and cleaning the current warning set.
 
 ## Highest-Signal Active Priorities
@@ -90,6 +94,7 @@ Current public/admin direction highlights:
 - Continue the About/institutional-content track where it improves public trust and clarity.
 - Preserve compact, dense operational design in admin rather than drifting toward spacious public-page layouts.
 - Continue the directory build with public organization detail pages, richer organization editing, and later self-claim/self-management flows.
+- Validate whether `/help-us-grow` actually reduces manual admin vouching and where the next trust-bootstrap gaps remain.
 
 ## What Is Still Partial Or Pending
 
@@ -99,6 +104,7 @@ Current public/admin direction highlights:
 - Cross-site sister-site pull-through is not implemented.
 - Donations/transparency, sourcing/citations, creator network, and delivery/jobs remain planned follow-on work.
 - Directory exists as an early live foundation now, but public organization detail pages, richer organization editing, and self-claim/self-management flows are still pending.
+- `Help Us Grow` is live as the first in-product trust-bootstrap loop, but it still lacks dismiss/not-known actions, stronger recognition hints, and an explicit admin exception path for genuine newcomers no one recognizes.
 - Article video embeds are still pending and should land before any delivery/jobs push.
 
 For the detailed milestone ladder and phase-by-phase remaining work, read `PROJECT-STATUS-REFERENCE.md`.
@@ -138,6 +144,7 @@ Public navigation:
 
 - `Home` is fixed
 - Other top-level nav items come from `Category` rows where `parentCategoryId = null`
+- Categories also now carry `minTrustLevel`, defaulting to `ANONYMOUS`, so top-level or child nav items can be hidden until the viewer reaches the required trust level.
 - Top-level items with children render as dropdowns
 - Child links use `?category=<slug>` unless there is an explicit route override
 - `NavigationBar` now reads from the DB-backed categories API rather than a mixed hardcoded section list
@@ -201,6 +208,7 @@ src/lib/
 11. The admin area is intentionally desktop-first and compact.
 12. Production launch auth is credentials + Google OAuth; Facebook remains intentionally deferred.
 13. The directory rollout requires the target environment to have the new Prisma schema applied. If `/directory` throws runtime Prisma errors about missing `organizations` or `users.isDirectoryListed`, run `npx prisma db push --schema prisma/schema.prisma` against that environment's database.
+14. The trusted-nav / `Help Us Grow` rollout also requires the current Prisma schema to be applied. If category reads fail with missing `categories.minTrustLevel`, run `npx prisma db push --schema prisma/schema.prisma` against that environment before loading `/api/categories` or `/api/admin/categories`.
 
 For the full gotcha list, verification notes, and deployment constraints, read `PROJECT-STATUS-REFERENCE.md`.
 

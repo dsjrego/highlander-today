@@ -155,31 +155,33 @@ export default function HelpUsGrowClient() {
             No registered members are currently waiting for recognition here.
           </div>
         ) : (
-          <div className="admin-list-table-wrap">
-            <table className="admin-list-table">
-              <thead className="admin-list-head">
-                <tr>
-                  <th className="admin-list-header-cell">Member</th>
-                  <th className="admin-list-header-cell">Joined</th>
-                  <th className="admin-list-header-cell">Contact</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedUsers.map((user) => (
-                  <tr key={user.id} className="admin-list-row">
-                    <td className="admin-list-cell">
-                      <Link href={`/profile/${user.id}`} className="admin-list-link">
-                        {user.displayName}
-                      </Link>
-                    </td>
-                    <td className="admin-list-cell">{formatJoinDate(user.joinedAt)}</td>
-                    <td className="admin-list-cell">
-                      <DirectoryMessageAction userId={user.id} userName={user.displayName} />
-                    </td>
+          <div className="px-6 pb-6">
+            <div className="admin-list-table-wrap">
+              <table className="admin-list-table">
+                <thead className="admin-list-head">
+                  <tr>
+                    <th className="admin-list-header-cell">Member</th>
+                    <th className="admin-list-header-cell">Joined</th>
+                    <th className="admin-list-header-cell">Contact</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {sortedUsers.map((user) => (
+                    <tr key={user.id} className="admin-list-row">
+                      <td className="admin-list-cell">
+                        <Link href={`/profile/${user.id}`} className="admin-list-link">
+                          {user.displayName}
+                        </Link>
+                      </td>
+                      <td className="admin-list-cell">{formatJoinDate(user.joinedAt)}</td>
+                      <td className="admin-list-cell">
+                        <DirectoryMessageAction userId={user.id} userName={user.displayName} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </section>
