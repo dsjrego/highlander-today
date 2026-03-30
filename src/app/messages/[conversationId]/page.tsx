@@ -2,11 +2,15 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import VouchProfileButton from "@/app/profile/[id]/VouchProfileButton";
 
 interface ApiParticipant {
   id: string;
+  firstName: string;
+  lastName: string;
   displayName: string;
   trustLevel: "ANONYMOUS" | "REGISTERED" | "TRUSTED" | "SUSPENDED";
+  hasDateOfBirth: boolean;
 }
 
 interface ApiMessage {
@@ -156,6 +160,21 @@ export default function MessageThreadPage({ params }: PageProps) {
         >
           View Profile
         </Link>
+        <VouchProfileButton
+          userId={participant.id}
+          firstName={participant.firstName}
+          lastName={participant.lastName}
+          trustLevel={participant.trustLevel}
+          hasDateOfBirth={participant.hasDateOfBirth}
+          className="rounded-full border border-[#A51E30]/20 bg-[#A51E30] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#8d1929]"
+          onSuccess={() =>
+            setParticipant((current) =>
+              current ? { ...current, trustLevel: "TRUSTED" } : current
+            )
+          }
+        >
+          Vouch
+        </VouchProfileButton>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">

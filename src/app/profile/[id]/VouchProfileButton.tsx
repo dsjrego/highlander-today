@@ -4,6 +4,7 @@ import { ReactNode, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { VouchConfirmModal } from "@/components/trust/VouchConfirmModal";
+import { hasTrustedAccess } from "@/lib/trust-access";
 
 interface VouchProfileButtonProps {
   userId: string;
@@ -13,6 +14,7 @@ interface VouchProfileButtonProps {
   hasDateOfBirth: boolean;
   className: string;
   children?: ReactNode;
+  onSuccess?: () => void;
 }
 
 interface VouchResponse {
@@ -70,6 +72,7 @@ export default function VouchProfileButton({
   hasDateOfBirth,
   className,
   children,
+  onSuccess,
 }: VouchProfileButtonProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -77,11 +80,11 @@ export default function VouchProfileButton({
   const [dialogMessage, setDialogMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const currentUser = session?.user as { id?: string; trust_level?: string } | undefined;
+  const currentUser = session?.user as { id?: string; trust_level?: string; role?: string } | undefined;
   const isOwnProfile = currentUser?.id === userId;
   const canAttemptVouch =
     status === "authenticated" &&
-    currentUser?.trust_level === "TRUSTED" &&
+    hasTrustedAccess({ trustLevel: currentUser?.trust_level, role: currentUser?.role }) &&
     !isOwnProfile &&
     trustLevel === "REGISTERED";
 
@@ -141,6 +144,7 @@ export default function VouchProfileButton({
     setDialogMessage("");
 
     if (shouldRefresh) {
+      onSuccess?.();
       router.refresh();
     }
   }

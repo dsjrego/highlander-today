@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
+import { hasTrustedAccess } from '@/lib/trust-access';
 
 const SYSTEM_USER_EMAIL = 'system@highlander.today';
 
@@ -118,10 +119,25 @@ export async function POST(
     // Get voucher to validate trust level
     const voucher = await db.user.findUnique({
       where: { id: actorId },
-      select: { id: true, trustLevel: true, firstName: true, lastName: true },
+      select: {
+        id: true,
+        trustLevel: true,
+        firstName: true,
+        lastName: true,
+        memberships: {
+          select: { role: true },
+          take: 1,
+        },
+      },
     });
 
-    if (!voucher || voucher.trustLevel !== 'TRUSTED') {
+    if (
+      !voucher ||
+      !hasTrustedAccess({
+        trustLevel: voucher.trustLevel,
+        role: voucher.memberships[0]?.role,
+      })
+    ) {
       return NextResponse.json(
         { error: 'You must be TRUSTED to vouch for users' },
         { status: 403 }

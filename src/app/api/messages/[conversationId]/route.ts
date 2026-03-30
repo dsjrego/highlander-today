@@ -116,6 +116,7 @@ export async function GET(
                 lastName: true,
                 profilePhotoUrl: true,
                 trustLevel: true,
+                dateOfBirth: true,
               },
             },
           },
@@ -177,6 +178,7 @@ export async function GET(
               displayName: getDisplayName(otherParticipant),
               profilePhotoUrl: otherParticipant.profilePhotoUrl,
               trustLevel: otherParticipant.trustLevel,
+              hasDateOfBirth: Boolean(otherParticipant.dateOfBirth),
             }
           : null,
       },

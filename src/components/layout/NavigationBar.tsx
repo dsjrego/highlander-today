@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { getCategoryHref } from '@/lib/category-config';
+import { hasTrustedAccess } from '@/lib/trust-access';
 
 export interface NavSubcategory {
   label: string;
@@ -38,7 +39,7 @@ function getViewerTrustRank(
   trustLevel: CategoryNavRecord['minTrustLevel'] | undefined,
   role: string | undefined
 ) {
-  if (role && ['CONTRIBUTOR', 'STAFF_WRITER', 'EDITOR', 'ADMIN', 'SUPER_ADMIN'].includes(role)) {
+  if (hasTrustedAccess({ trustLevel, role })) {
     return TRUST_LEVEL_RANK.TRUSTED;
   }
 
