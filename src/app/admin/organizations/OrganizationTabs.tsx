@@ -50,9 +50,6 @@ interface CreateOrganizationFormState {
   organizationType: string;
   description: string;
   websiteUrl: string;
-  contactEmail: string;
-  contactPhone: string;
-  isPublicMemberRoster: boolean;
   status: OrganizationRecord['status'];
 }
 
@@ -69,7 +66,7 @@ function getStatusForTab(tab: OrganizationTab): OrganizationRecord['status'] {
   }
 }
 
-function getTabLabel(tab: OrganizationTab) {
+function getTabLabel(tab: string) {
   return tab.charAt(0).toUpperCase() + tab.slice(1);
 }
 
@@ -86,29 +83,6 @@ function formatTypeLabel(value: string) {
     .split('_')
     .map((segment) => segment.charAt(0) + segment.slice(1).toLowerCase())
     .join(' ');
-}
-
-function formatPhoneInput(value: string) {
-  const digits = value.replace(/\D/g, '').slice(0, 10);
-
-  if (digits.length === 0) {
-    return '';
-  }
-
-  if (digits.length < 4) {
-    return `(${digits}`;
-  }
-
-  if (digits.length < 7) {
-    return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-  }
-
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-}
-
-function hasValidPhoneDigits(value: string) {
-  const digits = value.replace(/\D/g, '');
-  return digits.length === 0 || digits.length === 10;
 }
 
 export default function OrganizationTabs({ organizations }: OrganizationTabsProps) {
@@ -128,9 +102,6 @@ export default function OrganizationTabs({ organizations }: OrganizationTabsProp
     organizationType: ORGANIZATION_TYPE_OPTIONS.ORGANIZATION[0].value,
     description: '',
     websiteUrl: '',
-    contactEmail: '',
-    contactPhone: '',
-    isPublicMemberRoster: false,
     status: 'PENDING_APPROVAL' as OrganizationRecord['status'],
   });
 
@@ -177,25 +148,9 @@ export default function OrganizationTabs({ organizations }: OrganizationTabsProp
       return;
     }
 
-    if (name === 'contactPhone') {
-      setCreateForm((current) => ({
-        ...current,
-        contactPhone: formatPhoneInput(value),
-      }));
-      return;
-    }
-
     setCreateForm((current) => ({
       ...current,
       [name]: value,
-    }));
-  }
-
-  function handleCreateCheckboxChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const { name, checked } = event.target;
-    setCreateForm((current) => ({
-      ...current,
-      [name]: checked,
     }));
   }
 
@@ -206,11 +161,6 @@ export default function OrganizationTabs({ organizations }: OrganizationTabsProp
 
     if (!createForm.name.trim()) {
       setCreateError('Organization name is required.');
-      return;
-    }
-
-    if (!hasValidPhoneDigits(createForm.contactPhone)) {
-      setCreateError('Contact phone must include 10 digits.');
       return;
     }
 
@@ -254,9 +204,6 @@ export default function OrganizationTabs({ organizations }: OrganizationTabsProp
         organizationType: ORGANIZATION_TYPE_OPTIONS.ORGANIZATION[0].value,
         description: '',
         websiteUrl: '',
-        contactEmail: '',
-        contactPhone: '',
-        isPublicMemberRoster: false,
         status: 'PENDING_APPROVAL',
       });
       setCreateSuccess('Organization created successfully.');
@@ -360,8 +307,8 @@ export default function OrganizationTabs({ organizations }: OrganizationTabsProp
             <div>
               <h3 className="text-lg font-bold text-slate-950">Add Organization</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Create an organization record directly from admin. The creator is attached as the
-                initial owner membership automatically.
+                Create the base organization record directly from admin. Add locations, departments,
+                contacts, roster visibility, and media from the organization detail page after creation.
               </p>
             </div>
 
@@ -372,126 +319,91 @@ export default function OrganizationTabs({ organizations }: OrganizationTabsProp
               </div>
             ) : null}
 
-            <div className="grid gap-4 lg:grid-cols-2">
-              <div>
-                <label className="form-label text-slate-500">Organization Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={createForm.name}
-                  onChange={handleCreateInputChange}
-                  className="form-input border-slate-300 bg-white text-slate-950"
-                  placeholder="Cambria County Planning Office"
-                />
-              </div>
-
-              <div>
-                <label className="form-label text-slate-500">Organization Type</label>
-                <select
-                  name="organizationType"
-                  value={createForm.organizationType}
-                  onChange={handleCreateInputChange}
-                  className="form-input border-slate-300 bg-white text-slate-950"
-                >
-                  {createTypeOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="form-label text-slate-500">Directory Group</label>
-                <select
-                  name="directoryGroup"
-                  value={createForm.directoryGroup}
-                  onChange={handleCreateInputChange}
-                  className="form-input border-slate-300 bg-white text-slate-950"
-                >
-                  {ORGANIZATION_GROUP_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="form-label text-slate-500">Initial Status</label>
-                <select
-                  name="status"
-                  value={createForm.status}
-                  onChange={handleCreateInputChange}
-                  className="form-input border-slate-300 bg-white text-slate-950"
-                >
-                  <option value="PENDING_APPROVAL">Pending Approval</option>
-                  <option value="APPROVED">Approved</option>
-                  <option value="REJECTED">Rejected</option>
-                  <option value="SUSPENDED">Suspended</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="form-label text-slate-500">Website</label>
-                <input
-                  type="url"
-                  name="websiteUrl"
-                  value={createForm.websiteUrl}
-                  onChange={handleCreateInputChange}
-                  className="form-input border-slate-300 bg-white text-slate-950"
-                  placeholder="https://example.org"
-                />
-              </div>
-
-              <div>
-                <label className="form-label text-slate-500">Contact Email</label>
-                <input
-                  type="email"
-                  name="contactEmail"
-                  value={createForm.contactEmail}
-                  onChange={handleCreateInputChange}
-                  className="form-input border-slate-300 bg-white text-slate-950"
-                  placeholder="office@example.org"
-                />
-              </div>
-
-              <div>
-                <label className="form-label text-slate-500">Contact Phone</label>
-                <input
-                  type="text"
-                  name="contactPhone"
-                  value={createForm.contactPhone}
-                  onChange={handleCreateInputChange}
-                  className="form-input border-slate-300 bg-white text-slate-950"
-                  placeholder="(555) 123-4567"
-                />
-              </div>
-
-              <div className="flex items-center">
-                <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5">
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div>
+                  <label className="form-label text-slate-500">Organization Name</label>
                   <input
-                    type="checkbox"
-                    name="isPublicMemberRoster"
-                    checked={createForm.isPublicMemberRoster}
-                    onChange={handleCreateCheckboxChange}
-                    className="h-4 w-4 rounded border-slate-300"
+                    type="text"
+                    name="name"
+                    value={createForm.name}
+                    onChange={handleCreateInputChange}
+                    className="form-input border-slate-300 bg-white text-slate-950"
+                    placeholder="Cambria County Planning Office"
                   />
-                  Public member roster
-                </label>
-              </div>
-            </div>
+                </div>
 
-            <div>
-              <label className="form-label text-slate-500">Description</label>
-              <textarea
-                name="description"
-                value={createForm.description}
-                onChange={handleCreateInputChange}
-                rows={5}
-                className="form-textarea border-slate-300 bg-white text-slate-950"
-                placeholder="Describe the organization, what it does, and how it serves the community."
-              />
+                <div>
+                  <label className="form-label text-slate-500">Organization Type</label>
+                  <select
+                    name="organizationType"
+                    value={createForm.organizationType}
+                    onChange={handleCreateInputChange}
+                    className="form-input border-slate-300 bg-white text-slate-950"
+                  >
+                    {createTypeOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="form-label text-slate-500">Directory Group</label>
+                  <select
+                    name="directoryGroup"
+                    value={createForm.directoryGroup}
+                    onChange={handleCreateInputChange}
+                    className="form-input border-slate-300 bg-white text-slate-950"
+                  >
+                    {ORGANIZATION_GROUP_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="form-label text-slate-500">Initial Status</label>
+                  <select
+                    name="status"
+                    value={createForm.status}
+                    onChange={handleCreateInputChange}
+                    className="form-input border-slate-300 bg-white text-slate-950"
+                  >
+                    <option value="PENDING_APPROVAL">Pending Approval</option>
+                    <option value="APPROVED">Approved</option>
+                    <option value="REJECTED">Rejected</option>
+                    <option value="SUSPENDED">Suspended</option>
+                  </select>
+                </div>
+
+                <div className="lg:col-span-2">
+                  <label className="form-label text-slate-500">Website</label>
+                  <input
+                    type="url"
+                    name="websiteUrl"
+                    value={createForm.websiteUrl}
+                    onChange={handleCreateInputChange}
+                    className="form-input border-slate-300 bg-white text-slate-950"
+                    placeholder="https://example.org"
+                  />
+                </div>
+
+                <div className="lg:col-span-2">
+                  <label className="form-label text-slate-500">Description</label>
+                  <textarea
+                    name="description"
+                    value={createForm.description}
+                    onChange={handleCreateInputChange}
+                    rows={5}
+                    className="form-textarea border-slate-300 bg-white text-slate-950"
+                    placeholder="Describe the organization, what it does, and how it serves the community."
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="form-card-actions">

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import InternalPageHeader from "@/components/shared/InternalPageHeader";
+import { formatLocationPrimary } from "@/lib/location-format";
 
 interface Event {
   id: string;
@@ -13,7 +14,16 @@ interface Event {
   description: string | null;
   startDatetime: string;
   endDatetime: string | null;
-  locationText: string | null;
+  venueLabel: string | null;
+  location: {
+    id: string;
+    name: string | null;
+    addressLine1: string;
+    addressLine2: string | null;
+    city: string;
+    state: string;
+    postalCode: string | null;
+  };
   photoUrl: string | null;
   costText: string | null;
   submittedBy: {
@@ -258,7 +268,7 @@ export default function EventsPage() {
                         minute: "2-digit",
                       })}
                     </span>
-                    {event.locationText && <span>{event.locationText}</span>}
+                    <span>{formatLocationPrimary(event.location, event.venueLabel)}</span>
                     {event.costText && <span>{event.costText}</span>}
                     <span>
                       {event.submittedBy.firstName} {event.submittedBy.lastName}

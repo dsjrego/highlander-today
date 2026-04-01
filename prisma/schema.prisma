@@ -32,6 +32,7 @@ model Community {
   events                 Event[]
   stores                 Store[]
   organizations          Organization[]
+  locations              Location[]
   marketplaceListings    MarketplaceListing[]
   helpWantedPosts        HelpWantedPost[]
   roadmapIdeas           RoadmapIdea[]
@@ -268,6 +269,7 @@ model Organization {
   locations   OrganizationLocation[]
   departments OrganizationDepartment[]
   contacts    OrganizationContact[]
+  events      Event[]
 
   @@unique([communityId, slug])
   @@index([communityId])
@@ -523,9 +525,11 @@ model Event {
   id                String      @id @default(uuid()) @db.Uuid
   communityId       String      @db.Uuid
   submittedByUserId String      @db.Uuid
+  organizationId    String?     @db.Uuid
+  locationId        String      @db.Uuid
   title             String
+  venueLabel        String?
   description       String?
-  locationText      String?
   startDatetime     DateTime
   endDatetime       DateTime?
   costText          String?
@@ -538,11 +542,15 @@ model Event {
   updatedAt         DateTime    @updatedAt
 
   // Relations
-  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  submittedBy User      @relation(fields: [submittedByUserId], references: [id], onDelete: Cascade)
+  community    Community     @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  submittedBy  User          @relation(fields: [submittedByUserId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  location     Location      @relation(fields: [locationId], references: [id], onDelete: Restrict)
 
   @@index([communityId])
   @@index([submittedByUserId])
+  @@index([organizationId])
+  @@index([locationId])
   @@index([status])
   @@map("events")
 }
@@ -551,6 +559,42 @@ enum EventStatus {
   PENDING_REVIEW
   PUBLISHED
   UNPUBLISHED
+}
+
+model Location {
+  id                   String                   @id @default(uuid()) @db.Uuid
+  communityId          String                   @db.Uuid
+  name                 String?
+  addressLine1         String
+  addressLine2         String?
+  city                 String
+  state                String
+  postalCode           String?
+  countryCode          String                   @default("US")
+  normalizedAddressKey String
+  latitude             Decimal?                 @db.Decimal(9, 6)
+  longitude            Decimal?                 @db.Decimal(9, 6)
+  validationStatus     LocationValidationStatus @default(UNVERIFIED)
+  validatedAt          DateTime?
+  googlePlaceId        String?
+  uspsNormalized       Boolean                  @default(false)
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  events    Event[]
+
+  @@index([communityId])
+  @@index([normalizedAddressKey])
+  @@index([googlePlaceId])
+  @@map("locations")
+}
+
+enum LocationValidationStatus {
+  UNVERIFIED
+  NORMALIZED
+  VERIFIED
+  NEEDS_REVIEW
 }
 
 // ============================================================================

@@ -5,6 +5,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import ArticlePreview from '@/components/articles/ArticlePreview';
+import { formatLocationPrimary, formatLocationSecondary } from '@/lib/location-format';
 
 interface Author {
   id: string;
@@ -35,7 +36,15 @@ interface PendingEvent {
   status: string;
   startDatetime: string;
   endDatetime: string | null;
-  locationText: string | null;
+  venueLabel: string | null;
+  location: {
+    id: string;
+    name: string | null;
+    addressLine1: string;
+    city: string;
+    state: string;
+    postalCode: string | null;
+  };
   photoUrl: string | null;
   submittedBy: Author;
   updatedAt: string;
@@ -418,7 +427,7 @@ export default function ContentApprovalPage() {
                             <div className="flex items-center gap-2 text-xs text-gray-500">
                               <span className="font-medium">{event.submittedBy.firstName} {event.submittedBy.lastName}</span>
                               <TrustBadge trustLevel={event.submittedBy.trustLevel} />
-                              {event.locationText && <span>• {event.locationText}</span>}
+                              <span>• {formatLocationPrimary(event.location, event.venueLabel)}</span>
                             </div>
                           </div>
                           <div className="flex gap-2 shrink-0">
@@ -458,7 +467,8 @@ export default function ContentApprovalPage() {
                           <div className="grid gap-3 text-sm text-gray-600">
                             <p><span className="font-semibold text-gray-800">Starts:</span> {new Date(event.startDatetime).toLocaleString()}</p>
                             {event.endDatetime && <p><span className="font-semibold text-gray-800">Ends:</span> {new Date(event.endDatetime).toLocaleString()}</p>}
-                            {event.locationText && <p><span className="font-semibold text-gray-800">Location:</span> {event.locationText}</p>}
+                            <p><span className="font-semibold text-gray-800">Location:</span> {formatLocationPrimary(event.location, event.venueLabel)}</p>
+                            <p><span className="font-semibold text-gray-800">Address:</span> {formatLocationSecondary(event.location)}</p>
                             {event.description && <p>{event.description}</p>}
                           </div>
                         </div>

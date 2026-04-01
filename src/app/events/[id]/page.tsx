@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import UserAvatar from '@/components/shared/UserAvatar';
+import { formatLocationPrimary, formatLocationSecondary } from '@/lib/location-format';
 
 interface EventDetail {
   id: string;
@@ -14,7 +15,16 @@ interface EventDetail {
   status: string;
   startDatetime: string;
   endDatetime: string | null;
-  locationText: string | null;
+  venueLabel: string | null;
+  location: {
+    id: string;
+    name: string | null;
+    addressLine1: string;
+    addressLine2: string | null;
+    city: string;
+    state: string;
+    postalCode: string | null;
+  };
   costText: string | null;
   contactInfo: string | null;
   photoUrl: string | null;
@@ -149,12 +159,11 @@ export default function EventDetailPage() {
             {event.endDatetime && ` to ${new Date(event.endDatetime).toLocaleString()}`}
           </p>
         </div>
-        {event.locationText && (
-          <div>
-            <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-500">Where</h2>
-            <p className="text-slate-800">{event.locationText}</p>
-          </div>
-        )}
+        <div>
+          <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-500">Where</h2>
+          <p className="text-slate-800">{formatLocationPrimary(event.location, event.venueLabel)}</p>
+          <p className="text-sm text-slate-500">{formatLocationSecondary(event.location)}</p>
+        </div>
         {event.costText && (
           <div>
             <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-500">Cost</h2>

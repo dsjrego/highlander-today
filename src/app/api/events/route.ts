@@ -11,10 +11,13 @@ const CreateEventSchema = z.object({
   startTime: z.string().optional(), // time string (HH:MM)
   endDate: z.string().optional(),
   endTime: z.string().optional(),
-  location: z.string().optional(),
+  locationId: z.string().uuid(),
+  venueLabel: z.string().trim().max(160).optional().or(z.literal('')),
   costText: z.string().optional(),
   contactInfo: z.string().optional(),
   imageUrl: z.string().optional(),
+  status: z.enum(['PENDING_REVIEW', 'PUBLISHED', 'UNPUBLISHED']).optional(),
+  organizationId: z.string().uuid().optional().or(z.literal('')),
 });
 
 function buildDatetime(dateStr: string, timeStr?: string): Date {
@@ -52,6 +55,17 @@ export async function GET(request: NextRequest) {
       skip: (page - 1) * limit,
       take: limit,
       include: {
+        location: {
+          select: {
+            id: true,
+            name: true,
+            addressLine1: true,
+            addressLine2: true,
+            city: true,
+            state: true,
+            postalCode: true,
+          },
+        },
         submittedBy: {
           select: { id: true, firstName: true, lastName: true, profilePhotoUrl: true },
         },
@@ -105,6 +119,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Community not found' }, { status: 404 });
     }
 
+    const location = await db.location.findFirst({
+      where: {
+        id: validated.locationId,
+        communityId: community.id,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!location) {
+      return NextResponse.json({ error: 'Location not found' }, { status: 404 });
+    }
+
+    const organizationId = validated.organizationId || undefined;
+
+    if (organizationId) {
+      const organization = await db.organization.findFirst({
+        where: {
+          id: organizationId,
+          communityId: community.id,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!organization) {
+        return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
+      }
+    }
+
     const startDatetime = buildDatetime(validated.startDate, validated.startTime);
     const endDatetime = validated.endDate
       ? buildDatetime(validated.endDate, validated.endTime)
@@ -116,15 +162,33 @@ export async function POST(request: NextRequest) {
         description: validated.description || null,
         startDatetime,
         endDatetime,
-        locationText: validated.location || null,
+        locationId: validated.locationId,
+        venueLabel: validated.venueLabel || null,
         costText: validated.costText || null,
         contactInfo: validated.contactInfo || null,
         photoUrl: validated.imageUrl || null,
         submittedByUserId: userId,
         communityId: community.id,
-        status: 'PENDING_REVIEW',
+        organizationId: organizationId || null,
+        status: checkPermission(userRole, 'events:approve')
+          ? validated.status || 'PENDING_REVIEW'
+          : 'PENDING_REVIEW',
       },
       include: {
+        location: {
+          select: {
+            id: true,
+            name: true,
+            addressLine1: true,
+            addressLine2: true,
+            city: true,
+            state: true,
+            postalCode: true,
+          },
+        },
+        organization: {
+          select: { id: true, name: true },
+        },
         submittedBy: {
           select: { id: true, firstName: true, lastName: true, profilePhotoUrl: true },
         },

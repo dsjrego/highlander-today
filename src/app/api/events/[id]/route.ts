@@ -11,7 +11,8 @@ const UpdateEventSchema = z.object({
   startTime: z.string().optional(),
   endDate: z.string().optional().nullable(),
   endTime: z.string().optional(),
-  location: z.string().max(255).optional().nullable(),
+  locationId: z.string().uuid().optional(),
+  venueLabel: z.string().max(160).optional().nullable(),
   imageUrl: z.string().optional().nullable(),
   costText: z.string().max(255).optional().nullable(),
   contactInfo: z.string().max(255).optional().nullable(),
@@ -33,6 +34,17 @@ export async function GET(
     const event = await db.event.findUnique({
       where: { id: params.id },
       include: {
+        location: {
+          select: {
+            id: true,
+            name: true,
+            addressLine1: true,
+            addressLine2: true,
+            city: true,
+            state: true,
+            postalCode: true,
+          },
+        },
         submittedBy: {
           select: {
             id: true,
@@ -108,7 +120,7 @@ export async function PATCH(
     const updateData: Record<string, unknown> = {};
     if (validated.title !== undefined) updateData.title = validated.title;
     if (validated.description !== undefined) updateData.description = validated.description;
-    if (validated.location !== undefined) updateData.locationText = validated.location;
+    if (validated.venueLabel !== undefined) updateData.venueLabel = validated.venueLabel;
     if (validated.imageUrl !== undefined) updateData.photoUrl = validated.imageUrl;
     if (validated.costText !== undefined) updateData.costText = validated.costText;
     if (validated.contactInfo !== undefined) updateData.contactInfo = validated.contactInfo;
@@ -133,6 +145,22 @@ export async function PATCH(
         : null;
     }
 
+    if (validated.locationId !== undefined) {
+      const location = await db.location.findFirst({
+        where: {
+          id: validated.locationId,
+          communityId: event.communityId,
+        },
+        select: { id: true },
+      });
+
+      if (!location) {
+        return NextResponse.json({ error: 'Location not found' }, { status: 404 });
+      }
+
+      updateData.locationId = validated.locationId;
+    }
+
     if (isAuthor && !hasEditorRole && event.status !== 'PENDING_REVIEW' && validated.status === undefined) {
       updateData.status = 'PENDING_REVIEW';
     }
@@ -141,6 +169,17 @@ export async function PATCH(
       where: { id: params.id },
       data: updateData,
       include: {
+        location: {
+          select: {
+            id: true,
+            name: true,
+            addressLine1: true,
+            addressLine2: true,
+            city: true,
+            state: true,
+            postalCode: true,
+          },
+        },
         submittedBy: {
           select: {
             id: true,

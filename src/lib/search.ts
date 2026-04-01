@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { db } from './db';
 import { getArticleUiImageUrl } from './article-images';
 import { ArticleStatus, EventStatus, MarketplaceStatus } from './constants';
+import { formatLocationPrimary } from './location-format';
 
 export type SearchResultType = 'article' | 'event' | 'marketplace';
 
@@ -162,7 +163,14 @@ function buildArticleMetadata(article: {
 
 function buildEventMetadata(event: {
   startDatetime: Date;
-  locationText: string | null;
+  venueLabel: string | null;
+  location: {
+    name: string | null;
+    addressLine1: string;
+    city: string;
+    state: string;
+    postalCode: string | null;
+  };
   costText: string | null;
 }): string {
   const pieces = [
@@ -171,7 +179,7 @@ function buildEventMetadata(event: {
       month: 'short',
       day: 'numeric',
     }),
-    event.locationText,
+    formatLocationPrimary(event.location, event.venueLabel),
     event.costText,
   ];
 
@@ -215,7 +223,10 @@ function buildEventWhere(query: string, communityId?: string): Prisma.EventWhere
     OR: [
       { title: { contains: query, mode: 'insensitive' as const } },
       { description: { contains: query, mode: 'insensitive' as const } },
-      { locationText: { contains: query, mode: 'insensitive' as const } },
+      { venueLabel: { contains: query, mode: 'insensitive' as const } },
+      { location: { is: { name: { contains: query, mode: 'insensitive' as const } } } },
+      { location: { is: { addressLine1: { contains: query, mode: 'insensitive' as const } } } },
+      { location: { is: { city: { contains: query, mode: 'insensitive' as const } } } },
     ],
   };
 }
@@ -258,6 +269,17 @@ async function findSearchArticles(
 async function findSearchEvents(query: string, communityId: string | undefined, take: number) {
   return db.event.findMany({
     where: buildEventWhere(query, communityId),
+    include: {
+      location: {
+        select: {
+          name: true,
+          addressLine1: true,
+          city: true,
+          state: true,
+          postalCode: true,
+        },
+      },
+    },
     orderBy: [{ startDatetime: 'asc' }, { createdAt: 'desc' }],
     take,
   });
@@ -332,7 +354,10 @@ export async function searchContent(
       relevance: buildTextRelevance(trimmedQuery, [
         event.title,
         event.description,
-        event.locationText,
+        event.venueLabel,
+        event.location.name,
+        event.location.addressLine1,
+        event.location.city,
       ]),
       communityId: event.communityId,
       imageUrl: event.photoUrl ?? undefined,

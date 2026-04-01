@@ -45,6 +45,16 @@ export async function GET(request: NextRequest) {
         db.event.findMany({
           where: { status: 'PENDING_REVIEW' },
           include: {
+            location: {
+              select: {
+                id: true,
+                name: true,
+                addressLine1: true,
+                city: true,
+                state: true,
+                postalCode: true,
+              },
+            },
             submittedBy: {
               select: {
                 id: true,

@@ -7,6 +7,7 @@ import DirectoryMessageAction from './DirectoryMessageAction';
 import { getCurrentCommunity } from '@/lib/community';
 import { db } from '@/lib/db';
 import { ORGANIZATION_TYPE_OPTIONS } from '@/lib/organization-taxonomy';
+import { formatOrganizationTypeLabel } from '@/lib/organizations';
 
 type DirectoryPageSearchParams = {
   category?: string;
@@ -75,13 +76,6 @@ function buildDirectoryHref(params: {
 
   const queryString = search.toString();
   return queryString ? `/directory?${queryString}` : '/directory';
-}
-
-function formatTypeLabel(value: string) {
-  return value
-    .split('_')
-    .map((segment) => segment.charAt(0) + segment.slice(1).toLowerCase())
-    .join(' ');
 }
 
 function normalizeSortKey(value: string | undefined): DirectorySortKey {
@@ -207,6 +201,7 @@ export default async function DirectoryPage({
       },
       select: {
         id: true,
+        slug: true,
         name: true,
         description: true,
         directoryGroup: true,
@@ -236,13 +231,14 @@ export default async function DirectoryPage({
     ...organizations.map((organization) => ({
       id: organization.id,
       name: organization.name,
+      href: `/organizations/${organization.slug}`,
       section:
         organization.directoryGroup === 'BUSINESS'
           ? ('Businesses' as const)
           : organization.directoryGroup === 'GOVERNMENT'
             ? ('Government' as const)
             : ('Organizations' as const),
-      type: formatTypeLabel(organization.organizationType),
+      type: formatOrganizationTypeLabel(organization.organizationType),
       detail: organization.description?.trim() || 'No description available',
       contact:
         organization.contactPhone ||

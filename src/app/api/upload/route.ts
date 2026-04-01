@@ -9,7 +9,7 @@ import { isCloudflareR2Configured, uploadFile } from '@/lib/upload';
  * otherwise local filesystem storage in development.
  *
  * Accepts: multipart/form-data with a "file" field
- * Optional form field: "context" — one of "article", "profile", "event", "marketplace", "help-wanted"
+ * Optional form field: "context" — one of "article", "profile", "event", "organization", "marketplace", "help-wanted"
  * Returns: { success, url, filename, size, type }
  */
 export async function POST(request: NextRequest) {
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     const random = Math.random().toString(36).substring(2, 8);
     const safeFilename = `${timestamp}-${random}.${ext}`;
 
-    const subfolder = ['article', 'profile', 'event', 'marketplace', 'help-wanted'].includes(context)
+    const subfolder = ['article', 'profile', 'event', 'organization', 'marketplace', 'help-wanted'].includes(context)
       ? context
       : 'general';
     const buffer = Buffer.from(await file.arrayBuffer());

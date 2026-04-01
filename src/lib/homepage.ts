@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client';
 import { db } from './db';
 import { ArticleStatus, EventStatus, MarketplaceStatus } from './constants';
+import { formatLocationPrimary } from './location-format';
 import { getArticleUiImageUrl } from './article-images';
 import { resolveTenantCommunityId } from './tenant';
 
@@ -166,7 +167,14 @@ function formatArticleMetadata(article: {
 
 function formatEventMetadata(event: {
   startDatetime: Date;
-  locationText: string | null;
+  venueLabel: string | null;
+  location: {
+    name: string | null;
+    addressLine1: string;
+    city: string;
+    state: string;
+    postalCode: string | null;
+  };
   costText: string | null;
 }) {
   return [
@@ -175,7 +183,7 @@ function formatEventMetadata(event: {
       month: 'long',
       day: 'numeric',
     }),
-    event.locationText,
+    formatLocationPrimary(event.location, event.venueLabel),
     event.costText,
   ]
     .filter(Boolean)
@@ -247,6 +255,17 @@ async function getEventCandidates(communityId: string, limit: number) {
       communityId,
       status: EventStatus.PUBLISHED,
       startDatetime: { gte: new Date() },
+    },
+    include: {
+      location: {
+        select: {
+          name: true,
+          addressLine1: true,
+          city: true,
+          state: true,
+          postalCode: true,
+        },
+      },
     },
     orderBy: { startDatetime: 'asc' },
     take: limit,

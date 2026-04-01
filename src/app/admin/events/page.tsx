@@ -32,7 +32,18 @@ export default async function AdminEventsPage() {
       startDatetime: true,
       endDatetime: true,
       updatedAt: true,
-      locationText: true,
+      venueLabel: true,
+      location: {
+        select: {
+          id: true,
+          name: true,
+          addressLine1: true,
+          addressLine2: true,
+          city: true,
+          state: true,
+          postalCode: true,
+        },
+      },
       submittedBy: {
         select: {
           firstName: true,
@@ -41,6 +52,36 @@ export default async function AdminEventsPage() {
       },
     },
     orderBy: [{ updatedAt: 'desc' }, { startDatetime: 'asc' }],
+  });
+
+  const organizations = await db.organization.findMany({
+    where: {
+      ...(currentCommunity?.id ? { communityId: currentCommunity.id } : {}),
+    },
+    select: {
+      id: true,
+      name: true,
+      status: true,
+    },
+    orderBy: [{ name: 'asc' }],
+  });
+
+  const locations = await db.location.findMany({
+    where: {
+      ...(currentCommunity?.id ? { communityId: currentCommunity.id } : {}),
+    },
+    select: {
+      id: true,
+      name: true,
+      addressLine1: true,
+      addressLine2: true,
+      city: true,
+      state: true,
+      postalCode: true,
+      validationStatus: true,
+    },
+    orderBy: [{ name: 'asc' }, { addressLine1: 'asc' }],
+    take: 100,
   });
 
   return (
@@ -55,7 +96,7 @@ export default async function AdminEventsPage() {
           </div>
         </div>
         <div className="admin-card-body">
-          <EventTabs events={events} />
+          <EventTabs events={events} organizations={organizations} locations={locations} />
         </div>
         <div className="admin-card-footer">
           <div className="admin-card-footer-label"></div>

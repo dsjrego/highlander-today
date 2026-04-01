@@ -16,8 +16,8 @@ interface ImageUploadProps {
   onUpload: (image: UploadedImage) => void;
   /** Called when an image is removed */
   onRemove?: (url: string) => void;
-  /** Upload context for organizing files (article, profile, event, marketplace, help-wanted) */
-  context?: 'article' | 'profile' | 'event' | 'marketplace' | 'help-wanted';
+  /** Upload context for organizing files (article, profile, event, organization, marketplace, help-wanted) */
+  context?: 'article' | 'profile' | 'event' | 'organization' | 'marketplace' | 'help-wanted';
   /** Max number of images allowed (1 for single image, more for multi) */
   maxFiles?: number;
   /** Currently uploaded image URLs (for controlled mode) */

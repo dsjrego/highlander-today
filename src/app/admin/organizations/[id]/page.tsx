@@ -1,33 +1,16 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
+import { Building2 } from 'lucide-react';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
+import OrganizationDetailEditor from './OrganizationDetailEditor';
 
 interface PageProps {
   params: {
     id: string;
   };
-}
-
-function formatTypeLabel(value: string) {
-  return value
-    .split('_')
-    .map((segment) => segment.charAt(0) + segment.slice(1).toLowerCase())
-    .join(' ');
-}
-
-function formatDate(value: Date | null) {
-  if (!value) {
-    return 'Not set';
-  }
-
-  return new Date(value).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
 }
 
 export default async function AdminOrganizationDetailPage({ params }: PageProps) {
@@ -51,22 +34,99 @@ export default async function AdminOrganizationDetailPage({ params }: PageProps)
       directoryGroup: true,
       organizationType: true,
       status: true,
-      approvedAt: true,
-      createdAt: true,
-      updatedAt: true,
+      logoUrl: true,
+      bannerUrl: true,
       isPublicMemberRoster: true,
-      createdBy: {
+      locations: {
+        orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }],
         select: {
-          firstName: true,
-          lastName: true,
+          id: true,
+          label: true,
+          addressLine1: true,
+          addressLine2: true,
+          city: true,
+          state: true,
+          postalCode: true,
+          municipality: true,
+          contactEmail: true,
+          contactPhone: true,
+          websiteUrl: true,
+          hoursSummary: true,
+          isPrimary: true,
+          isPublic: true,
+          sortOrder: true,
         },
       },
-      _count: {
+      departments: {
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
         select: {
-          memberships: true,
-          locations: true,
-          departments: true,
-          contacts: true,
+          id: true,
+          name: true,
+          slug: true,
+          description: true,
+          contactEmail: true,
+          contactPhone: true,
+          websiteUrl: true,
+          hoursSummary: true,
+          isPublic: true,
+          sortOrder: true,
+          locationId: true,
+        },
+      },
+      contacts: {
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+        select: {
+          id: true,
+          label: true,
+          name: true,
+          title: true,
+          email: true,
+          phone: true,
+          websiteUrl: true,
+          isPublic: true,
+          sortOrder: true,
+          departmentId: true,
+          locationId: true,
+          userId: true,
+        },
+      },
+      memberships: {
+        orderBy: [{ status: 'asc' }, { joinedAt: 'asc' }],
+        select: {
+          id: true,
+          role: true,
+          status: true,
+          title: true,
+          isPublic: true,
+          isPrimaryContact: true,
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+        },
+      },
+      events: {
+        orderBy: [{ startDatetime: 'asc' }, { createdAt: 'desc' }],
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          startDatetime: true,
+          endDatetime: true,
+          venueLabel: true,
+          location: {
+            select: {
+              id: true,
+              name: true,
+              addressLine1: true,
+              city: true,
+              state: true,
+            },
+          },
         },
       },
     },
@@ -80,7 +140,12 @@ export default async function AdminOrganizationDetailPage({ params }: PageProps)
     <div className="space-y-4">
       <div className="admin-card">
         <div className="admin-card-header">
-          <div className="admin-card-header-label">Organization Detail</div>
+          <div className="flex items-center gap-3">
+            <div className="admin-card-header-icon" aria-hidden="true">
+              <Building2 className="h-4 w-4" />
+            </div>
+            <div className="admin-card-header-label">Organization &gt; {organization.name}</div>
+          </div>
           <div className="admin-card-header-actions">
             <Link href="/admin/organizations" className="page-header-action">
               Back to Organizations
@@ -90,60 +155,9 @@ export default async function AdminOrganizationDetailPage({ params }: PageProps)
         <div className="admin-card-body space-y-6">
           <div className="space-y-2">
             <h1 className="text-2xl font-black tracking-[-0.03em] text-slate-950">{organization.name}</h1>
-            <p className="text-sm text-slate-600">
-              {formatTypeLabel(organization.directoryGroup)} / {formatTypeLabel(organization.organizationType)}
-            </p>
+            <p className="text-sm text-slate-600">Manage public profile details, locations, departments, contacts, and roster visibility.</p>
           </div>
-
-          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Status</p>
-              <p className="mt-2 text-sm font-semibold text-slate-950">{formatTypeLabel(organization.status)}</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Created By</p>
-              <p className="mt-2 text-sm font-semibold text-slate-950">
-                {organization.createdBy.firstName} {organization.createdBy.lastName}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Approved</p>
-              <p className="mt-2 text-sm font-semibold text-slate-950">{formatDate(organization.approvedAt)}</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Roster Visibility</p>
-              <p className="mt-2 text-sm font-semibold text-slate-950">
-                {organization.isPublicMemberRoster ? 'Public' : 'Private'}
-              </p>
-            </div>
-          </div>
-
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Contact</p>
-              <div className="mt-2 space-y-1 text-sm text-slate-700">
-                <p>{organization.contactEmail || 'No email set'}</p>
-                <p>{organization.contactPhone || 'No phone set'}</p>
-                <p>{organization.websiteUrl || 'No website set'}</p>
-              </div>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Structure</p>
-              <div className="mt-2 space-y-1 text-sm text-slate-700">
-                <p>{organization._count.memberships} memberships</p>
-                <p>{organization._count.locations} locations</p>
-                <p>{organization._count.departments} departments</p>
-                <p>{organization._count.contacts} contacts</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Description</p>
-            <p className="mt-2 text-sm leading-6 text-slate-700">
-              {organization.description || 'No description set yet.'}
-            </p>
-          </div>
+          <OrganizationDetailEditor organization={organization} />
         </div>
       </div>
     </div>

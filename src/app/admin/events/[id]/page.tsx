@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getCurrentCommunity } from '@/lib/community';
 import { db } from '@/lib/db';
+import { formatLocationPrimary, formatLocationSecondary } from '@/lib/location-format';
 import { checkPermission } from '@/lib/permissions';
 
 interface AdminEventDetailPageProps {
@@ -80,6 +81,17 @@ export default async function AdminEventDetailPage({
           trustLevel: true,
         },
       },
+      location: {
+        select: {
+          id: true,
+          name: true,
+          addressLine1: true,
+          addressLine2: true,
+          city: true,
+          state: true,
+          postalCode: true,
+        },
+      },
     },
   });
 
@@ -109,7 +121,7 @@ export default async function AdminEventDetailPage({
           </div>
           <p className="mt-2 text-sm text-slate-500">
             {event.community.name}
-            {event.locationText ? ` • ${event.locationText}` : ''}
+            {event.location ? ` • ${formatLocationPrimary(event.location, event.venueLabel)}` : ''}
           </p>
         </div>
 
@@ -167,7 +179,10 @@ export default async function AdminEventDetailPage({
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Location</p>
-              <p className="mt-2 text-sm leading-6 text-slate-700">{event.locationText || 'Location not provided'}</p>
+              <p className="mt-2 text-sm leading-6 text-slate-700">
+                {formatLocationPrimary(event.location, event.venueLabel)}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">{formatLocationSecondary(event.location)}</p>
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Recurrence</p>

@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-03-29 (session 101)
+> **Last updated:** 2026-03-31 (session 108)
 > **Purpose:** Fast-start context for the next session. Read this file first, then open only the supporting docs relevant to the active slice.
 > **Detailed reference:** `PROJECT-STATUS-REFERENCE.md` preserves the fuller implementation ledger, rollout history, verification notes, deployment runbook, and infrastructure rationale that used to live here.
 
@@ -27,6 +27,20 @@
 > **Session 100 note:** live Brevo testing confirmed the app can send transactional email, but first-send inbox placement hit Gmail spam. Treat outbound email as supporting infrastructure rather than the primary trust bootstrap. The current product conclusion is to prioritize in-product trust mechanisms like visible new-member presence and direct vouch-request flows over email-dependent onboarding.
 >
 > **Session 101 note:** trust bootstrap now has a first in-product implementation. `Category` supports `minTrustLevel` (default `ANONYMOUS`) so trusted-only nav items can stay DB-driven, and the new `/help-us-grow` route is now a trusted/staff-only stewardship surface showing same-community `REGISTERED` members with join dates plus per-row `Message` actions in the same table language as `/directory`. The message-thread header now also exposes `Vouch` when the other participant is still `REGISTERED`, and the vouch flow now treats elevated roles (`CONTRIBUTOR` and above) as trust-capable rather than requiring literal `TRUSTED`. Any environment receiving this change must run `npx prisma db push --schema prisma/schema.prisma` so `categories.minTrustLevel` exists before the categories APIs load.
+>
+> **Session 102 note:** the live app footer was simplified by removing the `Quick Links` column from `src/app/layout.tsx`, leaving the active footer on a tighter two-column layout with `Support` and `Highlander Today` only. The older unused `src/components/layout/Footer.tsx` was updated in parallel so its structure no longer drifts from the live footer language if that component is revisited later.
+>
+> **Session 103 note:** `/admin/events` now has a `+ Event` create tab matching the compact admin pattern used by organizations, including direct admin event creation, initial status selection, image upload, and an optional organization link with inline organization-name filtering. `Event` now carries optional `organizationId`, so any environment receiving this update must run `npx prisma db push --schema prisma/schema.prisma` before the new admin event flow can persist linked organizations.
+>
+> **Session 104 note:** event locations are now first-class shared records rather than freeform strings. Prisma now includes `Location`, `Event.locationId`, and optional `Event.venueLabel`; both `/admin/events` and `/events/submit` now create/select reusable structured locations inline, public/admin event surfaces now render canonical location data, and event search/homepage metadata now read from the shared location model. Any environment receiving this update must run `npx prisma db push --schema prisma/schema.prisma` so the new `locations` table and `events.locationId` column exist before the event flows load.
+>
+> **Session 105 note:** the first public organization detail slice is now live. Approved organizations now resolve at `/organizations/[slug]`, `/directory` organization rows now link into that canonical public page, and the new server-side organization loader centralizes approved/public filtering for organization details, locations, departments, contacts, roster visibility, and linked upcoming events. Organization custom domains and standalone shell behavior remain planned follow-on work documented in `ORGANIZATION-SITE-PLAN.md`.
+>
+> **Session 106 note:** `/admin/organizations/[id]` is now a real management surface rather than a read-only summary. Admins can now edit core organization profile fields plus locations, departments, contacts, and membership roster visibility/title state from one page, backed by new focused admin organization APIs under `/api/admin/organizations/[id]/*`. This is the first practical input layer for keeping the new public `/organizations/[slug]` page current; self-claim/self-management and custom-domain flows are still pending.
+>
+> **Session 107 note:** the unrelated JSX regression in `/events/submit` was corrected, restoring a clean verification baseline. `npm run lint` and `npm run typecheck` now pass again with the new public organization page and admin organization management surfaces in place.
+>
+> **Session 108 note:** `/admin/organizations/[id]` now uses the same compact admin-card tab language as the other major admin surfaces. The page header now reads `Organization > {name}` with the organization icon, the old summary stat cards were removed, the management UI is split into `Details`, `Locations`, `Departments`, `Contacts`, `Members`, and `Events`, the `Details` tab now supports banner-image upload for `bannerUrl`, and linked organization events are visible from the new `Events` tab with direct links into `/admin/events/[id]`. The `+ Organization` create tab on `/admin/organizations` was intentionally kept as a base-details-only creation form rather than inheriting the full detail-management tabs.
 
 ## Product Snapshot
 
@@ -62,7 +76,7 @@ Major live foundations:
 - Auth, permissions, trust, audit/activity logging, tenant-aware community resolution
 - Profiles, vouching, blocking, private messaging
 - Local Life articles: listing, submit, drafts, detail, moderation, comments, article preview
-- Events: submit, moderation, public browse/detail
+- Events: submit, moderation, public browse/detail, and shared structured locations
 - Marketplace: store-based listings, storefronts, admin store moderation, trusted buyer messaging
 - Help Wanted: public browse, trusted posting/responding, moderation, manage/edit flows
 - Homepage curation, search, uploads, admin moderation surfaces
@@ -74,7 +88,8 @@ Current public/admin direction highlights:
 - Public navbar now reads top-level categories and child dropdowns dynamically from the DB; `Home` remains fixed.
 - Top-level public nav items that have children are now non-clickable dropdown triggers; users select a child category instead of navigating to a parent placeholder page.
 - `/admin/content-architecture` exists as a read-only internal reference page.
-- `/admin/organizations` now exists as a compact admin management surface aligned with the same dense operational paradigm as `/admin/articles` and `/admin/events`.
+- `/admin/organizations` now exists as a compact admin management surface aligned with the same dense operational paradigm as `/admin/articles` and `/admin/events`, and `/admin/organizations/[id]` now follows that same admin-card tab vocabulary for full organization management.
+- `/admin/events` now supports both moderation and direct admin creation through the compact `+ Event` tab, and admin-created events can optionally link to an organization in the same community plus select or create a reusable structured location record.
 - `/admin/categories` has effectively become the **Navigation Menu** admin surface, with compact table-style editing, expand/collapse for nested items, reorder controls, and an `Add Area` tab.
 - `/admin/users` now matches that same compact admin pattern: dense table layout, email column, real last-seen timestamps from login activity, voucher names, colored/iconized manage actions, and inline admin messaging.
 - The admin sidebar now uses shared nav-item classes/structure plus alternating row backgrounds to keep menu entries visually consistent, and `Events` is a top-level admin item alongside `Articles`, `Navigation`, and the other operational surfaces.
@@ -94,6 +109,7 @@ Current public/admin direction highlights:
 - Continue the About/institutional-content track where it improves public trust and clarity.
 - Preserve compact, dense operational design in admin rather than drifting toward spacious public-page layouts.
 - Continue the directory build with public organization detail pages, richer organization editing, and later self-claim/self-management flows.
+- Continue the organization presence build from the new `/organizations/[slug]` foundation toward richer organization editing, self-claim/self-management, and later custom-domain support.
 - Validate whether `/help-us-grow` actually reduces manual admin vouching and where the next trust-bootstrap gaps remain.
 
 ## What Is Still Partial Or Pending
@@ -103,7 +119,7 @@ Current public/admin direction highlights:
 - Multi-tenant provisioning is only phase 1; there is no full Super Admin create/edit site/domain workflow yet.
 - Cross-site sister-site pull-through is not implemented.
 - Donations/transparency, sourcing/citations, creator network, and delivery/jobs remain planned follow-on work.
-- Directory exists as an early live foundation now, but public organization detail pages, richer organization editing, and self-claim/self-management flows are still pending.
+- Directory exists as an early live foundation now, with canonical public organization detail pages at `/organizations/[slug]` and richer admin organization editing at `/admin/organizations/[id]`, but self-claim/self-management flows are still pending.
 - `Help Us Grow` is live as the first in-product trust-bootstrap loop, but it still lacks dismiss/not-known actions, stronger recognition hints, and an explicit admin exception path for genuine newcomers no one recognizes.
 - Article video embeds are still pending and should land before any delivery/jobs push.
 
@@ -209,6 +225,7 @@ src/lib/
 12. Production launch auth is credentials + Google OAuth; Facebook remains intentionally deferred.
 13. The directory rollout requires the target environment to have the new Prisma schema applied. If `/directory` throws runtime Prisma errors about missing `organizations` or `users.isDirectoryListed`, run `npx prisma db push --schema prisma/schema.prisma` against that environment's database.
 14. The trusted-nav / `Help Us Grow` rollout also requires the current Prisma schema to be applied. If category reads fail with missing `categories.minTrustLevel`, run `npx prisma db push --schema prisma/schema.prisma` against that environment before loading `/api/categories` or `/api/admin/categories`.
+15. The admin event location/organization rollout also requires the current Prisma schema to be applied. If admin or public event creation fails because `locations` / `events.locationId` / `events.organizationId` are missing, run `npx prisma db push --schema prisma/schema.prisma` against that environment before using the new location selector or organization link flow.
 
 For the full gotcha list, verification notes, and deployment constraints, read `PROJECT-STATUS-REFERENCE.md`.
 
@@ -222,6 +239,8 @@ Use these instead of growing this file again:
 - `COMMUNITY-SECTION-PLAN.md` — planned `Community` top-level section
 - `CONTENT-ANALYTICS-PLAN.md` — first-party analytics/reaction plan
 - `DIRECTORY-PLAN.md` — organization/directory direction
+- `ORGANIZATION-SITE-PLAN.md` — public organization profile to organization-site and custom-domain direction
+- `ORGANIZATION-PROFILE-PHASE-1-PLAN.md` — first implementation slice for the public organization profile page
 - `INVITATION-EMAIL-PLAN.md` — invitation system and outbound transactional email direction
 - `LOCAL-CREATOR-NETWORK-PLAN.md` — creator/show/episode direction
 - `OBITUARIES-PLAN.md` — obituary/memorial system direction
