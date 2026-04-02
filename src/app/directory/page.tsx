@@ -8,6 +8,7 @@ import { getCurrentCommunity } from '@/lib/community';
 import { db } from '@/lib/db';
 import { ORGANIZATION_TYPE_OPTIONS } from '@/lib/organization-taxonomy';
 import { formatOrganizationTypeLabel } from '@/lib/organizations';
+import { stripHtmlToText } from '@/lib/sanitize';
 
 type DirectoryPageSearchParams = {
   category?: string;
@@ -39,6 +40,7 @@ export const metadata: Metadata = {
 };
 
 const DIRECTORY_PAGE_SIZE = 25;
+const DIRECTORY_DETAIL_PREVIEW_LENGTH = 180;
 
 function buildDirectoryHref(params: {
   category?: string | null;
@@ -103,6 +105,15 @@ function getNextSortDirection(
   return currentDirection === 'asc' ? 'desc' : 'asc';
 }
 
+function truncateDetail(value: string, maxLength = DIRECTORY_DETAIL_PREVIEW_LENGTH) {
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, maxLength).trimEnd()}...`;
+}
+
 export default async function DirectoryPage({
   searchParams,
 }: {
@@ -111,6 +122,7 @@ export default async function DirectoryPage({
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const activeCategorySlug = resolvedSearchParams?.category ?? null;
   const query = resolvedSearchParams?.q?.trim() ?? '';
+  const hasSearchQuery = query.length > 0;
   const selectedType = resolvedSearchParams?.type?.trim() ?? '';
   const rawPage = Number.parseInt(resolvedSearchParams?.page ?? '1', 10);
   const currentPage = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
@@ -129,91 +141,85 @@ export default async function DirectoryPage({
       ? selectedType
       : '';
 
-  const [people, organizations] = await Promise.all([
-    db.user.findMany({
-      where: {
-        isDirectoryListed: true,
-        ...(currentCommunity?.id
-          ? {
-              memberships: {
-                some: {
-                  communityId: currentCommunity.id,
-                },
-              },
-            }
-          : {}),
-        ...(query
-          ? {
-              OR: [
-                { firstName: { contains: query, mode: 'insensitive' } },
-                { lastName: { contains: query, mode: 'insensitive' } },
-                { bio: { contains: query, mode: 'insensitive' } },
-              ],
-            }
-          : {}),
-      },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        bio: true,
-        memberships: {
-          where: currentCommunity?.id ? { communityId: currentCommunity.id } : undefined,
-          select: {
-            community: {
-              select: {
-                name: true,
-              },
-            },
-          },
-          take: 1,
-        },
-      },
-      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
-      take: 50,
-    }),
-    db.organization.findMany({
-      where: {
-        status: 'APPROVED',
-        ...(currentCommunity?.id ? { communityId: currentCommunity.id } : {}),
-        ...(activeCategorySlug === 'businesses'
-          ? {
-              directoryGroup: 'BUSINESS',
-              ...(selectedBusinessType ? { organizationType: selectedBusinessType } : {}),
-            }
-          : activeCategorySlug === 'government'
-            ? { directoryGroup: 'GOVERNMENT' }
-            : activeCategorySlug === 'organizations'
+  const [people, organizations] = hasSearchQuery
+    ? await Promise.all([
+        db.user.findMany({
+          where: {
+            isDirectoryListed: true,
+            ...(currentCommunity?.id
               ? {
-                  directoryGroup: 'ORGANIZATION',
-                  ...(selectedOrganizationType ? { organizationType: selectedOrganizationType } : {}),
+                  memberships: {
+                    some: {
+                      communityId: currentCommunity.id,
+                    },
+                  },
                 }
               : {}),
-        ...(query
-          ? {
-              OR: [
-                { name: { contains: query, mode: 'insensitive' } },
-                { organizationType: { contains: query, mode: 'insensitive' } },
-                { description: { contains: query, mode: 'insensitive' } },
-              ],
-            }
-          : {}),
-      },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        description: true,
-        directoryGroup: true,
-        organizationType: true,
-        websiteUrl: true,
-        contactEmail: true,
-        contactPhone: true,
-      },
-      orderBy: [{ name: 'asc' }],
-      take: 100,
-    }),
-  ]);
+            OR: [
+              { firstName: { contains: query, mode: 'insensitive' } },
+              { lastName: { contains: query, mode: 'insensitive' } },
+              { bio: { contains: query, mode: 'insensitive' } },
+            ],
+          },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            bio: true,
+            memberships: {
+              where: currentCommunity?.id ? { communityId: currentCommunity.id } : undefined,
+              select: {
+                community: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+              take: 1,
+            },
+          },
+          orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+          take: 50,
+        }),
+        db.organization.findMany({
+          where: {
+            status: 'APPROVED',
+            ...(currentCommunity?.id ? { communityId: currentCommunity.id } : {}),
+            ...(activeCategorySlug === 'businesses'
+              ? {
+                  directoryGroup: 'BUSINESS',
+                  ...(selectedBusinessType ? { organizationType: selectedBusinessType } : {}),
+                }
+              : activeCategorySlug === 'government'
+                ? { directoryGroup: 'GOVERNMENT' }
+                : activeCategorySlug === 'organizations'
+                  ? {
+                      directoryGroup: 'ORGANIZATION',
+                      ...(selectedOrganizationType ? { organizationType: selectedOrganizationType } : {}),
+                    }
+                  : {}),
+            OR: [
+              { name: { contains: query, mode: 'insensitive' } },
+              { organizationType: { contains: query, mode: 'insensitive' } },
+              { description: { contains: query, mode: 'insensitive' } },
+            ],
+          },
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            description: true,
+            directoryGroup: true,
+            organizationType: true,
+            websiteUrl: true,
+            contactEmail: true,
+            contactPhone: true,
+          },
+          orderBy: [{ name: 'asc' }],
+          take: 100,
+        }),
+      ])
+    : [[], []];
 
   const rows: DirectoryRow[] = [
         ...(activeCategorySlug === null || activeCategorySlug === 'people'
@@ -223,7 +229,7 @@ export default async function DirectoryPage({
           href: `/profile/${person.id}`,
           section: 'People' as const,
           type: 'Person',
-          detail: person.bio?.trim() || 'Opted-in directory listing',
+          detail: truncateDetail(person.bio?.trim() || 'Opted-in directory listing'),
           contact: 'Message through Highlander Today',
           messageUserId: person.id,
         }))
@@ -239,7 +245,9 @@ export default async function DirectoryPage({
             ? ('Government' as const)
             : ('Organizations' as const),
       type: formatOrganizationTypeLabel(organization.organizationType),
-      detail: organization.description?.trim() || 'No description available',
+      detail: truncateDetail(
+        organization.description ? stripHtmlToText(organization.description) || 'No description available' : 'No description available'
+      ),
       contact:
         organization.contactPhone ||
         organization.contactEmail ||
@@ -387,7 +395,7 @@ export default async function DirectoryPage({
             </div>
           ) : (
             <p className="text-sm text-slate-600">
-              {query ? `No directory results matched "${query}".` : 'No directory listings are available yet.'}
+              {hasSearchQuery ? `No directory results matched "${query}".` : 'Search the directory to view people and organizations.'}
             </p>
           )}
 

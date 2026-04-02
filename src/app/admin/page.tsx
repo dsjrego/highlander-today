@@ -1,11 +1,27 @@
-export default function AdminDashboard() {
+import Link from 'next/link';
+import { headers } from 'next/headers';
+import { db } from '@/lib/db';
+import { getCurrentCommunity } from '@/lib/community';
+
+function formatCount(value: number) {
+  return new Intl.NumberFormat('en-US').format(value);
+}
+
+export default async function AdminDashboard() {
+  const currentCommunity = await getCurrentCommunity({ headers: headers() });
+  const articleWhere = currentCommunity?.id ? { communityId: currentCommunity.id } : {};
+
+  const [totalUsers, pendingArticles, publishedArticles, unpublishedArticles] = await Promise.all([
+    db.user.count(),
+    db.article.count({ where: { ...articleWhere, status: 'PENDING_REVIEW' } }),
+    db.article.count({ where: { ...articleWhere, status: 'PUBLISHED' } }),
+    db.article.count({ where: { ...articleWhere, status: 'UNPUBLISHED' } }),
+  ]);
+
   const stats = [
-    { label: "Total Users", value: 1234, change: "+12%" },
-    { label: "News", value: 342, change: "+28" },
+    { label: 'Total Users', value: formatCount(totalUsers), change: 'Open user management', href: '/admin/users' },
     { label: "Events", value: 45, change: "+5" },
     { label: "Marketplace Listings", value: 567, change: "+89" },
-    { label: "Pending Approvals", value: 23, change: "!" },
-    { label: "Recent Bans", value: 3, change: "!" },
   ];
 
   return (
@@ -15,17 +31,52 @@ export default function AdminDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {stats.map((stat, idx) => (
-          <div
-            key={idx}
-            className="bg-white p-6 rounded-lg border border-gray-200"
-          >
-            <p className="text-gray-600 text-sm mb-2">{stat.label}</p>
-            <p className="text-3xl font-bold text-[#46A8CC] mb-2">
-              {stat.value}
-            </p>
-            <p className="text-sm font-semibold text-gray-600">{stat.change}</p>
-          </div>
+          stat.href ? (
+            <Link
+              key={idx}
+              href={stat.href}
+              className="bg-white p-6 rounded-lg border border-[#46A8CC] hover:bg-sky-50 transition"
+            >
+              <p className="text-gray-600 text-sm mb-2">{stat.label}</p>
+              <p className="text-3xl font-bold text-[#46A8CC] mb-2">
+                {stat.value}
+              </p>
+              <p className="text-sm font-semibold text-[#2c7f9e]">{stat.change}</p>
+            </Link>
+          ) : (
+            <div
+              key={idx}
+              className="bg-white p-6 rounded-lg border border-gray-200"
+            >
+              <p className="text-gray-600 text-sm mb-2">{stat.label}</p>
+              <p className="text-3xl font-bold text-[#46A8CC] mb-2">
+                {stat.value}
+              </p>
+              <p className="text-sm font-semibold text-gray-600">{stat.change}</p>
+            </div>
+          )
         ))}
+        <Link
+          href="/admin/articles"
+          className="bg-white p-6 rounded-lg border border-[#46A8CC] hover:bg-sky-50 transition"
+        >
+          <p className="text-gray-600 text-sm mb-4">Articles</p>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-700">Pending</p>
+              <p className="text-2xl font-bold text-[#46A8CC]">{formatCount(pendingArticles)}</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-green-700">Approved</p>
+              <p className="text-2xl font-bold text-[#46A8CC]">{formatCount(publishedArticles)}</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">Archived</p>
+              <p className="text-2xl font-bold text-[#46A8CC]">{formatCount(unpublishedArticles)}</p>
+            </div>
+          </div>
+          <p className="mt-3 text-sm font-semibold text-[#2c7f9e]">Open article management</p>
+        </Link>
       </div>
 
       {/* Quick Actions */}

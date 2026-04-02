@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { FormEvent, useState } from 'react';
 import ImageUpload from '@/components/shared/ImageUpload';
@@ -10,6 +11,10 @@ import {
   ORGANIZATION_TYPE_OPTIONS,
   type OrganizationDirectoryGroup,
 } from '@/lib/organization-taxonomy';
+
+const TipTapEditor = dynamic(() => import('@/components/articles/TipTapEditor'), {
+  ssr: false,
+});
 
 type OrganizationStatus = 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
 type MembershipRole =
@@ -831,12 +836,15 @@ export default function OrganizationDetailEditor({ organization: initialOrganiza
                   </div>
                   <div className="lg:col-span-2">
                     <label className="form-label text-slate-500">Description</label>
-                    <textarea
-                      name="description"
-                      value={coreForm.description}
-                      onChange={handleCoreInputChange}
-                      rows={5}
-                      className="form-input min-h-[140px]"
+                    <TipTapEditor
+                      content={coreForm.description}
+                      onChange={(description) =>
+                        setCoreForm((current) => ({
+                          ...current,
+                          description,
+                        }))
+                      }
+                      placeholder="Describe the organization, what it does, and how it serves the community."
                     />
                   </div>
                 </div>

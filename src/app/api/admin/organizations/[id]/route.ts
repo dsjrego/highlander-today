@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { logActivity } from '@/lib/activity-log';
 import { hasOrganizationAdminAccess, hasValidPhoneDigits } from '@/lib/organization-admin';
 import { isValidOrganizationType } from '@/lib/organization-taxonomy';
+import { sanitizeArticleHtml } from '@/lib/sanitize';
 
 const UpdateOrganizationSchema = z
   .object({
@@ -70,6 +71,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const validated = UpdateOrganizationSchema.parse(body);
     const nextGroup = validated.directoryGroup || organization.directoryGroup;
     const nextType = validated.organizationType || organization.organizationType;
+    const sanitizedDescription =
+      validated.description === undefined ? undefined : validated.description ? sanitizeArticleHtml(validated.description) : '';
 
     if (!isValidOrganizationType(nextGroup, nextType)) {
       return NextResponse.json(
@@ -82,7 +85,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       where: { id: organization.id },
       data: {
         name: validated.name,
-        description: validated.description === undefined ? undefined : validated.description || null,
+        description: sanitizedDescription === undefined ? undefined : sanitizedDescription || null,
         logoUrl: validated.logoUrl === undefined ? undefined : validated.logoUrl || null,
         bannerUrl: validated.bannerUrl === undefined ? undefined : validated.bannerUrl || null,
         websiteUrl: validated.websiteUrl === undefined ? undefined : validated.websiteUrl || null,

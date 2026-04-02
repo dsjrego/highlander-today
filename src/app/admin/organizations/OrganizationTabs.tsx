@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { FormEvent, useState } from 'react';
 import { Plus } from 'lucide-react';
@@ -8,6 +9,10 @@ import {
   ORGANIZATION_TYPE_OPTIONS,
   type OrganizationDirectoryGroup,
 } from '@/lib/organization-taxonomy';
+
+const TipTapEditor = dynamic(() => import('@/components/articles/TipTapEditor'), {
+  ssr: false,
+});
 
 const ORGANIZATION_TABS = ['pending', 'approved', 'rejected', 'suspended'] as const;
 const ORGANIZATION_PAGE_SIZE = 10;
@@ -394,12 +399,14 @@ export default function OrganizationTabs({ organizations }: OrganizationTabsProp
 
                 <div className="lg:col-span-2">
                   <label className="form-label text-slate-500">Description</label>
-                  <textarea
-                    name="description"
-                    value={createForm.description}
-                    onChange={handleCreateInputChange}
-                    rows={5}
-                    className="form-textarea border-slate-300 bg-white text-slate-950"
+                  <TipTapEditor
+                    content={createForm.description}
+                    onChange={(description) =>
+                      setCreateForm((current) => ({
+                        ...current,
+                        description,
+                      }))
+                    }
                     placeholder="Describe the organization, what it does, and how it serves the community."
                   />
                 </div>

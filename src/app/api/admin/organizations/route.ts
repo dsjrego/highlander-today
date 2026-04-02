@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { isValidOrganizationType } from '@/lib/organization-taxonomy';
 import { checkPermission } from '@/lib/permissions';
+import { sanitizeArticleHtml } from '@/lib/sanitize';
 
 function hasValidPhoneDigits(value: string) {
   const digits = value.replace(/\D/g, '');
@@ -80,6 +81,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const validated = CreateOrganizationSchema.parse(body);
+    const sanitizedDescription = validated.description ? sanitizeArticleHtml(validated.description) : '';
 
     const baseSlug = createBaseSlug(validated.name);
     const existingCount = await db.organization.count({
@@ -102,7 +104,7 @@ export async function POST(request: NextRequest) {
         approvedByUserId,
         name: validated.name,
         slug,
-        description: validated.description || null,
+        description: sanitizedDescription || null,
         websiteUrl: validated.websiteUrl || null,
         contactEmail: validated.contactEmail || null,
         contactPhone: validated.contactPhone || null,

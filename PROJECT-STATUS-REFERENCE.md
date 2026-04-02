@@ -3,10 +3,12 @@
 > Companion to `PROJECT-STATUS.md`.
 > This file preserves the fuller implementation ledger, rollout history, verification notes, deployment/bootstrap runbook, upload snapshot, and infrastructure rationale.
 
-> **Last updated:** 2026-03-31 (session 108 — documented the tabbed admin organization detail rebuild, banner upload on organization details, and linked organization events in admin)
+> **Last updated:** 2026-04-01 (session 109 — documented the first live admin dashboard cards and removal of extra placeholder dashboard stats)
 > **Purpose:** Detailed companion context for AI assistants. Read `PROJECT-STATUS.md` first each session, then use this file for the fuller historical/reference detail when needed.
 
 > **Open polish note:** the live `/profile/[id]` header still needs one more pass on avatar click-target density. The pill/ovoid button boundary around the clickable page-header avatar was reduced, and the profile header has page-specific tighter spacing overrides now, but the user still considers the space around the avatar/content too loose; next pass should make the clickable avatar boundary hug the image even more tightly and continue compressing that profile-header layout specifically rather than broadening the shared default further.
+
+> **Session 109 reference note:** `/admin` no longer treats the top-left dashboard stats row as a fully static mock. `Total Users` now comes from `db.user.count()` and links to `/admin/users`; the old `News` placeholder became an `Articles` card backed by community-scoped Prisma counts for `PENDING_REVIEW`, `PUBLISHED`, and `UNPUBLISHED`, labeled in the UI as `Pending`, `Approved`, and `Archived`; and the old placeholder `Pending Approvals` / `Recent Bans` cards were removed. `Events` and `Marketplace Listings` still remain placeholder dashboard stats for now.
 
 ## Overview
 

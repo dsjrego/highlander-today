@@ -41,3 +41,12 @@ export function sanitizeArticleHtml(dirty: string): string {
     },
   });
 }
+
+export function stripHtmlToText(dirty: string): string {
+  return sanitizeHtml(dirty, {
+    allowedTags: [],
+    allowedAttributes: {},
+  })
+    .replace(/\s+/g, ' ')
+    .trim();
+}

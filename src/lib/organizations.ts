@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { stripHtmlToText } from '@/lib/sanitize';
 
 export function formatOrganizationTypeLabel(value: string) {
   return value
@@ -8,7 +9,7 @@ export function formatOrganizationTypeLabel(value: string) {
 }
 
 export function buildOrganizationMetadataDescription(description: string | null, name: string) {
-  const trimmed = description?.trim();
+  const trimmed = description ? stripHtmlToText(description) : '';
   if (trimmed) {
     return trimmed.slice(0, 157).trimEnd() + (trimmed.length > 157 ? '...' : '');
   }

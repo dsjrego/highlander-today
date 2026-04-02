@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-03-31 (session 108)
+> **Last updated:** 2026-04-01 (session 109)
 > **Purpose:** Fast-start context for the next session. Read this file first, then open only the supporting docs relevant to the active slice.
 > **Detailed reference:** `PROJECT-STATUS-REFERENCE.md` preserves the fuller implementation ledger, rollout history, verification notes, deployment runbook, and infrastructure rationale that used to live here.
 
@@ -41,6 +41,8 @@
 > **Session 107 note:** the unrelated JSX regression in `/events/submit` was corrected, restoring a clean verification baseline. `npm run lint` and `npm run typecheck` now pass again with the new public organization page and admin organization management surfaces in place.
 >
 > **Session 108 note:** `/admin/organizations/[id]` now uses the same compact admin-card tab language as the other major admin surfaces. The page header now reads `Organization > {name}` with the organization icon, the old summary stat cards were removed, the management UI is split into `Details`, `Locations`, `Departments`, `Contacts`, `Members`, and `Events`, the `Details` tab now supports banner-image upload for `bannerUrl`, and linked organization events are visible from the new `Events` tab with direct links into `/admin/events/[id]`. The `+ Organization` create tab on `/admin/organizations` was intentionally kept as a base-details-only creation form rather than inheriting the full detail-management tabs.
+>
+> **Session 109 note:** the admin dashboard is starting to shed its static mock cards. `/admin` now reads the live user count from Prisma on the server and links that `Total Users` card into `/admin/users`; the old `News` card was also replaced with a live `Articles` card showing community-scoped `Pending`, `Approved` (`PUBLISHED`), and `Archived` (`UNPUBLISHED`) counts with a direct link into `/admin/articles`. The old placeholder `Pending Approvals` and `Recent Bans` cards were removed, while `Events` and `Marketplace Listings` are still placeholder values until their backing queries are wired.
 
 ## Product Snapshot
 

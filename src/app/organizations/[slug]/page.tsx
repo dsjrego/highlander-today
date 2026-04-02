@@ -14,6 +14,7 @@ import {
   getPublicOrganizationProfile,
 } from '@/lib/organizations';
 import { formatLocationPrimary, formatLocationSecondary } from '@/lib/location-format';
+import { sanitizeArticleHtml, stripHtmlToText } from '@/lib/sanitize';
 
 interface PageProps {
   params: {
@@ -149,6 +150,8 @@ export default async function OrganizationProfilePage({ params }: PageProps) {
   const roster = organization.isPublicMemberRoster ? organization.memberships : [];
   const typeLabel = formatOrganizationTypeLabel(organization.organizationType);
   const groupLabel = formatOrganizationTypeLabel(organization.directoryGroup);
+  const descriptionHtml = organization.description ? sanitizeArticleHtml(organization.description) : '';
+  const descriptionText = descriptionHtml ? stripHtmlToText(descriptionHtml) : '';
 
   return (
     <div className="space-y-6">
@@ -156,7 +159,7 @@ export default async function OrganizationProfilePage({ params }: PageProps) {
         icon={<Building2 className="h-5 w-5" />}
         label={groupLabel}
         title={organization.name}
-        description={organization.description?.trim() || `${typeLabel} in ${organization.community.name}.`}
+        description={descriptionText || `${typeLabel} in ${organization.community.name}.`}
       />
 
       {organization.bannerUrl ? (
@@ -188,9 +191,16 @@ export default async function OrganizationProfilePage({ params }: PageProps) {
                 <span className="rounded-full bg-white/8 px-3 py-1 text-xs font-semibold text-white/80">{typeLabel}</span>
               </div>
               <h1 className="text-3xl font-black tracking-[-0.03em] text-white">{organization.name}</h1>
-              <p className="max-w-3xl text-sm leading-7 text-white/74">
-                {organization.description?.trim() || `${organization.name} is listed on Highlander Today.`}
-              </p>
+              {descriptionHtml ? (
+                <div
+                  className="prose prose-sm max-w-3xl text-white prose-headings:text-white prose-p:text-white/74 prose-strong:text-white prose-li:text-white/74 prose-a:text-cyan-200"
+                  dangerouslySetInnerHTML={{ __html: descriptionHtml }}
+                />
+              ) : (
+                <p className="max-w-3xl text-sm leading-7 text-white/74">
+                  {`${organization.name} is listed on Highlander Today.`}
+                </p>
+              )}
             </div>
           </div>
 
@@ -231,9 +241,14 @@ export default async function OrganizationProfilePage({ params }: PageProps) {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.9fr)]">
         <div className="space-y-6">
           <InfoCard title="About">
-            <p className="text-sm leading-7 text-slate-700">
-              {organization.description?.trim() || 'No public description has been added yet.'}
-            </p>
+            {descriptionHtml ? (
+              <div
+                className="prose prose-sm max-w-none prose-headings:text-slate-950 prose-p:text-slate-700 prose-li:text-slate-700 prose-a:text-[#8f1d2c]"
+                dangerouslySetInnerHTML={{ __html: descriptionHtml }}
+              />
+            ) : (
+              <p className="text-sm leading-7 text-slate-700">No public description has been added yet.</p>
+            )}
           </InfoCard>
 
           {organization.departments.length > 0 ? (
