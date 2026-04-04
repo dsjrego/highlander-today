@@ -1,13 +1,16 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { headers } from 'next/headers';
+import { getServerSession } from 'next-auth';
 import InternalPageHeader from '@/components/shared/InternalPageHeader';
 import DirectoryCategoryPills from './DirectoryCategoryPills';
 import DirectoryMessageAction from './DirectoryMessageAction';
+import { authOptions } from '@/lib/auth';
 import { getCurrentCommunity } from '@/lib/community';
 import { db } from '@/lib/db';
 import { ORGANIZATION_TYPE_OPTIONS } from '@/lib/organization-taxonomy';
 import { formatOrganizationTypeLabel } from '@/lib/organizations';
+import { hasTrustedAccess } from '@/lib/trust-access';
 
 type DirectoryPageSearchParams = {
   category?: string;
@@ -107,6 +110,8 @@ export default async function DirectoryPage({
 }: {
   searchParams?: Promise<DirectoryPageSearchParams>;
 }) {
+  const session = await getServerSession(authOptions);
+  const sessionUser = session?.user as { id?: string; trust_level?: string; role?: string } | undefined;
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const activeCategorySlug = resolvedSearchParams?.category ?? null;
   const query = resolvedSearchParams?.q?.trim() ?? '';
@@ -123,6 +128,21 @@ export default async function DirectoryPage({
   const dir = normalizeSortDirection(resolvedSearchParams?.dir);
   const requestHeaders = headers();
   const currentCommunity = await getCurrentCommunity({ headers: requestHeaders });
+  const currentUserProfile =
+    sessionUser?.id
+      ? await db.user.findUnique({
+          where: { id: sessionUser.id },
+          select: {
+            id: true,
+            isDirectoryListed: true,
+          },
+        })
+      : null;
+  const canUseDirectoryMessaging = hasTrustedAccess({
+    trustLevel: sessionUser?.trust_level,
+    role: sessionUser?.role,
+  });
+  const profileHref = currentUserProfile ? `/profile/${currentUserProfile.id}` : '/profile';
   const selectedBusinessType =
     activeCategorySlug === 'businesses' &&
     ORGANIZATION_TYPE_OPTIONS.BUSINESS.some((option) => option.value === selectedType)
@@ -306,6 +326,38 @@ export default async function DirectoryPage({
             organizationOptions={ORGANIZATION_TYPE_OPTIONS.ORGANIZATION}
           />
 
+          {!sessionUser ? (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+              <p>Create an account to message people or organizations through Highlander Today.</p>
+              <div className="mt-2 flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-[0.16em]">
+                <Link href="/login" className="text-[#0f5771] hover:underline">
+                  Sign In
+                </Link>
+                <Link href="/login?mode=sign-up" className="text-[#0f5771] hover:underline">
+                  Create Account
+                </Link>
+              </div>
+            </div>
+          ) : !canUseDirectoryMessaging ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <p>Trusted users can appear in the directory and use directory messaging.</p>
+              <div className="mt-2 flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-[0.16em]">
+                <Link href={profileHref} className="text-amber-900 hover:underline">
+                  Go to Profile
+                </Link>
+              </div>
+            </div>
+          ) : currentUserProfile && !currentUserProfile.isDirectoryListed ? (
+            <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+              <p>You&apos;re eligible to appear in the people directory. Enable directory listing from your profile settings.</p>
+              <div className="mt-2 flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-[0.16em]">
+                <Link href={profileHref} className="text-sky-900 hover:underline">
+                  Profile Settings
+                </Link>
+              </div>
+            </div>
+          ) : null}
+
           {pagedRows.length > 0 ? (
             <div className="admin-list-table-wrap">
               <table className="admin-list-table">
@@ -359,7 +411,7 @@ export default async function DirectoryPage({
                           {sort === 'type' ? <span>{dir === 'asc' ? '↑' : '↓'}</span> : null}
                         </Link>
                       </th>
-                      <th className="admin-list-header-cell">Contact</th>
+                      <th className="admin-list-header-cell">Phone</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -394,7 +446,7 @@ export default async function DirectoryPage({
                 ? `No directory results matched "${query}".`
                 : isOrganizationBrowseCategory
                   ? 'No directory listings are available in this category.'
-                  : 'Search the directory to view people and organizations.'}
+                  : 'Use the search filter, or select Businesses, Government, or Organizations to find the people and groups you need.'}
             </p>
           )}
 

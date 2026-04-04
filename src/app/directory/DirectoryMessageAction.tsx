@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { createPortal } from 'react-dom';
+import { hasTrustedAccess } from '@/lib/trust-access';
 
 type MessageDialogState = {
   userId: string;
@@ -19,6 +20,7 @@ function MessageUserDialog({
   value,
   error,
   isLoading,
+  canSend,
   onChange,
   onCancel,
   onSubmit,
@@ -27,6 +29,7 @@ function MessageUserDialog({
   value: string;
   error: string | null;
   isLoading: boolean;
+  canSend: boolean;
   onChange: (value: string) => void;
   onCancel: () => void;
   onSubmit: () => Promise<void>;
@@ -40,28 +43,36 @@ function MessageUserDialog({
         className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg"
       >
         <h2 id="directory-message-dialog-title" className="mb-4 text-xl font-bold text-gray-900">
-          Message User
+          {canSend ? 'Message User' : 'Messaging Unavailable'}
         </h2>
 
         <p className="mb-4 text-sm text-gray-600">
-          Send a direct message to <strong>{userName}</strong>.
+          {canSend ? (
+            <>
+              Send a direct message to <strong>{userName}</strong>.
+            </>
+          ) : (
+            'You must be a trusted user to use the messaging service.'
+          )}
         </p>
 
-        <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
-          <label htmlFor="directory-user-message" className="mb-2 block text-sm font-medium text-gray-700">
-            Message
-          </label>
-          <textarea
-            id="directory-user-message"
-            value={value}
-            onChange={(event) => onChange(event.target.value)}
-            rows={5}
-            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Write your message here"
-            disabled={isLoading}
-            autoFocus
-          />
-        </div>
+        {canSend ? (
+          <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <label htmlFor="directory-user-message" className="mb-2 block text-sm font-medium text-gray-700">
+              Message
+            </label>
+            <textarea
+              id="directory-user-message"
+              value={value}
+              onChange={(event) => onChange(event.target.value)}
+              rows={5}
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Write your message here"
+              disabled={isLoading}
+              autoFocus
+            />
+          </div>
+        ) : null}
 
         {error ? <div className="mb-4 text-sm font-semibold text-red-700">{error}</div> : null}
 
@@ -72,17 +83,19 @@ function MessageUserDialog({
             disabled={isLoading}
             className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50"
           >
-            Cancel
+            {canSend ? 'Cancel' : 'Close'}
           </button>
-          <button
-            type="button"
-            onClick={() => void onSubmit()}
-            disabled={isLoading || value.trim().length === 0}
-            className="rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-            style={{ backgroundColor: '#46A8CC' }}
-          >
-            {isLoading ? 'Sending...' : 'Send Message'}
-          </button>
+          {canSend ? (
+            <button
+              type="button"
+              onClick={() => void onSubmit()}
+              disabled={isLoading || value.trim().length === 0}
+              className="rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+              style={{ backgroundColor: '#46A8CC' }}
+            >
+              {isLoading ? 'Sending...' : 'Send Message'}
+            </button>
+          ) : null}
         </div>
       </div>
     </div>
@@ -103,7 +116,7 @@ export default function DirectoryMessageAction({
   userName: string;
 }) {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const [messageDialog, setMessageDialog] = useState<MessageDialogState | null>(null);
   const [messageBody, setMessageBody] = useState('');
   const [messageError, setMessageError] = useState<string | null>(null);
@@ -111,6 +124,11 @@ export default function DirectoryMessageAction({
   const [isMounted, setIsMounted] = useState(false);
 
   const currentUserId = (session?.user as { id?: string } | undefined)?.id;
+  const currentUser = session?.user as { trust_level?: string; role?: string } | undefined;
+  const canUseMessaging = hasTrustedAccess({
+    trustLevel: currentUser?.trust_level,
+    role: currentUser?.role,
+  });
   const isOwnProfile = currentUserId === userId;
 
   useEffect(() => {
@@ -118,7 +136,7 @@ export default function DirectoryMessageAction({
   }, []);
 
   const handleOpenMessageDialog = () => {
-    if (status !== 'authenticated' || isOwnProfile) {
+    if (isOwnProfile) {
       return;
     }
 
@@ -180,10 +198,6 @@ export default function DirectoryMessageAction({
     return <span className="text-sm text-slate-500">Your listing</span>;
   }
 
-  if (status !== 'authenticated') {
-    return <span className="text-sm text-slate-500">Sign in to message</span>;
-  }
-
   return (
     <>
       <button
@@ -200,6 +214,7 @@ export default function DirectoryMessageAction({
           value={messageBody}
           error={messageError}
           isLoading={isSendingMessage}
+          canSend={canUseMessaging}
           onChange={setMessageBody}
           onCancel={handleCloseMessageDialog}
           onSubmit={handleSendMessage}

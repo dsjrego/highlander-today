@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-04-01 (session 109)
+> **Last updated:** 2026-04-04 (session 111)
 > **Purpose:** Fast-start context for the next session. Read this file first, then open only the supporting docs relevant to the active slice.
 > **Detailed reference:** `PROJECT-STATUS-REFERENCE.md` preserves the fuller implementation ledger, rollout history, verification notes, deployment runbook, and infrastructure rationale that used to live here.
 
@@ -43,6 +43,10 @@
 > **Session 108 note:** `/admin/organizations/[id]` now uses the same compact admin-card tab language as the other major admin surfaces. The page header now reads `Organization > {name}` with the organization icon, the old summary stat cards were removed, the management UI is split into `Details`, `Locations`, `Departments`, `Contacts`, `Members`, and `Events`, the `Details` tab now supports banner-image upload for `bannerUrl`, and linked organization events are visible from the new `Events` tab with direct links into `/admin/events/[id]`. The `+ Organization` create tab on `/admin/organizations` was intentionally kept as a base-details-only creation form rather than inheriting the full detail-management tabs.
 >
 > **Session 109 note:** the admin dashboard is starting to shed its static mock cards. `/admin` now reads the live user count from Prisma on the server and links that `Total Users` card into `/admin/users`; the old `News` card was also replaced with a live `Articles` card showing community-scoped `Pending`, `Approved` (`PUBLISHED`), and `Archived` (`UNPUBLISHED`) counts with a direct link into `/admin/articles`. The old placeholder `Pending Approvals` and `Recent Bans` cards were removed, while `Events` and `Marketplace Listings` are still placeholder values until their backing queries are wired.
+>
+> **Session 110 note:** organization inbox / CRM planning is now documented in `ORGANIZATION-INBOX-CRM-PLAN.md`. Current recommendation is to treat organization communication as a separate message domain rather than extending the existing user-to-user DM system, centered on durable role-based mailboxes, organization-scoped contact history, inbox threads/messages/internal notes, assignment, and future compatibility with later billing/payment records linked to the same organization contact profile.
+>
+> **Session 111 note:** `/directory` interaction rules were tightened again. The default people view now stays empty until search, while the top-level `Businesses`, `Government`, and `Organizations` category pills load full current-tenant results alphabetically and their hover/click behavior was split so the top-level pill navigates and the chevron opens subtypes. The old detail column was removed, the contact header now reads `Phone`, person-row messaging is now trust-gated (`TRUSTED` or trust-capable roles can compose; anonymous/registered users get an explanatory dialog), and the page now shows a persistent state banner that points anonymous viewers toward auth, registered viewers toward trust/profile completion, and trusted-but-not-listed viewers toward enabling directory inclusion. Self-serve organization listing/help copy is still intentionally deferred until a real submit/claim flow exists.
 
 ## Product Snapshot
 
@@ -97,8 +101,8 @@ Current public/admin direction highlights:
 - The admin sidebar now uses shared nav-item classes/structure plus alternating row backgrounds to keep menu entries visually consistent, and `Events` is a top-level admin item alongside `Articles`, `Navigation`, and the other operational surfaces.
 - The shared public shell uses the active `Youth Local` direction and the shared `InternalPageHeader` pattern.
 - `/profile/[id]` now uses an owner-first account-settings flow: no separate edit page, owner-only `Account Settings` first, owner-hidden `About`, simplified `Articles` / `Events` tabs, privacy disclaimers on non-public fields, and `Last seen` header metadata sourced from latest `LoginEvent`.
-- `/directory` is now a real read surface rather than a placeholder shell: it queries opted-in people plus approved organizations scoped to the active community, renders a unified sortable list, supports pagination, and treats `Businesses` / `Organizations` as yellow-pages-style type dropdown pills.
-- Directory people rows now support direct messaging from the listing itself for authenticated viewers via the inline message dialog pattern already used in admin users.
+- `/directory` is now a real read surface rather than a placeholder shell: the default people view stays search-first, while top-level `Businesses`, `Government`, and `Organizations` category pills load current-tenant entity results alphabetically and subtypes remain available through dropdown chevrons.
+- Directory people rows now support direct messaging from the listing itself only for trusted-capable viewers; anonymous or merely registered viewers now get trust/account guidance instead of a compose box, and a persistent banner under the directory filters explains the current viewer’s account/trust/listing state.
 - Trusted/staff-only trust-bootstrap is now live through `/help-us-grow`: same-community `REGISTERED` members are listed alphabetically with join dates and row-level messaging so existing trusted members can recognize people they know and start verification conversations inside the product.
 - Message threads now expose a direct `Vouch` entry point in the header when the other participant is still `REGISTERED`, reducing the need to leave the conversation to complete trust escalation.
 - The repo is back to a clean verification baseline: `npm run lint` and `npm run typecheck` now pass again after removing the dead `/admin/users` state and cleaning the current warning set.
@@ -112,6 +116,7 @@ Current public/admin direction highlights:
 - Preserve compact, dense operational design in admin rather than drifting toward spacious public-page layouts.
 - Continue the directory build with public organization detail pages, richer organization editing, and later self-claim/self-management flows.
 - Continue the organization presence build from the new `/organizations/[slug]` foundation toward richer organization editing, self-claim/self-management, and later custom-domain support.
+- Define the organization inbox / CRM subsystem before implementation so business/government/organization messaging lands on durable mailbox/contact-history primitives instead of DM-specific shortcuts.
 - Validate whether `/help-us-grow` actually reduces manual admin vouching and where the next trust-bootstrap gaps remain.
 
 ## What Is Still Partial Or Pending
@@ -122,6 +127,8 @@ Current public/admin direction highlights:
 - Cross-site sister-site pull-through is not implemented.
 - Donations/transparency, sourcing/citations, creator network, and delivery/jobs remain planned follow-on work.
 - Directory exists as an early live foundation now, with canonical public organization detail pages at `/organizations/[slug]` and richer admin organization editing at `/admin/organizations/[id]`, but self-claim/self-management flows are still pending.
+- Organization messaging to businesses / government / organizations is still planning-only; use `ORGANIZATION-INBOX-CRM-PLAN.md` as the canonical direction before implementation.
+- Organization self-listing/help CTA on `/directory` is still intentionally deferred; do not imply a self-serve org creation/claim path until submit-or-claim workflows actually exist.
 - `Help Us Grow` is live as the first in-product trust-bootstrap loop, but it still lacks dismiss/not-known actions, stronger recognition hints, and an explicit admin exception path for genuine newcomers no one recognizes.
 - Article video embeds are still pending and should land before any delivery/jobs push.
 
@@ -241,6 +248,7 @@ Use these instead of growing this file again:
 - `COMMUNITY-SECTION-PLAN.md` — planned `Community` top-level section
 - `CONTENT-ANALYTICS-PLAN.md` — first-party analytics/reaction plan
 - `DIRECTORY-PLAN.md` — organization/directory direction
+- `ORGANIZATION-INBOX-CRM-PLAN.md` — separate organization inbox / CRM direction with role-based mailboxes and org-scoped contact history
 - `ORGANIZATION-SITE-PLAN.md` — public organization profile to organization-site and custom-domain direction
 - `ORGANIZATION-PROFILE-PHASE-1-PLAN.md` — first implementation slice for the public organization profile page
 - `INVITATION-EMAIL-PLAN.md` — invitation system and outbound transactional email direction

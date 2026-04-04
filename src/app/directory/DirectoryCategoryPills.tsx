@@ -41,6 +41,8 @@ function DropdownPill({
   isActive,
   open,
   onToggle,
+  onOpen,
+  onClose,
   options,
   allHref,
   selectedType,
@@ -51,6 +53,8 @@ function DropdownPill({
   isActive: boolean;
   open: boolean;
   onToggle: () => void;
+  onOpen: () => void;
+  onClose: () => void;
   options: readonly TypeOption[];
   allHref: string;
   selectedType: string;
@@ -58,7 +62,7 @@ function DropdownPill({
   categorySlug: string;
 }) {
   return (
-    <div className="relative">
+    <div className="relative" onMouseEnter={onOpen} onMouseLeave={onClose}>
       <div
         className={`inline-flex items-center overflow-hidden rounded-full transition ${
           isActive
@@ -159,6 +163,8 @@ export default function DirectoryCategoryPills({
         isActive={activeCategorySlug === 'businesses'}
         open={openMenu === 'businesses'}
         onToggle={() => setOpenMenu((current) => (current === 'businesses' ? null : 'businesses'))}
+        onOpen={() => setOpenMenu('businesses')}
+        onClose={() => setOpenMenu((current) => (current === 'businesses' ? null : current))}
         options={businessOptions}
         allHref={buildDirectoryHref('businesses', query || null, null)}
         selectedType={selectedBusinessType}
@@ -180,6 +186,8 @@ export default function DirectoryCategoryPills({
         isActive={activeCategorySlug === 'organizations'}
         open={openMenu === 'organizations'}
         onToggle={() => setOpenMenu((current) => (current === 'organizations' ? null : 'organizations'))}
+        onOpen={() => setOpenMenu('organizations')}
+        onClose={() => setOpenMenu((current) => (current === 'organizations' ? null : current))}
         options={organizationOptions}
         allHref={buildDirectoryHref('organizations', query || null, null)}
         selectedType={selectedOrganizationType}
