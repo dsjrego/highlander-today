@@ -349,12 +349,12 @@ export default async function DirectoryPage({
             </div>
           ) : currentUserProfile && !currentUserProfile.isDirectoryListed ? (
             <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-              <p>You&apos;re eligible to appear in the people directory. Enable directory listing from your profile settings.</p>
-              <div className="mt-2 flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-[0.16em]">
-                <Link href={profileHref} className="text-sky-900 hover:underline">
-                  Profile Settings
+              <p>
+                You&apos;re eligible to appear in the people directory. Enable directory listing from your{' '}
+                <Link href={profileHref} className="font-semibold text-sky-900 underline-offset-2 hover:underline">
+                  profile settings.
                 </Link>
-              </div>
+              </p>
             </div>
           ) : null}
 
