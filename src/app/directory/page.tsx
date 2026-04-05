@@ -295,7 +295,6 @@ export default async function DirectoryPage({
     <div className="space-y-4">
       <InternalPageHeader
         title="Directory"
-        description="Search people, businesses, government, and organizations across the community."
         className="mb-0"
       />
 
