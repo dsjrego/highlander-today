@@ -385,28 +385,6 @@ export default async function DirectoryPage({
             organizationOptions={ORGANIZATION_TYPE_OPTIONS.ORGANIZATION}
           />
 
-          <div className="border-b border-slate-200 pb-2 text-sm text-slate-600">
-            <div>
-              {totalRows > 0 ? (
-                <>
-                  About <span className="font-medium text-slate-900">{totalRows}</span> result{totalRows === 1 ? '' : 's'}
-                  {hasSearchQuery ? (
-                    <>
-                      {' '}
-                      for <span className="font-medium text-slate-900">&quot;{query}&quot;</span>
-                    </>
-                  ) : null}
-                </>
-              ) : hasSearchQuery ? (
-                <>
-                  No results for <span className="font-medium text-slate-900">&quot;{query}&quot;</span>
-                </>
-              ) : (
-                null
-              )}
-            </div>
-          </div>
-
           {pagedRows.length > 0 ? (
             <div>
               <div className="hidden border-b border-slate-200 pb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 sm:grid sm:grid-cols-[minmax(0,1fr)_140px_140px_220px] sm:gap-4">
@@ -493,7 +471,7 @@ export default async function DirectoryPage({
             </div>
           ) : (
             hasSearchQuery || isOrganizationBrowseCategory ? (
-              <p className="py-2 text-sm text-slate-600">
+              <p className="border-t border-slate-200 pt-3 text-sm text-slate-600">
                 {hasSearchQuery
                   ? `No directory results matched "${query}".`
                   : 'No directory listings are available in this category.'}
