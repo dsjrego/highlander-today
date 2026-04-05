@@ -4,6 +4,7 @@ import { Fragment, useCallback, useEffect, useState } from 'react';
 import {
   Eye,
   MessageSquare,
+  Settings2,
   ShieldCheck,
   ShieldMinus,
   ShieldPlus,
@@ -11,6 +12,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { CrudActionButton, CrudActionLink } from '@/components/shared/CrudAction';
 
 interface User {
   id: string;
@@ -513,17 +515,19 @@ export default function UsersPage() {
                                   ))}
                                 </select>
                               ) : (
-                                <button
+                                <CrudActionButton
                                   type="button"
-                                  className="admin-list-cell-button inline-flex items-center gap-1"
+                                  variant="inline"
+                                  icon={Settings2}
+                                  label="Change role"
+                                  className="gap-1"
                                   onClick={() => setEditingRole(user.id)}
-                                  title="Click to change role"
                                 >
                                   {formatRoleLabel(user.role)}
                                   <span className="text-[#2563eb]" aria-hidden="true">
                                     ▾
                                   </span>
-                                </button>
+                                </CrudActionButton>
                               )}
                             </td>
                             <td className="admin-list-cell">{formatDateTime(user.lastSeenAt)}</td>
@@ -535,13 +539,15 @@ export default function UsersPage() {
                               )}
                             </td>
                             <td className="admin-list-cell">
-                              <button
+                              <CrudActionButton
                                 type="button"
+                                variant="inline"
+                                icon={Settings2}
+                                label={isExpanded ? 'Close user actions' : 'Manage user'}
                                 onClick={() => setExpandedUser(isExpanded ? null : user.id)}
-                                className="admin-list-cell-button"
                               >
                                 {isExpanded ? 'Close' : 'Manage'}
-                              </button>
+                              </CrudActionButton>
                             </td>
                           </tr>
 
@@ -549,64 +555,67 @@ export default function UsersPage() {
                             <tr className="admin-list-row bg-slate-50">
                               <td className="admin-list-cell" colSpan={7}>
                                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                                  <a
-                                    href={`/profile/${user.id}`}
-                                    className="admin-list-link inline-flex items-center gap-1 text-[#2563eb]"
-                                  >
-                                    <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+                                  <CrudActionLink href={`/profile/${user.id}`} variant="inline-link" icon={Eye} label="View profile">
                                     View profile
-                                  </a>
+                                  </CrudActionLink>
 
-                                  <button
+                                  <CrudActionButton
                                     type="button"
+                                    variant="inline-link"
+                                    icon={MessageSquare}
+                                    label="Message user"
                                     onClick={() =>
                                       handleOpenMessageDialog(user.id, `${user.firstName} ${user.lastName}`)
                                     }
-                                    className="admin-list-cell-button inline-flex items-center gap-1 text-[#2563eb]"
                                   >
-                                    <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
                                     Message
-                                  </button>
+                                  </CrudActionButton>
 
                                   {user.trustLevel === 'REGISTERED' ? (
-                                    <button
+                                    <CrudActionButton
                                       type="button"
+                                      variant="inline-success"
+                                      icon={ShieldCheck}
+                                      label={isActing ? 'Working' : 'Vouch user'}
                                       onClick={() => handleVouch(user.id)}
                                       disabled={isActing}
-                                      className="admin-list-cell-button inline-flex items-center gap-1 text-[#1f7a45]"
                                     >
-                                      <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
                                       {isActing ? 'Working...' : 'Vouch user'}
-                                    </button>
+                                    </CrudActionButton>
                                   ) : null}
 
                                   {user.trustLevel === 'TRUSTED' ? (
-                                    <button
+                                    <CrudActionButton
                                       type="button"
+                                      variant="inline-danger"
+                                      icon={ShieldMinus}
+                                      label={isActing ? 'Working' : 'Revoke trust'}
                                       onClick={() => handleTrustAction(user.id, 'revoke')}
                                       disabled={isActing}
-                                      className="admin-list-cell-button inline-flex items-center gap-1 text-[#8f1d2c]"
                                     >
-                                      <ShieldMinus className="h-3.5 w-3.5" aria-hidden="true" />
                                       {isActing ? 'Working...' : 'Revoke trust'}
-                                    </button>
+                                    </CrudActionButton>
                                   ) : null}
 
                                   {user.trustLevel === 'SUSPENDED' ? (
-                                    <button
+                                    <CrudActionButton
                                       type="button"
+                                      variant="inline-success"
+                                      icon={ShieldPlus}
+                                      label={isActing ? 'Working' : 'Reinstate user'}
                                       onClick={() => handleTrustAction(user.id, 'reinstate')}
                                       disabled={isActing}
-                                      className="admin-list-cell-button inline-flex items-center gap-1 text-[#1f7a45]"
                                     >
-                                      <ShieldPlus className="h-3.5 w-3.5" aria-hidden="true" />
                                       {isActing ? 'Working...' : 'Reinstate'}
-                                    </button>
+                                    </CrudActionButton>
                                   ) : null}
 
                                   {user.trustLevel !== 'SUSPENDED' ? (
-                                    <button
+                                    <CrudActionButton
                                       type="button"
+                                      variant="inline-danger"
+                                      icon={ShieldX}
+                                      label={isActing ? 'Working' : 'Ban user'}
                                       onClick={() => {
                                         const reason = prompt('Ban reason:');
                                         if (reason) {
@@ -614,24 +623,23 @@ export default function UsersPage() {
                                         }
                                       }}
                                       disabled={isActing}
-                                      className="admin-list-cell-button inline-flex items-center gap-1 text-[#8f1d2c]"
                                     >
-                                      <ShieldX className="h-3.5 w-3.5" aria-hidden="true" />
                                       {isActing ? 'Working...' : 'Ban user'}
-                                    </button>
+                                    </CrudActionButton>
                                   ) : null}
 
-                                  <button
+                                  <CrudActionButton
                                     type="button"
+                                    variant="inline-danger"
+                                    icon={Trash2}
+                                    label={isActing ? 'Working' : 'Delete user'}
                                     onClick={() =>
                                       handleDeleteUser(user.id, `${user.firstName} ${user.lastName}`)
                                     }
                                     disabled={isActing}
-                                    className="admin-list-cell-button inline-flex items-center gap-1 text-[#8f1d2c]"
                                   >
-                                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                                     {isActing ? 'Working...' : 'Delete user'}
-                                  </button>
+                                  </CrudActionButton>
                                 </div>
                               </td>
                             </tr>

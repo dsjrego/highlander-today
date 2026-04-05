@@ -3,7 +3,8 @@
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { FormEvent, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Building2, ListChecks, Plus } from 'lucide-react';
+import { CrudActionButton } from '@/components/shared/CrudAction';
 import {
   ORGANIZATION_GROUP_OPTIONS,
   ORGANIZATION_TYPE_OPTIONS,
@@ -414,9 +415,15 @@ export default function OrganizationTabs({ organizations }: OrganizationTabsProp
             </div>
 
             <div className="form-card-actions">
-              <button type="submit" disabled={isCreating} className="btn btn-primary">
+              <CrudActionButton
+                type="submit"
+                variant="primary"
+                icon={Building2}
+                label={isCreating ? 'Creating organization' : 'Create Organization'}
+                disabled={isCreating}
+              >
                 {isCreating ? 'Creating...' : 'Create Organization'}
-              </button>
+              </CrudActionButton>
             </div>
           </form>
         ) : (
@@ -498,15 +505,21 @@ export default function OrganizationTabs({ organizations }: OrganizationTabsProp
                             ))}
                           </select>
                         ) : (
-                          <button
+                          <CrudActionButton
                             type="button"
-                            className="admin-list-cell-button"
+                            variant="inline"
+                            icon={ListChecks}
+                            label={
+                              organization.status === 'PENDING_APPROVAL'
+                                ? 'Pending'
+                                : ORGANIZATION_STATUS_OPTIONS.find((status) => status.value === organization.status)?.label || 'Status'
+                            }
                             onClick={() => setEditingStatusOrganizationId(organization.id)}
                           >
                             {organization.status === 'PENDING_APPROVAL'
                               ? 'Pending'
                               : ORGANIZATION_STATUS_OPTIONS.find((status) => status.value === organization.status)?.label}
-                          </button>
+                          </CrudActionButton>
                         )}
                       </td>
                     </tr>

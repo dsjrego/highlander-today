@@ -1,8 +1,10 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { CrudActionButton } from "@/components/shared/CrudAction";
 import FormCard, { FormCardActions } from "@/components/shared/FormCard";
 import ImageUpload from "@/components/shared/ImageUpload";
 import StatusMessage from "@/components/shared/StatusMessage";
@@ -347,9 +349,15 @@ export default function AccountSettingsPanel({
                 </div>
 
                 <FormCardActions>
-                  <button type="submit" disabled={isSaving} className="btn btn-primary">
+                  <CrudActionButton
+                    type="submit"
+                    variant="primary"
+                    icon={Save}
+                    label={isSaving ? "Saving profile changes" : "Save Changes"}
+                    disabled={isSaving}
+                  >
                     {isSaving ? "Saving..." : "Save Changes"}
-                  </button>
+                  </CrudActionButton>
                 </FormCardActions>
               </div>
             </div>

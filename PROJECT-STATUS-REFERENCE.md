@@ -3,10 +3,14 @@
 > Companion to `PROJECT-STATUS.md`.
 > This file preserves the fuller implementation ledger, rollout history, verification notes, deployment/bootstrap runbook, upload snapshot, and infrastructure rationale.
 
-> **Last updated:** 2026-04-05 (session 116 — documented the additional directory chrome-reduction pass on top of the compact-search redesign, trust gating, banner placement, and deferred self-serve organization listing guidance)
+> **Last updated:** 2026-04-05 (session 117 — documented the mobile public-header/navigation pass that moved phone nav into the hamburger menu, plus the deferred mobile masthead and page-header follow-up issues)
 > **Purpose:** Detailed companion context for AI assistants. Read `PROJECT-STATUS.md` first each session, then use this file for the fuller historical/reference detail when needed.
 
 > **Open polish note:** the live `/profile/[id]` header still needs one more pass on avatar click-target density. The pill/ovoid button boundary around the clickable page-header avatar was reduced, and the profile header has page-specific tighter spacing overrides now, but the user still considers the space around the avatar/content too loose; next pass should make the clickable avatar boundary hug the image even more tightly and continue compressing that profile-header layout specifically rather than broadening the shared default further.
+>
+> **Open mobile masthead note:** the live phone masthead still needs a follow-up pass. Search/messages are icon-only on phones now and the old visible phone nav pills were moved into the hamburger menu, but the `Highlander Today` title still does not visually align cleanly with the logo/action row and the small-screen masthead spacing needs a more deliberate component-level cleanup.
+>
+> **Open mobile page-header note:** the live phone `InternalPageHeader` treatment still needs a follow-up pass. The `Directory` page-header title alignment, compact padding, and suspected action-slot spacing did not respond predictably to the current CSS/component overrides, so the mobile page-header should be revisited as a focused component cleanup rather than by stacking more one-off CSS tweaks.
 
 > **Session 110 reference note:** organization inbox / CRM direction is now documented in `ORGANIZATION-INBOX-CRM-PLAN.md`. The current recommendation is to build a second communication domain rather than extend the person-to-person DM tables: durable `OrganizationMailbox` roles, org-scoped `OrganizationContactProfile` history, dedicated inbox threads/messages/internal notes, assignment, and future compatibility with billing/payment records that should later attach to the same org-scoped contact profile rather than being modeled as freeform messages.
 >
@@ -17,6 +21,8 @@
 > **Session 115 reference note:** the `/directory` presentation was tightened substantially after the first live pass felt too pill-heavy and padded. The oversized standalone search button was removed in favor of an inline magnifying-glass submit inside the search field, the nested search shell treatment was flattened, redundant empty-state helper copy and the separate compressed sort menu were removed, `Businesses` and `Organizations` were normalized to the same visual treatment as the other filter tabs, and desktop sorting now routes through clickable `Name`, `Section`, and `Type` headings on the result list itself instead of a separate control cluster.
 >
 > **Session 116 reference note:** a second `/directory` polish pass removed the remaining bulky helper chrome. The page-header description line was removed so the route now presents only the `Directory` title, the three viewer-state messages were normalized to the same plain-text pattern without tinted background containers, and the old `About N results` line above the returned list was deleted so only the actual results, heading-based sort controls, and necessary no-results messaging remain visible.
+>
+> **Session 117 reference note:** the shared public shell received a mobile-specific navigation pass. On phones, `BannerActions` now renders search and messages as icon-only actions, the user/account trigger is a literal hamburger menu in the upper-right, and the old wrapped `NavigationBar` pill rows are hidden in favor of a vertical mobile menu inside the hamburger that reads the same DB-driven category structure and exposes expandable child groups. Several follow-up tweaks were attempted around mobile masthead spacing/title alignment and `InternalPageHeader` centering/compactness, but those issues remain unresolved enough that they are now explicitly tracked as known follow-up polish rather than considered finished.
 
 ## Overview
 

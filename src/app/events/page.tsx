@@ -5,6 +5,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
+import { Calendar, List, Plus } from "lucide-react";
 import InternalPageHeader from "@/components/shared/InternalPageHeader";
 import { formatLocationPrimary } from "@/lib/location-format";
 
@@ -108,6 +109,13 @@ export default function EventsPage() {
     calendarDays.push(i);
   }
 
+  const headerActionClassName =
+    "crud-action-button rounded-full border px-4 py-2 text-sm font-semibold transition";
+  const activeHeaderActionClassName =
+    "border-white bg-white text-slate-950";
+  const inactiveHeaderActionClassName =
+    "border-white/14 bg-white/8 text-white/80 hover:bg-white/12 hover:text-white";
+
   return (
     <div className="space-y-8">
       <InternalPageHeader
@@ -118,30 +126,36 @@ export default function EventsPage() {
             {session?.user && (
               <Link
                 href="/events/submit"
-                className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:opacity-90"
+                aria-label="Add event"
+                title="Add event"
+                className={`${headerActionClassName} border-white bg-white text-slate-950 hover:opacity-90`}
               >
-                Submit Event
+                <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
               </Link>
             )}
             <button
               onClick={() => setViewMode("list")}
-              className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+              aria-label="List view"
+              title="List view"
+              className={`${headerActionClassName} ${
                 viewMode === "list"
-                  ? "border-white bg-white text-slate-950"
-                  : "border-white/14 bg-white/8 text-white/80 hover:bg-white/12 hover:text-white"
+                  ? activeHeaderActionClassName
+                  : inactiveHeaderActionClassName
               }`}
             >
-              List View
+              <List className="h-4 w-4 shrink-0" aria-hidden="true" />
             </button>
             <button
               onClick={() => setViewMode("calendar")}
-              className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+              aria-label="Calendar view"
+              title="Calendar view"
+              className={`${headerActionClassName} ${
                 viewMode === "calendar"
-                  ? "border-white bg-white text-slate-950"
-                  : "border-white/14 bg-white/8 text-white/80 hover:bg-white/12 hover:text-white"
+                  ? activeHeaderActionClassName
+                  : inactiveHeaderActionClassName
               }`}
             >
-              Calendar View
+              <Calendar className="h-4 w-4 shrink-0" aria-hidden="true" />
             </button>
           </>
         }
@@ -165,9 +179,10 @@ export default function EventsPage() {
           {session?.user && (
             <Link
               href="/events/submit"
-              className="inline-block rounded-full bg-white px-6 py-3 font-semibold text-slate-950 transition hover:opacity-90"
+              className="crud-action-button inline-flex rounded-full bg-white px-6 py-3 font-semibold text-slate-950 transition hover:opacity-90"
             >
-              Submit the First Event
+              <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span className="crud-action-label">Event</span>
             </Link>
           )}
         </div>

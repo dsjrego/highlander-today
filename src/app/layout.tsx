@@ -145,7 +145,7 @@ export default async function RootLayout({
           </header>
 
           {/* Main Content */}
-          <main className="relative z-0 container mx-auto px-4 pb-10 pt-0">{children}</main>
+          <main className="relative z-0 w-full px-[2px] pb-10 pt-[2px] md:px-4 md:pt-0">{children}</main>
 
           {/* Footer */}
           <footer className="mt-12 border-t border-white/10 bg-[linear-gradient(135deg,#091a28_0%,#0f2941_34%,#8f1d2c_100%)] text-white">

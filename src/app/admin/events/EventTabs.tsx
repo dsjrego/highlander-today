@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { FormEvent, useMemo, useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Check, ListChecks, MapPin, Plus, X } from 'lucide-react';
+import { CrudActionButton } from '@/components/shared/CrudAction';
 import ImageUpload from '@/components/shared/ImageUpload';
 import { formatLocationPrimary, formatLocationSearchLabel, formatLocationSecondary } from '@/lib/location-format';
 
@@ -578,14 +579,15 @@ export default function EventTabs({ events, organizations, locations }: EventTab
                       className="form-input border-slate-300 bg-white text-slate-950"
                       placeholder="Filter locations by venue or address"
                     />
-                    <button
+                    <CrudActionButton
                       type="button"
+                      variant="neutral"
+                      icon={showCreateLocation ? X : MapPin}
+                      label={showCreateLocation ? 'Close location form' : 'Add Location'}
                       onClick={() => setShowCreateLocation((current) => !current)}
-                      className="btn btn-neutral"
                     >
-                      {showCreateLocation ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                      Location
-                    </button>
+                      {showCreateLocation ? 'Close' : 'Location'}
+                    </CrudActionButton>
                   </div>
 
                   <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2">
@@ -694,14 +696,27 @@ export default function EventTabs({ events, organizations, locations }: EventTab
                               {formatLocationSearchLabel(location)}
                             </button>
                           ))}
-                          <button type="button" onClick={() => handleCreateLocation(true)} className="btn btn-secondary">
+                          <CrudActionButton
+                            type="button"
+                            variant="secondary"
+                            icon={Check}
+                            label="Create location anyway"
+                            onClick={() => handleCreateLocation(true)}
+                          >
                             Create Anyway
-                          </button>
+                          </CrudActionButton>
                         </div>
                       ) : null}
-                      <button type="button" onClick={() => handleCreateLocation()} disabled={isCreatingLocation} className="btn btn-primary">
+                      <CrudActionButton
+                        type="button"
+                        variant="primary"
+                        icon={MapPin}
+                        label={isCreatingLocation ? 'Creating location' : 'Create Location'}
+                        onClick={() => handleCreateLocation()}
+                        disabled={isCreatingLocation}
+                      >
                         {isCreatingLocation ? 'Creating...' : 'Create Location'}
-                      </button>
+                      </CrudActionButton>
                     </div>
                   ) : null}
                 </div>
@@ -825,9 +840,15 @@ export default function EventTabs({ events, organizations, locations }: EventTab
 
 	              <div className="lg:col-span-2">
 	                <div className="form-card-actions justify-start">
-	                  <button type="submit" disabled={isCreating} className="btn btn-primary">
-	                    {isCreating ? 'Creating...' : 'Create Event'}
-	                  </button>
+                    <CrudActionButton
+                      type="submit"
+                      variant="primary"
+                      icon={Plus}
+                      label={isCreating ? 'Creating event' : 'Create Event'}
+                      disabled={isCreating}
+                    >
+                      {isCreating ? 'Creating...' : 'Create Event'}
+                    </CrudActionButton>
 	                </div>
 	              </div>
 	            </div>
@@ -901,13 +922,17 @@ export default function EventTabs({ events, organizations, locations }: EventTab
                               ))}
                             </select>
                           ) : (
-                            <button
+                            <CrudActionButton
                               type="button"
-                              className="admin-list-cell-button"
+                              variant="inline"
+                              icon={ListChecks}
+                              label={
+                                EVENT_STATUS_OPTIONS.find((status) => status.value === event.status)?.label || 'Status'
+                              }
                               onClick={() => setEditingStatusEventId(event.id)}
                             >
                               {EVENT_STATUS_OPTIONS.find((status) => status.value === event.status)?.label}
-                            </button>
+                            </CrudActionButton>
                           )}
                         </td>
                       </tr>

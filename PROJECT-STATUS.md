@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-04-05 (session 116)
+> **Last updated:** 2026-04-05 (session 118)
 > **Purpose:** Fast-start context for the next session. Read this file first, then open only the supporting docs relevant to the active slice.
 > **Detailed reference:** `PROJECT-STATUS-REFERENCE.md` preserves the fuller implementation ledger, rollout history, verification notes, deployment runbook, and infrastructure rationale that used to live here.
 
@@ -61,6 +61,10 @@
 > **Session 115 note:** `/directory` was visually tightened into a more compact search-first surface. The oversized standalone search button was removed in favor of an inline magnifying-glass submit inside the field, the nested search pill/card treatment was flattened, redundant empty-state helper copy was removed, `Businesses` / `Organizations` tabs were normalized to match the other filters visually, the old compressed sort menu was removed, and desktop sorting now happens through clickable `Name`, `Section`, and `Type` column headings only when results are present.
 >
 > **Session 116 note:** the follow-up `/directory` cleanup removed the remaining high-chrome helper copy and banner treatments. The page header now shows only `Directory` with no descriptive subcopy, viewer-state guidance now uses the same minimal plain-text pattern for every user state instead of tinted pills, the result-count line above search results was removed, and the page now keeps only the lean heading-based sort treatment plus the no-results message when needed.
+>
+> **Session 117 note:** the public phone header/navigation got a first mobile-specific pass. Search and messages were reduced to icon-only controls, the account trigger became a hamburger menu in the upper-right, and the wrapped top-level nav pills were removed from the visible phone masthead and moved into the hamburger as a vertical DB-driven mobile navigation surface with expandable section groups. The phone masthead/logo/title spacing and the `InternalPageHeader` mobile alignment remain partially unresolved and are intentionally parked as known follow-up polish rather than treated as complete.
+>
+> **Session 118 note:** CRUD/action icon standardization now applies to page-header actions too. If a page header has only one add/create action, treat the icon as the action and do not repeat the subject in the button text; the page-header title already provides that context, so the lone add control should be icon-only (with an accessible label/tooltip). Use subject text only when there are multiple sibling actions and disambiguation is actually needed.
 
 ## Product Snapshot
 
@@ -114,6 +118,7 @@ Current public/admin direction highlights:
 - `/admin/users` now matches that same compact admin pattern: dense table layout, email column, real last-seen timestamps from login activity, voucher names, colored/iconized manage actions, and inline admin messaging.
 - The admin sidebar now uses shared nav-item classes/structure plus alternating row backgrounds to keep menu entries visually consistent, and `Events` is a top-level admin item alongside `Articles`, `Navigation`, and the other operational surfaces.
 - The shared public shell uses the active `Youth Local` direction and the shared `InternalPageHeader` pattern.
+- `InternalPageHeader` action rule: when there is only one add/create action in a page header, keep it icon-only and rely on the page title for subject context; do not render redundant subject text beside the icon unless multiple neighboring actions need disambiguation.
 - `/profile/[id]` now uses an owner-first account-settings flow: no separate edit page, owner-only `Account Settings` first, owner-hidden `About`, simplified `Articles` / `Events` tabs, privacy disclaimers on non-public fields, and `Last seen` header metadata sourced from latest `LoginEvent`.
 - `/directory` is now a real read surface rather than a placeholder shell: the default people view stays search-first, while top-level `Businesses`, `Government`, and `Organizations` category pills load current-tenant entity results alphabetically and subtypes remain available through dropdown chevrons. The current UI direction is flatter and more compact than the earlier pill-heavy/table-heavy pass, with inline search submission, minimal plain-text viewer guidance, no extra result-count copy, and clickable result headings handling sort on desktop.
 - Directory people rows now support direct messaging from the listing itself only for trusted-capable viewers; anonymous or merely registered viewers now get trust/account guidance instead of a compose box, and a persistent banner above the directory search filter explains the current viewer’s account/trust/listing state.

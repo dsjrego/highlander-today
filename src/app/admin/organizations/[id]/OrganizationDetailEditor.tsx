@@ -3,6 +3,8 @@
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { FormEvent, useState } from 'react';
+import { Building2, Plus, Save, Trash2 } from 'lucide-react';
+import { CrudActionButton } from '@/components/shared/CrudAction';
 import ImageUpload from '@/components/shared/ImageUpload';
 import { formatOrganizationTypeLabel } from '@/lib/organizations';
 import { formatPhoneInput } from '@/lib/organization-admin';
@@ -742,13 +744,15 @@ export default function OrganizationDetailEditor({ organization: initialOrganiza
                   <h2 className="text-lg font-bold text-slate-950">Organization Profile</h2>
                   <p className="mt-1 text-sm text-slate-600">Edit the canonical public details for this organization.</p>
                 </div>
-                <button
+                <CrudActionButton
                   type="submit"
+                  variant="primary"
+                  icon={Building2}
+                  label={isSavingCore ? 'Saving organization profile' : 'Save Profile'}
                   disabled={isSavingCore}
-                  className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
                 >
                   {isSavingCore ? 'Saving...' : 'Save Profile'}
-                </button>
+                </CrudActionButton>
               </div>
 
               <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
@@ -875,13 +879,15 @@ export default function OrganizationDetailEditor({ organization: initialOrganiza
               <form onSubmit={createLocation} className="mt-5 space-y-3 rounded-2xl border border-dashed border-slate-300 p-4">
                 <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">Add Location</h3>
                 <LocationFields value={newLocationForm} onChange={setNewLocationForm} />
-                <button
+                <CrudActionButton
                   type="submit"
+                  variant="primary"
+                  icon={Plus}
+                  label={savingKey === 'new-location' ? 'Adding location' : 'Add Location'}
                   disabled={savingKey === 'new-location'}
-                  className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
                 >
                   {savingKey === 'new-location' ? 'Adding...' : 'Add Location'}
-                </button>
+                </CrudActionButton>
               </form>
             </section>
           ) : null}
@@ -907,13 +913,15 @@ export default function OrganizationDetailEditor({ organization: initialOrganiza
               <form onSubmit={createDepartment} className="mt-5 space-y-3 rounded-2xl border border-dashed border-slate-300 p-4">
                 <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">Add Department</h3>
                 <DepartmentFields value={newDepartmentForm} locations={organization.locations} onChange={setNewDepartmentForm} />
-                <button
+                <CrudActionButton
                   type="submit"
+                  variant="primary"
+                  icon={Plus}
+                  label={savingKey === 'new-department' ? 'Adding department' : 'Add Department'}
                   disabled={savingKey === 'new-department'}
-                  className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
                 >
                   {savingKey === 'new-department' ? 'Adding...' : 'Add Department'}
-                </button>
+                </CrudActionButton>
               </form>
             </section>
           ) : null}
@@ -947,13 +955,15 @@ export default function OrganizationDetailEditor({ organization: initialOrganiza
                   memberships={activeMemberships}
                   onChange={setNewContactForm}
                 />
-                <button
+                <CrudActionButton
                   type="submit"
+                  variant="primary"
+                  icon={Plus}
+                  label={savingKey === 'new-contact' ? 'Adding contact' : 'Add Contact'}
                   disabled={savingKey === 'new-contact'}
-                  className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
                 >
                   {savingKey === 'new-contact' ? 'Adding...' : 'Add Contact'}
-                </button>
+                </CrudActionButton>
               </form>
             </section>
           ) : null}
@@ -1207,12 +1217,19 @@ function LocationEditor({
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold text-slate-950">{location.label || location.addressLine1 || 'Location'}</h3>
         <div className="flex gap-2">
-          <button type="submit" disabled={isSaving} className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-900 border border-slate-200">
+          <CrudActionButton type="submit" variant="secondary" icon={Save} label="Save location" disabled={isSaving}>
             Save
-          </button>
-          <button type="button" disabled={isSaving} onClick={() => onDelete(location.id)} className="rounded-lg bg-rose-50 px-3 py-1.5 text-sm font-semibold text-rose-700 border border-rose-200">
+          </CrudActionButton>
+          <CrudActionButton
+            type="button"
+            variant="danger"
+            icon={Trash2}
+            label="Delete location"
+            disabled={isSaving}
+            onClick={() => onDelete(location.id)}
+          >
             Delete
-          </button>
+          </CrudActionButton>
         </div>
       </div>
       <LocationFields value={form} onChange={setForm} />
@@ -1246,12 +1263,19 @@ function DepartmentEditor({
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold text-slate-950">{department.name}</h3>
         <div className="flex gap-2">
-          <button type="submit" disabled={isSaving} className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-900 border border-slate-200">
+          <CrudActionButton type="submit" variant="secondary" icon={Save} label="Save department" disabled={isSaving}>
             Save
-          </button>
-          <button type="button" disabled={isSaving} onClick={() => onDelete(department.id)} className="rounded-lg bg-rose-50 px-3 py-1.5 text-sm font-semibold text-rose-700 border border-rose-200">
+          </CrudActionButton>
+          <CrudActionButton
+            type="button"
+            variant="danger"
+            icon={Trash2}
+            label="Delete department"
+            disabled={isSaving}
+            onClick={() => onDelete(department.id)}
+          >
             Delete
-          </button>
+          </CrudActionButton>
         </div>
       </div>
       <DepartmentFields value={form} locations={locations} onChange={setForm} />
@@ -1289,12 +1313,19 @@ function ContactEditor({
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold text-slate-950">{contact.name || contact.label || 'Contact'}</h3>
         <div className="flex gap-2">
-          <button type="submit" disabled={isSaving} className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-900 border border-slate-200">
+          <CrudActionButton type="submit" variant="secondary" icon={Save} label="Save contact" disabled={isSaving}>
             Save
-          </button>
-          <button type="button" disabled={isSaving} onClick={() => onDelete(contact.id)} className="rounded-lg bg-rose-50 px-3 py-1.5 text-sm font-semibold text-rose-700 border border-rose-200">
+          </CrudActionButton>
+          <CrudActionButton
+            type="button"
+            variant="danger"
+            icon={Trash2}
+            label="Delete contact"
+            disabled={isSaving}
+            onClick={() => onDelete(contact.id)}
+          >
             Delete
-          </button>
+          </CrudActionButton>
         </div>
       </div>
       <ContactFields value={form} departments={departments} locations={locations} memberships={memberships} onChange={setForm} />
@@ -1337,9 +1368,9 @@ function MembershipEditor({
           </p>
           <p className="mt-1 text-sm text-slate-500">{membership.user.email}</p>
         </div>
-        <button type="submit" disabled={isSaving} className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-900 border border-slate-200">
+        <CrudActionButton type="submit" variant="secondary" icon={Save} label="Save membership" disabled={isSaving}>
           Save
-        </button>
+        </CrudActionButton>
       </div>
       <div className="mt-3 grid gap-3 md:grid-cols-2">
         <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Public title override" className="form-input" />

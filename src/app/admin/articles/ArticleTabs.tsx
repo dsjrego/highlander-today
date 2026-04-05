@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { FolderPen, ListChecks } from 'lucide-react';
+import { CrudActionButton } from '@/components/shared/CrudAction';
 
 const ARTICLE_TABS = ['draft', 'pending', 'approved', 'archived'] as const;
 const ARTICLE_PAGE_SIZE = 10;
@@ -280,13 +282,15 @@ export default function ArticleTabs({ articles, articleCategories }: ArticleTabs
                             ))}
                           </select>
                         ) : (
-                          <button
+                          <CrudActionButton
                             type="button"
-                            className="admin-list-cell-button"
+                            variant="inline"
+                            icon={FolderPen}
+                            label={article.category?.name || 'Uncategorized'}
                             onClick={() => setEditingCategoryArticleId(article.id)}
                           >
                             {article.category?.name || 'Uncategorized'}
-                          </button>
+                          </CrudActionButton>
                         )}
                       </td>
                       <td className="admin-list-cell">
@@ -312,13 +316,17 @@ export default function ArticleTabs({ articles, articleCategories }: ArticleTabs
                             ))}
                           </select>
                         ) : (
-                          <button
+                          <CrudActionButton
                             type="button"
-                            className="admin-list-cell-button"
+                            variant="inline"
+                            icon={ListChecks}
+                            label={
+                              ARTICLE_STATUS_OPTIONS.find((status) => status.value === article.status)?.label || 'Status'
+                            }
                             onClick={() => setEditingStatusArticleId(article.id)}
                           >
                             {ARTICLE_STATUS_OPTIONS.find((status) => status.value === article.status)?.label}
-                          </button>
+                          </CrudActionButton>
                         )}
                       </td>
                       <td className="admin-list-cell">{formatDate(article.publishedAt)}</td>

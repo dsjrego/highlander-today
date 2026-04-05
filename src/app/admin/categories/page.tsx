@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { BookOpenText } from 'lucide-react';
+import { ArrowDown, ArrowUp, BookOpenText, Plus, Save, Trash2 } from 'lucide-react';
+import { CrudActionButton } from '@/components/shared/CrudAction';
 import FormCard, { FormCardActions } from '@/components/shared/FormCard';
 import {
   CATEGORY_CONTENT_MODELS,
@@ -219,38 +220,46 @@ function CategoryEditorRow({
       </td>
       <td className="admin-list-cell">
         <div className="flex items-center gap-2">
-          <button
+          <CrudActionButton
             type="button"
+            variant="inline"
+            icon={ArrowUp}
+            label="Move up"
             onClick={() => moveCategory(category.id, 'up')}
             disabled={siblingIndex <= 0 || isReordering === category.id}
-            className="admin-list-cell-button"
           >
-            ↑
-          </button>
-          <button
+            Up
+          </CrudActionButton>
+          <CrudActionButton
             type="button"
+            variant="inline"
+            icon={ArrowDown}
+            label="Move down"
             onClick={() => moveCategory(category.id, 'down')}
             disabled={siblingIndex === -1 || siblingIndex >= siblingCategories.length - 1 || isReordering === category.id}
-            className="admin-list-cell-button"
           >
-            ↓
-          </button>
-          <button
+            Down
+          </CrudActionButton>
+          <CrudActionButton
             type="button"
+            variant="inline"
+            icon={Save}
+            label={isSaving === category.id ? 'Saving category' : 'Save category'}
             onClick={() => handleSaveCategory(category.id)}
             disabled={isSaving === category.id}
-            className="admin-list-cell-button"
           >
             {isSaving === category.id ? 'Saving...' : 'Save'}
-          </button>
-          <button
+          </CrudActionButton>
+          <CrudActionButton
             type="button"
+            variant="inline-danger"
+            icon={Trash2}
+            label={isDeleting === category.id ? 'Deleting category' : 'Delete category'}
             onClick={() => handleDeleteCategory(category)}
             disabled={isDeleting === category.id}
-            className="admin-list-cell-button text-[#8f1d2c]"
           >
             {isDeleting === category.id ? 'Deleting...' : 'Delete'}
-          </button>
+          </CrudActionButton>
         </div>
       </td>
     </tr>
@@ -812,9 +821,15 @@ export default function CategoryManagerPage() {
                     </div>
 
                     <FormCardActions>
-                      <button type="submit" disabled={isCreating} className="btn btn-primary">
+                      <CrudActionButton
+                        type="submit"
+                        variant="primary"
+                        icon={Plus}
+                        label={isCreating ? 'Creating menu item' : 'Add Menu Item'}
+                        disabled={isCreating}
+                      >
                         {isCreating ? 'Creating...' : 'Add Menu Item'}
-                      </button>
+                      </CrudActionButton>
                     </FormCardActions>
                   </form>
                 </FormCard>
