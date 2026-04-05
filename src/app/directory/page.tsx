@@ -295,7 +295,11 @@ export default async function DirectoryPage({
     <div className="space-y-4">
       <InternalPageHeader
         title="Directory"
-        className="mb-0"
+        className="mb-0 p-[5px] md:p-3"
+        innerClassName="items-center"
+        mainClassName="justify-center"
+        contentClassName="items-center text-center"
+        titleClassName="text-center leading-none"
       />
 
       <section className="space-y-3 overflow-visible rounded-[24px] border border-slate-200 bg-white px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.04)] sm:px-5">

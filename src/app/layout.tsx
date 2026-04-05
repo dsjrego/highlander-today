@@ -41,8 +41,55 @@ export default async function RootLayout({
           {/* Masthead */}
           <header className="relative z-40 overflow-visible border-b border-white/10 bg-[linear-gradient(135deg,#091a28_0%,#0f2941_34%,#8f1d2c_100%)] text-white">
             <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_18%_12%,rgba(255,255,255,0.16),transparent_26%),radial-gradient(circle_at_86%_18%,rgba(70,168,204,0.35),transparent_25%),radial-gradient(circle_at_72%_90%,rgba(255,255,255,0.08),transparent_20%)]" />
-            <div className="relative w-full p-3">
-              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="relative w-full px-3 py-2 md:p-3">
+              <div className="flex items-center justify-between gap-3 md:hidden">
+                <div className="min-w-0 max-w-4xl">
+                  <div className="mb-0 flex items-center gap-1">
+                    <div className="relative h-10 w-[2.4rem] shrink-0">
+                      <svg
+                        viewBox="5 5 72 72"
+                        aria-hidden="true"
+                        className="h-full drop-shadow-[0_10px_24px_rgba(0,0,0,0.28)]"
+                      >
+                        <defs>
+                          <linearGradient id="htShield" x1="10%" y1="10%" x2="90%" y2="90%">
+                            <stop offset="0%" stopColor="#54c3e6" />
+                            <stop offset="100%" stopColor="#a51e30" />
+                          </linearGradient>
+                        </defs>
+                        <path
+                          d="M36 4 65 12v20c0 16.2-12 28.4-29 35.8C19 60.4 7 48.2 7 32V12L36 4Z"
+                          fill="url(#htShield)"
+                        />
+                        <path
+                          d="M36 8.5 61 15v17c0 13.6-10 24.2-25 30.8C21 56.2 11 45.6 11 32V15l25-6.5Z"
+                          fill="rgba(7,17,26,0.22)"
+                          stroke="rgba(255,255,255,0.22)"
+                          strokeWidth="1.5"
+                        />
+                        <path
+                          d="M17 23h5.2v8.8h7.6V23H35v24h-5.2V37h-7.6v10H17V23Z"
+                          fill="#f8fbff"
+                        />
+                        <path
+                          d="M36.8 23H54v5.2h-5V47h-6.2V28.2h-5V23Z"
+                          fill="#f8fbff"
+                        />
+                        <path
+                          d="M35.8 20.5H55v3.4H35.8Z"
+                          fill="#07111a"
+                          opacity="0.15"
+                        />
+                      </svg>
+                    </div>
+                    <h1 className="-ml-1 -translate-y-px truncate text-[1rem] font-black leading-none tracking-[-0.05em] text-white">
+                      Highlander Today
+                    </h1>
+                  </div>
+                </div>
+                <BannerActions />
+              </div>
+              <div className="hidden md:flex md:flex-row md:items-start md:justify-between md:gap-4">
                 <div className="max-w-4xl">
                   <div className="mb-3 flex items-start gap-0">
                     <div className="relative h-12 w-[4rem] shrink-0 sm:h-14 lg:h-[4.2rem]">
@@ -86,15 +133,12 @@ export default async function RootLayout({
                       Highlander Today
                     </h1>
                   </div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/80">
-                    Community platform
-                  </p>
                 </div>
                 <div className="md:pt-1">
                   <BannerActions />
                 </div>
               </div>
-              <div className="mt-1.5">
+              <div className="mt-0 md:mt-1.5">
                 <NavigationBar />
               </div>
             </div>

@@ -1,10 +1,14 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-04-05 (session 115)
+> **Last updated:** 2026-04-05 (session 116)
 > **Purpose:** Fast-start context for the next session. Read this file first, then open only the supporting docs relevant to the active slice.
 > **Detailed reference:** `PROJECT-STATUS-REFERENCE.md` preserves the fuller implementation ledger, rollout history, verification notes, deployment runbook, and infrastructure rationale that used to live here.
 
 > **Open polish note:** the live `/profile/[id]` header still needs one more pass on avatar click-target density. The clickable avatar boundary was tightened already, but the user still wants the avatar/content grouping to feel more compressed on that page specifically.
+>
+> **Open mobile masthead note:** the live phone masthead still needs a follow-up pass. Search/messages were reduced to icon-only actions and the top-level nav was moved into the hamburger menu, but the mobile `Highlander Today` title still does not visually align cleanly with the logo/action row and the masthead spacing needs a more deliberate small-screen layout pass.
+>
+> **Open mobile page-header note:** the live phone `InternalPageHeader` treatment still needs a follow-up pass. The `Directory` page-header title alignment and compact mobile spacing did not respond predictably to the current CSS/component overrides, and the relationship between title centering, action-slot allocation, and mobile padding needs a more deliberate component-level cleanup before additional polish.
 
 > **Session 91 note:** directory foundations are now live. `User` now supports opt-in directory inclusion, Prisma now includes `Organization` / `OrganizationMembership` plus structured organization child models, `/admin/organizations` now exists as a compact admin moderation/create surface, and `/directory` now reads real opted-in people plus approved organizations with unified results, yellow-pages-style type dropdown pills for businesses/organizations, sorting, and pagination.
 >
@@ -55,6 +59,8 @@
 > **Session 114 note:** blended funding sequencing is now documented in `CAPITAL-PLAN.md`, setting 12-month and 24-month floor/target/stretch capital ranges, recommended source mix across grants, sponsorships, donations, earned revenue, and founder bridge capital, plus operating rules for when to lean on each source.
 >
 > **Session 115 note:** `/directory` was visually tightened into a more compact search-first surface. The oversized standalone search button was removed in favor of an inline magnifying-glass submit inside the field, the nested search pill/card treatment was flattened, redundant empty-state helper copy was removed, `Businesses` / `Organizations` tabs were normalized to match the other filters visually, the old compressed sort menu was removed, and desktop sorting now happens through clickable `Name`, `Section`, and `Type` column headings only when results are present.
+>
+> **Session 116 note:** the follow-up `/directory` cleanup removed the remaining high-chrome helper copy and banner treatments. The page header now shows only `Directory` with no descriptive subcopy, viewer-state guidance now uses the same minimal plain-text pattern for every user state instead of tinted pills, the result-count line above search results was removed, and the page now keeps only the lean heading-based sort treatment plus the no-results message when needed.
 
 ## Product Snapshot
 
@@ -109,7 +115,7 @@ Current public/admin direction highlights:
 - The admin sidebar now uses shared nav-item classes/structure plus alternating row backgrounds to keep menu entries visually consistent, and `Events` is a top-level admin item alongside `Articles`, `Navigation`, and the other operational surfaces.
 - The shared public shell uses the active `Youth Local` direction and the shared `InternalPageHeader` pattern.
 - `/profile/[id]` now uses an owner-first account-settings flow: no separate edit page, owner-only `Account Settings` first, owner-hidden `About`, simplified `Articles` / `Events` tabs, privacy disclaimers on non-public fields, and `Last seen` header metadata sourced from latest `LoginEvent`.
-- `/directory` is now a real read surface rather than a placeholder shell: the default people view stays search-first, while top-level `Businesses`, `Government`, and `Organizations` category pills load current-tenant entity results alphabetically and subtypes remain available through dropdown chevrons. The current UI direction is flatter and more compact than the earlier pill-heavy/table-heavy pass, with inline search submission and clickable result headings handling sort on desktop.
+- `/directory` is now a real read surface rather than a placeholder shell: the default people view stays search-first, while top-level `Businesses`, `Government`, and `Organizations` category pills load current-tenant entity results alphabetically and subtypes remain available through dropdown chevrons. The current UI direction is flatter and more compact than the earlier pill-heavy/table-heavy pass, with inline search submission, minimal plain-text viewer guidance, no extra result-count copy, and clickable result headings handling sort on desktop.
 - Directory people rows now support direct messaging from the listing itself only for trusted-capable viewers; anonymous or merely registered viewers now get trust/account guidance instead of a compose box, and a persistent banner above the directory search filter explains the current viewer’s account/trust/listing state.
 - Trusted/staff-only trust-bootstrap is now live through `/help-us-grow`: same-community `REGISTERED` members are listed alphabetically with join dates and row-level messaging so existing trusted members can recognize people they know and start verification conversations inside the product.
 - Message threads now expose a direct `Vouch` entry point in the header when the other participant is still `REGISTERED`, reducing the need to leave the conversation to complete trust escalation.

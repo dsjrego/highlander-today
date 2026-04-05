@@ -192,7 +192,7 @@ export default function NavigationBar() {
   }, [categories, session?.user?.role, session?.user?.trust_level]);
 
   return (
-    <nav>
+    <nav className="hidden md:block">
       <div className="overflow-visible">
         <div className="flex flex-wrap items-center gap-2">
           <Link
