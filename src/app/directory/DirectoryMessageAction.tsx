@@ -203,7 +203,7 @@ export default function DirectoryMessageAction({
       <button
         type="button"
         onClick={handleOpenMessageDialog}
-        className="inline-flex items-center rounded-full border border-[#46A8CC]/30 bg-[#46A8CC]/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-[#1f6f8f] transition hover:border-[#46A8CC]/50 hover:bg-[#46A8CC]/15"
+        className="inline-flex items-center text-[13px] font-medium text-[#0f5771] transition hover:text-[#0a4156] hover:underline"
       >
         Message
       </button>

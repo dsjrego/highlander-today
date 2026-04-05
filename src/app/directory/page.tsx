@@ -292,15 +292,18 @@ export default async function DirectoryPage({
   const pagedRows = rows.slice(pageStart, pageStart + DIRECTORY_PAGE_SIZE);
 
   return (
-    <div className="space-y-6">
-      <InternalPageHeader title="Directory" />
+    <div className="space-y-4">
+      <InternalPageHeader
+        title="Directory"
+        description="Search people, businesses, government, and organizations across the community."
+        className="mb-0"
+      />
 
-      <section className="admin-card overflow-visible rounded-[28px]">
-        <div className="admin-card-body space-y-5 overflow-visible">
+      <section className="space-y-3 overflow-visible rounded-[24px] border border-slate-200 bg-white px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.04)] sm:px-5">
           {!sessionUser ? (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+            <div className="rounded-xl border-l-2 border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-700">
               <p>Create an account to message people or organizations through Highlander Today.</p>
-              <div className="mt-2 flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-[0.16em]">
+              <div className="mt-1.5 flex flex-wrap gap-3 text-[11px] font-semibold uppercase tracking-[0.16em]">
                 <Link href="/login" className="text-[#0f5771] hover:underline">
                   Sign In
                 </Link>
@@ -310,16 +313,16 @@ export default async function DirectoryPage({
               </div>
             </div>
           ) : !canUseDirectoryMessaging ? (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <div className="rounded-xl border-l-2 border-amber-400 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
               <p>Trusted users can appear in the directory and use directory messaging.</p>
-              <div className="mt-2 flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-[0.16em]">
+              <div className="mt-1.5 flex flex-wrap gap-3 text-[11px] font-semibold uppercase tracking-[0.16em]">
                 <Link href={profileHref} className="text-amber-900 hover:underline">
                   Go to Profile
                 </Link>
               </div>
             </div>
           ) : currentUserProfile && !currentUserProfile.isDirectoryListed ? (
-            <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+            <div className="rounded-xl border-l-2 border-sky-400 bg-sky-50 px-3 py-2.5 text-sm text-sky-900">
               <p>
                 You&apos;re eligible to appear in the people directory. Enable directory listing from your{' '}
                 <Link href={profileHref} className="font-semibold text-sky-900 underline-offset-2 hover:underline">
@@ -329,24 +332,48 @@ export default async function DirectoryPage({
             </div>
           ) : null}
 
-          <form action="/directory" method="get" className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+          <form action="/directory" method="get">
             {activeCategorySlug ? <input type="hidden" name="category" value={activeCategorySlug} /> : null}
             {selectedType ? <input type="hidden" name="type" value={selectedType} /> : null}
             <input type="hidden" name="sort" value={sort} />
             <input type="hidden" name="dir" value={dir} />
-            <input
-              type="text"
-              name="q"
-              defaultValue={query}
-              placeholder="Search people, businesses, departments, offices..."
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#46A8CC]"
-            />
-            <button
-              type="submit"
-              className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-            >
-              Search
-            </button>
+            <div className="flex items-center gap-3 border-b border-slate-200 pb-2 transition focus-within:border-[#46A8CC]">
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                className="h-4 w-4 text-slate-400"
+              >
+                <path d="m14.5 14.5 4 4" strokeLinecap="round" />
+                <circle cx="8.5" cy="8.5" r="5.5" />
+              </svg>
+              <input
+                type="text"
+                name="q"
+                defaultValue={query}
+                placeholder="Search people, businesses, departments, offices..."
+                className="w-full bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+              />
+              <button
+                type="submit"
+                aria-label="Search directory"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-[#0f5771]"
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  className="h-4 w-4"
+                >
+                  <path d="m14.5 14.5 4 4" strokeLinecap="round" />
+                  <circle cx="8.5" cy="8.5" r="5.5" />
+                </svg>
+              </button>
+            </div>
           </form>
 
           <DirectoryCategoryPills
@@ -358,104 +385,128 @@ export default async function DirectoryPage({
             organizationOptions={ORGANIZATION_TYPE_OPTIONS.ORGANIZATION}
           />
 
+          <div className="border-b border-slate-200 pb-2 text-sm text-slate-600">
+            <div>
+              {totalRows > 0 ? (
+                <>
+                  About <span className="font-medium text-slate-900">{totalRows}</span> result{totalRows === 1 ? '' : 's'}
+                  {hasSearchQuery ? (
+                    <>
+                      {' '}
+                      for <span className="font-medium text-slate-900">&quot;{query}&quot;</span>
+                    </>
+                  ) : null}
+                </>
+              ) : hasSearchQuery ? (
+                <>
+                  No results for <span className="font-medium text-slate-900">&quot;{query}&quot;</span>
+                </>
+              ) : (
+                null
+              )}
+            </div>
+          </div>
+
           {pagedRows.length > 0 ? (
-            <div className="admin-list-table-wrap">
-              <table className="admin-list-table">
-                <thead className="admin-list-head">
-                    <tr>
-                      <th className="admin-list-header-cell">
-                        <Link
-                          href={buildDirectoryHref({
-                            category: activeCategorySlug,
-                            query: query || null,
-                            type: selectedType || null,
-                            page: 1,
-                            sort: 'name',
-                            dir: getNextSortDirection(sort, dir, 'name'),
-                          })}
-                          className="inline-flex items-center gap-1 hover:text-slate-900"
-                        >
-                          <span>Name</span>
-                          {sort === 'name' ? <span>{dir === 'asc' ? '↑' : '↓'}</span> : null}
-                        </Link>
-                      </th>
-                      <th className="admin-list-header-cell">
-                        <Link
-                          href={buildDirectoryHref({
-                            category: activeCategorySlug,
-                            query: query || null,
-                            type: selectedType || null,
-                            page: 1,
-                            sort: 'section',
-                            dir: getNextSortDirection(sort, dir, 'section'),
-                          })}
-                          className="inline-flex items-center gap-1 hover:text-slate-900"
-                        >
-                          <span>Section</span>
-                          {sort === 'section' ? <span>{dir === 'asc' ? '↑' : '↓'}</span> : null}
-                        </Link>
-                      </th>
-                      <th className="admin-list-header-cell">
-                        <Link
-                          href={buildDirectoryHref({
-                            category: activeCategorySlug,
-                            query: query || null,
-                            type: selectedType || null,
-                            page: 1,
-                            sort: 'type',
-                            dir: getNextSortDirection(sort, dir, 'type'),
-                          })}
-                          className="inline-flex items-center gap-1 hover:text-slate-900"
-                        >
-                          <span>Type</span>
-                          {sort === 'type' ? <span>{dir === 'asc' ? '↑' : '↓'}</span> : null}
-                        </Link>
-                      </th>
-                      <th className="admin-list-header-cell">Phone</th>
-                    </tr>
-                </thead>
-                <tbody>
-                  {pagedRows.map((row) => (
-                    <tr key={`${row.section}-${row.id}`} className="admin-list-row">
-                      <td className="admin-list-cell">
+            <div>
+              <div className="hidden border-b border-slate-200 pb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 sm:grid sm:grid-cols-[minmax(0,1fr)_140px_140px_220px] sm:gap-4">
+                <Link
+                  href={buildDirectoryHref({
+                    category: activeCategorySlug,
+                    query: query || null,
+                    type: selectedType || null,
+                    page: 1,
+                    sort: 'name',
+                    dir: getNextSortDirection(sort, dir, 'name'),
+                  })}
+                  className={sort === 'name' ? 'text-slate-900' : 'hover:text-slate-900'}
+                >
+                  Name{sort === 'name' ? ` ${dir === 'asc' ? '↑' : '↓'}` : ''}
+                </Link>
+                <Link
+                  href={buildDirectoryHref({
+                    category: activeCategorySlug,
+                    query: query || null,
+                    type: selectedType || null,
+                    page: 1,
+                    sort: 'section',
+                    dir: getNextSortDirection(sort, dir, 'section'),
+                  })}
+                  className={sort === 'section' ? 'text-slate-900' : 'hover:text-slate-900'}
+                >
+                  Section{sort === 'section' ? ` ${dir === 'asc' ? '↑' : '↓'}` : ''}
+                </Link>
+                <Link
+                  href={buildDirectoryHref({
+                    category: activeCategorySlug,
+                    query: query || null,
+                    type: selectedType || null,
+                    page: 1,
+                    sort: 'type',
+                    dir: getNextSortDirection(sort, dir, 'type'),
+                  })}
+                  className={sort === 'type' ? 'text-slate-900' : 'hover:text-slate-900'}
+                >
+                  Type{sort === 'type' ? ` ${dir === 'asc' ? '↑' : '↓'}` : ''}
+                </Link>
+                <div className="text-right">Contact</div>
+              </div>
+              <div className="divide-y divide-slate-200">
+              {pagedRows.map((row) => (
+                <article
+                  key={`${row.section}-${row.id}`}
+                  className="grid gap-1 py-3 sm:grid-cols-[minmax(0,1fr)_140px_140px_220px] sm:items-start sm:gap-4"
+                >
+                  <div className="min-w-0">
+                    <div className="min-w-0">
                         {row.href ? (
-                          <Link href={row.href} className="admin-list-link">
+                          <Link
+                            href={row.href}
+                            className="inline-block max-w-full truncate text-[17px] font-medium leading-6 text-[#0f5771] hover:underline"
+                          >
                             {row.name}
                           </Link>
                         ) : (
-                          <span className="font-semibold text-slate-900">{row.name}</span>
+                          <span className="inline-block max-w-full truncate text-[17px] font-medium leading-6 text-slate-900">
+                            {row.name}
+                          </span>
                         )}
-                      </td>
-                      <td className="admin-list-cell">{row.section}</td>
-                      <td className="admin-list-cell">{row.type}</td>
-                      <td className="admin-list-cell">
-                        {row.messageUserId ? (
-                          <DirectoryMessageAction userId={row.messageUserId} userName={row.name} />
-                        ) : (
-                          row.contact
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                    </div>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-slate-500 sm:hidden">
+                      <span>{row.section}</span>
+                      <span className="text-slate-300">•</span>
+                      <span>{row.type}</span>
+                    </div>
+                  </div>
+                  <div className="hidden text-[13px] text-slate-600 sm:block">{row.section}</div>
+                  <div className="hidden text-[13px] text-slate-600 sm:block">{row.type}</div>
+                  <div className="min-w-0 text-[13px] text-slate-600 sm:text-right">
+                    {row.messageUserId ? (
+                      <DirectoryMessageAction userId={row.messageUserId} userName={row.name} />
+                    ) : (
+                      <span className="break-words">{row.contact}</span>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
             </div>
           ) : (
-            <p className="text-sm text-slate-600">
-              {hasSearchQuery
-                ? `No directory results matched "${query}".`
-                : isOrganizationBrowseCategory
-                  ? 'No directory listings are available in this category.'
-                  : 'Use the search filter, or select Businesses, Government, or Organizations to find the people and groups you need.'}
-            </p>
+            hasSearchQuery || isOrganizationBrowseCategory ? (
+              <p className="py-2 text-sm text-slate-600">
+                {hasSearchQuery
+                  ? `No directory results matched "${query}".`
+                  : 'No directory listings are available in this category.'}
+              </p>
+            ) : null
           )}
 
           {totalRows > 0 ? (
-            <div className="admin-list-pagination">
-              <div className="admin-list-pagination-label">
+            <div className="flex flex-col gap-2 border-t border-slate-200 pt-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+              <div>
                 Showing {pageStart + 1}-{Math.min(pageStart + DIRECTORY_PAGE_SIZE, totalRows)} of {totalRows}
               </div>
-              <div className="admin-list-pagination-actions">
+              <div className="flex items-center gap-3">
                 <Link
                   href={buildDirectoryHref({
                     category: activeCategorySlug,
@@ -466,11 +517,13 @@ export default async function DirectoryPage({
                     dir,
                   })}
                   aria-disabled={safePage === 1}
-                  className={`admin-list-pagination-button ${safePage === 1 ? 'pointer-events-none opacity-50' : ''}`}
+                  className={`rounded-full border border-slate-300 px-3 py-1.5 text-[13px] font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-900 ${
+                    safePage === 1 ? 'pointer-events-none opacity-50' : ''
+                  }`}
                 >
                   Previous
                 </Link>
-                <span className="admin-list-pagination-page">
+                <span className="text-[13px] text-slate-500">
                   Page {safePage} of {totalPages}
                 </span>
                 <Link
@@ -483,14 +536,15 @@ export default async function DirectoryPage({
                     dir,
                   })}
                   aria-disabled={safePage === totalPages}
-                  className={`admin-list-pagination-button ${safePage === totalPages ? 'pointer-events-none opacity-50' : ''}`}
+                  className={`rounded-full border border-slate-300 px-3 py-1.5 text-[13px] font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-900 ${
+                    safePage === totalPages ? 'pointer-events-none opacity-50' : ''
+                  }`}
                 >
                   Next
                 </Link>
               </div>
             </div>
           ) : null}
-        </div>
       </section>
     </div>
   );

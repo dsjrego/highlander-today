@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-04-05 (session 114)
+> **Last updated:** 2026-04-05 (session 115)
 > **Purpose:** Fast-start context for the next session. Read this file first, then open only the supporting docs relevant to the active slice.
 > **Detailed reference:** `PROJECT-STATUS-REFERENCE.md` preserves the fuller implementation ledger, rollout history, verification notes, deployment runbook, and infrastructure rationale that used to live here.
 
@@ -53,6 +53,8 @@
 > **Session 113 note:** grant positioning is now documented in `GRANT-STRATEGY.md`, framing Highlander Today as local community information infrastructure rather than a generic startup and prioritizing nonprofit/fiscal-sponsor readiness before outreach to funders like Press Forward, the Community Foundation for the Alleghenies, Lenfest, ARC, and PA Humanities.
 >
 > **Session 114 note:** blended funding sequencing is now documented in `CAPITAL-PLAN.md`, setting 12-month and 24-month floor/target/stretch capital ranges, recommended source mix across grants, sponsorships, donations, earned revenue, and founder bridge capital, plus operating rules for when to lean on each source.
+>
+> **Session 115 note:** `/directory` was visually tightened into a more compact search-first surface. The oversized standalone search button was removed in favor of an inline magnifying-glass submit inside the field, the nested search pill/card treatment was flattened, redundant empty-state helper copy was removed, `Businesses` / `Organizations` tabs were normalized to match the other filters visually, the old compressed sort menu was removed, and desktop sorting now happens through clickable `Name`, `Section`, and `Type` column headings only when results are present.
 
 ## Product Snapshot
 
@@ -107,7 +109,7 @@ Current public/admin direction highlights:
 - The admin sidebar now uses shared nav-item classes/structure plus alternating row backgrounds to keep menu entries visually consistent, and `Events` is a top-level admin item alongside `Articles`, `Navigation`, and the other operational surfaces.
 - The shared public shell uses the active `Youth Local` direction and the shared `InternalPageHeader` pattern.
 - `/profile/[id]` now uses an owner-first account-settings flow: no separate edit page, owner-only `Account Settings` first, owner-hidden `About`, simplified `Articles` / `Events` tabs, privacy disclaimers on non-public fields, and `Last seen` header metadata sourced from latest `LoginEvent`.
-- `/directory` is now a real read surface rather than a placeholder shell: the default people view stays search-first, while top-level `Businesses`, `Government`, and `Organizations` category pills load current-tenant entity results alphabetically and subtypes remain available through dropdown chevrons.
+- `/directory` is now a real read surface rather than a placeholder shell: the default people view stays search-first, while top-level `Businesses`, `Government`, and `Organizations` category pills load current-tenant entity results alphabetically and subtypes remain available through dropdown chevrons. The current UI direction is flatter and more compact than the earlier pill-heavy/table-heavy pass, with inline search submission and clickable result headings handling sort on desktop.
 - Directory people rows now support direct messaging from the listing itself only for trusted-capable viewers; anonymous or merely registered viewers now get trust/account guidance instead of a compose box, and a persistent banner above the directory search filter explains the current viewer’s account/trust/listing state.
 - Trusted/staff-only trust-bootstrap is now live through `/help-us-grow`: same-community `REGISTERED` members are listed alphabetically with join dates and row-level messaging so existing trusted members can recognize people they know and start verification conversations inside the product.
 - Message threads now expose a direct `Vouch` entry point in the header when the other participant is still `REGISTERED`, reducing the need to leave the conversation to complete trust escalation.
