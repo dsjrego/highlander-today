@@ -301,9 +301,9 @@ export default async function DirectoryPage({
 
       <section className="space-y-3 overflow-visible rounded-[24px] border border-slate-200 bg-white px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.04)] sm:px-5">
           {!sessionUser ? (
-            <div className="rounded-xl border-l-2 border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-700">
+            <div className="text-sm text-slate-700">
               <p>Create an account to message people or organizations through Highlander Today.</p>
-              <div className="mt-1.5 flex flex-wrap gap-3 text-[11px] font-semibold uppercase tracking-[0.16em]">
+              <div className="mt-1 flex flex-wrap gap-3 text-[11px] font-semibold uppercase tracking-[0.16em]">
                 <Link href="/login" className="text-[#0f5771] hover:underline">
                   Sign In
                 </Link>
@@ -313,19 +313,19 @@ export default async function DirectoryPage({
               </div>
             </div>
           ) : !canUseDirectoryMessaging ? (
-            <div className="rounded-xl border-l-2 border-amber-400 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
+            <div className="text-sm text-slate-700">
               <p>Trusted users can appear in the directory and use directory messaging.</p>
-              <div className="mt-1.5 flex flex-wrap gap-3 text-[11px] font-semibold uppercase tracking-[0.16em]">
-                <Link href={profileHref} className="text-amber-900 hover:underline">
+              <div className="mt-1 flex flex-wrap gap-3 text-[11px] font-semibold uppercase tracking-[0.16em]">
+                <Link href={profileHref} className="text-[#0f5771] hover:underline">
                   Go to Profile
                 </Link>
               </div>
             </div>
           ) : currentUserProfile && !currentUserProfile.isDirectoryListed ? (
-            <div className="rounded-xl border-l-2 border-sky-400 bg-sky-50 px-3 py-2.5 text-sm text-sky-900">
+            <div className="text-sm text-slate-700">
               <p>
                 You&apos;re eligible to appear in the people directory. Enable directory listing from your{' '}
-                <Link href={profileHref} className="font-semibold text-sky-900 underline-offset-2 hover:underline">
+                <Link href={profileHref} className="font-semibold text-[#0f5771] underline-offset-2 hover:underline">
                   profile settings.
                 </Link>
               </p>
