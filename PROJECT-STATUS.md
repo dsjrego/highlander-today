@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-04-04 (session 111)
+> **Last updated:** 2026-04-05 (session 114)
 > **Purpose:** Fast-start context for the next session. Read this file first, then open only the supporting docs relevant to the active slice.
 > **Detailed reference:** `PROJECT-STATUS-REFERENCE.md` preserves the fuller implementation ledger, rollout history, verification notes, deployment runbook, and infrastructure rationale that used to live here.
 
@@ -47,6 +47,12 @@
 > **Session 110 note:** organization inbox / CRM planning is now documented in `ORGANIZATION-INBOX-CRM-PLAN.md`. Current recommendation is to treat organization communication as a separate message domain rather than extending the existing user-to-user DM system, centered on durable role-based mailboxes, organization-scoped contact history, inbox threads/messages/internal notes, assignment, and future compatibility with later billing/payment records linked to the same organization contact profile.
 >
 > **Session 111 note:** `/directory` interaction rules were tightened again. The default people view now stays empty until search, while the top-level `Businesses`, `Government`, and `Organizations` category pills load full current-tenant results alphabetically and their hover/click behavior was split so the top-level pill navigates and the chevron opens subtypes. The old detail column was removed, the contact header now reads `Phone`, person-row messaging is now trust-gated (`TRUSTED` or trust-capable roles can compose; anonymous/registered users get an explanatory dialog), and the page now shows a persistent state banner that points anonymous viewers toward auth, registered viewers toward trust/profile completion, and trusted-but-not-listed viewers toward enabling directory inclusion. Self-serve organization listing/help copy is still intentionally deferred until a real submit/claim flow exists.
+>
+> **Session 112 note:** the directory viewer-state guidance banner was repositioned above the search filter so the auth/trust/listing requirements are visible before users interact with search. The trusted-user copy was also tightened so only the inline `profile settings.` text is linked instead of rendering a second-line CTA button.
+>
+> **Session 113 note:** grant positioning is now documented in `GRANT-STRATEGY.md`, framing Highlander Today as local community information infrastructure rather than a generic startup and prioritizing nonprofit/fiscal-sponsor readiness before outreach to funders like Press Forward, the Community Foundation for the Alleghenies, Lenfest, ARC, and PA Humanities.
+>
+> **Session 114 note:** blended funding sequencing is now documented in `CAPITAL-PLAN.md`, setting 12-month and 24-month floor/target/stretch capital ranges, recommended source mix across grants, sponsorships, donations, earned revenue, and founder bridge capital, plus operating rules for when to lean on each source.
 
 ## Product Snapshot
 
@@ -102,7 +108,7 @@ Current public/admin direction highlights:
 - The shared public shell uses the active `Youth Local` direction and the shared `InternalPageHeader` pattern.
 - `/profile/[id]` now uses an owner-first account-settings flow: no separate edit page, owner-only `Account Settings` first, owner-hidden `About`, simplified `Articles` / `Events` tabs, privacy disclaimers on non-public fields, and `Last seen` header metadata sourced from latest `LoginEvent`.
 - `/directory` is now a real read surface rather than a placeholder shell: the default people view stays search-first, while top-level `Businesses`, `Government`, and `Organizations` category pills load current-tenant entity results alphabetically and subtypes remain available through dropdown chevrons.
-- Directory people rows now support direct messaging from the listing itself only for trusted-capable viewers; anonymous or merely registered viewers now get trust/account guidance instead of a compose box, and a persistent banner under the directory filters explains the current viewer’s account/trust/listing state.
+- Directory people rows now support direct messaging from the listing itself only for trusted-capable viewers; anonymous or merely registered viewers now get trust/account guidance instead of a compose box, and a persistent banner above the directory search filter explains the current viewer’s account/trust/listing state.
 - Trusted/staff-only trust-bootstrap is now live through `/help-us-grow`: same-community `REGISTERED` members are listed alphabetically with join dates and row-level messaging so existing trusted members can recognize people they know and start verification conversations inside the product.
 - Message threads now expose a direct `Vouch` entry point in the header when the other participant is still `REGISTERED`, reducing the need to leave the conversation to complete trust escalation.
 - The repo is back to a clean verification baseline: `npm run lint` and `npm run typecheck` now pass again after removing the dead `/admin/users` state and cleaning the current warning set.
@@ -126,6 +132,7 @@ Current public/admin direction highlights:
 - Multi-tenant provisioning is only phase 1; there is no full Super Admin create/edit site/domain workflow yet.
 - Cross-site sister-site pull-through is not implemented.
 - Donations/transparency, sourcing/citations, creator network, and delivery/jobs remain planned follow-on work.
+- Food / recipe / grocery is planning-only; use `FOOD-RECIPE-GROCERY-PLAN.md` as the canonical direction for future recipe editorial, structured ingredient utility, and store-linked grocery reservation work rather than extending marketplace models.
 - Directory exists as an early live foundation now, with canonical public organization detail pages at `/organizations/[slug]` and richer admin organization editing at `/admin/organizations/[id]`, but self-claim/self-management flows are still pending.
 - Organization messaging to businesses / government / organizations is still planning-only; use `ORGANIZATION-INBOX-CRM-PLAN.md` as the canonical direction before implementation.
 - Organization self-listing/help CTA on `/directory` is still intentionally deferred; do not imply a self-serve org creation/claim path until submit-or-claim workflows actually exist.
@@ -253,6 +260,9 @@ Use these instead of growing this file again:
 - `ORGANIZATION-PROFILE-PHASE-1-PLAN.md` — first implementation slice for the public organization profile page
 - `INVITATION-EMAIL-PLAN.md` — invitation system and outbound transactional email direction
 - `LOCAL-CREATOR-NETWORK-PLAN.md` — creator/show/episode direction
+- `FOOD-RECIPE-GROCERY-PLAN.md` — food editorial, structured recipe utility, and grocery reservation direction
+- `CAPITAL-PLAN.md` — 12-month and 24-month blended funding targets, source mix, sequencing, and operating rules
+- `GRANT-STRATEGY.md` — grant positioning, target funders, structural prerequisites, and recommended outreach sequence
 - `OBITUARIES-PLAN.md` — obituary/memorial system direction
 - `MONETIZATION-PLAN.md` — funding/revenue sequencing
 - `DONATIONS-TRANSPARENCY-PLAN.md` — donations/transparency direction

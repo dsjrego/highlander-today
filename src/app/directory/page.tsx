@@ -297,35 +297,6 @@ export default async function DirectoryPage({
 
       <section className="admin-card overflow-visible rounded-[28px]">
         <div className="admin-card-body space-y-5 overflow-visible">
-          <form action="/directory" method="get" className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
-            {activeCategorySlug ? <input type="hidden" name="category" value={activeCategorySlug} /> : null}
-            {selectedType ? <input type="hidden" name="type" value={selectedType} /> : null}
-            <input type="hidden" name="sort" value={sort} />
-            <input type="hidden" name="dir" value={dir} />
-            <input
-              type="text"
-              name="q"
-              defaultValue={query}
-              placeholder="Search people, businesses, departments, offices..."
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#46A8CC]"
-            />
-            <button
-              type="submit"
-              className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-            >
-              Search
-            </button>
-          </form>
-
-          <DirectoryCategoryPills
-            query={query}
-            activeCategorySlug={activeCategorySlug}
-            selectedBusinessType={selectedBusinessType}
-            selectedOrganizationType={selectedOrganizationType}
-            businessOptions={ORGANIZATION_TYPE_OPTIONS.BUSINESS}
-            organizationOptions={ORGANIZATION_TYPE_OPTIONS.ORGANIZATION}
-          />
-
           {!sessionUser ? (
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
               <p>Create an account to message people or organizations through Highlander Today.</p>
@@ -357,6 +328,35 @@ export default async function DirectoryPage({
               </p>
             </div>
           ) : null}
+
+          <form action="/directory" method="get" className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+            {activeCategorySlug ? <input type="hidden" name="category" value={activeCategorySlug} /> : null}
+            {selectedType ? <input type="hidden" name="type" value={selectedType} /> : null}
+            <input type="hidden" name="sort" value={sort} />
+            <input type="hidden" name="dir" value={dir} />
+            <input
+              type="text"
+              name="q"
+              defaultValue={query}
+              placeholder="Search people, businesses, departments, offices..."
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#46A8CC]"
+            />
+            <button
+              type="submit"
+              className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              Search
+            </button>
+          </form>
+
+          <DirectoryCategoryPills
+            query={query}
+            activeCategorySlug={activeCategorySlug}
+            selectedBusinessType={selectedBusinessType}
+            selectedOrganizationType={selectedOrganizationType}
+            businessOptions={ORGANIZATION_TYPE_OPTIONS.BUSINESS}
+            organizationOptions={ORGANIZATION_TYPE_OPTIONS.ORGANIZATION}
+          />
 
           {pagedRows.length > 0 ? (
             <div className="admin-list-table-wrap">
