@@ -10,9 +10,12 @@ function formatCount(value: number) {
 export default async function AdminDashboard() {
   const currentCommunity = await getCurrentCommunity({ headers: headers() });
   const articleWhere = currentCommunity?.id ? { communityId: currentCommunity.id } : {};
+  const organizationWhere = currentCommunity?.id ? { communityId: currentCommunity.id } : {};
 
-  const [totalUsers, pendingArticles, publishedArticles, unpublishedArticles] = await Promise.all([
+  const [totalUsers, totalOrganizations, pendingOrganizations, pendingArticles, publishedArticles, unpublishedArticles] = await Promise.all([
     db.user.count(),
+    db.organization.count({ where: organizationWhere }),
+    db.organization.count({ where: { ...organizationWhere, status: 'PENDING_APPROVAL' } }),
     db.article.count({ where: { ...articleWhere, status: 'PENDING_REVIEW' } }),
     db.article.count({ where: { ...articleWhere, status: 'PUBLISHED' } }),
     db.article.count({ where: { ...articleWhere, status: 'UNPUBLISHED' } }),
@@ -56,6 +59,23 @@ export default async function AdminDashboard() {
             </div>
           )
         ))}
+        <Link
+          href="/admin/organizations"
+          className="bg-white p-6 rounded-lg border border-[#46A8CC] hover:bg-sky-50 transition"
+        >
+          <p className="text-gray-600 text-sm mb-4">Organizations</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">Total</p>
+              <p className="text-2xl font-bold text-[#46A8CC]">{formatCount(totalOrganizations)}</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-700">Pending</p>
+              <p className="text-2xl font-bold text-[#46A8CC]">{formatCount(pendingOrganizations)}</p>
+            </div>
+          </div>
+          <p className="mt-3 text-sm font-semibold text-[#2c7f9e]">Open organization management</p>
+        </Link>
         <Link
           href="/admin/articles"
           className="bg-white p-6 rounded-lg border border-[#46A8CC] hover:bg-sky-50 transition"

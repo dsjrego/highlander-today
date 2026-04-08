@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-04-08 (session 121)
+> **Last updated:** 2026-04-08 (session 122)
 > **Purpose:** Fast-start context for the next session. Read this file first, then open only the supporting docs relevant to the active slice.
 > **Detailed reference:** `PROJECT-STATUS-REFERENCE.md` preserves the fuller implementation ledger, rollout history, verification notes, deployment runbook, and infrastructure rationale that used to live here.
 
@@ -77,6 +77,10 @@
 > **Session 121 admin-list note:** the compact `admin-list` table treatment used by `/admin/articles` draft/pending/approved/archive tabs is now the canonical list style for admin operational surfaces. As admin screens are touched, prefer that shared dense table/list vocabulary over stacked card-per-record layouts unless the data is genuinely non-tabular. `DESIGN-SYSTEM-ARCHITECTURE.md` now records this as the reference rule.
 >
 > **Session 121 subscriptions note:** future paid memberships/subscriptions are now documented in `USER-SUBSCRIPTIONS-PLAN.md`. The current structural rule is to keep billing/subscription lifecycle separate from `UserCommunityMembership` and `OrganizationMembership`; existing membership tables continue to represent identity/role/relationship only, while any future paid access should land as a dedicated plans/subscriptions/entitlements subsystem.
+>
+> **Session 122 note:** trusted-user directory defaults and profile/admin controls were tightened without any schema changes. Users promoted or reinstated to `TRUSTED` are now automatically marked `isDirectoryListed = true`; `/admin/users` now includes a `Directory` filter with a `No directory` option for unlisted people; and `SUPER_ADMIN` can now open the `Account Settings` tab on any `/profile/[id]` page and edit that user through `/api/profile?userId=...`, including identity-locked fields. The lower account-action controls (`Change Password`, `Email Preferences`, `Deactivate Account`) remain visible only to the profile owner or a `SUPER_ADMIN`.
+>
+> **Session 122 organization-page note:** the public `/organizations/[slug]` page header was simplified so it now shows only the organization icon and name with no label/description line, while organization descriptions continue to render as sanitized TipTap HTML in the hero/about body sections with preserved safe text-alignment styling.
 
 ## Product Snapshot
 
@@ -134,10 +138,13 @@ Current public/admin direction highlights:
 - `InternalPageHeader` mobile rule: public mobile page-header actions should be icon-only by default. Keep text hidden unless multiple neighboring actions of the same CRUD type need explicit disambiguation; otherwise rely on the page title plus accessible labels/tooltips for context.
 - Public mobile shell spacing rule: `main` should use `2px` padding on the left/right/top, and `InternalPageHeader` should carry zero external margin so the header uses the available screen width.
 - `/profile/[id]` now uses an owner-first account-settings flow: no separate edit page, owner-only `Account Settings` first, owner-hidden `About`, simplified `Articles` / `Events` tabs, privacy disclaimers on non-public fields, and `Last seen` header metadata sourced from latest `LoginEvent`.
+- `SUPER_ADMIN` can now open `Account Settings` on any user profile and edit that user through the shared profile API; the lower account-action buttons in that panel stay hidden from non-owners unless the viewer is `SUPER_ADMIN`.
 - `/directory` is now a real read surface rather than a placeholder shell: the default people view stays search-first, while top-level `Businesses`, `Government`, and `Organizations` category pills load current-tenant entity results alphabetically and subtypes remain available through dropdown chevrons. The current UI direction is flatter and more compact than the earlier pill-heavy/table-heavy pass, with inline search submission, minimal plain-text viewer guidance, no extra result-count copy, and clickable result headings handling sort on desktop.
 - Directory people rows now support direct messaging from the listing itself only for trusted-capable viewers; anonymous or merely registered viewers now get trust/account guidance instead of a compose box, and a persistent banner above the directory search filter explains the current viewer’s account/trust/listing state.
+- Users promoted or reinstated to `TRUSTED` are now automatically directory-listed by default, and `/admin/users` includes a `Directory` filter with a `No directory` option for finding opted-out users.
 - Trusted/staff-only trust-bootstrap is now live through `/help-us-grow`: same-community `REGISTERED` members are listed alphabetically with join dates and row-level messaging so existing trusted members can recognize people they know and start verification conversations inside the product.
 - Message threads now expose a direct `Vouch` entry point in the header when the other participant is still `REGISTERED`, reducing the need to leave the conversation to complete trust escalation.
+- The public organization detail header is now reduced to icon + organization name only; the richer organization description remains in the hero/about body and renders TipTap HTML through the shared sanitizer/render path.
 - The repo is back to a clean verification baseline: `npm run lint` and `npm run typecheck` now pass again after removing the dead `/admin/users` state and cleaning the current warning set.
 - Dark-shell `not found` / missing-resource states should render white text by default; avoid low-contrast gray/red fallback text on the live dark public shell.
 
