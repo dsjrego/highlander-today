@@ -28,7 +28,21 @@ export function sanitizeArticleHtml(dirty: string): string {
       ol: ['start', 'type'],
       td: ['colspan', 'rowspan'],
       th: ['colspan', 'rowspan'],
+      p: ['style'],
+      h2: ['style'],
+      h3: ['style'],
       '*': ['class', 'id'],
+    },
+    allowedStyles: {
+      p: {
+        'text-align': [/^left$/, /^center$/, /^right$/, /^justify$/],
+      },
+      h2: {
+        'text-align': [/^left$/, /^center$/, /^right$/, /^justify$/],
+      },
+      h3: {
+        'text-align': [/^left$/, /^center$/, /^right$/, /^justify$/],
+      },
     },
     allowedSchemes: ['http', 'https', 'mailto'],
     // Don't allow data: URIs (prevents base64 payloads)

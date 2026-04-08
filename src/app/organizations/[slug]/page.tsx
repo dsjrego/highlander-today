@@ -156,7 +156,6 @@ export default async function OrganizationProfilePage({ params }: PageProps) {
     <div className="space-y-6">
       <InternalPageHeader
         icon={<Building2 className="h-5 w-5" />}
-        label={groupLabel}
         title={organization.name}
       />
 
@@ -191,7 +190,7 @@ export default async function OrganizationProfilePage({ params }: PageProps) {
               <h1 className="text-3xl font-black tracking-[-0.03em] text-white">{organization.name}</h1>
               {descriptionHtml ? (
                 <div
-                  className="prose prose-sm max-w-3xl text-white prose-headings:text-white prose-p:text-white/74 prose-strong:text-white prose-li:text-white/74 prose-a:text-cyan-200"
+                  className="prose prose-sm max-w-3xl text-white prose-headings:text-white prose-p:text-white/74 prose-strong:text-white prose-li:text-white/74 prose-a:text-cyan-200 prose-blockquote:text-white/78 prose-blockquote:border-white/30 prose-code:text-cyan-100 prose-pre:bg-slate-950/60 prose-hr:border-white/20 prose-img:rounded-xl prose-img:border prose-img:border-white/10"
                   dangerouslySetInnerHTML={{ __html: descriptionHtml }}
                 />
               ) : (
@@ -241,7 +240,7 @@ export default async function OrganizationProfilePage({ params }: PageProps) {
           <InfoCard title="About">
             {descriptionHtml ? (
               <div
-                className="prose prose-sm max-w-none prose-headings:text-slate-950 prose-p:text-slate-700 prose-li:text-slate-700 prose-a:text-[#8f1d2c]"
+                className="prose prose-sm max-w-none prose-headings:text-slate-950 prose-p:text-slate-700 prose-li:text-slate-700 prose-a:text-[#8f1d2c] prose-blockquote:border-[#8f1d2c]/30 prose-blockquote:text-slate-700 prose-code:text-[#8f1d2c] prose-pre:bg-slate-950 prose-pre:text-slate-100 prose-hr:border-slate-200 prose-img:rounded-xl prose-img:border prose-img:border-slate-200"
                 dangerouslySetInnerHTML={{ __html: descriptionHtml }}
               />
             ) : (
