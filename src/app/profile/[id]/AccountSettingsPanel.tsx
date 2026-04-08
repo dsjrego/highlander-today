@@ -94,6 +94,10 @@ export default function AccountSettingsPanel({
 }: AccountSettingsPanelProps) {
   const router = useRouter();
   const { data: session, status } = useSession();
+  const sessionUser = session?.user as { id?: string; role?: string } | undefined;
+  const isSuperAdmin = sessionUser?.role === "SUPER_ADMIN";
+  const isProfileOwner = !targetUserId || sessionUser?.id === targetUserId;
+  const canManageSensitiveActions = isProfileOwner || isSuperAdmin;
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [formData, setFormData] = useState({
     firstName: "",
@@ -372,17 +376,19 @@ export default function AccountSettingsPanel({
           Profile settings are unavailable right now.
         </div>
       )}
-      <div className="space-y-4">
-        <button className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left transition hover:bg-slate-50">
-          Change Password
-        </button>
-        <button className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left transition hover:bg-slate-50">
-          Email Preferences
-        </button>
-        <button className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left text-red-600 transition hover:bg-slate-50">
-          Deactivate Account
-        </button>
-      </div>
+      {canManageSensitiveActions ? (
+        <div className="space-y-4">
+          <button className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left transition hover:bg-slate-50">
+            Change Password
+          </button>
+          <button className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left transition hover:bg-slate-50">
+            Email Preferences
+          </button>
+          <button className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left text-red-600 transition hover:bg-slate-50">
+            Deactivate Account
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

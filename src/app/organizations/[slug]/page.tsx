@@ -14,7 +14,7 @@ import {
   getPublicOrganizationProfile,
 } from '@/lib/organizations';
 import { formatLocationPrimary, formatLocationSecondary } from '@/lib/location-format';
-import { sanitizeArticleHtml, stripHtmlToText } from '@/lib/sanitize';
+import { sanitizeArticleHtml } from '@/lib/sanitize';
 
 interface PageProps {
   params: {
@@ -151,7 +151,6 @@ export default async function OrganizationProfilePage({ params }: PageProps) {
   const typeLabel = formatOrganizationTypeLabel(organization.organizationType);
   const groupLabel = formatOrganizationTypeLabel(organization.directoryGroup);
   const descriptionHtml = organization.description ? sanitizeArticleHtml(organization.description) : '';
-  const descriptionText = descriptionHtml ? stripHtmlToText(descriptionHtml) : '';
 
   return (
     <div className="space-y-6">
@@ -159,7 +158,6 @@ export default async function OrganizationProfilePage({ params }: PageProps) {
         icon={<Building2 className="h-5 w-5" />}
         label={groupLabel}
         title={organization.name}
-        description={descriptionText || `${typeLabel} in ${organization.community.name}.`}
       />
 
       {organization.bannerUrl ? (
