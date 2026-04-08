@@ -37,7 +37,7 @@ export default function ArticleCreateAction({
       >
         <path d="M8 3.25v9.5M3.25 8h9.5" />
       </svg>
-      <span>Article</span>
+      <span className="page-header-action-label">Article</span>
     </>
   );
 
@@ -46,7 +46,9 @@ export default function ArticleCreateAction({
       {isTrustedUser ? (
         <Link
           href={href}
-          className="inline-flex items-center gap-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-950 transition hover:opacity-90"
+          aria-label="Add article"
+          title="Add article"
+          className="page-header-action border-white bg-white text-slate-950 hover:opacity-90"
         >
           {content}
         </Link>
@@ -54,7 +56,9 @@ export default function ArticleCreateAction({
         <button
           type="button"
           onClick={() => setIsDialogOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-950 transition hover:opacity-90"
+          aria-label="Add article"
+          title="Add article"
+          className="page-header-action border-white bg-white text-slate-950 hover:opacity-90"
         >
           {content}
         </button>

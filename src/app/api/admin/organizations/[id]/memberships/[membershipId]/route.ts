@@ -5,6 +5,8 @@ import { logActivity } from '@/lib/activity-log';
 import { hasOrganizationAdminAccess } from '@/lib/organization-admin';
 
 const UpdateMembershipSchema = z.object({
+  role: z.enum(['OWNER', 'MANAGER', 'STAFF', 'BOARD_MEMBER', 'VOLUNTEER', 'PASTOR', 'OFFICIAL', 'ADMINISTRATOR']).optional(),
+  status: z.enum(['PENDING', 'ACTIVE', 'REJECTED', 'REMOVED']).optional(),
   title: z.string().trim().max(160).optional().or(z.literal('')),
   isPublic: z.boolean().optional(),
   isPrimaryContact: z.boolean().optional(),
@@ -46,6 +48,11 @@ export async function PATCH(
       },
       select: {
         id: true,
+        role: true,
+        status: true,
+        title: true,
+        isPublic: true,
+        isPrimaryContact: true,
       },
     });
 
@@ -58,12 +65,16 @@ export async function PATCH(
     const updated = await db.organizationMembership.update({
       where: { id: membership.id },
       data: {
+        role: validated.role,
+        status: validated.status,
         title: validated.title === undefined ? undefined : validated.title || null,
         isPublic: validated.isPublic,
         isPrimaryContact: validated.isPrimaryContact,
       },
       select: {
         id: true,
+        role: true,
+        status: true,
         title: true,
         isPublic: true,
         isPrimaryContact: true,
@@ -91,6 +102,43 @@ export async function PATCH(
       metadata: {
         entityType: 'ORGANIZATION_MEMBERSHIP',
         membershipId: membership.id,
+        changes: {
+          role:
+            validated.role === undefined
+              ? undefined
+              : {
+                  before: membership.role,
+                  after: validated.role,
+                },
+          status:
+            validated.status === undefined
+              ? undefined
+              : {
+                  before: membership.status,
+                  after: validated.status,
+                },
+          title:
+            validated.title === undefined
+              ? undefined
+              : {
+                  before: membership.title,
+                  after: validated.title || null,
+                },
+          isPublic:
+            validated.isPublic === undefined
+              ? undefined
+              : {
+                  before: membership.isPublic,
+                  after: validated.isPublic,
+                },
+          isPrimaryContact:
+            validated.isPrimaryContact === undefined
+              ? undefined
+              : {
+                  before: membership.isPrimaryContact,
+                  after: validated.isPrimaryContact,
+                },
+        },
       },
     });
 

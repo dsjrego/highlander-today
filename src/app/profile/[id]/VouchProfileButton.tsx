@@ -151,7 +151,7 @@ export default function VouchProfileButton({
 
   return (
     <>
-      <button type="button" onClick={handleClick} className={className}>
+      <button type="button" onClick={handleClick} aria-label="Vouch" title="Vouch" className={className}>
         {children || "Vouch"}
       </button>
 

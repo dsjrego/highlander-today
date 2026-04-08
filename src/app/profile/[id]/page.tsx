@@ -243,7 +243,7 @@ export default async function UserProfilePage({ params, searchParams }: PageProp
   const headerActions = (
     <>
       {!isOwnProfile ? (
-        <button type="button" className="page-header-action">
+        <button type="button" aria-label="Report user" title="Report user" className="page-header-action">
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path
               strokeLinecap="round"
@@ -252,7 +252,7 @@ export default async function UserProfilePage({ params, searchParams }: PageProp
               d="M18.364 5.636a9 9 0 1 1-12.728 0 9 9 0 0 1 12.728 0ZM12 8v4m0 4h.01"
             />
           </svg>
-          Report User
+          <span className="page-header-action-label">Report User</span>
         </button>
       ) : null}
       {!isOwnProfile && profile.trustLevel === "REGISTERED" ? (
@@ -272,7 +272,7 @@ export default async function UserProfilePage({ params, searchParams }: PageProp
               d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
             />
           </svg>
-          Vouch
+          <span className="page-header-action-label">Vouch</span>
         </VouchProfileButton>
       ) : null}
     </>

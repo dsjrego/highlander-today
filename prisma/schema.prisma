@@ -32,6 +32,7 @@ model Community {
   events                 Event[]
   stores                 Store[]
   organizations          Organization[]
+  organizationFormSubmissions OrganizationFormSubmission[]
   locations              Location[]
   marketplaceListings    MarketplaceListing[]
   helpWantedPosts        HelpWantedPost[]
@@ -112,6 +113,9 @@ model User {
   approvedOrganizations    Organization[]            @relation("organizationApprovedBy")
   organizationMemberships  OrganizationMembership[]
   organizationContacts     OrganizationContact[]
+  createdOrganizationForms OrganizationForm[]        @relation("organizationFormCreatedBy")
+  updatedOrganizationForms OrganizationForm[]        @relation("organizationFormUpdatedBy")
+  organizationFormSubmissions OrganizationFormSubmission[]
 
   @@map("users")
 }
@@ -152,6 +156,20 @@ enum OrganizationMembershipStatus {
   ACTIVE
   REJECTED
   REMOVED
+}
+
+enum OrganizationFormStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  ARCHIVED
+}
+
+enum OrganizationFormQuestionType {
+  TEXT_SHORT
+  TEXT_LONG
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
 }
 
 // ============================================================================
@@ -270,6 +288,8 @@ model Organization {
   departments OrganizationDepartment[]
   contacts    OrganizationContact[]
   events      Event[]
+  forms       OrganizationForm[]
+  formSubmissions OrganizationFormSubmission[]
 
   @@unique([communityId, slug])
   @@index([communityId])
@@ -389,6 +409,109 @@ model OrganizationContact {
   @@index([locationId])
   @@index([userId])
   @@map("organization_contacts")
+}
+
+model OrganizationForm {
+  id                String                 @id @default(uuid()) @db.Uuid
+  organizationId    String                 @db.Uuid
+  createdByUserId   String                 @db.Uuid
+  updatedByUserId   String?                @db.Uuid
+  title             String
+  slug              String
+  description       String?
+  status            OrganizationFormStatus @default(DRAFT)
+  isPubliclyListed  Boolean                @default(false)
+  minimumTrustLevel TrustLevel             @default(REGISTERED)
+  opensAt           DateTime?
+  closesAt          DateTime?
+  publishedAt       DateTime?
+  closedAt          DateTime?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  organization Organization                @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User                        @relation("organizationFormCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  updatedBy    User?                       @relation("organizationFormUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  questions    OrganizationFormQuestion[]
+  submissions  OrganizationFormSubmission[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId, status])
+  @@map("organization_forms")
+}
+
+model OrganizationFormQuestion {
+  id         String                       @id @default(uuid()) @db.Uuid
+  formId     String                       @db.Uuid
+  prompt     String
+  helpText   String?
+  type       OrganizationFormQuestionType
+  isRequired Boolean                      @default(false)
+  sortOrder  Int                          @default(0)
+  createdAt  DateTime                     @default(now())
+  updatedAt  DateTime                     @updatedAt
+
+  form    OrganizationForm                 @relation(fields: [formId], references: [id], onDelete: Cascade)
+  options OrganizationFormQuestionOption[]
+  answers OrganizationFormAnswer[]
+
+  @@index([formId, sortOrder])
+  @@map("organization_form_questions")
+}
+
+model OrganizationFormQuestionOption {
+  id         String                 @id @default(uuid()) @db.Uuid
+  questionId String                 @db.Uuid
+  label      String
+  value      String
+  sortOrder  Int                    @default(0)
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+
+  question OrganizationFormQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answers  OrganizationFormAnswer[]
+
+  @@index([questionId, sortOrder])
+  @@map("organization_form_question_options")
+}
+
+model OrganizationFormSubmission {
+  id             String   @id @default(uuid()) @db.Uuid
+  formId         String   @db.Uuid
+  organizationId String   @db.Uuid
+  userId         String   @db.Uuid
+  communityId    String   @db.Uuid
+  submittedAt    DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  form         OrganizationForm       @relation(fields: [formId], references: [id], onDelete: Cascade)
+  organization Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  community    Community              @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  answers      OrganizationFormAnswer[]
+
+  @@unique([formId, userId])
+  @@index([organizationId, submittedAt])
+  @@map("organization_form_submissions")
+}
+
+model OrganizationFormAnswer {
+  id               String   @id @default(uuid()) @db.Uuid
+  submissionId     String   @db.Uuid
+  questionId       String   @db.Uuid
+  selectedOptionId String?  @db.Uuid
+  textValue        String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  submission     OrganizationFormSubmission      @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  question       OrganizationFormQuestion        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOption OrganizationFormQuestionOption? @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
+
+  @@index([submissionId])
+  @@index([questionId])
+  @@index([selectedOptionId])
+  @@map("organization_form_answers")
 }
 
 // ============================================================================

@@ -330,7 +330,9 @@ export default function ManageHelpWantedPage() {
         actions={
           <Link
             href="/help-wanted/submit"
-            className="inline-flex items-center rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-950 transition hover:opacity-90"
+            aria-label="Post opportunity"
+            title="Post opportunity"
+            className="page-header-action border-white bg-white text-slate-950 hover:opacity-90"
           >
             <svg
               aria-hidden="true"
@@ -343,7 +345,7 @@ export default function ManageHelpWantedPage() {
             >
               <path d="M8 3.25v9.5M3.25 8h9.5" />
             </svg>
-            Post Opportunity
+            <span className="page-header-action-label">Post Opportunity</span>
           </Link>
         }
       />

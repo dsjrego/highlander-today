@@ -278,7 +278,9 @@ export default function MyStoresPage() {
         actions={
           <Link
             href="/marketplace/stores/create"
-            className="inline-flex items-center rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-950 transition hover:opacity-90"
+            aria-label="Create store"
+            title="Create store"
+            className="page-header-action border-white bg-white text-slate-950 hover:opacity-90"
           >
             <svg
               aria-hidden="true"
@@ -291,7 +293,7 @@ export default function MyStoresPage() {
             >
               <path d="M8 3.25v9.5M3.25 8h9.5" />
             </svg>
-            Create Store
+            <span className="page-header-action-label">Create Store</span>
           </Link>
         }
       />

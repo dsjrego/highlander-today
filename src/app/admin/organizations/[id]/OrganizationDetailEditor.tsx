@@ -3,16 +3,22 @@
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { FormEvent, useState } from 'react';
-import { Building2, Plus, Save, Trash2 } from 'lucide-react';
+import { Building2, ListChecks, Plus, Save, Trash2 } from 'lucide-react';
 import { CrudActionButton } from '@/components/shared/CrudAction';
 import ImageUpload from '@/components/shared/ImageUpload';
 import { formatOrganizationTypeLabel } from '@/lib/organizations';
 import { formatPhoneInput } from '@/lib/organization-admin';
+import type {
+  OrganizationFormQuestionType,
+  OrganizationFormStatus,
+} from '@/lib/organization-forms';
+import type { TrustLevelValue } from '@/lib/trust-access';
 import {
   ORGANIZATION_GROUP_OPTIONS,
   ORGANIZATION_TYPE_OPTIONS,
   type OrganizationDirectoryGroup,
 } from '@/lib/organization-taxonomy';
+import OrganizationFormsManager from './OrganizationFormsManager';
 
 const TipTapEditor = dynamic(() => import('@/components/articles/TipTapEditor'), {
   ssr: false,
@@ -29,8 +35,21 @@ type MembershipRole =
   | 'OFFICIAL'
   | 'ADMINISTRATOR';
 type MembershipStatus = 'PENDING' | 'ACTIVE' | 'REJECTED' | 'REMOVED';
-const ORGANIZATION_DETAIL_TABS = ['details', 'locations', 'departments', 'contacts', 'members', 'events'] as const;
+const ORGANIZATION_DETAIL_TABS = ['details', 'locations', 'departments', 'contacts', 'members', 'events', 'forms'] as const;
 type OrganizationDetailTab = (typeof ORGANIZATION_DETAIL_TABS)[number];
+const ORGANIZATION_MEMBERSHIP_ROLE_OPTIONS: MembershipRole[] = [
+  'OWNER',
+  'MANAGER',
+  'STAFF',
+  'BOARD_MEMBER',
+  'VOLUNTEER',
+  'PASTOR',
+  'OFFICIAL',
+  'ADMINISTRATOR',
+];
+const ORGANIZATION_MEMBERSHIP_STATUS_OPTIONS: MembershipStatus[] = ['PENDING', 'ACTIVE', 'REJECTED', 'REMOVED'];
+const ORGANIZATION_MEMBERSHIP_FILTER_OPTIONS = ['ACTIVE', 'PENDING', 'REJECTED', 'REMOVED', 'ALL'] as const;
+type OrganizationMembershipFilter = (typeof ORGANIZATION_MEMBERSHIP_FILTER_OPTIONS)[number];
 
 interface LocationRecord {
   id: string;
@@ -94,6 +113,13 @@ interface MembershipRecord {
   };
 }
 
+interface CommunityUserRecord {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
 interface OrganizationEventRecord {
   id: string;
   title: string;
@@ -128,7 +154,45 @@ interface OrganizationDetailRecord {
   departments: DepartmentRecord[];
   contacts: ContactRecord[];
   memberships: MembershipRecord[];
+  community: {
+    memberships: {
+      user: CommunityUserRecord;
+    }[];
+  };
   events: OrganizationEventRecord[];
+  forms: {
+    id: string;
+    title: string;
+    slug: string;
+    description: string | null;
+    status: OrganizationFormStatus;
+    isPubliclyListed: boolean;
+    minimumTrustLevel: TrustLevelValue;
+    opensAt: string | Date | null;
+    closesAt: string | Date | null;
+    publishedAt: string | Date | null;
+    closedAt: string | Date | null;
+    createdAt: string | Date;
+    updatedAt: string | Date;
+    _count: {
+      questions: number;
+      submissions: number;
+    };
+    questions: {
+      id: string;
+      prompt: string;
+      helpText: string | null;
+      type: OrganizationFormQuestionType;
+      isRequired: boolean;
+      sortOrder: number;
+      options: {
+        id: string;
+        label: string;
+        value: string;
+        sortOrder: number;
+      }[];
+    }[];
+  }[];
 }
 
 interface OrganizationDetailEditorProps {
@@ -190,6 +254,15 @@ interface ContactFormState {
   departmentId: string;
   locationId: string;
   userId: string;
+}
+
+interface MembershipCreateFormState {
+  userId: string;
+  role: MembershipRole;
+  status: MembershipStatus;
+  title: string;
+  isPublic: boolean;
+  isPrimaryContact: boolean;
 }
 
 function buildCoreFormState(organization: OrganizationDetailRecord): CoreFormState {
@@ -257,6 +330,17 @@ function buildContactFormState(contact?: ContactRecord): ContactFormState {
   };
 }
 
+function buildMembershipCreateFormState(): MembershipCreateFormState {
+  return {
+    userId: '',
+    role: 'MANAGER',
+    status: 'ACTIVE',
+    title: '',
+    isPublic: false,
+    isPrimaryContact: false,
+  };
+}
+
 function formatDateValue(value: string | number) {
   return String(value).trim();
 }
@@ -317,12 +401,47 @@ export default function OrganizationDetailEditor({ organization: initialOrganiza
   const [newLocationForm, setNewLocationForm] = useState<LocationFormState>(() => buildLocationFormState());
   const [newDepartmentForm, setNewDepartmentForm] = useState<DepartmentFormState>(() => buildDepartmentFormState());
   const [newContactForm, setNewContactForm] = useState<ContactFormState>(() => buildContactFormState());
+  const [newMembershipForm, setNewMembershipForm] = useState<MembershipCreateFormState>(() => buildMembershipCreateFormState());
+  const [showAddMemberForm, setShowAddMemberForm] = useState(false);
+  const [memberSearchValue, setMemberSearchValue] = useState('');
+  const [membershipSearchValue, setMembershipSearchValue] = useState('');
   const [sectionError, setSectionError] = useState('');
   const [sectionSuccess, setSectionSuccess] = useState('');
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [editingRoleMembershipId, setEditingRoleMembershipId] = useState<string | null>(null);
+  const [editingStatusMembershipId, setEditingStatusMembershipId] = useState<string | null>(null);
+  const [membershipFilter, setMembershipFilter] = useState<OrganizationMembershipFilter>('ACTIVE');
 
   const activeMemberships = organization.memberships.filter((membership) => membership.status === 'ACTIVE');
   const organizationTypeOptions = ORGANIZATION_TYPE_OPTIONS[coreForm.directoryGroup];
+  const availableCommunityUsers = organization.community.memberships.map((membership) => membership.user);
+  const normalizedMemberSearch = memberSearchValue.trim().toLowerCase();
+  const normalizedMembershipSearch = membershipSearchValue.trim().toLowerCase();
+  const filteredAvailableCommunityUsers = availableCommunityUsers.filter((user) => {
+    if (!normalizedMemberSearch) {
+      return true;
+    }
+
+    return (
+      user.firstName.toLowerCase().includes(normalizedMemberSearch) ||
+      user.lastName.toLowerCase().includes(normalizedMemberSearch) ||
+      user.email.toLowerCase().includes(normalizedMemberSearch)
+    );
+  });
+  const membershipSearchMatches = organization.memberships.filter((membership) => {
+    if (!normalizedMembershipSearch) {
+      return true;
+    }
+
+    return (
+      membership.user.firstName.toLowerCase().includes(normalizedMembershipSearch) ||
+      membership.user.lastName.toLowerCase().includes(normalizedMembershipSearch) ||
+      membership.user.email.toLowerCase().includes(normalizedMembershipSearch)
+    );
+  });
+  const filteredMemberships = membershipSearchMatches.filter((membership) =>
+    membershipFilter === 'ALL' ? true : membership.status === membershipFilter
+  );
 
   function setFlashError(message: string) {
     setSectionSuccess('');
@@ -679,7 +798,10 @@ export default function OrganizationDetailEditor({ organization: initialOrganiza
     }
   }
 
-  async function saveMembership(membershipId: string, values: Pick<MembershipRecord, 'title' | 'isPublic' | 'isPrimaryContact'>) {
+  async function saveMembership(
+    membershipId: string,
+    values: Pick<MembershipRecord, 'title' | 'isPublic' | 'isPrimaryContact'> & Partial<Pick<MembershipRecord, 'role' | 'status'>>
+  ) {
     setSavingKey(`membership-${membershipId}`);
     setFlashError('');
 
@@ -705,9 +827,49 @@ export default function OrganizationDetailEditor({ organization: initialOrganiza
           return membership.id === membershipId ? { ...membership, ...data.membership } : membership;
         }),
       }));
+      setEditingRoleMembershipId(null);
+      setEditingStatusMembershipId(null);
       setFlashSuccess('Membership visibility updated.');
     } catch (error) {
       setFlashError(error instanceof Error ? error.message : 'Failed to update membership');
+    } finally {
+      setSavingKey(null);
+    }
+  }
+
+  async function createMembership(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSavingKey('new-membership');
+    setFlashError('');
+
+    try {
+      const response = await fetch(`/api/admin/organizations/${organization.id}/memberships`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newMembershipForm),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to add member');
+      }
+
+      setOrganization((current) => ({
+        ...current,
+        memberships: [...current.memberships.map((membership) =>
+          data.membership.isPrimaryContact ? { ...membership, isPrimaryContact: false } : membership
+        ), data.membership],
+        community: {
+          ...current.community,
+          memberships: current.community.memberships.filter((membership) => membership.user.id !== data.membership.user.id),
+        },
+      }));
+      setNewMembershipForm(buildMembershipCreateFormState());
+      setMemberSearchValue('');
+      setShowAddMemberForm(false);
+      setFlashSuccess('Member added.');
+    } catch (error) {
+      setFlashError(error instanceof Error ? error.message : 'Failed to add member');
     } finally {
       setSavingKey(null);
     }
@@ -971,17 +1133,242 @@ export default function OrganizationDetailEditor({ organization: initialOrganiza
           {activeTab === 'members' ? (
             <section className="rounded-2xl border border-slate-200 bg-white p-5">
               <h2 className="text-lg font-bold text-slate-950">Members</h2>
-              <p className="mt-1 text-sm text-slate-600">Choose which attached people can appear on the public roster.</p>
 
-              <div className="mt-4 space-y-4">
-                {organization.memberships.map((membership) => (
-                  <MembershipEditor
-                    key={membership.id}
-                    membership={membership}
-                    isSaving={savingKey === `membership-${membership.id}`}
-                    onSave={saveMembership}
-                  />
-                ))}
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+                <div className="text-sm text-slate-500">
+                  {availableCommunityUsers.length} eligible same-community user{availableCommunityUsers.length === 1 ? '' : 's'} available
+                </div>
+                <CrudActionButton
+                  type="button"
+                  variant={showAddMemberForm ? 'secondary' : 'primary'}
+                  icon={Plus}
+                  label={showAddMemberForm ? 'Close add member' : 'Add member'}
+                  onClick={() => {
+                    setShowAddMemberForm((current) => !current);
+                    if (showAddMemberForm) {
+                      setMemberSearchValue('');
+                      setNewMembershipForm(buildMembershipCreateFormState());
+                    }
+                  }}
+                  disabled={availableCommunityUsers.length === 0}
+                >
+                  {showAddMemberForm ? 'Close' : 'Add Member'}
+                </CrudActionButton>
+              </div>
+
+              {showAddMemberForm ? (
+                availableCommunityUsers.length > 0 ? (
+                  <form onSubmit={createMembership} className="mt-4 space-y-3 rounded-2xl border border-dashed border-slate-300 p-4">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div>
+                        <label className="form-label text-slate-500">Search Users</label>
+                        <input
+                          value={memberSearchValue}
+                          onChange={(event) => setMemberSearchValue(event.target.value)}
+                          className="form-input"
+                          placeholder="Search by name or email"
+                        />
+                      </div>
+                      <div>
+                        <label className="form-label text-slate-500">User</label>
+                        <select
+                          value={newMembershipForm.userId}
+                          onChange={(event) =>
+                            setNewMembershipForm((current) => ({
+                              ...current,
+                              userId: event.target.value,
+                            }))
+                          }
+                          className="form-input"
+                        >
+                          <option value="">Select a community user</option>
+                          {filteredAvailableCommunityUsers.map((user) => (
+                            <option key={user.id} value={user.id}>
+                              {user.firstName} {user.lastName} ({user.email})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="form-label text-slate-500">Role</label>
+                        <select
+                          value={newMembershipForm.role}
+                          onChange={(event) =>
+                            setNewMembershipForm((current) => ({
+                              ...current,
+                              role: event.target.value as MembershipRole,
+                            }))
+                          }
+                          className="form-input"
+                        >
+                          {ORGANIZATION_MEMBERSHIP_ROLE_OPTIONS.map((role) => (
+                            <option key={role} value={role}>
+                              {formatOrganizationTypeLabel(role)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="form-label text-slate-500">Status</label>
+                        <select
+                          value={newMembershipForm.status}
+                          onChange={(event) =>
+                            setNewMembershipForm((current) => ({
+                              ...current,
+                              status: event.target.value as MembershipStatus,
+                            }))
+                          }
+                          className="form-input"
+                        >
+                          {ORGANIZATION_MEMBERSHIP_STATUS_OPTIONS.map((status) => (
+                            <option key={status} value={status}>
+                              {formatOrganizationTypeLabel(status)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="form-label text-slate-500">Public Title Override</label>
+                        <input
+                          value={newMembershipForm.title}
+                          onChange={(event) =>
+                            setNewMembershipForm((current) => ({
+                              ...current,
+                              title: event.target.value,
+                            }))
+                          }
+                          className="form-input"
+                          placeholder="Optional"
+                        />
+                      </div>
+                      <div className="md:col-span-2 flex flex-wrap gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3">
+                        <BooleanInput
+                          checked={newMembershipForm.isPublic}
+                          label="Show on roster"
+                          onChange={(checked) =>
+                            setNewMembershipForm((current) => ({
+                              ...current,
+                              isPublic: checked,
+                            }))
+                          }
+                        />
+                        <BooleanInput
+                          checked={newMembershipForm.isPrimaryContact}
+                          label="Primary contact"
+                          onChange={(checked) =>
+                            setNewMembershipForm((current) => ({
+                              ...current,
+                              isPrimaryContact: checked,
+                            }))
+                          }
+                        />
+                      </div>
+                    </div>
+                    {filteredAvailableCommunityUsers.length === 0 ? (
+                      <div className="text-sm text-slate-500">No eligible users match the current search.</div>
+                    ) : null}
+                    <CrudActionButton
+                      type="submit"
+                      variant="primary"
+                      icon={Plus}
+                      label={savingKey === 'new-membership' ? 'Adding member' : 'Add member'}
+                      disabled={savingKey === 'new-membership'}
+                    >
+                      {savingKey === 'new-membership' ? 'Adding...' : 'Add Member'}
+                    </CrudActionButton>
+                  </form>
+                ) : (
+                  <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 text-sm text-slate-600">
+                    No additional same-community users are available to attach to this organization.
+                  </div>
+                )
+              ) : null}
+
+              <div className="admin-list mt-4">
+                <div className="admin-list-toolbar">
+                  <label className="admin-list-filter">
+                    <span className="admin-list-filter-label">Filter: Member Name</span>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={membershipSearchValue}
+                        onChange={(event) => {
+                          const nextValue = event.target.value;
+                          setMembershipSearchValue(nextValue);
+                          if (nextValue.trim()) {
+                            setMembershipFilter('ALL');
+                          }
+                        }}
+                        placeholder="Search by first name, last name, or email"
+                        className="admin-list-filter-input pr-10"
+                      />
+                      {membershipSearchValue ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMembershipSearchValue('');
+                            setMembershipFilter('ACTIVE');
+                          }}
+                          className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-sm font-semibold text-slate-400 transition hover:text-slate-700"
+                          aria-label="Clear member name filter"
+                          title="Clear member name filter"
+                        >
+                          x
+                        </button>
+                      ) : null}
+                    </div>
+                  </label>
+                  <label className="admin-list-filter">
+                    <span className="admin-list-filter-label">Filter: Member Status</span>
+                    <select
+                      value={membershipFilter}
+                      onChange={(event) => setMembershipFilter(event.target.value as OrganizationMembershipFilter)}
+                      className="admin-list-cell-select min-w-[11rem]"
+                    >
+                      {ORGANIZATION_MEMBERSHIP_FILTER_OPTIONS.map((status) => (
+                        <option key={status} value={status}>
+                          {status === 'ALL' ? 'All' : formatOrganizationTypeLabel(status)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <div className="admin-list-table-wrap">
+                  <table className="admin-list-table">
+                    <thead className="admin-list-head">
+                      <tr>
+                        <th className="admin-list-header-cell">Member</th>
+                        <th className="admin-list-header-cell">Role</th>
+                        <th className="admin-list-header-cell">Status</th>
+                        <th className="admin-list-header-cell">Public Title</th>
+                        <th className="admin-list-header-cell">Visibility</th>
+                        <th className="admin-list-header-cell">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredMemberships.length > 0 ? (
+                        filteredMemberships.map((membership) => (
+                          <MembershipEditor
+                            key={membership.id}
+                            membership={membership}
+                            isSaving={savingKey === `membership-${membership.id}`}
+                            isEditingRole={editingRoleMembershipId === membership.id}
+                            isEditingStatus={editingStatusMembershipId === membership.id}
+                            onEditRole={setEditingRoleMembershipId}
+                            onEditStatus={setEditingStatusMembershipId}
+                            onSave={saveMembership}
+                          />
+                        ))
+                      ) : (
+                        <tr>
+                          <td className="admin-list-empty" colSpan={6}>
+                            No {membershipFilter === 'ALL' ? '' : formatOrganizationTypeLabel(membershipFilter).toLowerCase() + ' '}members are visible in this filter.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </section>
           ) : null}
@@ -1027,6 +1414,14 @@ export default function OrganizationDetailEditor({ organization: initialOrganiza
                 )}
               </div>
             </section>
+          ) : null}
+
+          {activeTab === 'forms' ? (
+            <OrganizationFormsManager
+              organizationId={organization.id}
+              organizationSlug={organization.slug}
+              forms={organization.forms}
+            />
           ) : null}
         </div>
       </div>
@@ -1336,49 +1731,146 @@ function ContactEditor({
 function MembershipEditor({
   membership,
   isSaving,
+  isEditingRole,
+  isEditingStatus,
+  onEditRole,
+  onEditStatus,
   onSave,
 }: {
   membership: MembershipRecord;
   isSaving: boolean;
-  onSave: (membershipId: string, values: Pick<MembershipRecord, 'title' | 'isPublic' | 'isPrimaryContact'>) => Promise<void>;
+  isEditingRole: boolean;
+  isEditingStatus: boolean;
+  onEditRole: (membershipId: string | null) => void;
+  onEditStatus: (membershipId: string | null) => void;
+  onSave: (
+    membershipId: string,
+    values: Pick<MembershipRecord, 'title' | 'isPublic' | 'isPrimaryContact'> & Partial<Pick<MembershipRecord, 'role' | 'status'>>
+  ) => Promise<void>;
 }) {
   const [title, setTitle] = useState(membership.title || '');
   const [isPublic, setIsPublic] = useState(membership.isPublic);
   const [isPrimaryContact, setIsPrimaryContact] = useState(membership.isPrimaryContact);
 
   return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault();
-        onSave(membership.id, {
-          title,
-          isPublic,
-          isPrimaryContact,
-        });
-      }}
-      className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4"
-    >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-slate-950">
-            {membership.user.firstName} {membership.user.lastName}
-          </p>
-          <p className="mt-1 text-xs uppercase tracking-[0.16em] text-slate-500">
-            {formatOrganizationTypeLabel(membership.role)} / {formatOrganizationTypeLabel(membership.status)}
-          </p>
-          <p className="mt-1 text-sm text-slate-500">{membership.user.email}</p>
+    <tr className="admin-list-row">
+      <td className="admin-list-cell">
+        <span className="font-semibold text-slate-950">
+          {membership.user.firstName} {membership.user.lastName}
+        </span>
+        <span className="text-slate-400"> · </span>
+        <span className="text-slate-500">{membership.user.email}</span>
+      </td>
+      <td className="admin-list-cell">
+        {isEditingRole ? (
+          <select
+            className="admin-list-cell-select"
+            defaultValue={membership.role}
+            disabled={isSaving}
+            onBlur={() => {
+              if (!isSaving) {
+                onEditRole(null);
+              }
+            }}
+            onChange={(event) =>
+              onSave(membership.id, {
+                title,
+                isPublic,
+                isPrimaryContact,
+                role: event.target.value as MembershipRole,
+              })
+            }
+            autoFocus
+          >
+            {ORGANIZATION_MEMBERSHIP_ROLE_OPTIONS.map((role) => (
+              <option key={role} value={role}>
+                {formatOrganizationTypeLabel(role)}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <CrudActionButton
+            type="button"
+            variant="inline"
+            icon={ListChecks}
+            label="Change role"
+            onClick={() => onEditRole(membership.id)}
+          >
+            {formatOrganizationTypeLabel(membership.role)}
+          </CrudActionButton>
+        )}
+      </td>
+      <td className="admin-list-cell">
+        {isEditingStatus ? (
+          <select
+            className="admin-list-cell-select"
+            defaultValue={membership.status}
+            disabled={isSaving}
+            onBlur={() => {
+              if (!isSaving) {
+                onEditStatus(null);
+              }
+            }}
+            onChange={(event) =>
+              onSave(membership.id, {
+                title,
+                isPublic,
+                isPrimaryContact,
+                status: event.target.value as MembershipStatus,
+              })
+            }
+            autoFocus
+          >
+            {ORGANIZATION_MEMBERSHIP_STATUS_OPTIONS.map((status) => (
+              <option key={status} value={status}>
+                {formatOrganizationTypeLabel(status)}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <CrudActionButton
+            type="button"
+            variant="inline"
+            icon={ListChecks}
+            label="Change status"
+            onClick={() => onEditStatus(membership.id)}
+          >
+            {formatOrganizationTypeLabel(membership.status)}
+          </CrudActionButton>
+        )}
+      </td>
+      <td className="admin-list-cell">
+        <input
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          placeholder="Public title override"
+          className="form-input min-w-[220px] h-9 py-1"
+        />
+      </td>
+      <td className="admin-list-cell">
+        <div className="flex flex-wrap items-center gap-4 whitespace-nowrap">
+          <BooleanInput checked={isPublic} label="Roster" onChange={setIsPublic} />
+          <BooleanInput checked={isPrimaryContact} label="Primary" onChange={setIsPrimaryContact} />
         </div>
-        <CrudActionButton type="submit" variant="secondary" icon={Save} label="Save membership" disabled={isSaving}>
+      </td>
+      <td className="admin-list-cell">
+        <CrudActionButton
+          type="button"
+          variant="secondary"
+          icon={Save}
+          label="Save membership"
+          disabled={isSaving}
+          onClick={() =>
+            onSave(membership.id, {
+              title,
+              isPublic,
+              isPrimaryContact,
+            })
+          }
+        >
           Save
         </CrudActionButton>
-      </div>
-      <div className="mt-3 grid gap-3 md:grid-cols-2">
-        <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Public title override" className="form-input" />
-        <div className="flex flex-wrap gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3">
-          <BooleanInput checked={isPublic} label="Show on roster" onChange={setIsPublic} />
-          <BooleanInput checked={isPrimaryContact} label="Primary contact" onChange={setIsPrimaryContact} />
-        </div>
-      </div>
-    </form>
+      </td>
+    </tr>
   );
 }

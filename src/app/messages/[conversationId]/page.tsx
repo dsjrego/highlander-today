@@ -140,7 +140,7 @@ export default function MessageThreadPage({ params }: PageProps) {
 
   if (!participant) {
     return (
-      <p className="text-center text-gray-500 py-8">Conversation not found.</p>
+      <p className="py-8 text-center text-white">Conversation not found.</p>
     );
   }
 

@@ -198,7 +198,7 @@ export default function StorefrontPage({ params }: PageProps) {
 
   if (error || !store) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3">
+      <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] px-6 py-8 text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
         {error || "Store not found"}
       </div>
     );

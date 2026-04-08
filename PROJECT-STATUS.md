@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-04-05 (session 118)
+> **Last updated:** 2026-04-08 (session 121)
 > **Purpose:** Fast-start context for the next session. Read this file first, then open only the supporting docs relevant to the active slice.
 > **Detailed reference:** `PROJECT-STATUS-REFERENCE.md` preserves the fuller implementation ledger, rollout history, verification notes, deployment runbook, and infrastructure rationale that used to live here.
 
@@ -65,6 +65,18 @@
 > **Session 117 note:** the public phone header/navigation got a first mobile-specific pass. Search and messages were reduced to icon-only controls, the account trigger became a hamburger menu in the upper-right, and the wrapped top-level nav pills were removed from the visible phone masthead and moved into the hamburger as a vertical DB-driven mobile navigation surface with expandable section groups. The phone masthead/logo/title spacing and the `InternalPageHeader` mobile alignment remain partially unresolved and are intentionally parked as known follow-up polish rather than treated as complete.
 >
 > **Session 118 note:** CRUD/action icon standardization now applies to page-header actions too. If a page header has only one add/create action, treat the icon as the action and do not repeat the subject in the button text; the page-header title already provides that context, so the lone add control should be icon-only (with an accessible label/tooltip). Use subject text only when there are multiple sibling actions and disambiguation is actually needed.
+>
+> **Session 119 note:** mobile shell/header spacing and dark-shell fallback readability were tightened again. Public mobile `main` now uses a literal `2px` parent padding with `2px` top padding, `InternalPageHeader` now sits with zero margin inside that shell, and mobile page-header actions should default to icon-only unless multiple actions of the same CRUD type appear together and truly need text disambiguation. The remaining dark-on-dark visible `not found` fallbacks (marketplace listing/store, roadmap detail, and conversation-missing states) were also updated so their message text renders white against the dark background.
+>
+> **Session 120 note:** organization-linked forms/questionnaire planning is now documented in `ORGANIZATION-FORMS-PLAN.md`, covering the proposed organization-owned data model, question/option ordering, authenticated share-by-link access with `REGISTERED`/`TRUSTED` gating, response storage, and collated-results direction before implementation begins.
+>
+> **Session 121 note:** the first admin-side organization forms implementation is now in progress. Prisma now includes `OrganizationForm`, `OrganizationFormQuestion`, `OrganizationFormQuestionOption`, `OrganizationFormSubmission`, and `OrganizationFormAnswer`; `/admin/organizations/[id]` now has a `Forms` tab for creating/editing form metadata and questions. Any environment receiving this change must run `npx prisma db push --schema prisma/schema.prisma` before opening `/admin/organizations/[id]`, or Prisma will throw missing-table errors for `organization_forms`. Important operational reminder: `prisma db push` always targets the database referenced by the current shell's `DATABASE_URL`; running it locally against the local `.env` / Docker Postgres does **not** update production, and running it on production does **not** update local.
+>
+> **Session 121 shell note:** local shell helpers now exist in `~/.zshrc` for explicit schema pushes without keeping production `DATABASE_URL` exported in the default shell. Use `dbpushlocal` for the local Docker Postgres schema push and `dbpushprod` for the production schema push. Do not store the production URL in repo files or docs; the helper exists only in the user shell config.
+>
+> **Session 121 admin-list note:** the compact `admin-list` table treatment used by `/admin/articles` draft/pending/approved/archive tabs is now the canonical list style for admin operational surfaces. As admin screens are touched, prefer that shared dense table/list vocabulary over stacked card-per-record layouts unless the data is genuinely non-tabular. `DESIGN-SYSTEM-ARCHITECTURE.md` now records this as the reference rule.
+>
+> **Session 121 subscriptions note:** future paid memberships/subscriptions are now documented in `USER-SUBSCRIPTIONS-PLAN.md`. The current structural rule is to keep billing/subscription lifecycle separate from `UserCommunityMembership` and `OrganizationMembership`; existing membership tables continue to represent identity/role/relationship only, while any future paid access should land as a dedicated plans/subscriptions/entitlements subsystem.
 
 ## Product Snapshot
 
@@ -116,15 +128,18 @@ Current public/admin direction highlights:
 - `/admin/events` now supports both moderation and direct admin creation through the compact `+ Event` tab, and admin-created events can optionally link to an organization in the same community plus select or create a reusable structured location record.
 - `/admin/categories` has effectively become the **Navigation Menu** admin surface, with compact table-style editing, expand/collapse for nested items, reorder controls, and an `Add Area` tab.
 - `/admin/users` now matches that same compact admin pattern: dense table layout, email column, real last-seen timestamps from login activity, voucher names, colored/iconized manage actions, and inline admin messaging.
+- Admin list rule: when an admin surface is primarily a list of records, default to the compact shared `admin-list` table style used by `/admin/articles` rather than stacked per-record cards.
 - The admin sidebar now uses shared nav-item classes/structure plus alternating row backgrounds to keep menu entries visually consistent, and `Events` is a top-level admin item alongside `Articles`, `Navigation`, and the other operational surfaces.
 - The shared public shell uses the active `Youth Local` direction and the shared `InternalPageHeader` pattern.
-- `InternalPageHeader` action rule: when there is only one add/create action in a page header, keep it icon-only and rely on the page title for subject context; do not render redundant subject text beside the icon unless multiple neighboring actions need disambiguation.
+- `InternalPageHeader` mobile rule: public mobile page-header actions should be icon-only by default. Keep text hidden unless multiple neighboring actions of the same CRUD type need explicit disambiguation; otherwise rely on the page title plus accessible labels/tooltips for context.
+- Public mobile shell spacing rule: `main` should use `2px` padding on the left/right/top, and `InternalPageHeader` should carry zero external margin so the header uses the available screen width.
 - `/profile/[id]` now uses an owner-first account-settings flow: no separate edit page, owner-only `Account Settings` first, owner-hidden `About`, simplified `Articles` / `Events` tabs, privacy disclaimers on non-public fields, and `Last seen` header metadata sourced from latest `LoginEvent`.
 - `/directory` is now a real read surface rather than a placeholder shell: the default people view stays search-first, while top-level `Businesses`, `Government`, and `Organizations` category pills load current-tenant entity results alphabetically and subtypes remain available through dropdown chevrons. The current UI direction is flatter and more compact than the earlier pill-heavy/table-heavy pass, with inline search submission, minimal plain-text viewer guidance, no extra result-count copy, and clickable result headings handling sort on desktop.
 - Directory people rows now support direct messaging from the listing itself only for trusted-capable viewers; anonymous or merely registered viewers now get trust/account guidance instead of a compose box, and a persistent banner above the directory search filter explains the current viewer’s account/trust/listing state.
 - Trusted/staff-only trust-bootstrap is now live through `/help-us-grow`: same-community `REGISTERED` members are listed alphabetically with join dates and row-level messaging so existing trusted members can recognize people they know and start verification conversations inside the product.
 - Message threads now expose a direct `Vouch` entry point in the header when the other participant is still `REGISTERED`, reducing the need to leave the conversation to complete trust escalation.
 - The repo is back to a clean verification baseline: `npm run lint` and `npm run typecheck` now pass again after removing the dead `/admin/users` state and cleaning the current warning set.
+- Dark-shell `not found` / missing-resource states should render white text by default; avoid low-contrast gray/red fallback text on the live dark public shell.
 
 ## Highest-Signal Active Priorities
 
@@ -148,6 +163,8 @@ Current public/admin direction highlights:
 - Food / recipe / grocery is planning-only; use `FOOD-RECIPE-GROCERY-PLAN.md` as the canonical direction for future recipe editorial, structured ingredient utility, and store-linked grocery reservation work rather than extending marketplace models.
 - Directory exists as an early live foundation now, with canonical public organization detail pages at `/organizations/[slug]` and richer admin organization editing at `/admin/organizations/[id]`, but self-claim/self-management flows are still pending.
 - Organization messaging to businesses / government / organizations is still planning-only; use `ORGANIZATION-INBOX-CRM-PLAN.md` as the canonical direction before implementation.
+- Organization-linked forms/questionnaires are still planning-only; use `ORGANIZATION-FORMS-PLAN.md` as the canonical direction before implementation.
+- Paid memberships/subscriptions are still planning-only; use `USER-SUBSCRIPTIONS-PLAN.md` as the canonical direction and do not bolt billing/subscription fields onto existing community or organization membership tables.
 - Organization self-listing/help CTA on `/directory` is still intentionally deferred; do not imply a self-serve org creation/claim path until submit-or-claim workflows actually exist.
 - `Help Us Grow` is live as the first in-product trust-bootstrap loop, but it still lacks dismiss/not-known actions, stronger recognition hints, and an explicit admin exception path for genuine newcomers no one recognizes.
 - Article video embeds are still pending and should land before any delivery/jobs push.
@@ -180,6 +197,7 @@ Important environment reminders:
 - Local Postgres runs on `127.0.0.1:5433`
 - Use `prisma/schema.prisma` only
 - The DB is the source of truth for categories/navigation reads
+- Preferred shell helpers for Prisma schema updates are `dbpushlocal` and `dbpushprod`
 
 For deployment/bootstrap/infrastructure detail, read `PROJECT-STATUS-REFERENCE.md`.
 
@@ -255,6 +273,9 @@ src/lib/
 13. The directory rollout requires the target environment to have the new Prisma schema applied. If `/directory` throws runtime Prisma errors about missing `organizations` or `users.isDirectoryListed`, run `npx prisma db push --schema prisma/schema.prisma` against that environment's database.
 14. The trusted-nav / `Help Us Grow` rollout also requires the current Prisma schema to be applied. If category reads fail with missing `categories.minTrustLevel`, run `npx prisma db push --schema prisma/schema.prisma` against that environment before loading `/api/categories` or `/api/admin/categories`.
 15. The admin event location/organization rollout also requires the current Prisma schema to be applied. If admin or public event creation fails because `locations` / `events.locationId` / `events.organizationId` are missing, run `npx prisma db push --schema prisma/schema.prisma` against that environment before using the new location selector or organization link flow.
+16. The organization forms rollout also requires the current Prisma schema to be applied. If `/admin/organizations/[id]` fails with Prisma errors about missing `organization_forms` or related organization-form tables, run `npx prisma db push --schema prisma/schema.prisma` against that environment before opening the new `Forms` tab.
+17. Treat `prisma db push` as environment-specific. The command updates whichever database `DATABASE_URL` points to in the shell where it is run. Local terminal + local `.env` updates local Docker Postgres only; production deploy shell / production env vars updates production only.
+18. Current preferred operator workflow is to use the shell helpers `dbpushlocal` and `dbpushprod` from `~/.zshrc` rather than manually exporting and unsetting `DATABASE_URL` in the active shell.
 
 For the full gotcha list, verification notes, and deployment constraints, read `PROJECT-STATUS-REFERENCE.md`.
 
@@ -278,6 +299,7 @@ Use these instead of growing this file again:
 - `GRANT-STRATEGY.md` — grant positioning, target funders, structural prerequisites, and recommended outreach sequence
 - `OBITUARIES-PLAN.md` — obituary/memorial system direction
 - `MONETIZATION-PLAN.md` — funding/revenue sequencing
+- `USER-SUBSCRIPTIONS-PLAN.md` — dedicated future subscription/plans/entitlements direction separate from existing membership tables
 - `DONATIONS-TRANSPARENCY-PLAN.md` — donations/transparency direction
 - `ARTICLE-SOURCING-PLAN.md` — citations/sourcing direction
 - `highlander-today-spec.md` — deep product spec

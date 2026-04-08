@@ -153,9 +153,19 @@ export default function SubmitHelpWantedPage() {
           <button
             type="button"
             onClick={() => router.push('/help-wanted/manage')}
-            className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:opacity-90"
+            aria-label="My posts"
+            title="My posts"
+            className="page-header-action border-white bg-white text-slate-950 hover:opacity-90"
           >
-            My Posts
+            <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path strokeLinecap="round" d="M6 5.5h8" />
+              <path strokeLinecap="round" d="M6 10h8" />
+              <path strokeLinecap="round" d="M6 14.5h8" />
+              <circle cx="3.5" cy="5.5" r="0.75" fill="currentColor" stroke="none" />
+              <circle cx="3.5" cy="10" r="0.75" fill="currentColor" stroke="none" />
+              <circle cx="3.5" cy="14.5" r="0.75" fill="currentColor" stroke="none" />
+            </svg>
+            <span className="page-header-action-label">My Posts</span>
           </button>
         }
       />

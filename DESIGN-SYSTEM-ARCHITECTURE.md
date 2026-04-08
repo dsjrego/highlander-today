@@ -93,6 +93,7 @@ These patterns already exist in partial form:
 
 - `src/components/shared/InternalPageHeader.tsx` is the active shared page-header-style component for many public/internal pages.
 - `src/app/globals.css` already defines shared card vocabulary such as `card`, `card-label`, `card-title`, and `card-body`.
+- `src/app/globals.css` also defines the compact `admin-list` table vocabulary used by the strongest current admin operational surfaces.
 - Public pages already reuse shared top-of-page treatment and shared title styling in multiple places.
 
 The next step is to continue extending these patterns deliberately instead of creating one-off naming conventions per page.
@@ -210,6 +211,20 @@ As shared surfaces are touched, prefer moving them toward this pattern:
 
 This should be done incrementally, not as a disruptive rewrite.
 
+## Admin List Standard
+
+For dense admin operational surfaces, the canonical list treatment is the compact table/list vocabulary already used by:
+
+- `src/app/admin/articles/ArticleTabs.tsx` draft/pending/approved/archive tabs
+- other admin list surfaces that already use `admin-list`, `admin-list-table`, `admin-list-row`, `admin-list-cell`, and related classes from `src/app/globals.css`
+
+Admin list rule:
+
+- when an admin screen is primarily reviewing or editing multiple records, default to the compact `admin-list` table style rather than stacked cards
+- use card/tab shells around the list when needed, but keep the records themselves in the shared `admin-list` structure
+- treat the article draft-tab list style as the current canonical reference for spacing, density, and interaction language across admin lists
+- only diverge when the data is not meaningfully tabular or when a list would materially hurt usability
+
 ## Current Canonical Vocabulary
 
 For now, the preferred shared vocabulary is:
@@ -237,5 +252,13 @@ For now, the preferred shared vocabulary is:
 - `card-footer`
 - `card-actions`
 - `app-footer`
+- `admin-list`
+- `admin-list-toolbar`
+- `admin-list-table`
+- `admin-list-head`
+- `admin-list-header-cell`
+- `admin-list-row`
+- `admin-list-cell`
+- `admin-list-empty`
 
 Use this document as the reference point when introducing new shared UI terminology.

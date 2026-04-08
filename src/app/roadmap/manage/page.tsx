@@ -146,14 +146,22 @@ export default function ManageRoadmapIdeasPage() {
             <button
               type="button"
               onClick={() => router.push('/roadmap')}
-              className="rounded-full border border-white/14 bg-white/8 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/12"
+              aria-label="View roadmap"
+              title="View roadmap"
+              className="page-header-action border-white/14 bg-white/8 text-white hover:bg-white/12"
             >
-              View Roadmap
+              <svg aria-hidden="true" viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                <path d="M2.5 8s2.5-4 5.5-4 5.5 4 5.5 4-2.5 4-5.5 4S2.5 8 2.5 8Z" />
+                <circle cx="8" cy="8" r="1.5" />
+              </svg>
+              <span className="page-header-action-label">View Roadmap</span>
             </button>
             <button
               type="button"
               onClick={() => router.push('/roadmap/submit')}
-              className="inline-flex items-center rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-950 transition hover:opacity-90"
+              aria-label="Submit idea"
+              title="Submit idea"
+              className="page-header-action border-white bg-white text-slate-950 hover:opacity-90"
             >
               <svg
                 aria-hidden="true"
@@ -166,7 +174,7 @@ export default function ManageRoadmapIdeasPage() {
               >
                 <path d="M8 3.25v9.5M3.25 8h9.5" />
               </svg>
-              Submit Idea
+              <span className="page-header-action-label">Submit Idea</span>
             </button>
           </>
         }

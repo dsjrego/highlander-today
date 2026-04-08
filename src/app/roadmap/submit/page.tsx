@@ -110,9 +110,19 @@ export default function SubmitRoadmapIdeaPage() {
           <button
             type="button"
             onClick={() => router.push('/roadmap/manage')}
-            className="rounded-full border border-white/14 bg-white/8 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/12"
+            aria-label="My ideas"
+            title="My ideas"
+            className="page-header-action border-white/14 bg-white/8 text-white hover:bg-white/12"
           >
-            My Ideas
+            <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path strokeLinecap="round" d="M6 5.5h8" />
+              <path strokeLinecap="round" d="M6 10h8" />
+              <path strokeLinecap="round" d="M6 14.5h8" />
+              <circle cx="3.5" cy="5.5" r="0.75" fill="currentColor" stroke="none" />
+              <circle cx="3.5" cy="10" r="0.75" fill="currentColor" stroke="none" />
+              <circle cx="3.5" cy="14.5" r="0.75" fill="currentColor" stroke="none" />
+            </svg>
+            <span className="page-header-action-label">My Ideas</span>
           </button>
         }
       />

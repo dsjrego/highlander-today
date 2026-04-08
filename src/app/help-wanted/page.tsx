@@ -129,29 +129,50 @@ export default function HelpWantedPage() {
             {isTrusted ? (
               <Link
                 href="/help-wanted/manage"
-                className="rounded-full border border-white/14 bg-white/8 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/12"
+                aria-label="My posts"
+                title="My posts"
+                className="page-header-action border-white/14 bg-white/8 text-white hover:bg-white/12"
               >
-                My Posts
+                <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path strokeLinecap="round" d="M6 5.5h8" />
+                  <path strokeLinecap="round" d="M6 10h8" />
+                  <path strokeLinecap="round" d="M6 14.5h8" />
+                  <circle cx="3.5" cy="5.5" r="0.75" fill="currentColor" stroke="none" />
+                  <circle cx="3.5" cy="10" r="0.75" fill="currentColor" stroke="none" />
+                  <circle cx="3.5" cy="14.5" r="0.75" fill="currentColor" stroke="none" />
+                </svg>
+                <span className="page-header-action-label">My Posts</span>
               </Link>
             ) : null}
             {isTrusted ? (
               <Link
                 href="/help-wanted/submit"
-                className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:opacity-90"
+                aria-label="Post opportunity"
+                title="Post opportunity"
+                className="page-header-action border-white bg-white text-slate-950 hover:opacity-90"
               >
-                Post Opportunity
+                <svg aria-hidden="true" viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M8 3.25v9.5M3.25 8h9.5" />
+                </svg>
+                <span className="page-header-action-label">Post Opportunity</span>
               </Link>
             ) : null}
             <button
               type="button"
               onClick={() => setShowResolved((current) => !current)}
-              className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+              aria-label={showResolved ? 'Showing filled / closed' : 'Show resolved too'}
+              title={showResolved ? 'Showing filled / closed' : 'Show resolved too'}
+              className={`page-header-action ${
                 showResolved
                   ? 'border-white bg-white text-slate-950'
                   : 'border-white/14 bg-white/8 text-white/80 hover:bg-white/12 hover:text-white'
               }`}
             >
-              {showResolved ? 'Showing Filled / Closed' : 'Show Resolved Too'}
+              <svg aria-hidden="true" viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                <path d="M2.5 8s2.5-4 5.5-4 5.5 4 5.5 4-2.5 4-5.5 4S2.5 8 2.5 8Z" />
+                <circle cx="8" cy="8" r="1.5" />
+              </svg>
+              <span className="page-header-action-label">{showResolved ? 'Showing Filled / Closed' : 'Show Resolved Too'}</span>
             </button>
           </>
         }

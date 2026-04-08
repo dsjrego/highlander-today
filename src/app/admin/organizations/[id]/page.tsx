@@ -109,6 +109,32 @@ export default async function AdminOrganizationDetailPage({ params }: PageProps)
           },
         },
       },
+      community: {
+        select: {
+          memberships: {
+            where: {
+              user: {
+                organizationMemberships: {
+                  none: {
+                    organizationId: params.id,
+                  },
+                },
+              },
+            },
+            orderBy: [{ user: { lastName: 'asc' } }, { user: { firstName: 'asc' } }],
+            select: {
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+      },
       events: {
         orderBy: [{ startDatetime: 'asc' }, { createdAt: 'desc' }],
         select: {
@@ -125,6 +151,50 @@ export default async function AdminOrganizationDetailPage({ params }: PageProps)
               addressLine1: true,
               city: true,
               state: true,
+            },
+          },
+        },
+      },
+      forms: {
+        orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          description: true,
+          status: true,
+          isPubliclyListed: true,
+          minimumTrustLevel: true,
+          opensAt: true,
+          closesAt: true,
+          publishedAt: true,
+          closedAt: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: {
+            select: {
+              questions: true,
+              submissions: true,
+            },
+          },
+          questions: {
+            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+            select: {
+              id: true,
+              prompt: true,
+              helpText: true,
+              type: true,
+              isRequired: true,
+              sortOrder: true,
+              options: {
+                orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+                select: {
+                  id: true,
+                  label: true,
+                  value: true,
+                  sortOrder: true,
+                },
+              },
             },
           },
         },
@@ -155,7 +225,7 @@ export default async function AdminOrganizationDetailPage({ params }: PageProps)
         <div className="admin-card-body space-y-6">
           <div className="space-y-2">
             <h1 className="text-2xl font-black tracking-[-0.03em] text-slate-950">{organization.name}</h1>
-            <p className="text-sm text-slate-600">Manage public profile details, locations, departments, contacts, and roster visibility.</p>
+            <p className="text-sm text-slate-600">Manage public profile details, locations, departments, contacts, roster visibility, and organization forms.</p>
           </div>
           <OrganizationDetailEditor organization={organization} />
         </div>

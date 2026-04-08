@@ -120,6 +120,10 @@
       opacity 160ms ease;
   }
 
+  .page-header-action-label {
+    display: none;
+  }
+
   .page-header-action:hover:not(:disabled) {
     border-color: rgba(255, 255, 255, 0.26);
     background: linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
@@ -1099,6 +1103,10 @@
     .page-header-action {
       min-height: 2.25rem;
       padding: 0.5rem 0.9rem;
+    }
+
+    .page-header-action-label {
+      display: inline;
     }
   }
 }

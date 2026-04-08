@@ -213,6 +213,8 @@ export default function SubmitArticlePage() {
               const userId = (session?.user as { id?: string } | undefined)?.id;
               router.push(userId ? `/profile/${userId}?tab=local-life` : '/profile');
             }}
+            aria-label="My articles"
+            title="My articles"
             className="page-header-action"
           >
             <svg
@@ -230,7 +232,7 @@ export default function SubmitArticlePage() {
               <circle cx="3.5" cy="10" r="0.75" fill="currentColor" stroke="none" />
               <circle cx="3.5" cy="14.5" r="0.75" fill="currentColor" stroke="none" />
             </svg>
-            My Articles
+            <span className="page-header-action-label">My Articles</span>
           </button>
         }
       />
