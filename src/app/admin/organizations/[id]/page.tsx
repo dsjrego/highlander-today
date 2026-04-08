@@ -197,6 +197,29 @@ export default async function AdminOrganizationDetailPage({ params }: PageProps)
               },
             },
           },
+          submissions: {
+            orderBy: [{ submittedAt: 'desc' }],
+            select: {
+              id: true,
+              submittedAt: true,
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                },
+              },
+              answers: {
+                select: {
+                  id: true,
+                  questionId: true,
+                  selectedOptionId: true,
+                  textValue: true,
+                },
+              },
+            },
+          },
         },
       },
     },

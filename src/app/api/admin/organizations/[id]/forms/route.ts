@@ -142,6 +142,29 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
             },
           },
         },
+        submissions: {
+          orderBy: [{ submittedAt: 'desc' }],
+          select: {
+            id: true,
+            submittedAt: true,
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+            answers: {
+              select: {
+                id: true,
+                questionId: true,
+                selectedOptionId: true,
+                textValue: true,
+              },
+            },
+          },
+        },
       },
     });
 

@@ -1,7 +1,8 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
-import { ExternalLink, FileText, ListChecks, Plus, Save, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { FormEvent, Fragment, useEffect, useMemo, useState } from 'react';
+import { ExternalLink, ListChecks, Plus, Save, Trash2 } from 'lucide-react';
 import { CrudActionButton } from '@/components/shared/CrudAction';
 import type { TrustLevelValue } from '@/lib/trust-access';
 import {
@@ -51,6 +52,22 @@ interface OrganizationFormRecord {
     submissions: number;
   };
   questions: FormQuestionRecord[];
+  submissions: {
+    id: string;
+    submittedAt: string | Date;
+    user: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+    answers: {
+      id: string;
+      questionId: string;
+      selectedOptionId: string | null;
+      textValue: string | null;
+    }[];
+  }[];
 }
 
 interface OrganizationFormsManagerProps {
@@ -58,6 +75,9 @@ interface OrganizationFormsManagerProps {
   organizationSlug: string;
   forms: OrganizationFormRecord[];
 }
+
+const ORGANIZATION_FORM_SUBTABS = ['forms', 'create'] as const;
+type OrganizationFormSubtab = (typeof ORGANIZATION_FORM_SUBTABS)[number];
 
 interface OrganizationFormState {
   title: string;
@@ -77,6 +97,9 @@ interface OrganizationFormQuestionState {
   sortOrder: string;
   optionsText: string;
 }
+
+const ORGANIZATION_FORM_CARD_TABS = ['edit', 'questions', 'results', 'create-question'] as const;
+type OrganizationFormCardTab = (typeof ORGANIZATION_FORM_CARD_TABS)[number];
 
 function formatDateTimeForInput(value: string | Date | null) {
   if (!value) {
@@ -147,6 +170,27 @@ function stripHtml(value: string | null) {
   }
 
   return value.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function formatUserName(firstName: string, lastName: string) {
+  const fullName = [lastName, firstName].filter(Boolean).join(', ');
+  return fullName || 'Unnamed user';
+}
+
+function formatResponseValue(question: FormQuestionRecord, answers: OrganizationFormRecord['submissions'][number]['answers']) {
+  if (question.type === 'TEXT_SHORT' || question.type === 'TEXT_LONG') {
+    const textValues = answers
+      .map((answer) => answer.textValue?.trim())
+      .filter((value): value is string => Boolean(value));
+
+    return textValues.length > 0 ? textValues.join(' | ') : 'No answer';
+  }
+
+  const selectedLabels = answers
+    .map((answer) => question.options.find((option) => option.id === answer.selectedOptionId)?.label)
+    .filter((value): value is string => Boolean(value));
+
+  return selectedLabels.length > 0 ? selectedLabels.join(', ') : 'No answer';
 }
 
 function FormQuestionEditor({
@@ -319,17 +363,29 @@ function OrganizationFormCard({
 }) {
   const [formState, setFormState] = useState<OrganizationFormState>(() => buildFormState(form));
   const [questionState, setQuestionState] = useState<OrganizationFormQuestionState>(() => buildQuestionState());
+  const [activeTab, setActiveTab] = useState<OrganizationFormCardTab>('edit');
+  const [expandedQuestionId, setExpandedQuestionId] = useState<string | null>(null);
+  const [origin, setOrigin] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCreatingQuestion, setIsCreatingQuestion] = useState(false);
   const previewPath = `/organizations/${organizationSlug}/forms/${form.slug}`;
+  const shareUrl = origin ? new URL(previewPath, origin).toString() : previewPath;
   const requiresQuestionOptions = questionState.type === 'SINGLE_CHOICE' || questionState.type === 'MULTIPLE_CHOICE';
   const sortedQuestions = useMemo(
     () => [...form.questions].sort((a, b) => (a.sortOrder === b.sortOrder ? a.prompt.localeCompare(b.prompt) : a.sortOrder - b.sortOrder)),
     [form.questions]
   );
+  const sortedSubmissions = useMemo(
+    () => [...form.submissions].sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()),
+    [form.submissions]
+  );
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   async function handleSaveForm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -422,6 +478,7 @@ function OrganizationFormCard({
           questions: form._count.questions + 1,
         },
       });
+      setExpandedQuestionId(data.question.id);
       setQuestionState(buildQuestionState());
       setSuccess('Question added.');
     } catch (error) {
@@ -433,255 +490,390 @@ function OrganizationFormCard({
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5">
-      <form onSubmit={handleSaveForm}>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-lg font-bold text-slate-950">{form.title}</h3>
-              <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                {formatOrganizationFormStatusLabel(form.status)}
-              </span>
-              <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                {form._count.questions} questions
-              </span>
-              <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                {form._count.submissions} responses
-              </span>
-            </div>
-            <p className="text-sm text-slate-600">
-              {stripHtml(form.description) || 'No description yet.'}
-            </p>
-            <div className="flex flex-wrap items-center gap-3 text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
-              <span>Share Path: {previewPath}</span>
-              <span>Updated {formatDisplayDate(form.updatedAt)}</span>
-              <span>{form.isPubliclyListed ? 'Listed on org page' : 'Direct link only'}</span>
-            </div>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-lg font-bold text-slate-950">{form.title}</h3>
+            <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+              {formatOrganizationFormStatusLabel(form.status)}
+            </span>
+            <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+              {form._count.questions} questions
+            </span>
+            <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+              {form._count.submissions} responses
+            </span>
           </div>
-
-          <div className="flex flex-wrap gap-3">
-            <CrudActionButton type="submit" variant="primary" icon={Save} label="Save form" disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Save Form'}
-            </CrudActionButton>
-            <CrudActionButton type="button" variant="secondary" icon={ExternalLink} label="Copy share path" onClick={() => navigator.clipboard.writeText(previewPath)}>
-              Copy Path
-            </CrudActionButton>
-            <CrudActionButton type="button" variant="danger" icon={Trash2} label="Delete form" onClick={handleDeleteForm} disabled={isDeleting}>
-              {isDeleting ? 'Deleting...' : 'Delete Form'}
-            </CrudActionButton>
-          </div>
+          <p className="text-sm text-slate-600">
+            {stripHtml(form.description) || 'No description yet.'}
+          </p>
         </div>
 
-        <div className="mt-5 grid gap-4 lg:grid-cols-2">
-          <div>
-            <label className="form-label text-slate-500">Title</label>
-            <input
-              value={formState.title}
-              onChange={(event) => setFormState((current) => ({ ...current, title: event.target.value }))}
-              className="form-input"
-            />
-          </div>
-          <div>
-            <label className="form-label text-slate-500">Status</label>
-            <select
-              value={formState.status}
-              onChange={(event) =>
-                setFormState((current) => ({
-                  ...current,
-                  status: event.target.value as OrganizationFormStatus,
-                }))
-              }
-              className="form-input"
-            >
-              {ORGANIZATION_FORM_STATUS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="form-label text-slate-500">Minimum Access</label>
-            <select
-              value={formState.minimumTrustLevel}
-              onChange={(event) =>
-                setFormState((current) => ({
-                  ...current,
-                  minimumTrustLevel: event.target.value as OrganizationFormMinimumTrustLevel,
-                }))
-              }
-              className="form-input"
-            >
-              {ORGANIZATION_FORM_MINIMUM_TRUST_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="form-label text-slate-500">Open At</label>
-            <input
-              type="datetime-local"
-              value={formState.opensAt}
-              onChange={(event) => setFormState((current) => ({ ...current, opensAt: event.target.value }))}
-              className="form-input"
-            />
-          </div>
-          <div>
-            <label className="form-label text-slate-500">Close At</label>
-            <input
-              type="datetime-local"
-              value={formState.closesAt}
-              onChange={(event) => setFormState((current) => ({ ...current, closesAt: event.target.value }))}
-              className="form-input"
-            />
-          </div>
-          <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3">
-            <input
-              type="checkbox"
-              checked={formState.isPubliclyListed}
-              onChange={(event) => setFormState((current) => ({ ...current, isPubliclyListed: event.target.checked }))}
-              className="h-4 w-4 rounded border-slate-300 text-slate-950 focus:ring-slate-300"
-            />
-            <span className="text-sm font-medium text-slate-700">Show on the public organization page</span>
-          </label>
-          <div className="lg:col-span-2">
-            <label className="form-label text-slate-500">Description</label>
-            <textarea
-              value={formState.description}
-              onChange={(event) => setFormState((current) => ({ ...current, description: event.target.value }))}
-              className="form-input min-h-[120px]"
-            />
-          </div>
+        <div className="flex flex-wrap gap-3">
+          <CrudActionButton type="button" variant="secondary" icon={ExternalLink} label="Copy share URL" onClick={() => navigator.clipboard.writeText(origin ? shareUrl : previewPath)}>
+            Copy URL
+          </CrudActionButton>
+          <CrudActionButton type="button" variant="danger" icon={Trash2} label="Delete form" onClick={handleDeleteForm} disabled={isDeleting}>
+            {isDeleting ? 'Deleting...' : 'Delete Form'}
+          </CrudActionButton>
         </div>
-      </form>
+      </div>
+
+      <div className="relative top-[2px] mt-5 flex flex-wrap gap-0 pb-0 pl-2">
+        {ORGANIZATION_FORM_CARD_TABS.map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setActiveTab(tab)}
+            className={`admin-card-tab scale-[0.95] ${activeTab === tab ? 'admin-card-tab-active' : 'admin-card-tab-inactive'}`}
+          >
+            {tab === 'edit' ? 'Details' : tab === 'questions' ? 'Questions' : tab === 'results' ? 'Results' : (
+              <span className="inline-flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                <span>Question</span>
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/40 p-4">
+        {activeTab === 'edit' ? (
+          <form onSubmit={handleSaveForm}>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div>
+                <label className="form-label text-slate-500">Title</label>
+                <input
+                  value={formState.title}
+                  onChange={(event) => setFormState((current) => ({ ...current, title: event.target.value }))}
+                  className="form-input"
+                />
+              </div>
+              <div>
+                <label className="form-label text-slate-500">Status</label>
+                <select
+                  value={formState.status}
+                  onChange={(event) =>
+                    setFormState((current) => ({
+                      ...current,
+                      status: event.target.value as OrganizationFormStatus,
+                    }))
+                  }
+                  className="form-input"
+                >
+                  {ORGANIZATION_FORM_STATUS_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="form-label text-slate-500">Minimum Access</label>
+                <select
+                  value={formState.minimumTrustLevel}
+                  onChange={(event) =>
+                    setFormState((current) => ({
+                      ...current,
+                      minimumTrustLevel: event.target.value as OrganizationFormMinimumTrustLevel,
+                    }))
+                  }
+                  className="form-input"
+                >
+                  {ORGANIZATION_FORM_MINIMUM_TRUST_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="form-label text-slate-500">Open At</label>
+                <input
+                  type="datetime-local"
+                  value={formState.opensAt}
+                  onChange={(event) => setFormState((current) => ({ ...current, opensAt: event.target.value }))}
+                  className="form-input"
+                />
+              </div>
+              <div>
+                <label className="form-label text-slate-500">Close At</label>
+                <input
+                  type="datetime-local"
+                  value={formState.closesAt}
+                  onChange={(event) => setFormState((current) => ({ ...current, closesAt: event.target.value }))}
+                  className="form-input"
+                />
+              </div>
+              <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={formState.isPubliclyListed}
+                  onChange={(event) => setFormState((current) => ({ ...current, isPubliclyListed: event.target.checked }))}
+                  className="h-4 w-4 rounded border-slate-300 text-slate-950 focus:ring-slate-300"
+                />
+                <span className="text-sm font-medium text-slate-700">Show on the public organization page</span>
+              </label>
+              <div className="lg:col-span-2">
+                <label className="form-label text-slate-500">Description</label>
+                <textarea
+                  value={formState.description}
+                  onChange={(event) => setFormState((current) => ({ ...current, description: event.target.value }))}
+                  className="form-input min-h-[120px]"
+                />
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <CrudActionButton type="submit" variant="primary" icon={Save} label="Save form" disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'Save Form'}
+              </CrudActionButton>
+            </div>
+          </form>
+        ) : activeTab === 'questions' ? (
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="rounded-full border border-slate-200 p-2 text-slate-600">
+                <ListChecks className="h-4 w-4" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold uppercase tracking-[0.16em] text-slate-500">Questions</h4>
+                <p className="text-sm text-slate-600">Question ordering is manual for now through `Sort Order` fields.</p>
+              </div>
+            </div>
+
+            <div className="admin-list mt-4">
+              {sortedQuestions.length ? (
+                <div className="admin-list-table-wrap">
+                  <table className="admin-list-table">
+                    <thead className="admin-list-head">
+                      <tr>
+                        <th className="admin-list-header-cell">Question</th>
+                        <th className="admin-list-header-cell">Type</th>
+                        <th className="admin-list-header-cell">Required</th>
+                        <th className="admin-list-header-cell">Sort</th>
+                        <th className="admin-list-header-cell">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedQuestions.map((question) => {
+                        const isExpanded = expandedQuestionId === question.id;
+
+                        return (
+                          <Fragment key={question.id}>
+                            <tr className="admin-list-row">
+                              <td className="admin-list-cell">
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedQuestionId(isExpanded ? null : question.id)}
+                                  className="admin-list-link text-left"
+                                >
+                                  {question.prompt}
+                                </button>
+                              </td>
+                              <td className="admin-list-cell">{formatOrganizationFormQuestionTypeLabel(question.type)}</td>
+                              <td className="admin-list-cell">{question.isRequired ? 'Required' : 'Optional'}</td>
+                              <td className="admin-list-cell">{question.sortOrder}</td>
+                              <td className="admin-list-cell">
+                                <CrudActionButton
+                                  type="button"
+                                  variant="inline"
+                                  icon={ListChecks}
+                                  label={isExpanded ? 'Close question' : 'Manage question'}
+                                  onClick={() => setExpandedQuestionId(isExpanded ? null : question.id)}
+                                >
+                                  {isExpanded ? 'Close' : 'Manage'}
+                                </CrudActionButton>
+                              </td>
+                            </tr>
+
+                            {isExpanded ? (
+                              <tr className="admin-list-row bg-slate-50">
+                                <td className="admin-list-cell" colSpan={5}>
+                                  <FormQuestionEditor
+                                    organizationId={organizationId}
+                                    formId={form.id}
+                                    question={question}
+                                    onUpdate={(nextQuestion) =>
+                                      onUpdate({
+                                        ...form,
+                                        questions: form.questions.map((entry) => (entry.id === nextQuestion.id ? nextQuestion : entry)),
+                                      })
+                                    }
+                                    onDelete={(questionId) => {
+                                      onUpdate({
+                                        ...form,
+                                        questions: form.questions.filter((entry) => entry.id !== questionId),
+                                        _count: {
+                                          ...form._count,
+                                          questions: Math.max(0, form._count.questions - 1),
+                                        },
+                                      });
+                                      setExpandedQuestionId((current) => (current === questionId ? null : current));
+                                    }}
+                                  />
+                                </td>
+                              </tr>
+                            ) : null}
+                          </Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-6 text-sm text-slate-500">
+                  No questions yet. Start with `+ Question`.
+                </div>
+              )}
+            </div>
+          </div>
+        ) : activeTab === 'results' ? (
+          <div className="space-y-5">
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Responses</p>
+                <p className="mt-2 text-2xl font-bold text-slate-950">{form._count.submissions}</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Questions</p>
+                <p className="mt-2 text-2xl font-bold text-slate-950">{form._count.questions}</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Latest Response</p>
+                <p className="mt-2 text-sm font-semibold text-slate-950">
+                  {sortedSubmissions[0] ? formatDisplayDate(sortedSubmissions[0].submittedAt) : 'No responses yet'}
+                </p>
+              </div>
+            </div>
+
+            {sortedQuestions.length > 0 ? (
+              <div className="space-y-4">
+                {sortedQuestions.map((question, index) => {
+                  const answeredSubmissions = sortedSubmissions.filter((submission) =>
+                    submission.answers.some((answer) => answer.questionId === question.id)
+                  );
+
+                  return (
+                    <section key={question.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                      <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                        <span>Question {index + 1}</span>
+                        <span>{question.isRequired ? 'Required' : 'Optional'}</span>
+                        <span>{answeredSubmissions.length} answered</span>
+                      </div>
+                      <h4 className="mt-2 text-base font-semibold text-slate-950">{question.prompt}</h4>
+                      {question.helpText ? <p className="mt-1 text-sm text-slate-600">{question.helpText}</p> : null}
+
+                      <div className="mt-4 space-y-2">
+                        {answeredSubmissions.length > 0 ? (
+                          answeredSubmissions.map((submission) => (
+                            <div key={`${question.id}-${submission.id}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                              <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                                <span>{formatUserName(submission.user.firstName, submission.user.lastName)}</span>
+                                <span>{formatDisplayDate(submission.submittedAt)}</span>
+                              </div>
+                              <p className="mt-2 text-sm text-slate-800">
+                                {formatResponseValue(
+                                  question,
+                                  submission.answers.filter((answer) => answer.questionId === question.id)
+                                )}
+                              </p>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-4 text-sm text-slate-500">
+                            No responses yet for this question.
+                          </div>
+                        )}
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-6 text-sm text-slate-500">
+                No questions have been added to this form yet.
+              </div>
+            )}
+          </div>
+        ) : (
+          <form onSubmit={handleCreateQuestion} className="space-y-3 rounded-2xl border border-dashed border-slate-300 bg-white p-4">
+            <h4 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">Add Question</h4>
+            <div className="grid gap-3 lg:grid-cols-2">
+              <div className="lg:col-span-2">
+                <label className="form-label text-slate-500">Prompt</label>
+                <input
+                  value={questionState.prompt}
+                  onChange={(event) => setQuestionState((current) => ({ ...current, prompt: event.target.value }))}
+                  className="form-input"
+                />
+              </div>
+              <div>
+                <label className="form-label text-slate-500">Type</label>
+                <select
+                  value={questionState.type}
+                  onChange={(event) =>
+                    setQuestionState((current) => ({
+                      ...current,
+                      type: event.target.value as OrganizationFormQuestionType,
+                    }))
+                  }
+                  className="form-input"
+                >
+                  {ORGANIZATION_FORM_QUESTION_TYPE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="form-label text-slate-500">Sort Order</label>
+                <input
+                  value={questionState.sortOrder}
+                  onChange={(event) => setQuestionState((current) => ({ ...current, sortOrder: event.target.value }))}
+                  className="form-input"
+                />
+              </div>
+              <div className="lg:col-span-2">
+                <label className="form-label text-slate-500">Help Text</label>
+                <textarea
+                  value={questionState.helpText}
+                  onChange={(event) => setQuestionState((current) => ({ ...current, helpText: event.target.value }))}
+                  className="form-input min-h-[96px]"
+                />
+              </div>
+              {requiresQuestionOptions ? (
+                <div className="lg:col-span-2">
+                  <label className="form-label text-slate-500">Options</label>
+                  <textarea
+                    value={questionState.optionsText}
+                    onChange={(event) => setQuestionState((current) => ({ ...current, optionsText: event.target.value }))}
+                    className="form-input min-h-[120px]"
+                    placeholder={'One option per line'}
+                  />
+                </div>
+              ) : null}
+              <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={questionState.isRequired}
+                  onChange={(event) => setQuestionState((current) => ({ ...current, isRequired: event.target.checked }))}
+                  className="h-4 w-4 rounded border-slate-300 text-slate-950 focus:ring-slate-300"
+                />
+                <span className="text-sm font-medium text-slate-700">Required question</span>
+              </label>
+            </div>
+
+            <CrudActionButton type="submit" variant="primary" icon={Plus} label="Add question" disabled={isCreatingQuestion}>
+              {isCreatingQuestion ? 'Adding...' : 'Add Question'}
+            </CrudActionButton>
+          </form>
+        )}
+      </div>
 
       {error ? <p className="mt-4 text-sm font-medium text-rose-600">{error}</p> : null}
       {success ? <p className="mt-4 text-sm font-medium text-emerald-600">{success}</p> : null}
-
-      <div className="mt-6 border-t border-slate-200 pt-6">
-        <div className="flex items-center gap-3">
-          <div className="rounded-full border border-slate-200 p-2 text-slate-600">
-            <ListChecks className="h-4 w-4" />
-          </div>
-          <div>
-            <h4 className="text-sm font-bold uppercase tracking-[0.16em] text-slate-500">Questions</h4>
-            <p className="text-sm text-slate-600">Question ordering is manual for now through `Sort Order` fields.</p>
-          </div>
-        </div>
-
-        <div className="mt-4 space-y-4">
-          {sortedQuestions.length ? (
-            sortedQuestions.map((question) => (
-              <div key={question.id} className="space-y-2">
-                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  <span>{question.sortOrder}</span>
-                  <span>{formatOrganizationFormQuestionTypeLabel(question.type)}</span>
-                  <span>{question.isRequired ? 'Required' : 'Optional'}</span>
-                </div>
-                <FormQuestionEditor
-                  organizationId={organizationId}
-                  formId={form.id}
-                  question={question}
-                  onUpdate={(nextQuestion) =>
-                    onUpdate({
-                      ...form,
-                      questions: form.questions.map((entry) => (entry.id === nextQuestion.id ? nextQuestion : entry)),
-                    })
-                  }
-                  onDelete={(questionId) =>
-                    onUpdate({
-                      ...form,
-                      questions: form.questions.filter((entry) => entry.id !== questionId),
-                      _count: {
-                        ...form._count,
-                        questions: Math.max(0, form._count.questions - 1),
-                      },
-                    })
-                  }
-                />
-              </div>
-            ))
-          ) : (
-            <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-6 text-sm text-slate-500">
-              No questions yet. Start with a text prompt or a simple choice list.
-            </div>
-          )}
-        </div>
-
-        <form onSubmit={handleCreateQuestion} className="mt-5 space-y-3 rounded-2xl border border-dashed border-slate-300 p-4">
-          <h4 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">Add Question</h4>
-          <div className="grid gap-3 lg:grid-cols-2">
-            <div className="lg:col-span-2">
-              <label className="form-label text-slate-500">Prompt</label>
-              <input
-                value={questionState.prompt}
-                onChange={(event) => setQuestionState((current) => ({ ...current, prompt: event.target.value }))}
-                className="form-input"
-              />
-            </div>
-            <div>
-              <label className="form-label text-slate-500">Type</label>
-              <select
-                value={questionState.type}
-                onChange={(event) =>
-                  setQuestionState((current) => ({
-                    ...current,
-                    type: event.target.value as OrganizationFormQuestionType,
-                  }))
-                }
-                className="form-input"
-              >
-                {ORGANIZATION_FORM_QUESTION_TYPE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="form-label text-slate-500">Sort Order</label>
-              <input
-                value={questionState.sortOrder}
-                onChange={(event) => setQuestionState((current) => ({ ...current, sortOrder: event.target.value }))}
-                className="form-input"
-              />
-            </div>
-            <div className="lg:col-span-2">
-              <label className="form-label text-slate-500">Help Text</label>
-              <textarea
-                value={questionState.helpText}
-                onChange={(event) => setQuestionState((current) => ({ ...current, helpText: event.target.value }))}
-                className="form-input min-h-[96px]"
-              />
-            </div>
-            {requiresQuestionOptions ? (
-              <div className="lg:col-span-2">
-                <label className="form-label text-slate-500">Options</label>
-                <textarea
-                  value={questionState.optionsText}
-                  onChange={(event) => setQuestionState((current) => ({ ...current, optionsText: event.target.value }))}
-                  className="form-input min-h-[120px]"
-                  placeholder={'One option per line'}
-                />
-              </div>
-            ) : null}
-            <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
-              <input
-                type="checkbox"
-                checked={questionState.isRequired}
-                onChange={(event) => setQuestionState((current) => ({ ...current, isRequired: event.target.checked }))}
-                className="h-4 w-4 rounded border-slate-300 text-slate-950 focus:ring-slate-300"
-              />
-              <span className="text-sm font-medium text-slate-700">Required question</span>
-            </label>
-          </div>
-
-          <CrudActionButton type="submit" variant="primary" icon={Plus} label="Add question" disabled={isCreatingQuestion}>
-            {isCreatingQuestion ? 'Adding...' : 'Add Question'}
-          </CrudActionButton>
-        </form>
-      </div>
     </section>
   );
 }
@@ -692,10 +884,30 @@ export default function OrganizationFormsManager({
   forms: initialForms,
 }: OrganizationFormsManagerProps) {
   const [forms, setForms] = useState(initialForms);
+  const [activeSubtab, setActiveSubtab] = useState<OrganizationFormSubtab>('forms');
   const [createState, setCreateState] = useState<OrganizationFormState>(() => buildFormState());
+  const [expandedFormId, setExpandedFormId] = useState<string | null>(null);
+  const [filterValue, setFilterValue] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const normalizedFilter = filterValue.trim().toLowerCase();
+  const filteredForms = useMemo(() => {
+    const sortedForms = [...forms].sort((a, b) => a.title.localeCompare(b.title));
+
+    if (!normalizedFilter) {
+      return sortedForms;
+    }
+
+    return sortedForms.filter((form) => {
+      const descriptionText = stripHtml(form.description).toLowerCase();
+      return (
+        form.title.toLowerCase().includes(normalizedFilter) ||
+        form.slug.toLowerCase().includes(normalizedFilter) ||
+        descriptionText.includes(normalizedFilter)
+      );
+    });
+  }, [forms, normalizedFilter]);
 
   async function handleCreateForm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -724,6 +936,8 @@ export default function OrganizationFormsManager({
       }
 
       setForms((current) => [data.form, ...current]);
+      setExpandedFormId(data.form.id);
+      setActiveSubtab('forms');
       setCreateState(buildFormState());
       setSuccess('Form created.');
     } catch (error) {
@@ -735,133 +949,233 @@ export default function OrganizationFormsManager({
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5">
-      <div className="flex items-start gap-3">
-        <div className="rounded-full border border-slate-200 p-2 text-slate-600">
-          <FileText className="h-4 w-4" />
-        </div>
-        <div>
-          <h2 className="text-lg font-bold text-slate-950">Forms</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Create organization-owned forms, define access rules, and begin building question sets for public submission routes.
-          </p>
-        </div>
-      </div>
+      {error ? <p className="text-sm font-medium text-rose-600">{error}</p> : null}
+      {success ? <p className="text-sm font-medium text-emerald-600">{success}</p> : null}
 
-      {error ? <p className="mt-4 text-sm font-medium text-rose-600">{error}</p> : null}
-      {success ? <p className="mt-4 text-sm font-medium text-emerald-600">{success}</p> : null}
+      <div className="space-y-0">
+        <div className="relative top-[2px] flex flex-wrap gap-0 pb-0 pl-2">
+          {ORGANIZATION_FORM_SUBTABS.map((tab) => {
+            const isActive = tab === activeSubtab;
+            const label = tab === 'create' ? '+ Form' : 'List';
 
-      <form onSubmit={handleCreateForm} className="mt-5 space-y-3 rounded-2xl border border-dashed border-slate-300 p-4">
-        <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">Create Form</h3>
-        <div className="grid gap-3 lg:grid-cols-2">
-          <div className="lg:col-span-2">
-            <label className="form-label text-slate-500">Title</label>
-            <input
-              value={createState.title}
-              onChange={(event) => setCreateState((current) => ({ ...current, title: event.target.value }))}
-              className="form-input"
-            />
-          </div>
-          <div>
-            <label className="form-label text-slate-500">Status</label>
-            <select
-              value={createState.status}
-              onChange={(event) =>
-                setCreateState((current) => ({
-                  ...current,
-                  status: event.target.value as OrganizationFormStatus,
-                }))
-              }
-              className="form-input"
-            >
-              {ORGANIZATION_FORM_STATUS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="form-label text-slate-500">Minimum Access</label>
-            <select
-              value={createState.minimumTrustLevel}
-              onChange={(event) =>
-                setCreateState((current) => ({
-                  ...current,
-                  minimumTrustLevel: event.target.value as OrganizationFormMinimumTrustLevel,
-                }))
-              }
-              className="form-input"
-            >
-              {ORGANIZATION_FORM_MINIMUM_TRUST_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="form-label text-slate-500">Open At</label>
-            <input
-              type="datetime-local"
-              value={createState.opensAt}
-              onChange={(event) => setCreateState((current) => ({ ...current, opensAt: event.target.value }))}
-              className="form-input"
-            />
-          </div>
-          <div>
-            <label className="form-label text-slate-500">Close At</label>
-            <input
-              type="datetime-local"
-              value={createState.closesAt}
-              onChange={(event) => setCreateState((current) => ({ ...current, closesAt: event.target.value }))}
-              className="form-input"
-            />
-          </div>
-          <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
-            <input
-              type="checkbox"
-              checked={createState.isPubliclyListed}
-              onChange={(event) => setCreateState((current) => ({ ...current, isPubliclyListed: event.target.checked }))}
-              className="h-4 w-4 rounded border-slate-300 text-slate-950 focus:ring-slate-300"
-            />
-            <span className="text-sm font-medium text-slate-700">Show on the public organization page when published</span>
-          </label>
-          <div className="lg:col-span-2">
-            <label className="form-label text-slate-500">Description</label>
-            <textarea
-              value={createState.description}
-              onChange={(event) => setCreateState((current) => ({ ...current, description: event.target.value }))}
-              className="form-input min-h-[120px]"
-            />
-          </div>
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveSubtab(tab)}
+                className={`admin-card-tab scale-[0.97] ${isActive ? 'admin-card-tab-active' : 'admin-card-tab-inactive'}`}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
 
-        <CrudActionButton type="submit" variant="primary" icon={Plus} label="Create form" disabled={isCreating}>
-          {isCreating ? 'Creating...' : 'Create Form'}
-        </CrudActionButton>
-      </form>
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/40 p-4">
+          {activeSubtab === 'create' ? (
+            <form onSubmit={handleCreateForm} className="space-y-3 rounded-2xl border border-dashed border-slate-300 bg-white p-4">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">Create Form</h3>
+              <div className="grid gap-3 lg:grid-cols-2">
+                <div className="lg:col-span-2">
+                  <label className="form-label text-slate-500">Title</label>
+                  <input
+                    value={createState.title}
+                    onChange={(event) => setCreateState((current) => ({ ...current, title: event.target.value }))}
+                    className="form-input"
+                  />
+                </div>
+                <div>
+                  <label className="form-label text-slate-500">Status</label>
+                  <select
+                    value={createState.status}
+                    onChange={(event) =>
+                      setCreateState((current) => ({
+                        ...current,
+                        status: event.target.value as OrganizationFormStatus,
+                      }))
+                    }
+                    className="form-input"
+                  >
+                    {ORGANIZATION_FORM_STATUS_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label text-slate-500">Minimum Access</label>
+                  <select
+                    value={createState.minimumTrustLevel}
+                    onChange={(event) =>
+                      setCreateState((current) => ({
+                        ...current,
+                        minimumTrustLevel: event.target.value as OrganizationFormMinimumTrustLevel,
+                      }))
+                    }
+                    className="form-input"
+                  >
+                    {ORGANIZATION_FORM_MINIMUM_TRUST_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label text-slate-500">Open At</label>
+                  <input
+                    type="datetime-local"
+                    value={createState.opensAt}
+                    onChange={(event) => setCreateState((current) => ({ ...current, opensAt: event.target.value }))}
+                    className="form-input"
+                  />
+                </div>
+                <div>
+                  <label className="form-label text-slate-500">Close At</label>
+                  <input
+                    type="datetime-local"
+                    value={createState.closesAt}
+                    onChange={(event) => setCreateState((current) => ({ ...current, closesAt: event.target.value }))}
+                    className="form-input"
+                  />
+                </div>
+                <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={createState.isPubliclyListed}
+                    onChange={(event) => setCreateState((current) => ({ ...current, isPubliclyListed: event.target.checked }))}
+                    className="h-4 w-4 rounded border-slate-300 text-slate-950 focus:ring-slate-300"
+                  />
+                  <span className="text-sm font-medium text-slate-700">Show on the public organization page when published</span>
+                </label>
+                <div className="lg:col-span-2">
+                  <label className="form-label text-slate-500">Description</label>
+                  <textarea
+                    value={createState.description}
+                    onChange={(event) => setCreateState((current) => ({ ...current, description: event.target.value }))}
+                    className="form-input min-h-[120px]"
+                  />
+                </div>
+              </div>
 
-      <div className="mt-6 space-y-4">
-        {forms.length ? (
-          forms.map((form) => (
-            <OrganizationFormCard
-              key={form.id}
-              organizationId={organizationId}
-              organizationSlug={organizationSlug}
-              form={form}
-              onUpdate={(nextForm) =>
-                setForms((current) =>
-                  current.map((entry) => (entry.id === nextForm.id ? nextForm : entry))
-                )
-              }
-              onDelete={(formId) => setForms((current) => current.filter((entry) => entry.id !== formId))}
-            />
-          ))
-        ) : (
-          <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-sm text-slate-500">
-            No forms yet. Start with a draft intake or signup form and build the questions inside the card after creation.
-          </div>
-        )}
+              <CrudActionButton type="submit" variant="primary" icon={Plus} label="Create form" disabled={isCreating}>
+                {isCreating ? 'Creating...' : 'Create Form'}
+              </CrudActionButton>
+            </form>
+          ) : (
+            <div className="admin-list">
+              <div className="admin-list-toolbar">
+                <label className="admin-list-filter">
+                  <span className="admin-list-filter-label">Filter: Title, Slug</span>
+                  <input
+                    type="text"
+                    value={filterValue}
+                    onChange={(event) => setFilterValue(event.target.value)}
+                    placeholder="Search by form title or slug"
+                    className="admin-list-filter-input"
+                  />
+                </label>
+              </div>
+
+              <div className="admin-list-table-wrap">
+                <table className="admin-list-table">
+                  <thead className="admin-list-head">
+                    <tr>
+                      <th className="admin-list-header-cell">Title</th>
+                      <th className="admin-list-header-cell">Slug</th>
+                      <th className="admin-list-header-cell">Status</th>
+                      <th className="admin-list-header-cell">Questions</th>
+                      <th className="admin-list-header-cell">Responses</th>
+                      <th className="admin-list-header-cell">Updated</th>
+                      <th className="admin-list-header-cell">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredForms.length ? (
+                      filteredForms.map((form) => {
+                        const isExpanded = expandedFormId === form.id;
+                        const previewPath = `/organizations/${organizationSlug}/forms/${form.slug}`;
+
+                        return (
+                          <Fragment key={form.id}>
+                            <tr className="admin-list-row">
+                              <td className="admin-list-cell">
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedFormId(isExpanded ? null : form.id)}
+                                  className="admin-list-cell-button text-left"
+                                >
+                                  {form.title}
+                                </button>
+                              </td>
+                              <td className="admin-list-cell text-xs text-slate-500">{form.slug}</td>
+                              <td className="admin-list-cell">{formatOrganizationFormStatusLabel(form.status)}</td>
+                              <td className="admin-list-cell">{form._count.questions}</td>
+                              <td className="admin-list-cell">{form._count.submissions}</td>
+                              <td className="admin-list-cell">{formatDisplayDate(form.updatedAt)}</td>
+                              <td className="admin-list-cell">
+                                <div className="flex flex-wrap items-center gap-3">
+                                  <CrudActionButton
+                                    type="button"
+                                    variant="inline"
+                                    icon={ListChecks}
+                                    label={isExpanded ? 'Close form' : 'Manage form'}
+                                    onClick={() => setExpandedFormId(isExpanded ? null : form.id)}
+                                  >
+                                    {isExpanded ? 'Close' : 'Manage'}
+                                  </CrudActionButton>
+                                  <Link href={previewPath} target="_blank" className="admin-list-link text-xs">
+                                    <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                                    <span className="sr-only">Open public form</span>
+                                  </Link>
+                                </div>
+                              </td>
+                            </tr>
+
+                            {isExpanded ? (
+                              <tr className="admin-list-row bg-slate-50">
+                                <td className="admin-list-cell" colSpan={7}>
+                                  <OrganizationFormCard
+                                    organizationId={organizationId}
+                                    organizationSlug={organizationSlug}
+                                    form={form}
+                                    onUpdate={(nextForm) =>
+                                      setForms((current) =>
+                                        current.map((entry) => (entry.id === nextForm.id ? nextForm : entry))
+                                      )
+                                    }
+                                    onDelete={(formId) => {
+                                      setForms((current) => current.filter((entry) => entry.id !== formId));
+                                      setExpandedFormId((current) => (current === formId ? null : current));
+                                    }}
+                                  />
+                                </td>
+                              </tr>
+                            ) : null}
+                          </Fragment>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td className="admin-list-empty" colSpan={7}>
+                          No forms match the current filter. Use `+ Form` to create one, then manage it from this list.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="admin-list-pagination">
+                <div className="admin-list-pagination-label">
+                  {filteredForms.length} form{filteredForms.length === 1 ? '' : 's'}
+                </div>
+                <div className="admin-list-pagination-actions" />
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );

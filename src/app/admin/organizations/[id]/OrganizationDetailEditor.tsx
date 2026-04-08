@@ -192,6 +192,22 @@ interface OrganizationDetailRecord {
         sortOrder: number;
       }[];
     }[];
+    submissions: {
+      id: string;
+      submittedAt: string | Date;
+      user: {
+        id: string;
+        firstName: string;
+        lastName: string;
+        email: string;
+      };
+      answers: {
+        id: string;
+        questionId: string;
+        selectedOptionId: string | null;
+        textValue: string | null;
+      }[];
+    }[];
   }[];
 }
 

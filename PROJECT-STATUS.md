@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-04-08 (session 122)
+> **Last updated:** 2026-04-08 (session 127)
 > **Purpose:** Fast-start context for the next session. Read this file first, then open only the supporting docs relevant to the active slice.
 > **Detailed reference:** `PROJECT-STATUS-REFERENCE.md` preserves the fuller implementation ledger, rollout history, verification notes, deployment runbook, and infrastructure rationale that used to live here.
 
@@ -45,6 +45,16 @@
 > **Session 107 note:** the unrelated JSX regression in `/events/submit` was corrected, restoring a clean verification baseline. `npm run lint` and `npm run typecheck` now pass again with the new public organization page and admin organization management surfaces in place.
 >
 > **Session 108 note:** `/admin/organizations/[id]` now uses the same compact admin-card tab language as the other major admin surfaces. The page header now reads `Organization > {name}` with the organization icon, the old summary stat cards were removed, the management UI is split into `Details`, `Locations`, `Departments`, `Contacts`, `Members`, and `Events`, the `Details` tab now supports banner-image upload for `bannerUrl`, and linked organization events are visible from the new `Events` tab with direct links into `/admin/events/[id]`. The `+ Organization` create tab on `/admin/organizations` was intentionally kept as a base-details-only creation form rather than inheriting the full detail-management tabs.
+>
+> **Session 123 note:** the organization-detail `Forms` tab now follows the same compact `admin-list` row structure used by the article admin tabs, and it now uses a nested subtab split for `Forms` and `+ Form` so list management and creation stay separate. Existing forms render in a filterable shared table/list, and the heavier form/question editor only opens inline after choosing `Manage`. Use `ADMIN-LIST-DESIGN.md` as the canonical design note for this list-first admin pattern and its nested admin-subtab rule.
+>
+> **Session 124 note:** public organization-form links now resolve at `/organizations/[slug]/forms/[formSlug]` instead of 404ing. The first live slice is a read-only public form page with sign-in/trust/status gating and question preview, so admin `Share URL` links are real URLs now even though actual submission handling is still pending.
+>
+> **Session 125 note:** published organization forms can now accept a first-pass public submission at `/organizations/[slug]/forms/[formSlug]`. Signed-in users who meet the configured trust threshold can answer the questions and submit once; the page now renders real inputs instead of a read-only preview, and repeat visits show an already-submitted state for that user.
+>
+> **Session 126 note:** admin organization-form management now includes a first-pass `Results` view inside each expanded form record. Admins can switch between `Form` and `Results`, see response counts and latest-response timing, and review saved answers per question with respondent names and submission timestamps.
+>
+> **Session 127 note:** the admin organization-detail `Forms` UI was tightened again for denser day-to-day use. The top-level forms subtabs now read `List` and `+ Form`, expanded forms now use `Details`, `Questions`, `Results`, and `+ Question`, question rows are list-first with inline expansion, and redundant form-header metadata/copy was removed so the management view stays compact.
 >
 > **Session 109 note:** the admin dashboard is starting to shed its static mock cards. `/admin` now reads the live user count from Prisma on the server and links that `Total Users` card into `/admin/users`; the old `News` card was also replaced with a live `Articles` card showing community-scoped `Pending`, `Approved` (`PUBLISHED`), and `Archived` (`UNPUBLISHED`) counts with a direct link into `/admin/articles`. The old placeholder `Pending Approvals` and `Recent Bans` cards were removed, while `Events` and `Marketplace Listings` are still placeholder values until their backing queries are wired.
 >
@@ -132,7 +142,7 @@ Current public/admin direction highlights:
 - `/admin/events` now supports both moderation and direct admin creation through the compact `+ Event` tab, and admin-created events can optionally link to an organization in the same community plus select or create a reusable structured location record.
 - `/admin/categories` has effectively become the **Navigation Menu** admin surface, with compact table-style editing, expand/collapse for nested items, reorder controls, and an `Add Area` tab.
 - `/admin/users` now matches that same compact admin pattern: dense table layout, email column, real last-seen timestamps from login activity, voucher names, colored/iconized manage actions, and inline admin messaging.
-- Admin list rule: when an admin surface is primarily a list of records, default to the compact shared `admin-list` table style used by `/admin/articles` rather than stacked per-record cards.
+- Admin list rule: when an admin surface is primarily a list of records, default to the compact shared `admin-list` table style used by `/admin/articles` rather than stacked per-record cards. When a single admin tab mixes record management and record creation, prefer a nested secondary tab split such as `List` and `+ Form` instead of one long mixed panel. The canonical structure and row-expansion guidance now live in `ADMIN-LIST-DESIGN.md`.
 - The admin sidebar now uses shared nav-item classes/structure plus alternating row backgrounds to keep menu entries visually consistent, and `Events` is a top-level admin item alongside `Articles`, `Navigation`, and the other operational surfaces.
 - The shared public shell uses the active `Youth Local` direction and the shared `InternalPageHeader` pattern.
 - `InternalPageHeader` mobile rule: public mobile page-header actions should be icon-only by default. Keep text hidden unless multiple neighboring actions of the same CRUD type need explicit disambiguation; otherwise rely on the page title plus accessible labels/tooltips for context.
@@ -170,7 +180,7 @@ Current public/admin direction highlights:
 - Food / recipe / grocery is planning-only; use `FOOD-RECIPE-GROCERY-PLAN.md` as the canonical direction for future recipe editorial, structured ingredient utility, and store-linked grocery reservation work rather than extending marketplace models.
 - Directory exists as an early live foundation now, with canonical public organization detail pages at `/organizations/[slug]` and richer admin organization editing at `/admin/organizations/[id]`, but self-claim/self-management flows are still pending.
 - Organization messaging to businesses / government / organizations is still planning-only; use `ORGANIZATION-INBOX-CRM-PLAN.md` as the canonical direction before implementation.
-- Organization-linked forms/questionnaires are still planning-only; use `ORGANIZATION-FORMS-PLAN.md` as the canonical direction before implementation.
+- Organization-linked forms/questionnaires now have a first live public route, admin management surface, one-submission-per-user public response flow, and a basic admin results view. The current admin UI direction is list-first and nested-tabbed rather than card-stacked, but richer response review/editing is still partial. Use `ORGANIZATION-FORMS-PLAN.md` as the canonical direction for the remaining submission/review system.
 - Paid memberships/subscriptions are still planning-only; use `USER-SUBSCRIPTIONS-PLAN.md` as the canonical direction and do not bolt billing/subscription fields onto existing community or organization membership tables.
 - Organization self-listing/help CTA on `/directory` is still intentionally deferred; do not imply a self-serve org creation/claim path until submit-or-claim workflows actually exist.
 - `Help Us Grow` is live as the first in-product trust-bootstrap loop, but it still lacks dismiss/not-known actions, stronger recognition hints, and an explicit admin exception path for genuine newcomers no one recognizes.
