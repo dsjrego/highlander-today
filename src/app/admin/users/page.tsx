@@ -47,6 +47,11 @@ function formatRoleLabel(role: string) {
   return role.replace(/_/g, ' ');
 }
 
+function formatUserName(firstName: string, lastName: string) {
+  const fullName = [lastName, firstName].filter(Boolean).join(', ');
+  return fullName || 'Unnamed user';
+}
+
 function formatDateTime(value: string | null) {
   if (!value) {
     return 'Never';
@@ -507,7 +512,7 @@ export default function UsersPage() {
                           <tr className="admin-list-row">
                             <td className="admin-list-cell">
                               <a href={`/profile/${user.id}`} className="admin-list-link">
-                                {user.firstName} {user.lastName}
+                                {formatUserName(user.firstName, user.lastName)}
                               </a>
                             </td>
                             <td className="admin-list-cell">{user.email}</td>
@@ -583,7 +588,7 @@ export default function UsersPage() {
                                     icon={MessageSquare}
                                     label="Message user"
                                     onClick={() =>
-                                      handleOpenMessageDialog(user.id, `${user.firstName} ${user.lastName}`)
+                                      handleOpenMessageDialog(user.id, formatUserName(user.firstName, user.lastName))
                                     }
                                   >
                                     Message
@@ -652,7 +657,7 @@ export default function UsersPage() {
                                     icon={Trash2}
                                     label={isActing ? 'Working' : 'Delete user'}
                                     onClick={() =>
-                                      handleDeleteUser(user.id, `${user.firstName} ${user.lastName}`)
+                                      handleDeleteUser(user.id, formatUserName(user.firstName, user.lastName))
                                     }
                                     disabled={isActing}
                                   >

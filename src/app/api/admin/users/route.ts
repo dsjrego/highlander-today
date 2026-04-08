@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
 
@@ -13,8 +14,8 @@ import { checkPermission } from '@/lib/permissions';
  *   directory — listed | unlisted
  *   page      — 1-based page number (default 1)
  *   limit     — items per page (default 25, max 100)
- *   sort      — field to sort by: createdAt | firstName | email | trustLevel (default createdAt)
- *   order     — asc | desc (default desc)
+ *   sort      — field to sort by: createdAt | firstName | lastName | email | trustLevel (default lastName)
+ *   order     — asc | desc (default asc)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -38,8 +39,8 @@ export async function GET(request: NextRequest) {
     const directory = searchParams.get('directory') || '';
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '25', 10)));
-    const sort = searchParams.get('sort') || 'createdAt';
-    const order = searchParams.get('order') === 'asc' ? 'asc' : 'desc';
+    const sort = searchParams.get('sort') || 'lastName';
+    const order = searchParams.get('order') === 'desc' ? 'desc' : 'asc';
 
     // Build where clause
     const where: any = {};
@@ -71,7 +72,14 @@ export async function GET(request: NextRequest) {
 
     // Build orderBy
     const allowedSortFields = ['createdAt', 'firstName', 'lastName', 'email', 'trustLevel'];
-    const sortField = allowedSortFields.includes(sort) ? sort : 'createdAt';
+    const sortField = allowedSortFields.includes(sort) ? sort : 'lastName';
+
+    const orderBy: Prisma.UserOrderByWithRelationInput[] =
+      sortField === 'lastName'
+        ? [{ lastName: order }, { firstName: order }, { email: order }]
+        : sortField === 'firstName'
+          ? [{ firstName: order }, { lastName: order }, { email: order }]
+          : [{ [sortField]: order }, { lastName: 'asc' }, { firstName: 'asc' }];
 
     const [users, total] = await Promise.all([
       db.user.findMany({
@@ -123,7 +131,7 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-        orderBy: { [sortField]: order },
+        orderBy,
         skip: (page - 1) * limit,
         take: limit,
       }),
