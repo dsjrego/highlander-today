@@ -147,6 +147,7 @@ export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTrust, setFilterTrust] = useState('all');
   const [filterRole, setFilterRole] = useState('all');
+  const [filterDirectory, setFilterDirectory] = useState('all');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState<string | null>(null);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
@@ -179,6 +180,10 @@ export default function UsersPage() {
           params.set('role', filterRole);
         }
 
+        if (filterDirectory !== 'all') {
+          params.set('directory', filterDirectory);
+        }
+
         const response = await fetch(`/api/admin/users?${params.toString()}`);
         if (!response.ok) {
           throw new Error('Failed to fetch users');
@@ -193,7 +198,7 @@ export default function UsersPage() {
         setIsLoading(false);
       }
     },
-    [filterRole, filterTrust, searchTerm]
+    [filterDirectory, filterRole, filterTrust, searchTerm]
   );
 
   useEffect(() => {
@@ -451,6 +456,19 @@ export default function UsersPage() {
                         {formatRoleLabel(role)}
                       </option>
                     ))}
+                  </select>
+                </label>
+
+                <label className="admin-list-filter min-w-[10rem]">
+                  <span className="admin-list-filter-label">Directory</span>
+                  <select
+                    value={filterDirectory}
+                    onChange={(event) => setFilterDirectory(event.target.value)}
+                    className="admin-list-cell-select min-w-[10rem]"
+                  >
+                    <option value="all">All directory states</option>
+                    <option value="unlisted">No directory</option>
+                    <option value="listed">In directory</option>
                   </select>
                 </label>
               </div>

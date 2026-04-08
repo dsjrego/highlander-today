@@ -123,6 +123,7 @@ export async function vouchForUser(voucherId: string, targetId: string): Promise
       data: {
         trustLevel: 'TRUSTED',
         isIdentityLocked: true,
+        isDirectoryListed: true,
       },
     }),
   ]);

@@ -10,6 +10,7 @@ import { checkPermission } from '@/lib/permissions';
  *   search    — filter by name or email (partial match)
  *   trustLevel — ANONYMOUS | REGISTERED | TRUSTED | SUSPENDED
  *   role      — READER | CONTRIBUTOR | STAFF_WRITER | EDITOR | ADMIN | SUPER_ADMIN
+ *   directory — listed | unlisted
  *   page      — 1-based page number (default 1)
  *   limit     — items per page (default 25, max 100)
  *   sort      — field to sort by: createdAt | firstName | email | trustLevel (default createdAt)
@@ -34,6 +35,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const trustLevel = searchParams.get('trustLevel') || '';
     const role = searchParams.get('role') || '';
+    const directory = searchParams.get('directory') || '';
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '25', 10)));
     const sort = searchParams.get('sort') || 'createdAt';
@@ -59,6 +61,12 @@ export async function GET(request: NextRequest) {
       where.memberships = {
         some: { role },
       };
+    }
+
+    if (directory === 'listed') {
+      where.isDirectoryListed = true;
+    } else if (directory === 'unlisted') {
+      where.isDirectoryListed = false;
     }
 
     // Build orderBy

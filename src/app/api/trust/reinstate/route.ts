@@ -65,7 +65,10 @@ export async function POST(request: NextRequest) {
     // Reinstate user
     await db.user.update({
       where: { id: validated.userId },
-      data: { trustLevel: validated.trustLevel },
+      data: {
+        trustLevel: validated.trustLevel,
+        ...(validated.trustLevel === 'TRUSTED' ? { isDirectoryListed: true } : {}),
+      },
     });
 
     // Log to TrustAuditLog

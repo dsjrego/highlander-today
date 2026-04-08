@@ -227,7 +227,11 @@ export async function POST(
     if (targetUser.trustLevel === 'REGISTERED') {
       await db.user.update({
         where: { id: targetId },
-        data: { trustLevel: 'TRUSTED', isIdentityLocked: true },
+        data: {
+          trustLevel: 'TRUSTED',
+          isIdentityLocked: true,
+          isDirectoryListed: true,
+        },
       });
 
       // Log the trust grant

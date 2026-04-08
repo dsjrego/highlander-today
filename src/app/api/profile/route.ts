@@ -20,9 +20,18 @@ export async function GET(request: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const userRole = request.headers.get('x-user-role');
+    const requestedUserId = request.nextUrl.searchParams.get('userId');
+    const isSuperAdmin = userRole === 'SUPER_ADMIN';
+
+    if (requestedUserId && !isSuperAdmin) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
+
+    const targetUserId = requestedUserId && isSuperAdmin ? requestedUserId : userId;
 
     const user = await db.user.findUnique({
-      where: { id: userId },
+      where: { id: targetUserId },
       select: {
         id: true,
         firstName: true,
@@ -103,9 +112,18 @@ export async function PATCH(request: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const userRole = request.headers.get('x-user-role');
+    const requestedUserId = request.nextUrl.searchParams.get('userId');
+    const isSuperAdmin = userRole === 'SUPER_ADMIN';
+
+    if (requestedUserId && !isSuperAdmin) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
+
+    const targetUserId = requestedUserId && isSuperAdmin ? requestedUserId : userId;
 
     const user = await db.user.findUnique({
-      where: { id: userId },
+      where: { id: targetUserId },
       select: {
         id: true,
         isIdentityLocked: true,
@@ -136,7 +154,7 @@ export async function PATCH(request: NextRequest) {
       (normalizedIncomingDob !== undefined && normalizedIncomingDob !== normalizedCurrentDob);
 
     // If identity is locked, reject actual name or DOB changes.
-    if (user.isIdentityLocked && isChangingLockedIdentityField) {
+    if (user.isIdentityLocked && isChangingLockedIdentityField && !isSuperAdmin) {
       return NextResponse.json(
         {
           error: 'Identity locked',
@@ -161,7 +179,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const updated = await db.user.update({
-      where: { id: userId },
+      where: { id: targetUserId },
       data: updateData,
       select: {
         id: true,

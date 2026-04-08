@@ -222,6 +222,7 @@ export default async function UserProfilePage({ params, searchParams }: PageProp
   }
 
   const isOwnProfile = (session?.user as { id?: string } | undefined)?.id === profile.id;
+  const isSuperAdmin = (session?.user as { role?: string } | undefined)?.role === "SUPER_ADMIN";
 
   const community = profile.memberships?.[0]?.community?.name ?? null;
   const lastSeenAt = profile.loginEvents[0]?.createdAt ?? null;
@@ -376,9 +377,12 @@ export default async function UserProfilePage({ params, searchParams }: PageProp
     </section>
   );
 
-  const accountSettingsTab = isOwnProfile ? (
+  const accountSettingsTab = isOwnProfile || isSuperAdmin ? (
     <section className={tabCardClass}>
-      <AccountSettingsPanel initialDirectoryListed={profile.isDirectoryListed} />
+      <AccountSettingsPanel
+        initialDirectoryListed={profile.isDirectoryListed}
+        targetUserId={isOwnProfile ? undefined : profile.id}
+      />
     </section>
   ) : null;
 

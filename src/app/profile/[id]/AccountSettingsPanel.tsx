@@ -23,6 +23,7 @@ type ProfileData = {
 
 type AccountSettingsPanelProps = {
   initialDirectoryListed: boolean;
+  targetUserId?: string;
 };
 
 function IdentityLockedField({
@@ -89,6 +90,7 @@ function IdentityLockedField({
 
 export default function AccountSettingsPanel({
   initialDirectoryListed,
+  targetUserId,
 }: AccountSettingsPanelProps) {
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -112,7 +114,8 @@ export default function AccountSettingsPanel({
 
     async function fetchProfile() {
       try {
-        const res = await fetch("/api/profile");
+        const query = targetUserId ? `?userId=${encodeURIComponent(targetUserId)}` : "";
+        const res = await fetch(`/api/profile${query}`);
         if (!res.ok) {
           setError("Failed to load profile.");
           setIsLoading(false);
@@ -177,7 +180,8 @@ export default function AccountSettingsPanel({
             profilePhotoUrl: formData.profilePhotoUrl || null,
           };
 
-      const res = await fetch("/api/profile", {
+      const query = targetUserId ? `?userId=${encodeURIComponent(targetUserId)}` : "";
+      const res = await fetch(`/api/profile${query}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -251,7 +255,7 @@ export default function AccountSettingsPanel({
       ) : profile ? (
         <FormCard>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <DirectoryOptInCard initialValue={initialDirectoryListed} />
+            <DirectoryOptInCard initialValue={initialDirectoryListed} targetUserId={targetUserId} />
 
             <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
               <div>

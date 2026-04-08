@@ -4,9 +4,10 @@ import { useState } from "react";
 
 type DirectoryOptInCardProps = {
   initialValue: boolean;
+  targetUserId?: string;
 };
 
-export default function DirectoryOptInCard({ initialValue }: DirectoryOptInCardProps) {
+export default function DirectoryOptInCard({ initialValue, targetUserId }: DirectoryOptInCardProps) {
   const [isDirectoryListed, setIsDirectoryListed] = useState(initialValue);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
@@ -19,7 +20,8 @@ export default function DirectoryOptInCard({ initialValue }: DirectoryOptInCardP
     setSuccess("");
 
     try {
-      const res = await fetch("/api/profile", {
+      const query = targetUserId ? `?userId=${encodeURIComponent(targetUserId)}` : "";
+      const res = await fetch(`/api/profile${query}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isDirectoryListed: nextValue }),
