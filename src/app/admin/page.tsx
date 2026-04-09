@@ -7,63 +7,160 @@ function formatCount(value: number) {
   return new Intl.NumberFormat('en-US').format(value);
 }
 
+function formatRelativeTime(value: Date) {
+  const diffMs = Date.now() - value.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+  if (diffMinutes < 1) {
+    return 'just now';
+  }
+  if (diffMinutes < 60) {
+    return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) {
+    return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+}
+
+function getActivityAccent(resourceType: string) {
+  switch (resourceType) {
+    case 'ARTICLE':
+      return 'border-yellow-400 bg-yellow-50';
+    case 'EVENT':
+      return 'border-blue-400 bg-blue-50';
+    case 'HELP_WANTED_POST':
+      return 'border-teal-400 bg-teal-50';
+    case 'MARKETPLACE_LISTING':
+      return 'border-purple-400 bg-purple-50';
+    case 'USER_PROFILE':
+      return 'border-red-400 bg-red-50';
+    default:
+      return 'border-slate-300 bg-slate-50';
+  }
+}
+
+function describeActivity(log: {
+  action: string;
+  resourceType: string;
+  metadata: unknown;
+  user: { firstName: string; lastName: string };
+}) {
+  const actorName = `${log.user.firstName} ${log.user.lastName}`.trim();
+  const metadataTitle =
+    log.metadata && typeof log.metadata === 'object' && 'title' in log.metadata && typeof log.metadata.title === 'string'
+      ? log.metadata.title
+      : null;
+  const subjectLabel = metadataTitle || log.resourceType.toLowerCase().replace(/_/g, ' ');
+
+  switch (log.action) {
+    case 'CREATE':
+      return `${actorName} created ${subjectLabel}`;
+    case 'DELETE':
+      return `${actorName} deleted ${subjectLabel}`;
+    case 'APPROVE':
+      return `${actorName} approved ${subjectLabel}`;
+    case 'REJECT':
+      return `${actorName} rejected ${subjectLabel}`;
+    case 'SEND_MESSAGE':
+      return `${actorName} sent a message`;
+    default:
+      return `${actorName} updated ${subjectLabel}`;
+  }
+}
+
 export default async function AdminDashboard() {
   const currentCommunity = await getCurrentCommunity({ headers: headers() });
-  const articleWhere = currentCommunity?.id ? { communityId: currentCommunity.id } : {};
-  const organizationWhere = currentCommunity?.id ? { communityId: currentCommunity.id } : {};
+  const communityWhere = currentCommunity?.id ? { communityId: currentCommunity.id } : {};
 
-  const [totalUsers, totalOrganizations, pendingOrganizations, pendingArticles, publishedArticles, unpublishedArticles] = await Promise.all([
+  const [
+    totalUsers,
+    totalOrganizations,
+    pendingOrganizations,
+    totalEvents,
+    pendingEvents,
+    totalListings,
+    activeListings,
+    pendingArticles,
+    publishedArticles,
+    unpublishedArticles,
+    pendingHelpWanted,
+    pendingStores,
+    recentActivity,
+  ] = await Promise.all([
     db.user.count(),
-    db.organization.count({ where: organizationWhere }),
-    db.organization.count({ where: { ...organizationWhere, status: 'PENDING_APPROVAL' } }),
-    db.article.count({ where: { ...articleWhere, status: 'PENDING_REVIEW' } }),
-    db.article.count({ where: { ...articleWhere, status: 'PUBLISHED' } }),
-    db.article.count({ where: { ...articleWhere, status: 'UNPUBLISHED' } }),
+    db.organization.count({ where: communityWhere }),
+    db.organization.count({ where: { ...communityWhere, status: 'PENDING_APPROVAL' } }),
+    db.event.count({ where: communityWhere }),
+    db.event.count({ where: { ...communityWhere, status: 'PENDING_REVIEW' } }),
+    db.marketplaceListing.count({ where: communityWhere }),
+    db.marketplaceListing.count({ where: { ...communityWhere, status: 'ACTIVE' } }),
+    db.article.count({ where: { ...communityWhere, status: 'PENDING_REVIEW' } }),
+    db.article.count({ where: { ...communityWhere, status: 'PUBLISHED' } }),
+    db.article.count({ where: { ...communityWhere, status: 'UNPUBLISHED' } }),
+    db.helpWantedPost.count({ where: { ...communityWhere, status: 'PENDING_REVIEW' } }),
+    db.store.count({ where: { ...communityWhere, status: 'PENDING_APPROVAL' } }),
+    db.activityLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 4,
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    }),
   ]);
 
+  const pendingReviewCount = pendingArticles + pendingEvents + pendingHelpWanted + pendingStores;
   const stats = [
-    { label: 'Total Users', value: formatCount(totalUsers), change: 'Open user management', href: '/admin/users' },
-    { label: "Events", value: 45, change: "+5" },
-    { label: "Marketplace Listings", value: 567, change: "+89" },
+    {
+      label: 'Total Users',
+      value: formatCount(totalUsers),
+      change: 'Open user management',
+      href: '/admin/users',
+    },
+    {
+      label: 'Events',
+      value: formatCount(totalEvents),
+      change: `${formatCount(pendingEvents)} pending review`,
+      href: '/admin/events',
+    },
+    {
+      label: 'Marketplace Listings',
+      value: formatCount(totalListings),
+      change: `${formatCount(activeListings)} active now`,
+      href: '/admin/stores',
+    },
   ];
 
   return (
     <div>
-      <h1 className="text-4xl font-bold mb-8 text-[#46A8CC]">Admin Dashboard</h1>
+      <h1 className="mb-8 text-4xl font-bold text-[#46A8CC]">Admin Dashboard</h1>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {stats.map((stat, idx) => (
-          stat.href ? (
-            <Link
-              key={idx}
-              href={stat.href}
-              className="bg-white p-6 rounded-lg border border-[#46A8CC] hover:bg-sky-50 transition"
-            >
-              <p className="text-gray-600 text-sm mb-2">{stat.label}</p>
-              <p className="text-3xl font-bold text-[#46A8CC] mb-2">
-                {stat.value}
-              </p>
-              <p className="text-sm font-semibold text-[#2c7f9e]">{stat.change}</p>
-            </Link>
-          ) : (
-            <div
-              key={idx}
-              className="bg-white p-6 rounded-lg border border-gray-200"
-            >
-              <p className="text-gray-600 text-sm mb-2">{stat.label}</p>
-              <p className="text-3xl font-bold text-[#46A8CC] mb-2">
-                {stat.value}
-              </p>
-              <p className="text-sm font-semibold text-gray-600">{stat.change}</p>
-            </div>
-          )
+      <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {stats.map((stat) => (
+          <Link
+            key={stat.label}
+            href={stat.href}
+            className="rounded-lg border border-[#46A8CC] bg-white p-6 transition hover:bg-sky-50"
+          >
+            <p className="mb-2 text-sm text-gray-600">{stat.label}</p>
+            <p className="mb-2 text-3xl font-bold text-[#46A8CC]">{stat.value}</p>
+            <p className="text-sm font-semibold text-[#2c7f9e]">{stat.change}</p>
+          </Link>
         ))}
         <Link
           href="/admin/organizations"
-          className="bg-white p-6 rounded-lg border border-[#46A8CC] hover:bg-sky-50 transition"
+          className="rounded-lg border border-[#46A8CC] bg-white p-6 transition hover:bg-sky-50"
         >
-          <p className="text-gray-600 text-sm mb-4">Organizations</p>
+          <p className="mb-4 text-sm text-gray-600">Organizations</p>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">Total</p>
@@ -78,9 +175,9 @@ export default async function AdminDashboard() {
         </Link>
         <Link
           href="/admin/articles"
-          className="bg-white p-6 rounded-lg border border-[#46A8CC] hover:bg-sky-50 transition"
+          className="rounded-lg border border-[#46A8CC] bg-white p-6 transition hover:bg-sky-50"
         >
-          <p className="text-gray-600 text-sm mb-4">Articles</p>
+          <p className="mb-4 text-sm text-gray-600">Articles</p>
           <div className="grid grid-cols-3 gap-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-700">Pending</p>
@@ -99,82 +196,81 @@ export default async function AdminDashboard() {
         </Link>
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-white p-6 rounded-lg border border-gray-200 mb-8">
-        <h2 className="text-2xl font-bold mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <a
+      <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6">
+        <h2 className="mb-4 text-2xl font-bold">Quick Actions</h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Link
             href="/admin/content"
-            className="p-4 border border-gray-300 rounded-lg hover:border-[#46A8CC] hover:bg-blue-50 transition"
+            className="rounded-lg border border-gray-300 p-4 transition hover:border-[#46A8CC] hover:bg-blue-50"
           >
             <p className="font-semibold text-[#46A8CC]">Review Pending Content</p>
-            <p className="text-sm text-gray-600">23 items awaiting approval</p>
-          </a>
-          <a
+            <p className="text-sm text-gray-600">{formatCount(pendingReviewCount)} items awaiting approval</p>
+          </Link>
+          <Link
             href="/admin/users"
-            className="p-4 border border-gray-300 rounded-lg hover:border-[#46A8CC] hover:bg-blue-50 transition"
+            className="rounded-lg border border-gray-300 p-4 transition hover:border-[#46A8CC] hover:bg-blue-50"
           >
             <p className="font-semibold text-[#46A8CC]">Manage Users</p>
             <p className="text-sm text-gray-600">View and manage user accounts</p>
-          </a>
-          <a
+          </Link>
+          <Link
             href="/admin/trust"
-            className="p-4 border border-gray-300 rounded-lg hover:border-[#46A8CC] hover:bg-blue-50 transition"
+            className="rounded-lg border border-gray-300 p-4 transition hover:border-[#46A8CC] hover:bg-blue-50"
           >
             <p className="font-semibold text-[#46A8CC]">Trust Management</p>
             <p className="text-sm text-gray-600">Review vouching and trust levels</p>
-          </a>
-          <a
+          </Link>
+          <Link
             href="/admin/audit"
-            className="p-4 border border-gray-300 rounded-lg hover:border-[#46A8CC] hover:bg-blue-50 transition"
+            className="rounded-lg border border-gray-300 p-4 transition hover:border-[#46A8CC] hover:bg-blue-50"
           >
             <p className="font-semibold text-[#46A8CC]">View Audit Log</p>
             <p className="text-sm text-gray-600">Track system activity</p>
-          </a>
-          <a
+          </Link>
+          <Link
             href="/admin/stores"
-            className="p-4 border border-gray-300 rounded-lg hover:border-[#46A8CC] hover:bg-blue-50 transition"
+            className="rounded-lg border border-gray-300 p-4 transition hover:border-[#46A8CC] hover:bg-blue-50"
           >
             <p className="font-semibold text-[#46A8CC]">Manage Stores</p>
-            <p className="text-sm text-gray-600">Review, approve, reject, and suspend storefronts</p>
-          </a>
-          <a
+            <p className="text-sm text-gray-600">
+              {formatCount(pendingStores)} stores pending approval
+            </p>
+          </Link>
+          <Link
             href="/admin/homepage"
-            className="p-4 border border-gray-300 rounded-lg hover:border-[#46A8CC] hover:bg-blue-50 transition"
+            className="rounded-lg border border-gray-300 p-4 transition hover:border-[#46A8CC] hover:bg-blue-50"
           >
             <p className="font-semibold text-[#46A8CC]">Homepage Curation</p>
             <p className="text-sm text-gray-600">Reorder sections, toggle visibility, and pin homepage content</p>
-          </a>
-          <a
+          </Link>
+          <Link
             href="/admin/content-architecture"
-            className="p-4 border border-gray-300 rounded-lg hover:border-[#46A8CC] hover:bg-blue-50 transition"
+            className="rounded-lg border border-gray-300 p-4 transition hover:border-[#46A8CC] hover:bg-blue-50"
           >
             <p className="font-semibold text-[#46A8CC]">Content Architecture</p>
             <p className="text-sm text-gray-600">Reference section purpose, model boundaries, and category guidance before editing taxonomy</p>
-          </a>
+          </Link>
         </div>
       </div>
 
-      {/* Recent Audit Activity */}
-      <div className="bg-white p-6 rounded-lg border border-gray-200">
-        <h2 className="text-2xl font-bold mb-4">Recent Activity</h2>
+      <div className="rounded-lg border border-gray-200 bg-white p-6">
+        <h2 className="mb-4 text-2xl font-bold">Recent Activity</h2>
         <div className="space-y-3">
-          <div className="flex justify-between items-center p-3 border-l-4 border-yellow-400 bg-yellow-50">
-            <span>User reported inappropriate content</span>
-            <span className="text-xs text-gray-500">5 minutes ago</span>
-          </div>
-          <div className="flex justify-between items-center p-3 border-l-4 border-green-400 bg-green-50">
-            <span>Article approved by moderator</span>
-            <span className="text-xs text-gray-500">23 minutes ago</span>
-          </div>
-          <div className="flex justify-between items-center p-3 border-l-4 border-red-400 bg-red-50">
-            <span>User account suspended</span>
-            <span className="text-xs text-gray-500">1 hour ago</span>
-          </div>
-          <div className="flex justify-between items-center p-3 border-l-4 border-blue-400 bg-blue-50">
-            <span>New user registered</span>
-            <span className="text-xs text-gray-500">2 hours ago</span>
-          </div>
+          {recentActivity.length ? (
+            recentActivity.map((log) => (
+              <div
+                key={log.id}
+                className={`flex items-center justify-between border-l-4 p-3 ${getActivityAccent(log.resourceType)}`}
+              >
+                <span>{describeActivity(log)}</span>
+                <span className="text-xs text-gray-500">{formatRelativeTime(log.createdAt)}</span>
+              </div>
+            ))
+          ) : (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              No recent activity logged yet.
+            </div>
+          )}
         </div>
       </div>
     </div>
