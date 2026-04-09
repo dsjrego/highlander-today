@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { buildEventOccurrences, buildEventSeriesSummary, EVENT_SERIES_CADENCE } from '@/lib/event-series';
+import { buildEventDatetime } from '@/lib/event-datetime';
 import { checkPermission } from '@/lib/permissions';
 import { logActivity } from '@/lib/activity-log';
 import { z } from 'zod';
@@ -31,13 +32,6 @@ const CreateEventSchema = z.object({
   organizationId: z.string().uuid(),
   recurrence: RecurrenceSchema.optional(),
 });
-
-function buildDatetime(dateStr: string, timeStr?: string): Date {
-  if (timeStr) {
-    return new Date(`${dateStr}T${timeStr}:00`);
-  }
-  return new Date(`${dateStr}T00:00:00`);
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -170,9 +164,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
 
-    const startDatetime = buildDatetime(validated.startDate, validated.startTime);
+    const startDatetime = buildEventDatetime(validated.startDate, validated.startTime);
     const endDatetime = validated.endDate
-      ? buildDatetime(validated.endDate, validated.endTime)
+      ? buildEventDatetime(validated.endDate, validated.endTime)
       : null;
 
     const cadence = validated.recurrence?.enabled ? validated.recurrence.cadence || EVENT_SERIES_CADENCE.WEEKLY : null;

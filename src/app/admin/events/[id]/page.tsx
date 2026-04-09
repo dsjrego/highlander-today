@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getCurrentCommunity } from '@/lib/community';
 import { db } from '@/lib/db';
+import type { EventSeriesCadence } from '@/lib/event-series';
 import { formatLocationPrimary, formatLocationSecondary } from '@/lib/location-format';
 import { checkPermission } from '@/lib/permissions';
 import AdminEventEditor from './AdminEventEditor';
@@ -98,6 +99,7 @@ export default async function AdminEventDetailPage({
           id: true,
           title: true,
           summary: true,
+          cadenceLabel: true,
           occurrenceCount: true,
           events: {
             orderBy: { startDatetime: 'asc' },
@@ -209,6 +211,7 @@ export default async function AdminEventDetailPage({
           seriesId: event.seriesId,
           seriesPosition: event.seriesPosition,
           seriesCount: event.seriesCount,
+          recurrenceCadence: (event.series?.cadenceLabel as EventSeriesCadence | null) ?? null,
           locationId: event.locationId,
         }}
         locations={locations}

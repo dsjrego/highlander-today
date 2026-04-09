@@ -70,8 +70,29 @@ export const prismaMock = {
   },
   event: {
     create: jest.fn(),
+    findUnique: jest.fn(),
     findMany: jest.fn(),
     update: jest.fn(),
+    delete: jest.fn(),
+    deleteMany: jest.fn(),
+  },
+  eventSeries: {
+    create: jest.fn(),
+    findUnique: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  },
+  location: {
+    create: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    deleteMany: jest.fn(),
+  },
+  activityLog: {
+    create: jest.fn(),
+    findMany: jest.fn(),
     deleteMany: jest.fn(),
   },
   marketplaceListing: {

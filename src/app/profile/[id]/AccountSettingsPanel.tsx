@@ -152,7 +152,7 @@ export default function AccountSettingsPanel({
     }
 
     fetchProfile();
-  }, [status]);
+  }, [status, targetUserId]);
 
   function handleInputChange(
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Save, Trash2 } from 'lucide-react';
 import ImageUpload from '@/components/shared/ImageUpload';
 import { CrudActionButton } from '@/components/shared/CrudAction';
+import { formatEventDateInput, formatEventTimeInput } from '@/lib/event-datetime';
 import { formatLocationPrimary, formatLocationSecondary } from '@/lib/location-format';
 
 const SERIES_SCOPE_OPTIONS = [
@@ -13,7 +14,14 @@ const SERIES_SCOPE_OPTIONS = [
   { value: 'SERIES', label: 'Entire series' },
 ] as const;
 
+const SERIES_CADENCE_OPTIONS = [
+  { value: 'WEEKLY', label: 'Weekly' },
+  { value: 'MONTHLY_DATE', label: 'Monthly on date' },
+  { value: 'MONTHLY_WEEKDAY', label: 'Monthly on weekday' },
+] as const;
+
 type SeriesEditScope = (typeof SERIES_SCOPE_OPTIONS)[number]['value'];
+type SeriesCadence = (typeof SERIES_CADENCE_OPTIONS)[number]['value'];
 
 interface EditableEvent {
   id: string;
@@ -29,6 +37,7 @@ interface EditableEvent {
   seriesId: string | null;
   seriesPosition: number | null;
   seriesCount: number | null;
+  recurrenceCadence: SeriesCadence | null;
   locationId: string;
 }
 
@@ -60,58 +69,40 @@ interface FormState {
   costText: string;
   contactInfo: string;
   status: EditableEvent['status'];
-}
-
-function formatDateInput(value: string | null) {
-  if (!value) {
-    return '';
-  }
-
-  const date = new Date(value);
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function formatTimeInput(value: string | null) {
-  if (!value) {
-    return '';
-  }
-
-  const date = new Date(value);
-  const hours = `${date.getHours()}`.padStart(2, '0');
-  const minutes = `${date.getMinutes()}`.padStart(2, '0');
-  return `${hours}:${minutes}`;
+  recurrenceCadence: SeriesCadence;
 }
 
 function buildInitialForm(event: EditableEvent): FormState {
   return {
     title: event.title,
     description: event.description || '',
-    startDate: formatDateInput(event.startDatetime),
-    startTime: formatTimeInput(event.startDatetime),
-    endDate: formatDateInput(event.endDatetime),
-    endTime: formatTimeInput(event.endDatetime),
+    startDate: formatEventDateInput(event.startDatetime),
+    startTime: formatEventTimeInput(event.startDatetime) || '',
+    endDate: formatEventDateInput(event.endDatetime),
+    endTime: formatEventTimeInput(event.endDatetime) || '',
     locationId: event.locationId,
     venueLabel: event.venueLabel || '',
     imageUrl: event.photoUrl || '',
     costText: event.costText || '',
     contactInfo: event.contactInfo || '',
     status: event.status,
+    recurrenceCadence: event.recurrenceCadence || 'WEEKLY',
   };
 }
 
 export default function AdminEventEditor({ event, locations }: AdminEventEditorProps) {
   const router = useRouter();
-  const [form, setForm] = useState<FormState>(() => buildInitialForm(event));
+  const initialForm = buildInitialForm(event);
+  const [form, setForm] = useState<FormState>(() => initialForm);
   const [seriesEditScope, setSeriesEditScope] = useState<SeriesEditScope>('SINGLE');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const canApplyScheduleChanges = !event.seriesId || seriesEditScope === 'SINGLE';
+  const canEditSeriesCadence = Boolean(event.seriesId && seriesEditScope !== 'SINGLE');
+  const isFutureSeriesEdit = event.seriesId && seriesEditScope === 'FUTURE';
+  const isWholeSeriesEdit = event.seriesId && seriesEditScope === 'SERIES';
 
   function handleInputChange(
     nextEvent: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -142,15 +133,22 @@ export default function AdminEventEditor({ event, locations }: AdminEventEditorP
         body.seriesEditScope = seriesEditScope;
       }
 
-      if (canApplyScheduleChanges) {
+      if (form.startDate !== initialForm.startDate) {
         body.startDate = form.startDate;
+      }
+      if (form.endDate !== initialForm.endDate) {
         body.endDate = form.endDate || null;
-        if (form.startTime) {
-          body.startTime = form.startTime;
-        }
-        if (form.endTime) {
-          body.endTime = form.endTime;
-        }
+      }
+
+      if (form.startTime !== initialForm.startTime) {
+        body.startTime = form.startTime || null;
+      }
+      if (form.endTime !== initialForm.endTime) {
+        body.endTime = form.endTime || null;
+      }
+
+      if (canEditSeriesCadence && form.recurrenceCadence !== initialForm.recurrenceCadence) {
+        body.recurrenceCadence = form.recurrenceCadence;
       }
 
       const response = await fetch(`/api/events/${event.id}`, {
@@ -227,7 +225,8 @@ export default function AdminEventEditor({ event, locations }: AdminEventEditorP
         <div className="flex flex-col gap-2">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Edit Event</p>
           <p className="text-sm text-slate-600">
-            Update event details here. Recurring events can apply non-schedule changes across the series.
+            Update event details here. Recurring events can regenerate their schedule when you edit future sessions or
+            the whole series.
           </p>
           {event.seriesId ? (
             <p className="text-xs text-slate-500">
@@ -258,10 +257,15 @@ export default function AdminEventEditor({ event, locations }: AdminEventEditorP
                 </option>
               ))}
             </select>
-            {!canApplyScheduleChanges ? (
+            {isFutureSeriesEdit ? (
               <p className="mt-2 text-xs text-slate-500">
-                Date and time edits stay single-occurrence for now. Use this scope for title, status, image, location,
-                cost, and contact updates.
+                Date, time, and cadence edits from this point forward will branch into a new recurring series starting
+                with this session.
+              </p>
+            ) : null}
+            {isWholeSeriesEdit ? (
+              <p className="mt-2 text-xs text-slate-500">
+                Date, time, and cadence edits will regenerate every session in this series from the updated start.
               </p>
             ) : null}
           </div>
@@ -325,7 +329,6 @@ export default function AdminEventEditor({ event, locations }: AdminEventEditorP
                 name="startDate"
                 value={form.startDate}
                 onChange={handleInputChange}
-                disabled={!canApplyScheduleChanges}
                 className="form-input border-slate-300 bg-white text-slate-950"
               />
             </div>
@@ -337,9 +340,11 @@ export default function AdminEventEditor({ event, locations }: AdminEventEditorP
                 name="startTime"
                 value={form.startTime}
                 onChange={handleInputChange}
-                disabled={!canApplyScheduleChanges}
                 className="form-input border-slate-300 bg-white text-slate-950"
               />
+              {canEditSeriesCadence ? (
+                <p className="mt-1 text-xs text-slate-500">Applies this clock time to each selected occurrence.</p>
+              ) : null}
             </div>
 
             <div>
@@ -349,7 +354,6 @@ export default function AdminEventEditor({ event, locations }: AdminEventEditorP
                 name="endDate"
                 value={form.endDate}
                 onChange={handleInputChange}
-                disabled={!canApplyScheduleChanges}
                 className="form-input border-slate-300 bg-white text-slate-950"
               />
             </div>
@@ -361,10 +365,38 @@ export default function AdminEventEditor({ event, locations }: AdminEventEditorP
                 name="endTime"
                 value={form.endTime}
                 onChange={handleInputChange}
-                disabled={!canApplyScheduleChanges}
                 className="form-input border-slate-300 bg-white text-slate-950"
               />
+              {canEditSeriesCadence ? (
+                <p className="mt-1 text-xs text-slate-500">
+                  Keeps each occurrence on its current day and updates only the ending clock time.
+                </p>
+              ) : null}
             </div>
+
+            {event.seriesId ? (
+              <div className="lg:col-span-2">
+                <label className="form-label">Recurrence cadence</label>
+                <select
+                  name="recurrenceCadence"
+                  value={form.recurrenceCadence}
+                  onChange={handleInputChange}
+                  disabled={!canEditSeriesCadence}
+                  className="form-input border-slate-300 bg-white text-slate-950 disabled:bg-slate-100 disabled:text-slate-500"
+                >
+                  {SERIES_CADENCE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                {!canEditSeriesCadence ? (
+                  <p className="mt-1 text-xs text-slate-500">
+                    Choose `This and future events` or `Entire series` above to regenerate the recurring cadence.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
             <div className="lg:col-span-2">
               <label className="form-label">Location</label>
