@@ -34,6 +34,27 @@ export async function GET(
     const event = await db.event.findUnique({
       where: { id: params.id },
       include: {
+        series: {
+          select: {
+            id: true,
+            title: true,
+            summary: true,
+            cadenceLabel: true,
+            occurrenceCount: true,
+            events: {
+              orderBy: { startDatetime: 'asc' },
+              select: {
+                id: true,
+                title: true,
+                status: true,
+                startDatetime: true,
+                endDatetime: true,
+                seriesPosition: true,
+                seriesCount: true,
+              },
+            },
+          },
+        },
         location: {
           select: {
             id: true,
@@ -55,6 +76,14 @@ export async function GET(
             trustLevel: true,
           },
         },
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            status: true,
+          },
+        },
       },
     });
 
@@ -71,6 +100,8 @@ export async function GET(
       if (!isAuthor && !hasEditorRole) {
         return NextResponse.json({ error: 'Event not found' }, { status: 404 });
       }
+    } else if (event.series) {
+      event.series.events = event.series.events.filter((entry) => entry.status === 'PUBLISHED');
     }
 
     return NextResponse.json(event);
@@ -169,6 +200,15 @@ export async function PATCH(
       where: { id: params.id },
       data: updateData,
       include: {
+        series: {
+          select: {
+            id: true,
+            title: true,
+            summary: true,
+            cadenceLabel: true,
+            occurrenceCount: true,
+          },
+        },
         location: {
           select: {
             id: true,
@@ -188,6 +228,14 @@ export async function PATCH(
             profilePhotoUrl: true,
             bio: true,
             trustLevel: true,
+          },
+        },
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            status: true,
           },
         },
       },

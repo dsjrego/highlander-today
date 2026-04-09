@@ -165,7 +165,16 @@ export async function getPublicOrganizationProfile({
           description: true,
           startDatetime: true,
           endDatetime: true,
+          seriesPosition: true,
+          seriesCount: true,
           venueLabel: true,
+          series: {
+            select: {
+              id: true,
+              summary: true,
+              occurrenceCount: true,
+            },
+          },
           location: {
             select: {
               id: true,

@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-04-08 (session 127)
+> **Last updated:** 2026-04-08 (session 128)
 > **Purpose:** Fast-start context for the next session. Read this file first, then open only the supporting docs relevant to the active slice.
 > **Detailed reference:** `PROJECT-STATUS-REFERENCE.md` preserves the fuller implementation ledger, rollout history, verification notes, deployment runbook, and infrastructure rationale that used to live here.
 
@@ -55,6 +55,8 @@
 > **Session 126 note:** admin organization-form management now includes a first-pass `Results` view inside each expanded form record. Admins can switch between `Form` and `Results`, see response counts and latest-response timing, and review saved answers per question with respondent names and submission timestamps.
 >
 > **Session 127 note:** the admin organization-detail `Forms` UI was tightened again for denser day-to-day use. The top-level forms subtabs now read `List` and `+ Form`, expanded forms now use `Details`, `Questions`, `Results`, and `+ Question`, question rows are list-first with inline expansion, and redundant form-header metadata/copy was removed so the management view stays compact.
+>
+> **Session 128 note:** the events system now has a first recurring-series implementation while still preserving the one-day-per-event structure. Prisma now includes `EventSeries`, event creation can generate weekly, monthly-on-date, and monthly-on-weekday occurrences as separate `Event` rows, and public/admin event detail pages now show session/series context. Event creation now also treats organizations as required rather than optional: `/events/submit` and `/admin/events` both use search-first organization pickers, and public event submission can create a pending organization inline and still submit a pending event attached to that pending organization. Any environment receiving this change must run `npx prisma db push --schema prisma/schema.prisma` before using the new recurrence flow.
 >
 > **Session 109 note:** the admin dashboard is starting to shed its static mock cards. `/admin` now reads the live user count from Prisma on the server and links that `Total Users` card into `/admin/users`; the old `News` card was also replaced with a live `Articles` card showing community-scoped `Pending`, `Approved` (`PUBLISHED`), and `Archived` (`UNPUBLISHED`) counts with a direct link into `/admin/articles`. The old placeholder `Pending Approvals` and `Recent Bans` cards were removed, while `Events` and `Marketplace Listings` are still placeholder values until their backing queries are wired.
 >
@@ -126,7 +128,7 @@ Major live foundations:
 - Auth, permissions, trust, audit/activity logging, tenant-aware community resolution
 - Profiles, vouching, blocking, private messaging
 - Local Life articles: listing, submit, drafts, detail, moderation, comments, article preview
-- Events: submit, moderation, public browse/detail, and shared structured locations
+- Events: submit, moderation, public browse/detail, shared structured locations, recurring-series generation, and organization-backed event ownership
 - Marketplace: store-based listings, storefronts, admin store moderation, trusted buyer messaging
 - Help Wanted: public browse, trusted posting/responding, moderation, manage/edit flows
 - Homepage curation, search, uploads, admin moderation surfaces
@@ -139,7 +141,7 @@ Current public/admin direction highlights:
 - Top-level public nav items that have children are now non-clickable dropdown triggers; users select a child category instead of navigating to a parent placeholder page.
 - `/admin/content-architecture` exists as a read-only internal reference page.
 - `/admin/organizations` now exists as a compact admin management surface aligned with the same dense operational paradigm as `/admin/articles` and `/admin/events`, and `/admin/organizations/[id]` now follows that same admin-card tab vocabulary for full organization management.
-- `/admin/events` now supports both moderation and direct admin creation through the compact `+ Event` tab, and admin-created events can optionally link to an organization in the same community plus select or create a reusable structured location record.
+- `/admin/events` now supports both moderation and direct admin creation through the compact `+ Event` tab, recurring-series generation for weekly/monthly classes, required organization selection through a search-first picker, inline pending-organization creation, and reusable structured location selection.
 - `/admin/categories` has effectively become the **Navigation Menu** admin surface, with compact table-style editing, expand/collapse for nested items, reorder controls, and an `Add Area` tab.
 - `/admin/users` now matches that same compact admin pattern: dense table layout, email column, real last-seen timestamps from login activity, voucher names, colored/iconized manage actions, and inline admin messaging.
 - Admin list rule: when an admin surface is primarily a list of records, default to the compact shared `admin-list` table style used by `/admin/articles` rather than stacked per-record cards. When a single admin tab mixes record management and record creation, prefer a nested secondary tab split such as `List` and `+ Form` instead of one long mixed panel. The canonical structure and row-expansion guidance now live in `ADMIN-LIST-DESIGN.md`.
@@ -174,6 +176,7 @@ Current public/admin direction highlights:
 
 - Messaging attachments are not live.
 - Experiences is still only partially real; non-event experience categories remain directional placeholders.
+- Event-series editing remains partial; creation now supports weekly/monthly recurring classes by generating one event per occurrence, but edit flows still need explicit `this occurrence` versus `whole/future series` semantics.
 - Multi-tenant provisioning is only phase 1; there is no full Super Admin create/edit site/domain workflow yet.
 - Cross-site sister-site pull-through is not implemented.
 - Donations/transparency, sourcing/citations, creator network, and delivery/jobs remain planned follow-on work.
@@ -289,7 +292,7 @@ src/lib/
 12. Production launch auth is credentials + Google OAuth; Facebook remains intentionally deferred.
 13. The directory rollout requires the target environment to have the new Prisma schema applied. If `/directory` throws runtime Prisma errors about missing `organizations` or `users.isDirectoryListed`, run `npx prisma db push --schema prisma/schema.prisma` against that environment's database.
 14. The trusted-nav / `Help Us Grow` rollout also requires the current Prisma schema to be applied. If category reads fail with missing `categories.minTrustLevel`, run `npx prisma db push --schema prisma/schema.prisma` against that environment before loading `/api/categories` or `/api/admin/categories`.
-15. The admin event location/organization rollout also requires the current Prisma schema to be applied. If admin or public event creation fails because `locations` / `events.locationId` / `events.organizationId` are missing, run `npx prisma db push --schema prisma/schema.prisma` against that environment before using the new location selector or organization link flow.
+15. The current event rollout depends on both the shared location fields and the recurring-series schema. If event creation or reads fail because `locations`, `events.locationId`, `events.organizationId`, `event_series`, or the new series fields are missing, run `npx prisma db push --schema prisma/schema.prisma` against that environment before using the location selector, organization picker, or recurrence flow.
 16. The organization forms rollout also requires the current Prisma schema to be applied. If `/admin/organizations/[id]` fails with Prisma errors about missing `organization_forms` or related organization-form tables, run `npx prisma db push --schema prisma/schema.prisma` against that environment before opening the new `Forms` tab.
 17. Treat `prisma db push` as environment-specific. The command updates whichever database `DATABASE_URL` points to in the shell where it is run. Local terminal + local `.env` updates local Docker Postgres only; production deploy shell / production env vars updates production only.
 18. Current preferred operator workflow is to use the shell helpers `dbpushlocal` and `dbpushprod` from `~/.zshrc` rather than manually exporting and unsetting `DATABASE_URL` in the active shell.

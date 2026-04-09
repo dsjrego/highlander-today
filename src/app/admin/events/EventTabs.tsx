@@ -1,11 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useMemo, useState } from 'react';
-import { Check, ListChecks, MapPin, Plus, X } from 'lucide-react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { Building2, Check, ListChecks, MapPin, Plus, X } from 'lucide-react';
 import { CrudActionButton } from '@/components/shared/CrudAction';
 import ImageUpload from '@/components/shared/ImageUpload';
 import { formatLocationPrimary, formatLocationSearchLabel, formatLocationSecondary } from '@/lib/location-format';
+import {
+  ORGANIZATION_GROUP_OPTIONS,
+  ORGANIZATION_TYPE_OPTIONS,
+  type OrganizationDirectoryGroup,
+} from '@/lib/organization-taxonomy';
 
 const EVENT_TABS = ['pending', 'approved', 'archived'] as const;
 const EVENT_PAGE_SIZE = 10;
@@ -34,8 +39,14 @@ interface EventRecord {
   status: 'PENDING_REVIEW' | 'PUBLISHED' | 'UNPUBLISHED';
   startDatetime: Date;
   endDatetime: Date | null;
+  seriesPosition: number | null;
+  seriesCount: number | null;
   updatedAt: Date;
   venueLabel: string | null;
+  series: {
+    id: string;
+    summary: string | null;
+  } | null;
   location: LocationRecord;
   submittedBy: {
     firstName: string;
@@ -69,6 +80,9 @@ interface CreateEventFormState {
   imageUrl: string;
   status: EventRecord['status'];
   organizationId: string;
+  recurrenceEnabled: boolean;
+  recurrenceCadence: 'WEEKLY' | 'MONTHLY_DATE' | 'MONTHLY_WEEKDAY';
+  repeatCount: string;
 }
 
 interface CreateLocationFormState {
@@ -78,6 +92,13 @@ interface CreateLocationFormState {
   city: string;
   state: string;
   postalCode: string;
+}
+
+interface CreateOrganizationFormState {
+  name: string;
+  directoryGroup: OrganizationDirectoryGroup;
+  organizationType: string;
+  websiteUrl: string;
 }
 
 function formatDateTime(value: Date | null) {
@@ -128,6 +149,7 @@ export default function EventTabs({ events, organizations, locations }: EventTab
   const [currentPage, setCurrentPage] = useState(1);
   const [rows, setRows] = useState(events);
   const [locationRows, setLocationRows] = useState(locations);
+  const [organizationRows, setOrganizationRows] = useState(organizations);
   const [editingStatusEventId, setEditingStatusEventId] = useState<string | null>(null);
   const [savingStatusEventId, setSavingStatusEventId] = useState<string | null>(null);
   const [statusError, setStatusError] = useState('');
@@ -136,10 +158,14 @@ export default function EventTabs({ events, organizations, locations }: EventTab
   const [isCreating, setIsCreating] = useState(false);
   const [locationFilter, setLocationFilter] = useState('');
   const [organizationFilter, setOrganizationFilter] = useState('');
+  const [isLoadingOrganizations, setIsLoadingOrganizations] = useState(false);
+  const [showCreateOrganization, setShowCreateOrganization] = useState(false);
   const [showCreateLocation, setShowCreateLocation] = useState(false);
   const [locationCreateError, setLocationCreateError] = useState('');
+  const [organizationCreateError, setOrganizationCreateError] = useState('');
   const [locationDuplicates, setLocationDuplicates] = useState<LocationRecord[]>([]);
   const [isCreatingLocation, setIsCreatingLocation] = useState(false);
+  const [isCreatingOrganization, setIsCreatingOrganization] = useState(false);
   const [createForm, setCreateForm] = useState<CreateEventFormState>({
     title: '',
     description: '',
@@ -154,6 +180,9 @@ export default function EventTabs({ events, organizations, locations }: EventTab
     imageUrl: '',
     status: 'PUBLISHED',
     organizationId: '',
+    recurrenceEnabled: false,
+    recurrenceCadence: 'WEEKLY',
+    repeatCount: '3',
   });
   const [createLocationForm, setCreateLocationForm] = useState<CreateLocationFormState>({
     name: '',
@@ -162,6 +191,12 @@ export default function EventTabs({ events, organizations, locations }: EventTab
     city: '',
     state: '',
     postalCode: '',
+  });
+  const [createOrganizationForm, setCreateOrganizationForm] = useState<CreateOrganizationFormState>({
+    name: '',
+    directoryGroup: 'ORGANIZATION',
+    organizationType: ORGANIZATION_TYPE_OPTIONS.ORGANIZATION[0].value,
+    websiteUrl: '',
   });
 
   const normalizedFilter = filterValue.trim().toLowerCase();
@@ -205,18 +240,39 @@ export default function EventTabs({ events, organizations, locations }: EventTab
     [locationRows, normalizedLocationFilter]
   );
 
-  const filteredOrganizations = useMemo(
-    () =>
-      normalizedOrganizationFilter
-        ? organizations.filter((organization) =>
-            organization.name.toLowerCase().includes(normalizedOrganizationFilter)
-          )
-        : [],
-    [organizations, normalizedOrganizationFilter]
-  );
+  const filteredOrganizations = useMemo(() => organizationRows, [organizationRows]);
 
   const selectedLocation = locationRows.find((location) => location.id === createForm.locationId) || null;
-  const selectedOrganization = organizations.find((organization) => organization.id === createForm.organizationId) || null;
+  const selectedOrganization = organizationRows.find((organization) => organization.id === createForm.organizationId) || null;
+
+  useEffect(() => {
+    async function fetchOrganizations() {
+      if (!normalizedOrganizationFilter) {
+        setOrganizationRows([]);
+        setIsLoadingOrganizations(false);
+        return;
+      }
+
+      setIsLoadingOrganizations(true);
+
+      try {
+        const response = await fetch(`/api/organizations?query=${encodeURIComponent(organizationFilter.trim())}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch organizations');
+        }
+
+        const data = await response.json();
+        setOrganizationRows(data.organizations || []);
+      } catch (error) {
+        console.error('Failed to fetch organizations:', error);
+        setOrganizationRows([]);
+      } finally {
+        setIsLoadingOrganizations(false);
+      }
+    }
+
+    void fetchOrganizations();
+  }, [normalizedOrganizationFilter, organizationFilter]);
 
   function handleFilterChange(value: string) {
     setFilterValue(value);
@@ -226,11 +282,11 @@ export default function EventTabs({ events, organizations, locations }: EventTab
   function handleCreateInputChange(
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) {
-    const { name, value } = event.target;
+    const { name, value, type } = event.target;
 
     setCreateForm((current) => ({
       ...current,
-      [name]: value,
+      [name]: type === 'checkbox' ? (event.target as HTMLInputElement).checked : value,
     }));
   }
 
@@ -238,6 +294,27 @@ export default function EventTabs({ events, organizations, locations }: EventTab
     const { name, value } = event.target;
 
     setCreateLocationForm((current) => ({
+      ...current,
+      [name]: value,
+    }));
+  }
+
+  function handleCreateOrganizationInputChange(
+    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) {
+    const { name, value } = event.target;
+
+    if (name === 'directoryGroup') {
+      const nextGroup = value as OrganizationDirectoryGroup;
+      setCreateOrganizationForm((current) => ({
+        ...current,
+        directoryGroup: nextGroup,
+        organizationType: ORGANIZATION_TYPE_OPTIONS[nextGroup][0].value,
+      }));
+      return;
+    }
+
+    setCreateOrganizationForm((current) => ({
       ...current,
       [name]: value,
     }));
@@ -306,6 +383,60 @@ export default function EventTabs({ events, organizations, locations }: EventTab
     }
   }
 
+  async function handleCreateOrganization() {
+    setOrganizationCreateError('');
+
+    if (!createOrganizationForm.name.trim()) {
+      setOrganizationCreateError('Organization name is required.');
+      return;
+    }
+
+    setIsCreatingOrganization(true);
+
+    try {
+      const response = await fetch('/api/admin/organizations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...createOrganizationForm,
+          status: 'PENDING_APPROVAL',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const validationMessage = Array.isArray(data.details)
+          ? data.details
+              .map((detail: { message?: string }) => detail.message)
+              .filter(Boolean)
+              .join(', ')
+          : '';
+        throw new Error(validationMessage || data.error || 'Failed to create organization');
+      }
+
+      setOrganizationRows((current) => [data.organization, ...current]);
+      setCreateForm((current) => ({
+        ...current,
+        organizationId: data.organization.id,
+      }));
+      setCreateOrganizationForm({
+        name: '',
+        directoryGroup: 'ORGANIZATION',
+        organizationType: ORGANIZATION_TYPE_OPTIONS.ORGANIZATION[0].value,
+        websiteUrl: '',
+      });
+      setOrganizationFilter('');
+      setShowCreateOrganization(false);
+    } catch (error) {
+      setOrganizationCreateError(error instanceof Error ? error.message : 'Failed to create organization');
+    } finally {
+      setIsCreatingOrganization(false);
+    }
+  }
+
   async function handleCreateEvent(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setCreateError('');
@@ -321,6 +452,11 @@ export default function EventTabs({ events, organizations, locations }: EventTab
       return;
     }
 
+    if (!createForm.organizationId) {
+      setCreateError('Organization is required.');
+      return;
+    }
+
     if (!createForm.locationId) {
       setCreateError('Location is required.');
       return;
@@ -329,12 +465,27 @@ export default function EventTabs({ events, organizations, locations }: EventTab
     setIsCreating(true);
 
     try {
+      const repeatCount = Number.parseInt(createForm.repeatCount, 10);
+
+      if (createForm.recurrenceEnabled && (!Number.isFinite(repeatCount) || repeatCount < 2 || repeatCount > 24)) {
+        throw new Error('Repeat count must be between 2 and 24 sessions.');
+      }
+
       const response = await fetch('/api/events', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(createForm),
+        body: JSON.stringify({
+          ...createForm,
+          recurrence: createForm.recurrenceEnabled
+            ? {
+                enabled: true,
+                cadence: createForm.recurrenceCadence,
+                occurrenceCount: repeatCount,
+              }
+            : undefined,
+        }),
       });
 
       const data = await response.json();
@@ -349,15 +500,16 @@ export default function EventTabs({ events, organizations, locations }: EventTab
         throw new Error(validationMessage || data.error || 'Failed to create event');
       }
 
-      setRows((current) => [
-        {
-          ...data,
-          startDatetime: new Date(data.startDatetime),
-          endDatetime: data.endDatetime ? new Date(data.endDatetime) : null,
-          updatedAt: new Date(data.updatedAt),
-        },
-        ...current,
-      ]);
+      const createdRows = (Array.isArray(data.createdEvents) ? data.createdEvents : [data]).map(
+        (entry: EventRecord & { startDatetime: string; endDatetime: string | null; updatedAt: string }) => ({
+          ...entry,
+          startDatetime: new Date(entry.startDatetime),
+          endDatetime: entry.endDatetime ? new Date(entry.endDatetime) : null,
+          updatedAt: new Date(entry.updatedAt),
+        })
+      );
+
+      setRows((current) => [...createdRows, ...current]);
       setCreateForm({
         title: '',
         description: '',
@@ -372,8 +524,11 @@ export default function EventTabs({ events, organizations, locations }: EventTab
         imageUrl: '',
         status: 'PUBLISHED',
         organizationId: '',
+        recurrenceEnabled: false,
+        recurrenceCadence: 'WEEKLY',
+        repeatCount: '3',
       });
-      setCreateSuccess('Event created successfully.');
+      setCreateSuccess(data.createdCount > 1 ? `${data.createdCount} event sessions created.` : 'Event created successfully.');
       setActiveTab(data.status === 'PUBLISHED' ? 'approved' : data.status === 'UNPUBLISHED' ? 'archived' : 'pending');
       setCurrentPage(1);
     } catch (error) {
@@ -568,6 +723,68 @@ export default function EventTabs({ events, organizations, locations }: EventTab
                 />
               </div>
 
+              <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">Recurring series</p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      Generate separate event records for repeating sessions like classes.
+                    </p>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={createForm.recurrenceEnabled}
+                      onChange={(event) =>
+                        setCreateForm((current) => ({
+                          ...current,
+                          recurrenceEnabled: event.target.checked,
+                        }))
+                      }
+                      className="h-4 w-4 rounded border-slate-300"
+                    />
+                    Repeat
+                  </label>
+                </div>
+
+                {createForm.recurrenceEnabled ? (
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="form-label">Pattern</label>
+                      <select
+                        name="recurrenceCadence"
+                        value={createForm.recurrenceCadence}
+                        onChange={handleCreateInputChange}
+                        className="form-input border-slate-300 bg-white text-slate-950"
+                      >
+                        <option value="WEEKLY">Weekly</option>
+                        <option value="MONTHLY_DATE">Monthly on this date</option>
+                        <option value="MONTHLY_WEEKDAY">Monthly on this weekday pattern</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="form-label">Total Sessions</label>
+                      <input
+                        type="number"
+                        min={2}
+                        max={24}
+                        name="repeatCount"
+                        value={createForm.repeatCount}
+                        onChange={handleCreateInputChange}
+                        className="form-input border-slate-300 bg-white text-slate-950"
+                      />
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+                      {createForm.recurrenceCadence === 'WEEKLY'
+                        ? 'This will create one event every 7 days using the same title, location, and timing.'
+                        : createForm.recurrenceCadence === 'MONTHLY_DATE'
+                          ? 'This will create one event on the same calendar date each month.'
+                          : 'This will create one event on the same weekday pattern each month, such as first Wednesday or last Thursday.'}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
               <div className="lg:col-span-2">
                 <label className="form-label">Location</label>
                 <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
@@ -737,60 +954,55 @@ export default function EventTabs({ events, organizations, locations }: EventTab
               <div className="lg:col-span-2">
                 <label className="form-label">Organization</label>
                 <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                  <input
-                    type="text"
-                    value={organizationFilter}
-                    onChange={(event) => setOrganizationFilter(event.target.value)}
-                    className="form-input border-slate-300 bg-white text-slate-950"
-                    placeholder="Filter organizations by name"
-                  />
-                  <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2">
-                    <button
+                  <div className="flex flex-col gap-3 lg:flex-row">
+                    <input
+                      type="text"
+                      value={organizationFilter}
+                      onChange={(event) => setOrganizationFilter(event.target.value)}
+                      className="form-input border-slate-300 bg-white text-slate-950"
+                      placeholder="Filter organizations by name"
+                    />
+                    <CrudActionButton
                       type="button"
-                      onClick={() =>
-                        setCreateForm((current) => ({
-                          ...current,
-                          organizationId: '',
-                        }))
-                      }
-                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${
-                        !createForm.organizationId ? 'bg-slate-950 text-white' : 'text-slate-700 hover:bg-slate-100'
-                      }`}
-                      >
-                        <span>No linked organization</span>
-                      </button>
-                    {normalizedOrganizationFilter ? (
-                      filteredOrganizations.length > 0 ? (
-                        filteredOrganizations.map((organization) => (
-                          <button
-                            key={organization.id}
-                            type="button"
-                            onClick={() =>
-                              setCreateForm((current) => ({
-                                ...current,
-                                organizationId: organization.id,
-                              }))
-                            }
-                            className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${
-                              createForm.organizationId === organization.id
-                                ? 'bg-slate-950 text-white'
-                                : 'text-slate-700 hover:bg-slate-100'
-                            }`}
-                          >
-                            <span>{organization.name}</span>
-                            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] opacity-70">
-                              {getOrganizationStatusLabel(organization.status)}
-                            </span>
-                          </button>
-                        ))
-                      ) : (
-                        <div className="rounded-lg px-3 py-2 text-sm text-slate-500">
-                          No organizations match that filter.
-                        </div>
-                      )
+                      variant="neutral"
+                      icon={showCreateOrganization ? X : Building2}
+                      label={showCreateOrganization ? 'Close organization form' : 'Add Organization'}
+                      onClick={() => setShowCreateOrganization((current) => !current)}
+                    >
+                      {showCreateOrganization ? 'Close' : 'Organization'}
+                    </CrudActionButton>
+                  </div>
+                  <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2">
+                    {isLoadingOrganizations ? (
+                      <div className="rounded-lg px-3 py-2 text-sm text-slate-500">Loading organizations...</div>
+                    ) : !normalizedOrganizationFilter ? (
+                      <div className="rounded-lg px-3 py-2 text-sm text-slate-500">Start typing to search organizations.</div>
+                    ) : filteredOrganizations.length > 0 ? (
+                      filteredOrganizations.map((organization) => (
+                        <button
+                          key={organization.id}
+                          type="button"
+                          onClick={() =>
+                            setCreateForm((current) => ({
+                              ...current,
+                              organizationId: organization.id,
+                            }))
+                          }
+                          className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${
+                            createForm.organizationId === organization.id
+                              ? 'bg-slate-950 text-white'
+                              : 'text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          <span>{organization.name}</span>
+                          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] opacity-70">
+                            {getOrganizationStatusLabel(organization.status)}
+                          </span>
+                        </button>
+                      ))
                     ) : (
                       <div className="rounded-lg px-3 py-2 text-sm text-slate-500">
-                        Start typing to search organizations.
+                        No organizations match that filter.
                       </div>
                     )}
                   </div>
@@ -798,6 +1010,62 @@ export default function EventTabs({ events, organizations, locations }: EventTab
                     <p className="text-sm text-slate-600">
                       Selected: <span className="font-semibold text-slate-900">{selectedOrganization.name}</span>
                     </p>
+                  ) : null}
+                  {showCreateOrganization ? (
+                    <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3">
+                      {organizationCreateError ? <div className="admin-list-error">{organizationCreateError}</div> : null}
+                      <div className="grid gap-3 lg:grid-cols-2">
+                        <input
+                          type="text"
+                          name="name"
+                          value={createOrganizationForm.name}
+                          onChange={handleCreateOrganizationInputChange}
+                          className="form-input border-slate-300 bg-white text-slate-950"
+                          placeholder="Organization name"
+                        />
+                        <select
+                          name="directoryGroup"
+                          value={createOrganizationForm.directoryGroup}
+                          onChange={handleCreateOrganizationInputChange}
+                          className="form-input border-slate-300 bg-white text-slate-950"
+                        >
+                          {ORGANIZATION_GROUP_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                        <select
+                          name="organizationType"
+                          value={createOrganizationForm.organizationType}
+                          onChange={handleCreateOrganizationInputChange}
+                          className="form-input border-slate-300 bg-white text-slate-950"
+                        >
+                          {ORGANIZATION_TYPE_OPTIONS[createOrganizationForm.directoryGroup].map((option) => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                        <input
+                          type="url"
+                          name="websiteUrl"
+                          value={createOrganizationForm.websiteUrl}
+                          onChange={handleCreateOrganizationInputChange}
+                          className="form-input border-slate-300 bg-white text-slate-950"
+                          placeholder="Website URL (optional)"
+                        />
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        Inline-created organizations start as pending approval and can still be attached to this event immediately.
+                      </p>
+                      <CrudActionButton
+                        type="button"
+                        variant="primary"
+                        icon={Building2}
+                        label={isCreatingOrganization ? 'Creating organization' : 'Create Organization'}
+                        onClick={() => handleCreateOrganization()}
+                        disabled={isCreatingOrganization}
+                      >
+                        {isCreatingOrganization ? 'Creating...' : 'Create Organization'}
+                      </CrudActionButton>
+                    </div>
                   ) : null}
                 </div>
               </div>
@@ -890,6 +1158,12 @@ export default function EventTabs({ events, organizations, locations }: EventTab
                           <Link href={`/admin/events/${event.id}`} className="admin-list-link">
                             {event.title}
                           </Link>
+                          {event.seriesCount ? (
+                            <div className="mt-1 text-xs text-slate-500">
+                              Session {event.seriesPosition} of {event.seriesCount}
+                              {event.series?.summary ? ` • ${event.series.summary}` : ''}
+                            </div>
+                          ) : null}
                         </td>
                         <td className="admin-list-cell">
                           {event.submittedBy.firstName} {event.submittedBy.lastName}

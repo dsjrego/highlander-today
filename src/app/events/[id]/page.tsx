@@ -5,7 +5,6 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import UserAvatar from '@/components/shared/UserAvatar';
 import { formatLocationPrimary, formatLocationSecondary } from '@/lib/location-format';
 
 interface EventDetail {
@@ -15,7 +14,24 @@ interface EventDetail {
   status: string;
   startDatetime: string;
   endDatetime: string | null;
+  seriesPosition: number | null;
+  seriesCount: number | null;
   venueLabel: string | null;
+  series: {
+    id: string;
+    title: string;
+    summary: string | null;
+    cadenceLabel: string;
+    occurrenceCount: number;
+    events: Array<{
+      id: string;
+      title: string;
+      startDatetime: string;
+      endDatetime: string | null;
+      seriesPosition: number | null;
+      seriesCount: number | null;
+    }>;
+  } | null;
   location: {
     id: string;
     name: string | null;
@@ -28,6 +44,12 @@ interface EventDetail {
   costText: string | null;
   contactInfo: string | null;
   photoUrl: string | null;
+  organization: {
+    id: string;
+    name: string;
+    slug: string;
+    status: string;
+  };
   submittedBy: {
     id: string;
     firstName: string;
@@ -124,21 +146,20 @@ export default function EventDetailPage() {
             })}
           </p>
           <div className="mt-6 flex items-center gap-3">
-            <UserAvatar
-              firstName={event.submittedBy.firstName}
-              lastName={event.submittedBy.lastName}
-              profilePhotoUrl={event.submittedBy.profilePhotoUrl}
-              trustLevel={event.submittedBy.trustLevel}
-              className="h-11 w-11"
-              initialsClassName="bg-white/12 text-sm text-white/78"
-            />
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/12 text-sm font-semibold text-white/78">
+              {event.organization.name.slice(0, 2).toUpperCase()}
+            </div>
             <div>
-              <Link
-                href={`/profile/${event.submittedBy.id}`}
-                className="text-sm font-semibold text-white transition-colors hover:text-cyan-200"
-              >
-                {event.submittedBy.firstName} {event.submittedBy.lastName}
-              </Link>
+              {event.organization.status === 'APPROVED' ? (
+                <Link
+                  href={`/organizations/${event.organization.slug}`}
+                  className="text-sm font-semibold text-white transition-colors hover:text-cyan-200"
+                >
+                  {event.organization.name}
+                </Link>
+              ) : (
+                <p className="text-sm font-semibold text-white">{event.organization.name}</p>
+              )}
               <p className="text-xs text-white/60">Organizer</p>
             </div>
           </div>
@@ -152,6 +173,15 @@ export default function EventDetailPage() {
       )}
 
       <div className="grid gap-4 rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
+        {event.seriesCount ? (
+          <div>
+            <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-500">Series</h2>
+            <p className="text-slate-800">
+              Session {event.seriesPosition} of {event.seriesCount}
+              {event.series?.summary ? ` • ${event.series.summary}` : ""}
+            </p>
+          </div>
+        ) : null}
         <div>
           <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-500">When</h2>
           <p className="text-slate-800">
@@ -184,9 +214,35 @@ export default function EventDetailPage() {
         </div>
       )}
 
+      {event.series?.events.length ? (
+        <div className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
+          <h3 className="mb-4 text-lg font-bold text-slate-950">Series Sessions</h3>
+          <div className="space-y-3">
+            {event.series.events.map((entry) => (
+              <Link
+                key={entry.id}
+                href={`/events/${entry.id}`}
+                className={`block rounded-2xl border px-4 py-3 text-sm transition ${
+                  entry.id === event.id
+                    ? "border-slate-950 bg-slate-950 text-white"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                }`}
+              >
+                <div className="font-semibold">
+                  Session {entry.seriesPosition} of {entry.seriesCount}
+                </div>
+                <div className={entry.id === event.id ? "text-white/80" : "text-slate-500"}>
+                  {new Date(entry.startDatetime).toLocaleString()}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       {event.submittedBy.bio && (
         <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-5 text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
-          <h3 className="mb-2 text-sm font-semibold text-cyan-100/70">About the Organizer</h3>
+          <h3 className="mb-2 text-sm font-semibold text-cyan-100/70">Submitted By</h3>
           <p className="text-sm text-white/70">{event.submittedBy.bio}</p>
         </div>
       )}

@@ -31,8 +31,16 @@ export default async function AdminEventsPage() {
       status: true,
       startDatetime: true,
       endDatetime: true,
+      seriesPosition: true,
+      seriesCount: true,
       updatedAt: true,
       venueLabel: true,
+      series: {
+        select: {
+          id: true,
+          summary: true,
+        },
+      },
       location: {
         select: {
           id: true,
@@ -52,18 +60,6 @@ export default async function AdminEventsPage() {
       },
     },
     orderBy: [{ updatedAt: 'desc' }, { startDatetime: 'asc' }],
-  });
-
-  const organizations = await db.organization.findMany({
-    where: {
-      ...(currentCommunity?.id ? { communityId: currentCommunity.id } : {}),
-    },
-    select: {
-      id: true,
-      name: true,
-      status: true,
-    },
-    orderBy: [{ name: 'asc' }],
   });
 
   const locations = await db.location.findMany({
@@ -96,7 +92,7 @@ export default async function AdminEventsPage() {
           </div>
         </div>
         <div className="admin-card-body">
-          <EventTabs events={events} organizations={organizations} locations={locations} />
+          <EventTabs events={events} organizations={[]} locations={locations} />
         </div>
         <div className="admin-card-footer">
           <div className="admin-card-footer-label"></div>

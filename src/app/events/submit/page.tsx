@@ -7,6 +7,11 @@ import FormCard from "@/components/shared/FormCard";
 import ImageUpload from "@/components/shared/ImageUpload";
 import InternalPageHeader from "@/components/shared/InternalPageHeader";
 import { formatLocationPrimary, formatLocationSearchLabel, formatLocationSecondary } from "@/lib/location-format";
+import {
+  ORGANIZATION_GROUP_OPTIONS,
+  ORGANIZATION_TYPE_OPTIONS,
+  type OrganizationDirectoryGroup,
+} from "@/lib/organization-taxonomy";
 
 interface LocationOption {
   id: string;
@@ -19,6 +24,22 @@ interface LocationOption {
   validationStatus?: string;
 }
 
+interface OrganizationOption {
+  id: string;
+  name: string;
+  slug: string;
+  status: "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | "SUSPENDED";
+  directoryGroup: "BUSINESS" | "GOVERNMENT" | "ORGANIZATION";
+  organizationType: string;
+}
+
+interface OrganizationFormState {
+  name: string;
+  directoryGroup: OrganizationDirectoryGroup;
+  organizationType: string;
+  websiteUrl: string;
+}
+
 export default function SubmitEventPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
@@ -28,11 +49,15 @@ export default function SubmitEventPage() {
     startTime: "",
     endDate: "",
     endTime: "",
+    organizationId: "",
     locationId: "",
     venueLabel: "",
     costText: "",
     contactInfo: "",
     imageUrl: "",
+    recurrenceEnabled: false,
+    recurrenceCadence: "WEEKLY",
+    repeatCount: "3",
   });
   const [locationForm, setLocationForm] = useState({
     name: "",
@@ -43,14 +68,26 @@ export default function SubmitEventPage() {
     postalCode: "",
   });
   const [locations, setLocations] = useState<LocationOption[]>([]);
+  const [organizations, setOrganizations] = useState<OrganizationOption[]>([]);
   const [locationQuery, setLocationQuery] = useState("");
+  const [organizationQuery, setOrganizationQuery] = useState("");
   const [showCreateLocation, setShowCreateLocation] = useState(false);
+  const [showCreateOrganization, setShowCreateOrganization] = useState(false);
   const [locationError, setLocationError] = useState("");
+  const [organizationError, setOrganizationError] = useState("");
   const [locationDuplicates, setLocationDuplicates] = useState<LocationOption[]>([]);
   const [isCreatingLocation, setIsCreatingLocation] = useState(false);
+  const [isCreatingOrganization, setIsCreatingOrganization] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
+  const [isLoadingOrganizations, setIsLoadingOrganizations] = useState(true);
   const [error, setError] = useState("");
+  const [organizationForm, setOrganizationForm] = useState<OrganizationFormState>({
+    name: "",
+    directoryGroup: "ORGANIZATION" as OrganizationDirectoryGroup,
+    organizationType: ORGANIZATION_TYPE_OPTIONS.ORGANIZATION[0].value,
+    websiteUrl: "",
+  });
 
   useEffect(() => {
     async function fetchLocations() {
@@ -71,19 +108,59 @@ export default function SubmitEventPage() {
     void fetchLocations();
   }, [locationQuery]);
 
+  useEffect(() => {
+    async function fetchOrganizations() {
+      setIsLoadingOrganizations(true);
+      try {
+        const res = await fetch(`/api/organizations${organizationQuery.trim() ? `?query=${encodeURIComponent(organizationQuery.trim())}` : ""}`);
+        if (res.ok) {
+          const data = await res.json();
+          setOrganizations(data.organizations || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch organizations:", err);
+      } finally {
+        setIsLoadingOrganizations(false);
+      }
+    }
+
+    void fetchOrganizations();
+  }, [organizationQuery]);
+
   function handleInputChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
   }
 
   function handleLocationFormChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target;
     setLocationForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  }
+
+  function handleOrganizationFormChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) {
+    const { name, value } = e.target;
+
+    if (name === "directoryGroup") {
+      const nextGroup = value as OrganizationDirectoryGroup;
+      setOrganizationForm((prev) => ({
+        ...prev,
+        directoryGroup: nextGroup,
+        organizationType: ORGANIZATION_TYPE_OPTIONS[nextGroup][0].value,
+      }));
+      return;
+    }
+
+    setOrganizationForm((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -147,6 +224,52 @@ export default function SubmitEventPage() {
     }
   }
 
+  async function createOrganization() {
+    setOrganizationError("");
+
+    if (!organizationForm.name.trim()) {
+      setOrganizationError("Organization name is required.");
+      return;
+    }
+
+    setIsCreatingOrganization(true);
+
+    try {
+      const res = await fetch("/api/organizations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(organizationForm),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        const validationMessage = Array.isArray(data.details)
+          ? data.details
+              .map((detail: { message?: string }) => detail.message)
+              .filter(Boolean)
+              .join(", ")
+          : "";
+        throw new Error(validationMessage || data.error || "Failed to create organization");
+      }
+
+      setOrganizations((prev) => [data.organization, ...prev]);
+      setFormData((prev) => ({ ...prev, organizationId: data.organization.id }));
+      setOrganizationForm({
+        name: "",
+        directoryGroup: "ORGANIZATION",
+        organizationType: ORGANIZATION_TYPE_OPTIONS.ORGANIZATION[0].value,
+        websiteUrl: "",
+      });
+      setOrganizationQuery("");
+      setShowCreateOrganization(false);
+    } catch (err) {
+      setOrganizationError(err instanceof Error ? err.message : "Failed to create organization");
+    } finally {
+      setIsCreatingOrganization(false);
+    }
+  }
+
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
@@ -159,6 +282,10 @@ export default function SubmitEventPage() {
       setError("Start date is required");
       return;
     }
+    if (!formData.organizationId) {
+      setError("Organization is required");
+      return;
+    }
     if (!formData.locationId) {
       setError("Location is required");
       return;
@@ -167,10 +294,27 @@ export default function SubmitEventPage() {
     setIsLoading(true);
 
     try {
+      const repeatCount = Number.parseInt(formData.repeatCount, 10);
+
+      if (formData.recurrenceEnabled && (!Number.isFinite(repeatCount) || repeatCount < 2 || repeatCount > 24)) {
+        setError("Repeat count must be between 2 and 24 sessions.");
+        setIsLoading(false);
+        return;
+      }
+
       const res = await fetch("/api/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          recurrence: formData.recurrenceEnabled
+            ? {
+                enabled: true,
+                cadence: formData.recurrenceCadence,
+                occurrenceCount: repeatCount,
+              }
+            : undefined,
+        }),
       });
 
       if (!res.ok) {
@@ -184,7 +328,7 @@ export default function SubmitEventPage() {
         setError(validationMessage || data.error || "Failed to submit event");
       } else {
         const data = await res.json();
-        router.push(`/events/${data.id}`);
+        router.push(`/events/${data.primaryEvent?.id || data.id}`);
       }
     } catch (err) {
       setError("An error occurred. Please try again.");
@@ -194,6 +338,8 @@ export default function SubmitEventPage() {
   }
 
   const selectedLocation = locations.find((location) => location.id === formData.locationId) || null;
+  const selectedOrganization = organizations.find((organization) => organization.id === formData.organizationId) || null;
+  const organizationTypeOptions = ORGANIZATION_TYPE_OPTIONS[organizationForm.directoryGroup];
 
   return (
     <div className="space-y-8">
@@ -277,6 +423,64 @@ export default function SubmitEventPage() {
                 </div>
               </div>
 
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">Recurring series</p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      For classes or repeating sessions, create one event per occurrence automatically.
+                    </p>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <input
+                      type="checkbox"
+                      name="recurrenceEnabled"
+                      checked={formData.recurrenceEnabled}
+                      onChange={handleInputChange}
+                      className="h-4 w-4 rounded border-slate-300"
+                    />
+                    Repeat
+                  </label>
+                </div>
+
+                {formData.recurrenceEnabled ? (
+                  <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="form-label">Pattern</label>
+                      <select
+                        name="recurrenceCadence"
+                        value={formData.recurrenceCadence}
+                        onChange={handleInputChange}
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                      >
+                        <option value="WEEKLY">Weekly</option>
+                        <option value="MONTHLY_DATE">Monthly on this date</option>
+                        <option value="MONTHLY_WEEKDAY">Monthly on this weekday pattern</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="form-label">Total Sessions</label>
+                      <input
+                        type="number"
+                        min={2}
+                        max={24}
+                        name="repeatCount"
+                        value={formData.repeatCount}
+                        onChange={handleInputChange}
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                      />
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+                      {formData.recurrenceCadence === "WEEKLY"
+                        ? "This creates one event every 7 days."
+                        : formData.recurrenceCadence === "MONTHLY_DATE"
+                          ? "This creates one event on the same date each month."
+                          : "This creates one event on the same weekday pattern each month, like first Wednesday or last Thursday."}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <label className="form-label">End Date</label>
@@ -298,6 +502,124 @@ export default function SubmitEventPage() {
                     className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex flex-col gap-3 md:flex-row">
+                  <input
+                    type="text"
+                    value={organizationQuery}
+                    onChange={(event) => setOrganizationQuery(event.target.value)}
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                    placeholder="Search organizations"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateOrganization((current) => !current)}
+                    className="btn btn-neutral"
+                  >
+                    {showCreateOrganization ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                    Organization
+                  </button>
+                </div>
+
+                <div className="max-h-56 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2">
+                  {isLoadingOrganizations ? (
+                    <div className="rounded-lg px-3 py-2 text-sm text-slate-500">Loading organizations...</div>
+                  ) : !organizationQuery.trim() ? (
+                    <div className="rounded-lg px-3 py-2 text-sm text-slate-500">Start typing to search organizations.</div>
+                  ) : organizations.length > 0 ? (
+                    organizations.map((organization) => (
+                      <button
+                        key={organization.id}
+                        type="button"
+                        onClick={() => setFormData((prev) => ({ ...prev, organizationId: organization.id }))}
+                        className={`flex w-full items-start justify-between rounded-lg px-3 py-2 text-left text-sm ${
+                          formData.organizationId === organization.id
+                            ? "bg-slate-950 text-white"
+                            : "text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <span>
+                          <span className="block font-semibold">{organization.name}</span>
+                          <span className="block text-xs opacity-75">
+                            {organization.directoryGroup} / {organization.organizationType}
+                          </span>
+                        </span>
+                        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] opacity-70">
+                          {organization.status === "PENDING_APPROVAL" ? "Pending" : "Approved"}
+                        </span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="rounded-lg px-3 py-2 text-sm text-slate-500">No organizations found.</div>
+                  )}
+                </div>
+
+                {selectedOrganization ? (
+                  <p className="text-sm text-slate-600">
+                    Selected: <span className="font-semibold text-slate-900">{selectedOrganization.name}</span>
+                  </p>
+                ) : null}
+
+                {showCreateOrganization ? (
+                  <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3">
+                    {organizationError ? (
+                      <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-red-700">
+                        {organizationError}
+                      </div>
+                    ) : null}
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <input
+                        type="text"
+                        name="name"
+                        value={organizationForm.name}
+                        onChange={handleOrganizationFormChange}
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                        placeholder="Organization name"
+                      />
+                      <select
+                        name="directoryGroup"
+                        value={organizationForm.directoryGroup}
+                        onChange={handleOrganizationFormChange}
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                      >
+                        {ORGANIZATION_GROUP_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                      <select
+                        name="organizationType"
+                        value={organizationForm.organizationType}
+                        onChange={handleOrganizationFormChange}
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                      >
+                        {organizationTypeOptions.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="url"
+                        name="websiteUrl"
+                        value={organizationForm.websiteUrl}
+                        onChange={handleOrganizationFormChange}
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                        placeholder="Website URL (optional)"
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      New organizations created here start as pending approval. Your event can still be submitted with that pending organization attached.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => createOrganization()}
+                      disabled={isCreatingOrganization}
+                      className="rounded-xl bg-slate-950 px-4 py-3 font-bold text-white transition hover:opacity-90 disabled:opacity-50"
+                    >
+                      {isCreatingOrganization ? "Creating..." : "Create Organization"}
+                    </button>
+                  </div>
+                ) : null}
               </div>
 
               <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">

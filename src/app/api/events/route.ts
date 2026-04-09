@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { buildEventOccurrences, buildEventSeriesSummary, EVENT_SERIES_CADENCE } from '@/lib/event-series';
 import { checkPermission } from '@/lib/permissions';
 import { logActivity } from '@/lib/activity-log';
 import { z } from 'zod';
+
+const RecurrenceSchema = z.object({
+  enabled: z.boolean().default(false),
+  cadence: z.enum([
+    EVENT_SERIES_CADENCE.WEEKLY,
+    EVENT_SERIES_CADENCE.MONTHLY_DATE,
+    EVENT_SERIES_CADENCE.MONTHLY_WEEKDAY,
+  ]).optional(),
+  occurrenceCount: z.coerce.number().int().min(2).max(24).optional(),
+});
 
 const CreateEventSchema = z.object({
   title: z.string().min(3).max(255),
@@ -17,7 +28,8 @@ const CreateEventSchema = z.object({
   contactInfo: z.string().optional(),
   imageUrl: z.string().optional(),
   status: z.enum(['PENDING_REVIEW', 'PUBLISHED', 'UNPUBLISHED']).optional(),
-  organizationId: z.string().uuid().optional().or(z.literal('')),
+  organizationId: z.string().uuid(),
+  recurrence: RecurrenceSchema.optional(),
 });
 
 function buildDatetime(dateStr: string, timeStr?: string): Date {
@@ -55,6 +67,14 @@ export async function GET(request: NextRequest) {
       skip: (page - 1) * limit,
       take: limit,
       include: {
+        series: {
+          select: {
+            id: true,
+            cadenceLabel: true,
+            summary: true,
+            occurrenceCount: true,
+          },
+        },
         location: {
           select: {
             id: true,
@@ -68,6 +88,9 @@ export async function GET(request: NextRequest) {
         },
         submittedBy: {
           select: { id: true, firstName: true, lastName: true, profilePhotoUrl: true },
+        },
+        organization: {
+          select: { id: true, name: true, slug: true, status: true },
         },
       },
       orderBy: { startDatetime: 'asc' },
@@ -133,22 +156,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Location not found' }, { status: 404 });
     }
 
-    const organizationId = validated.organizationId || undefined;
+    const organization = await db.organization.findFirst({
+      where: {
+        id: validated.organizationId,
+        communityId: community.id,
+      },
+      select: {
+        id: true,
+      },
+    });
 
-    if (organizationId) {
-      const organization = await db.organization.findFirst({
-        where: {
-          id: organizationId,
-          communityId: community.id,
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      if (!organization) {
-        return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
-      }
+    if (!organization) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
 
     const startDatetime = buildDatetime(validated.startDate, validated.startTime);
@@ -156,55 +175,121 @@ export async function POST(request: NextRequest) {
       ? buildDatetime(validated.endDate, validated.endTime)
       : null;
 
-    const event = await db.event.create({
-      data: {
-        title: validated.title,
-        description: validated.description || null,
-        startDatetime,
-        endDatetime,
-        locationId: validated.locationId,
-        venueLabel: validated.venueLabel || null,
-        costText: validated.costText || null,
-        contactInfo: validated.contactInfo || null,
-        photoUrl: validated.imageUrl || null,
-        submittedByUserId: userId,
-        communityId: community.id,
-        organizationId: organizationId || null,
-        status: checkPermission(userRole, 'events:approve')
-          ? validated.status || 'PENDING_REVIEW'
-          : 'PENDING_REVIEW',
-      },
-      include: {
-        location: {
-          select: {
-            id: true,
-            name: true,
-            addressLine1: true,
-            addressLine2: true,
-            city: true,
-            state: true,
-            postalCode: true,
+    const cadence = validated.recurrence?.enabled ? validated.recurrence.cadence || EVENT_SERIES_CADENCE.WEEKLY : null;
+    const occurrenceCount = validated.recurrence?.enabled ? validated.recurrence.occurrenceCount || 2 : 1;
+    const nextStatus = checkPermission(userRole, 'events:approve')
+      ? validated.status || 'PENDING_REVIEW'
+      : 'PENDING_REVIEW';
+
+    const created = await db.$transaction(async (tx) => {
+      const series = cadence
+        ? await tx.eventSeries.create({
+            data: {
+              communityId: community.id,
+              createdByUserId: userId,
+              organizationId: validated.organizationId,
+              title: validated.title,
+              summary: buildEventSeriesSummary({ startDatetime, cadenceLabel: cadence, occurrenceCount }),
+              cadenceLabel: cadence,
+              occurrenceCount,
+            },
+            select: { id: true },
+          })
+        : null;
+
+      const occurrences = cadence
+        ? buildEventOccurrences({
+            startDatetime,
+            endDatetime,
+            cadenceLabel: cadence,
+            occurrenceCount,
+          })
+        : [{ startDatetime, endDatetime, seriesPosition: null }];
+
+      const createdEvents = [];
+
+      for (const occurrence of occurrences) {
+        const createdEvent = await tx.event.create({
+          data: {
+            title: validated.title,
+            description: validated.description || null,
+            startDatetime: occurrence.startDatetime,
+            endDatetime: occurrence.endDatetime,
+            locationId: validated.locationId,
+            venueLabel: validated.venueLabel || null,
+            costText: validated.costText || null,
+            contactInfo: validated.contactInfo || null,
+            photoUrl: validated.imageUrl || null,
+            submittedByUserId: userId,
+            communityId: community.id,
+            organizationId: validated.organizationId,
+            status: nextStatus,
+            isRecurring: Boolean(series),
+            recurrenceRule: series ? buildEventSeriesSummary({ startDatetime, cadenceLabel: cadence!, occurrenceCount }) : null,
+            seriesId: series?.id || null,
+            seriesPosition: occurrence.seriesPosition,
+            seriesCount: series ? occurrenceCount : null,
           },
-        },
-        organization: {
-          select: { id: true, name: true },
-        },
-        submittedBy: {
-          select: { id: true, firstName: true, lastName: true, profilePhotoUrl: true },
-        },
-      },
+          include: {
+            series: {
+              select: {
+                id: true,
+                cadenceLabel: true,
+                summary: true,
+                occurrenceCount: true,
+              },
+            },
+            location: {
+              select: {
+                id: true,
+                name: true,
+                addressLine1: true,
+                addressLine2: true,
+                city: true,
+                state: true,
+                postalCode: true,
+              },
+            },
+            organization: {
+              select: { id: true, name: true },
+            },
+            submittedBy: {
+              select: { id: true, firstName: true, lastName: true, profilePhotoUrl: true },
+            },
+          },
+        });
+
+        createdEvents.push(createdEvent);
+      }
+
+      return {
+        primaryEvent: createdEvents[0],
+        createdEvents,
+      };
     });
 
     logActivity({
       userId,
       action: 'CREATE',
       resourceType: 'EVENT',
-      resourceId: event.id,
+      resourceId: created.primaryEvent.id,
       ipAddress,
-      metadata: { title: event.title, status: event.status },
+      metadata: {
+        title: created.primaryEvent.title,
+        status: created.primaryEvent.status,
+        createdCount: created.createdEvents.length,
+      },
     }).catch(() => {});
 
-    return NextResponse.json(event, { status: 201 });
+    return NextResponse.json(
+      {
+        ...created.primaryEvent,
+        primaryEvent: created.primaryEvent,
+        createdEvents: created.createdEvents,
+        createdCount: created.createdEvents.length,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

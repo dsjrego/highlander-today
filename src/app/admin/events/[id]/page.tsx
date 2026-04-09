@@ -92,6 +92,23 @@ export default async function AdminEventDetailPage({
           postalCode: true,
         },
       },
+      series: {
+        select: {
+          id: true,
+          title: true,
+          summary: true,
+          occurrenceCount: true,
+          events: {
+            orderBy: { startDatetime: 'asc' },
+            select: {
+              id: true,
+              startDatetime: true,
+              seriesPosition: true,
+              seriesCount: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -189,6 +206,11 @@ export default async function AdminEventDetailPage({
               <p className="mt-2 text-sm leading-6 text-slate-700">
                 {event.isRecurring ? event.recurrenceRule || 'Recurring event' : 'One-time event'}
               </p>
+              {event.seriesPosition && event.seriesCount ? (
+                <p className="mt-1 text-xs text-slate-500">
+                  Session {event.seriesPosition} of {event.seriesCount}
+                </p>
+              ) : null}
             </div>
           </div>
 
@@ -198,6 +220,32 @@ export default async function AdminEventDetailPage({
               {event.description || 'No description provided.'}
             </p>
           </div>
+
+          {event.series?.events.length ? (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Series Sessions</p>
+              <div className="mt-3 space-y-2">
+                {event.series.events.map((entry) => (
+                  <Link
+                    key={entry.id}
+                    href={`/admin/events/${entry.id}`}
+                    className={`block rounded-xl border px-4 py-3 text-sm ${
+                      entry.id === event.id
+                        ? 'border-slate-900 bg-slate-900 text-white'
+                        : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="font-semibold">
+                      Session {entry.seriesPosition} of {entry.seriesCount}
+                    </div>
+                    <div className={entry.id === event.id ? 'text-white/70' : 'text-slate-500'}>
+                      {formatLongDateTime(entry.startDatetime)}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       </section>
     </div>

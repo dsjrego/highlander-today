@@ -15,7 +15,14 @@ interface Event {
   description: string | null;
   startDatetime: string;
   endDatetime: string | null;
+  seriesPosition: number | null;
+  seriesCount: number | null;
   venueLabel: string | null;
+  series: {
+    id: string;
+    summary: string | null;
+    occurrenceCount: number;
+  } | null;
   location: {
     id: string;
     name: string | null;
@@ -27,6 +34,12 @@ interface Event {
   };
   photoUrl: string | null;
   costText: string | null;
+  organization: {
+    id: string;
+    name: string;
+    slug: string;
+    status: string;
+  };
   submittedBy: {
     id: string;
     firstName: string;
@@ -263,6 +276,12 @@ export default function EventsPage() {
                   />
                 )}
                 <div className="flex-1">
+                  {event.seriesCount ? (
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+                      Session {event.seriesPosition} of {event.seriesCount}
+                      {event.series?.summary ? ` • ${event.series.summary}` : ''}
+                    </p>
+                  ) : null}
                   <div className="flex items-start justify-between gap-4 mb-2">
                     <h2 className="text-xl font-bold text-slate-950 transition-colors group-hover:text-[#8f1d2c]">{event.title}</h2>
                     <span className="flex-shrink-0 rounded-full bg-[#8f1d2c] px-3 py-1 text-xs font-medium text-white">
@@ -285,9 +304,7 @@ export default function EventsPage() {
                     </span>
                     <span>{formatLocationPrimary(event.location, event.venueLabel)}</span>
                     {event.costText && <span>{event.costText}</span>}
-                    <span>
-                      {event.submittedBy.firstName} {event.submittedBy.lastName}
-                    </span>
+                    <span>{event.organization.name}</span>
                   </div>
                 </div>
               </div>

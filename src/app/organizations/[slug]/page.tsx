@@ -323,6 +323,12 @@ export default async function OrganizationProfilePage({ params }: PageProps) {
                   <div key={event.id} className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
+                        {event.seriesCount ? (
+                          <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                            Session {event.seriesPosition} of {event.seriesCount}
+                            {event.series?.summary ? ` • ${event.series.summary}` : ''}
+                          </p>
+                        ) : null}
                         <Link href={`/events/${event.id}`} className="text-base font-semibold text-slate-950 hover:underline">
                           {event.title}
                         </Link>
