@@ -20,15 +20,33 @@ function renderFeaturedMedia(item: HomepageSectionData['displayItems'][number]) 
   const published = metadataParts.at(-1) ?? 'Fresh from the community';
 
   if (item.imageUrl) {
+    const useContainMode = item.imageDisplayMode === 'contain';
+
     return (
-      <div className="relative flex h-full min-h-[240px] overflow-hidden bg-slate-900 md:min-h-[320px]">
+      <div
+        className={`relative flex h-full min-h-[240px] overflow-hidden md:min-h-[320px] ${
+          useContainMode
+            ? 'items-center justify-center bg-[linear-gradient(145deg,rgba(11,26,40,0.98),rgba(19,41,63,0.98))]'
+            : 'bg-slate-900'
+        }`}
+      >
         <Image
           src={item.imageUrl}
           alt={item.title}
           fill
-          className="object-cover transition duration-300 group-hover:scale-[1.02]"
+          className={`transition duration-300 ${
+            useContainMode
+              ? 'object-contain object-center p-2 md:p-3'
+              : 'object-cover'
+          } group-hover:scale-[1.02]`}
         />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,15,24,0.02),rgba(6,15,24,0.26))]" />
+        <div
+          className={`absolute inset-0 ${
+            useContainMode
+              ? 'bg-[linear-gradient(180deg,rgba(6,15,24,0.08),rgba(6,15,24,0.22))]'
+              : 'bg-[linear-gradient(180deg,rgba(6,15,24,0.02),rgba(6,15,24,0.26))]'
+          }`}
+        />
         <div className="relative flex w-full flex-col justify-end p-6 md:p-8">
           <div className="flex flex-wrap gap-2">
             <span className="rounded-full border border-white/16 bg-white/10 px-3 py-1 text-xs font-semibold text-white/88 backdrop-blur-sm">
@@ -153,7 +171,7 @@ function renderLatestNewsSection(section: HomepageSectionData) {
 
 function renderComingSoonPanel(title: string, description: string) {
   return (
-    <section className="admin-card flex aspect-square w-full max-w-[240px] flex-col rounded-[28px] border-white/12 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] shadow-[0_25px_60px_rgba(7,17,26,0.18)]">
+    <section className="admin-card flex aspect-square w-full flex-col rounded-[28px] border-white/12 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] shadow-[0_25px_60px_rgba(7,17,26,0.18)]">
       <div className="admin-card-header m-3 mb-0 rounded-[16px] border border-white/12 bg-white/[0.04]">
         <div className="admin-card-header-label px-4 py-3 text-sm font-semibold uppercase tracking-[0.28em] text-[#9be7ff]">
           Coming Soon

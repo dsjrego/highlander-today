@@ -2,7 +2,7 @@ import type { Prisma } from '@prisma/client';
 import { db } from './db';
 import { ArticleStatus, EventStatus, MarketplaceStatus } from './constants';
 import { formatLocationPrimary } from './location-format';
-import { getArticleUiImageUrl } from './article-images';
+import { getArticleSocialImageUrl } from './article-images';
 import { resolveTenantCommunityId } from './tenant';
 
 export type ManagedHomepageSectionType =
@@ -19,6 +19,7 @@ export interface HomepageContentItem {
   title: string;
   description?: string;
   imageUrl?: string;
+  imageDisplayMode?: 'cover' | 'contain';
   url: string;
   metadata?: string;
   author?: {
@@ -232,7 +233,8 @@ async function getArticleCandidates(communityId: string, limit: number) {
     contentId: article.id,
     title: article.title,
     description: article.excerpt ?? undefined,
-    imageUrl: getArticleUiImageUrl(article.featuredImageUrl),
+    imageUrl: getArticleSocialImageUrl(article.id, article.featuredImageUrl),
+    imageDisplayMode: article.featuredImageUrl?.trim() ? 'cover' : 'contain',
     url: `/local-life/${article.id}`,
     metadata: formatArticleMetadata(article),
     author: {
@@ -277,6 +279,7 @@ async function getEventCandidates(communityId: string, limit: number) {
     title: event.title,
     description: event.description ?? undefined,
     imageUrl: event.photoUrl ?? undefined,
+    imageDisplayMode: event.photoUrl ? 'cover' : undefined,
     url: `/events/${event.id}`,
     metadata: formatEventMetadata(event),
   }));
@@ -307,6 +310,7 @@ async function getMarketplaceCandidates(communityId: string, limit: number) {
     title: listing.title,
     description: listing.description ?? undefined,
     imageUrl: listing.photos[0]?.imageUrl,
+    imageDisplayMode: listing.photos[0]?.imageUrl ? 'cover' : undefined,
     url: `/marketplace/${listing.id}`,
     metadata: formatMarketplaceMetadata(listing),
     secondaryUrl: `/marketplace/stores/${listing.storeId}`,
