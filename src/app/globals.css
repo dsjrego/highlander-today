@@ -22,10 +22,24 @@
     box-shadow: 0 35px 80px rgba(7, 17, 26, 0.22);
   }
 
+  .page-header-compact-mobile {
+    padding: 0.25rem;
+    border-radius: 28px;
+  }
+
   .page-header-inner {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
+  }
+
+  .page-header-mobile-start .page-header-main {
+    justify-content: flex-start;
+  }
+
+  .page-header-mobile-start .page-header-content {
+    align-items: flex-start;
+    text-align: left;
   }
 
   .page-header-main {
@@ -1075,6 +1089,11 @@
   @screen md {
     .page-header {
       padding: 0.625rem 0.75rem;
+    }
+
+    .page-header-compact-mobile {
+      padding: 0.625rem 0.75rem;
+      border-radius: 32px;
     }
 
     .page-header-inner {

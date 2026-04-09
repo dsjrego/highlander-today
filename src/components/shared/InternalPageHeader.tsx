@@ -6,6 +6,9 @@ interface InternalPageHeaderProps {
   title: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
+  mobileAlign?: 'start' | 'center';
+  compactMobile?: boolean;
+  reserveActionsSpace?: boolean;
   className?: string;
   innerClassName?: string;
   mainClassName?: string;
@@ -21,6 +24,9 @@ export default function InternalPageHeader({
   title,
   description,
   actions,
+  mobileAlign = 'center',
+  compactMobile = false,
+  reserveActionsSpace = false,
   className,
   innerClassName,
   mainClassName,
@@ -30,24 +36,31 @@ export default function InternalPageHeader({
   titleClassName,
 }: InternalPageHeaderProps) {
   const hasActions = actions !== undefined && actions !== null && actions !== false;
+  const shouldRenderActionsSlot = hasActions || reserveActionsSpace;
 
   return (
-    <section className={`page-header ${className ?? ''}`.trim()}>
-      <div className={`page-header-inner ${innerClassName ?? ''}`.trim()}>
-        <div className={`page-header-main ${mainClassName ?? ''}`.trim()}>
+    <section className={`page-header ${compactMobile ? 'page-header-compact-mobile' : ''} ${className ?? ''}`.trim()}>
+      <div
+        className={`page-header-inner page-header-mobile-${mobileAlign} ${innerClassName ?? ''}`.trim()}
+      >
+        <div className={`page-header-main ${mobileAlign === 'start' ? 'page-header-main-mobile-start' : ''} ${mainClassName ?? ''}`.trim()}>
           {icon ? <div className={`page-header-icon ${iconClassName ?? ''}`.trim()}>{icon}</div> : null}
-          <div className={`page-header-content ${contentClassName ?? ''}`.trim()}>
+          <div
+            className={`page-header-content ${mobileAlign === 'start' ? 'page-header-content-mobile-start' : ''} ${contentClassName ?? ''}`.trim()}
+          >
             {label ? <p className="page-label">{label}</p> : null}
             <h1 className={`page-title ${titleClassName ?? ''}`.trim()}>{title}</h1>
             {description ? <p className="page-description">{description}</p> : null}
           </div>
         </div>
-        <div
-          className={`page-actions ${!hasActions ? 'page-actions-placeholder' : ''} ${actionsClassName ?? ''}`.trim()}
-          aria-hidden={hasActions ? undefined : true}
-        >
-          {actions}
-        </div>
+        {shouldRenderActionsSlot ? (
+          <div
+            className={`page-actions ${!hasActions ? 'page-actions-placeholder' : ''} ${actionsClassName ?? ''}`.trim()}
+            aria-hidden={hasActions ? undefined : true}
+          >
+            {actions}
+          </div>
+        ) : null}
       </div>
     </section>
   );

@@ -295,10 +295,9 @@ export default async function DirectoryPage({
     <div className="space-y-4">
       <InternalPageHeader
         title="Directory"
-        className="mb-0 p-[5px] md:p-3"
-        innerClassName="items-center"
-        mainClassName="justify-center"
-        contentClassName="items-center text-center"
+        mobileAlign="center"
+        compactMobile
+        className="mb-0"
         titleClassName="text-center leading-none"
       />
 

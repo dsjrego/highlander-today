@@ -19,6 +19,15 @@ interface EventOccurrenceInput {
   occurrenceCount: number;
 }
 
+interface EventSeriesPositionInput {
+  id: string;
+  startDatetime: Date;
+}
+
+interface EventSeriesScopeInput {
+  id: string;
+}
+
 const WEEKDAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
 const ORDINAL_LABELS = ['first', 'second', 'third', 'fourth', 'fifth'] as const;
 
@@ -163,4 +172,37 @@ export function buildEventOccurrences({
   }
 
   return occurrences;
+}
+
+export function buildSeriesEventPositions(events: EventSeriesPositionInput[]) {
+  const sorted = [...events].sort((left, right) => left.startDatetime.getTime() - right.startDatetime.getTime());
+  const seriesCount = sorted.length;
+
+  return sorted.map((event, index) => ({
+    id: event.id,
+    seriesPosition: index + 1,
+    seriesCount,
+  }));
+}
+
+export function getScopedSeriesEventIds(
+  events: EventSeriesScopeInput[],
+  currentEventId: string,
+  scope: 'SINGLE' | 'FUTURE' | 'SERIES'
+) {
+  if (scope === 'SINGLE') {
+    return [currentEventId];
+  }
+
+  const currentIndex = events.findIndex((event) => event.id === currentEventId);
+
+  if (currentIndex === -1) {
+    return [];
+  }
+
+  if (scope === 'SERIES') {
+    return events.map((event) => event.id);
+  }
+
+  return events.slice(currentIndex).map((event) => event.id);
 }

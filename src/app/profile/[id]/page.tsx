@@ -236,9 +236,9 @@ export default async function UserProfilePage({ params, searchParams }: PageProp
       lastName={profile.lastName}
       profilePhotoUrl={profile.profilePhotoUrl}
       trustLevel={profile.trustLevel}
-      className="h-20 w-20"
+      className="h-16 w-16 md:h-[4.5rem] md:w-[4.5rem]"
       imageClassName="border-2 border-white/25 shadow-[0_10px_24px_rgba(7,17,26,0.24)]"
-      initialsClassName="border-2 border-white/20 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),rgba(155,231,255,0.08))] text-cyan-50/90 text-2xl shadow-[0_10px_24px_rgba(7,17,26,0.24)]"
+      initialsClassName="border-2 border-white/20 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),rgba(155,231,255,0.08))] text-cyan-50/90 text-xl md:text-2xl shadow-[0_10px_24px_rgba(7,17,26,0.24)]"
     />
   );
   const headerActions = (
@@ -392,11 +392,13 @@ export default async function UserProfilePage({ params, searchParams }: PageProp
         icon={headerIcon}
         title={`${profile.firstName} ${profile.lastName}`}
         description={headerDescriptionParts.join(" • ")}
-        className="px-[4px] py-[4px] md:px-[6px] md:py-[4px]"
-        innerClassName="gap-[4px] md:gap-[4px]"
-        mainClassName="gap-[4px]"
+        mobileAlign="start"
+        compactMobile
+        className="px-[2px] py-[2px] md:px-[6px] md:py-[4px]"
+        innerClassName="gap-[3px] md:gap-[4px]"
+        mainClassName="gap-[6px] md:gap-[8px]"
         iconClassName="self-center"
-        contentClassName="py-[1px]"
+        contentClassName="py-0"
         actionsClassName="gap-[4px]"
         actions={headerActions}
         titleClassName="text-white"

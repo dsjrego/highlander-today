@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
 import { logActivity } from '@/lib/activity-log';
+import { buildEventSeriesSummary, buildSeriesEventPositions, getScopedSeriesEventIds } from '@/lib/event-series';
 import { z } from 'zod';
+
+const SERIES_EDIT_SCOPE = {
+  SINGLE: 'SINGLE',
+  FUTURE: 'FUTURE',
+  SERIES: 'SERIES',
+} as const;
 
 const UpdateEventSchema = z.object({
   title: z.string().min(3).max(255).optional(),
@@ -17,6 +24,7 @@ const UpdateEventSchema = z.object({
   costText: z.string().max(255).optional().nullable(),
   contactInfo: z.string().max(255).optional().nullable(),
   status: z.enum(['PENDING_REVIEW', 'PUBLISHED', 'UNPUBLISHED']).optional(),
+  seriesEditScope: z.enum([SERIES_EDIT_SCOPE.SINGLE, SERIES_EDIT_SCOPE.FUTURE, SERIES_EDIT_SCOPE.SERIES]).optional(),
 });
 
 function buildDatetime(dateStr: string, timeStr?: string | null): Date {
@@ -24,6 +32,94 @@ function buildDatetime(dateStr: string, timeStr?: string | null): Date {
     return new Date(`${dateStr}T${timeStr}:00`);
   }
   return new Date(`${dateStr}T00:00:00`);
+}
+
+function hasDatetimeChanges(validated: z.infer<typeof UpdateEventSchema>) {
+  return validated.startDate !== undefined || validated.endDate !== undefined;
+}
+
+async function syncSeriesState(seriesId: string) {
+  const series = await db.eventSeries.findUnique({
+    where: { id: seriesId },
+    select: {
+      id: true,
+      cadenceLabel: true,
+      events: {
+        orderBy: { startDatetime: 'asc' },
+        select: {
+          id: true,
+          startDatetime: true,
+          endDatetime: true,
+        },
+      },
+    },
+  });
+
+  if (!series) {
+    return;
+  }
+
+  if (series.events.length <= 1) {
+    if (series.events.length === 1) {
+      await db.event.update({
+        where: { id: series.events[0].id },
+        data: {
+          isRecurring: false,
+          recurrenceRule: null,
+          seriesId: null,
+          seriesPosition: null,
+          seriesCount: null,
+        },
+      });
+    }
+
+    await db.eventSeries.delete({ where: { id: series.id } });
+    return;
+  }
+
+  const positions = buildSeriesEventPositions(series.events);
+  const summary = buildEventSeriesSummary({
+    startDatetime: series.events[0].startDatetime,
+    cadenceLabel: series.cadenceLabel as Parameters<typeof buildEventSeriesSummary>[0]['cadenceLabel'],
+    occurrenceCount: series.events.length,
+  });
+
+  await db.$transaction([
+    ...positions.map((event) =>
+      db.event.update({
+        where: { id: event.id },
+        data: {
+          isRecurring: true,
+          recurrenceRule: summary,
+          seriesPosition: event.seriesPosition,
+          seriesCount: event.seriesCount,
+        },
+      })
+    ),
+    db.eventSeries.update({
+      where: { id: series.id },
+      data: {
+        summary,
+        occurrenceCount: series.events.length,
+      },
+    }),
+  ]);
+}
+
+async function getScopedEventIds(eventId: string, seriesId: string, scope: z.infer<typeof UpdateEventSchema>['seriesEditScope']) {
+  const resolvedScope = scope || SERIES_EDIT_SCOPE.SINGLE;
+
+  if (resolvedScope === SERIES_EDIT_SCOPE.SINGLE) {
+    return [eventId];
+  }
+
+  const rows = await db.event.findMany({
+    where: { seriesId },
+    orderBy: [{ startDatetime: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+    select: { id: true },
+  });
+
+  return getScopedSeriesEventIds(rows, eventId, resolvedScope);
 }
 
 export async function GET(
@@ -148,6 +244,16 @@ export async function PATCH(
     const body = await request.json();
     const validated = UpdateEventSchema.parse(body);
 
+    const seriesEditScope =
+      event.seriesId && validated.seriesEditScope ? validated.seriesEditScope : SERIES_EDIT_SCOPE.SINGLE;
+
+    if (event.seriesId && seriesEditScope !== SERIES_EDIT_SCOPE.SINGLE && hasDatetimeChanges(validated)) {
+      return NextResponse.json(
+        { error: 'Series-wide date/time changes are not supported yet. Edit one occurrence at a time for schedule changes.' },
+        { status: 400 }
+      );
+    }
+
     const updateData: Record<string, unknown> = {};
     if (validated.title !== undefined) updateData.title = validated.title;
     if (validated.description !== undefined) updateData.description = validated.description;
@@ -196,9 +302,30 @@ export async function PATCH(
       updateData.status = 'PENDING_REVIEW';
     }
 
-    const updated = await db.event.update({
+    const scopedIds =
+      event.seriesId && seriesEditScope !== SERIES_EDIT_SCOPE.SINGLE
+        ? await getScopedEventIds(event.id, event.seriesId, seriesEditScope)
+        : [event.id];
+
+    if (!scopedIds.length) {
+      return NextResponse.json({ error: 'No matching events found for this edit scope' }, { status: 404 });
+    }
+
+    await db.$transaction(
+      scopedIds.map((id) =>
+        db.event.update({
+          where: { id },
+          data: updateData,
+        })
+      )
+    );
+
+    if (event.seriesId) {
+      await syncSeriesState(event.seriesId);
+    }
+
+    const updated = await db.event.findUnique({
       where: { id: params.id },
-      data: updateData,
       include: {
         series: {
           select: {
@@ -241,6 +368,10 @@ export async function PATCH(
       },
     });
 
+    if (!updated) {
+      return NextResponse.json({ error: 'Event not found after update' }, { status: 404 });
+    }
+
     const ipAddress = request.headers.get('x-client-ip');
     logActivity({
       userId,
@@ -248,10 +379,10 @@ export async function PATCH(
       resourceType: 'EVENT',
       resourceId: event.id,
       ipAddress,
-      metadata: { title: updated.title, status: updated.status },
+      metadata: { title: updated.title, status: updated.status, seriesEditScope, affectedEventCount: scopedIds.length },
     }).catch(() => {});
 
-    return NextResponse.json(updated);
+    return NextResponse.json({ ...updated, affectedEventCount: scopedIds.length, seriesEditScope });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -297,9 +428,30 @@ export async function DELETE(
       );
     }
 
-    await db.event.delete({
-      where: { id: params.id },
-    });
+    const requestedScope = event.seriesId
+      ? z
+          .object({
+            seriesEditScope: z.enum([SERIES_EDIT_SCOPE.SINGLE, SERIES_EDIT_SCOPE.FUTURE, SERIES_EDIT_SCOPE.SERIES]).optional(),
+          })
+          .parse((await request.json().catch(() => ({}))) || {}).seriesEditScope
+      : undefined;
+    const seriesEditScope = event.seriesId && requestedScope ? requestedScope : SERIES_EDIT_SCOPE.SINGLE;
+    const scopedIds =
+      event.seriesId && seriesEditScope !== SERIES_EDIT_SCOPE.SINGLE
+        ? await getScopedEventIds(event.id, event.seriesId, seriesEditScope)
+        : [event.id];
+
+    await db.$transaction(
+      scopedIds.map((id) =>
+        db.event.delete({
+          where: { id },
+        })
+      )
+    );
+
+    if (event.seriesId) {
+      await syncSeriesState(event.seriesId);
+    }
 
     const ipAddress = request.headers.get('x-client-ip');
     logActivity({
@@ -312,10 +464,12 @@ export async function DELETE(
         title: event.title,
         status: event.status,
         startDatetime: event.startDatetime,
+        seriesEditScope,
+        affectedEventCount: scopedIds.length,
       },
     }).catch(() => {});
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, deletedCount: scopedIds.length, seriesEditScope });
   } catch (error) {
     console.error('Error deleting event:', error);
     return NextResponse.json(

@@ -42,10 +42,10 @@ export default async function RootLayout({
           <header className="relative z-40 overflow-visible border-b border-white/10 bg-[linear-gradient(135deg,#091a28_0%,#0f2941_34%,#8f1d2c_100%)] text-white">
             <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_18%_12%,rgba(255,255,255,0.16),transparent_26%),radial-gradient(circle_at_86%_18%,rgba(70,168,204,0.35),transparent_25%),radial-gradient(circle_at_72%_90%,rgba(255,255,255,0.08),transparent_20%)]" />
             <div className="relative w-full px-3 py-2 md:p-3">
-              <div className="flex items-center justify-between gap-3 md:hidden">
-                <div className="min-w-0 max-w-4xl">
-                  <div className="mb-0 flex items-center gap-1">
-                    <div className="relative h-10 w-[2.4rem] shrink-0">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 md:hidden">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <div className="relative h-9 w-[2.15rem] shrink-0">
                       <svg
                         viewBox="5 5 72 72"
                         aria-hidden="true"
@@ -82,7 +82,7 @@ export default async function RootLayout({
                         />
                       </svg>
                     </div>
-                    <h1 className="-ml-1 -translate-y-px truncate text-[1rem] font-black leading-none tracking-[-0.05em] text-white">
+                    <h1 className="min-w-0 truncate text-[0.98rem] font-black leading-[0.92] tracking-[-0.05em] text-white">
                       Highlander Today
                     </h1>
                   </div>

@@ -232,12 +232,12 @@ export default function BannerActions() {
   );
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2">
+    <div className="flex flex-nowrap items-center justify-end gap-1.5 md:flex-wrap md:gap-2">
       {/* Search link */}
       <Link
         href="/search"
         aria-label="Search"
-        className="flex h-9 w-9 items-center justify-center rounded-full border border-white/18 bg-white/[0.05] text-cyan-300 transition hover:border-white/28 hover:bg-white/[0.1] hover:text-white md:h-auto md:w-auto md:gap-1 md:px-3 md:py-2 md:text-sm md:font-medium"
+        className="flex h-[2.125rem] w-[2.125rem] items-center justify-center rounded-full border border-white/18 bg-white/[0.05] text-cyan-300 transition hover:border-white/28 hover:bg-white/[0.1] hover:text-white md:h-auto md:w-auto md:gap-1 md:px-3 md:py-2 md:text-sm md:font-medium"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -249,7 +249,7 @@ export default function BannerActions() {
       <Link
         href="/messages"
         aria-label="Messages"
-        className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/18 bg-white/[0.05] text-cyan-300 transition hover:border-white/28 hover:bg-white/[0.1] hover:text-white md:h-auto md:w-auto md:gap-1 md:px-3 md:py-2 md:text-sm md:font-medium"
+        className="relative flex h-[2.125rem] w-[2.125rem] items-center justify-center rounded-full border border-white/18 bg-white/[0.05] text-cyan-300 transition hover:border-white/28 hover:bg-white/[0.1] hover:text-white md:h-auto md:w-auto md:gap-1 md:px-3 md:py-2 md:text-sm md:font-medium"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -271,7 +271,7 @@ export default function BannerActions() {
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
             aria-label="Open user menu"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/18 bg-white/[0.05] text-white/88 transition hover:border-white/28 hover:bg-white/[0.1] hover:text-white md:!p-0 md:h-auto md:w-auto md:gap-1 md:px-3 md:py-2 md:text-sm md:font-medium"
+            className="flex h-[2.125rem] w-[2.125rem] items-center justify-center rounded-full border border-white/18 bg-white/[0.05] text-white/88 transition hover:border-white/28 hover:bg-white/[0.1] hover:text-white md:!p-0 md:h-auto md:w-auto md:gap-1 md:px-3 md:py-2 md:text-sm md:font-medium"
           >
             <svg className="hidden w-4 h-4 md:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />

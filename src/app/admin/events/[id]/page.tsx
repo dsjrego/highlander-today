@@ -7,6 +7,7 @@ import { getCurrentCommunity } from '@/lib/community';
 import { db } from '@/lib/db';
 import { formatLocationPrimary, formatLocationSecondary } from '@/lib/location-format';
 import { checkPermission } from '@/lib/permissions';
+import AdminEventEditor from './AdminEventEditor';
 
 interface AdminEventDetailPageProps {
   params: {
@@ -120,6 +121,20 @@ export default async function AdminEventDetailPage({
     notFound();
   }
 
+  const locations = await db.location.findMany({
+    where: { communityId: event.communityId },
+    orderBy: [{ name: 'asc' }, { addressLine1: 'asc' }],
+    select: {
+      id: true,
+      name: true,
+      addressLine1: true,
+      addressLine2: true,
+      city: true,
+      state: true,
+      postalCode: true,
+    },
+  });
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -178,6 +193,26 @@ export default async function AdminEventDetailPage({
           <p className="mt-1 text-xs text-slate-500">{event.costText || 'No cost details'}</p>
         </div>
       </section>
+
+      <AdminEventEditor
+        event={{
+          id: event.id,
+          title: event.title,
+          description: event.description,
+          startDatetime: event.startDatetime.toISOString(),
+          endDatetime: event.endDatetime ? event.endDatetime.toISOString() : null,
+          venueLabel: event.venueLabel,
+          photoUrl: event.photoUrl,
+          costText: event.costText,
+          contactInfo: event.contactInfo,
+          status: event.status,
+          seriesId: event.seriesId,
+          seriesPosition: event.seriesPosition,
+          seriesCount: event.seriesCount,
+          locationId: event.locationId,
+        }}
+        locations={locations}
+      />
 
       <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-6 py-4">
