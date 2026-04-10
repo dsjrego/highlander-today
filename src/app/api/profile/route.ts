@@ -1,6 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { UserPlaceRelationshipType } from '@prisma/client';
+
+const PLACE_RELATIONSHIP_OPTIONS = [
+  UserPlaceRelationshipType.FROM_HERE,
+  UserPlaceRelationshipType.FAMILY_IN,
+  UserPlaceRelationshipType.WORKS_IN,
+  UserPlaceRelationshipType.OWNS_PROPERTY_IN,
+  UserPlaceRelationshipType.CARES_ABOUT,
+] as const;
+
+const CurrentLocationSchema = z
+  .object({
+    placeId: z.string().uuid().nullable().optional(),
+    fallbackLocationText: z.string().trim().max(255).optional().or(z.literal('')),
+  })
+  .superRefine((value, ctx) => {
+    const hasPlaceId = Boolean(value.placeId);
+    const hasFallback = Boolean(value.fallbackLocationText?.trim());
+
+    if (!hasPlaceId && !hasFallback) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Current location requires either a place selection or fallback text.',
+        path: ['placeId'],
+      });
+    }
+  });
+
+const ConnectedPlaceSchema = z.object({
+  placeId: z.string().uuid(),
+  relationshipType: z
+    .nativeEnum(UserPlaceRelationshipType)
+    .refine((value) => PLACE_RELATIONSHIP_OPTIONS.includes(value as (typeof PLACE_RELATIONSHIP_OPTIONS)[number]), {
+      message: 'Unsupported connected-place relationship type.',
+    }),
+});
 
 const UpdateProfileSchema = z.object({
   firstName: z.string().min(1).max(255).optional(),
@@ -9,6 +45,8 @@ const UpdateProfileSchema = z.object({
   profilePhotoUrl: z.string().url().optional().nullable(),
   dateOfBirth: z.string().optional(),
   isDirectoryListed: z.boolean().optional(),
+  currentLocation: CurrentLocationSchema.optional(),
+  connectedPlaces: z.array(ConnectedPlaceSchema).max(3).optional(),
 });
 
 /**
@@ -44,6 +82,30 @@ export async function GET(request: NextRequest) {
         isIdentityLocked: true,
         dateOfBirth: true,
         createdAt: true,
+        placeRelationships: {
+          orderBy: [{ isCurrent: 'desc' }, { isPrimary: 'desc' }, { createdAt: 'asc' }],
+          select: {
+            id: true,
+            relationshipType: true,
+            isPrimary: true,
+            isCurrent: true,
+            fallbackLocationText: true,
+            source: true,
+            place: {
+              select: {
+                id: true,
+                name: true,
+                displayName: true,
+                slug: true,
+                type: true,
+                countryCode: true,
+                admin1Code: true,
+                admin1Name: true,
+                admin2Name: true,
+              },
+            },
+          },
+        },
         memberships: {
           select: {
             role: true,
@@ -75,6 +137,9 @@ export async function GET(request: NextRequest) {
       user._count.articles +
       user._count.eventsSubmitted +
       user._count.marketplaceListings;
+    const currentLocation =
+      user.placeRelationships.find((relationship) => relationship.isCurrent) ?? null;
+    const connectedPlaces = user.placeRelationships.filter((relationship) => !relationship.isCurrent);
 
     return NextResponse.json({
       id: user.id,
@@ -90,6 +155,8 @@ export async function GET(request: NextRequest) {
       createdAt: user.createdAt,
       role,
       community,
+      currentLocation,
+      connectedPlaces,
       vouchCount: user.vouchesReceived.length,
       postCount: totalPosts,
     });
@@ -178,21 +245,102 @@ export async function PATCH(request: NextRequest) {
       updateData.isDirectoryListed = validated.isDirectoryListed;
     }
 
-    const updated = await db.user.update({
-      where: { id: targetUserId },
-      data: updateData,
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        bio: true,
-        profilePhotoUrl: true,
-        isDirectoryListed: true,
-        trustLevel: true,
-        isIdentityLocked: true,
-        createdAt: true,
-      },
+    if (validated.currentLocation?.placeId) {
+      const place = await db.place.findFirst({
+        where: {
+          id: validated.currentLocation.placeId,
+          isActive: true,
+          isSelectable: true,
+        },
+        select: { id: true },
+      });
+
+      if (!place) {
+        return NextResponse.json({ error: 'Selected place not found' }, { status: 400 });
+      }
+    }
+
+    if (validated.connectedPlaces?.length) {
+      const placeIds = [...new Set(validated.connectedPlaces.map((entry) => entry.placeId))];
+      const placeCount = await db.place.count({
+        where: {
+          id: { in: placeIds },
+          isActive: true,
+          isSelectable: true,
+        },
+      });
+
+      if (placeCount !== placeIds.length) {
+        return NextResponse.json({ error: 'One or more connected places were not found' }, { status: 400 });
+      }
+    }
+
+    const updated = await db.$transaction(async (tx) => {
+      const nextUser = await tx.user.update({
+        where: { id: targetUserId },
+        data: updateData,
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          bio: true,
+          profilePhotoUrl: true,
+          isDirectoryListed: true,
+          trustLevel: true,
+          isIdentityLocked: true,
+          createdAt: true,
+        },
+      });
+
+      if (validated.currentLocation !== undefined) {
+        await tx.userPlaceRelationship.deleteMany({
+          where: {
+            userId: targetUserId,
+            isCurrent: true,
+          },
+        });
+
+        await tx.userPlaceRelationship.create({
+          data: {
+            userId: targetUserId,
+            placeId: validated.currentLocation.placeId || null,
+            relationshipType: UserPlaceRelationshipType.CURRENT_RESIDENT,
+            isPrimary: true,
+            isCurrent: true,
+            fallbackLocationText: validated.currentLocation.fallbackLocationText?.trim() || null,
+            source: 'USER_SELECTED',
+          },
+        });
+      }
+
+      if (validated.connectedPlaces !== undefined) {
+        await tx.userPlaceRelationship.deleteMany({
+          where: {
+            userId: targetUserId,
+            isCurrent: false,
+            relationshipType: {
+              in: [...PLACE_RELATIONSHIP_OPTIONS],
+            },
+          },
+        });
+
+        if (validated.connectedPlaces.length > 0) {
+          await tx.userPlaceRelationship.createMany({
+            data: validated.connectedPlaces.map((entry, index) => ({
+              userId: targetUserId,
+              placeId: entry.placeId,
+              relationshipType: entry.relationshipType,
+              isPrimary: index === 0,
+              isCurrent: false,
+              fallbackLocationText: null,
+              source: 'USER_SELECTED',
+            })),
+          });
+        }
+      }
+
+      return nextUser;
     });
 
     return NextResponse.json(updated);

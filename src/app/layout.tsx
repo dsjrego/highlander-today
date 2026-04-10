@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import Providers from "@/components/Providers";
 import BannerActions from "@/components/layout/BannerActions";
 import NavigationBar from "@/components/layout/NavigationBar";
+import LocationCompletionGate from "@/components/location/LocationCompletionGate";
 import { authOptions } from "@/lib/auth";
 import { getAboutNavItems } from "@/lib/about";
 import { SUPPORT_NAV_ITEMS } from "@/lib/support";
@@ -37,6 +38,7 @@ export default async function RootLayout({
     <html lang="en">
       <body className="bg-[#07111a] text-gray-900">
         <Providers>
+          <LocationCompletionGate />
           <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(70,168,204,0.2),transparent_20%),radial-gradient(circle_at_85%_12%,rgba(143,29,44,0.28),transparent_24%),linear-gradient(180deg,#07111a_0%,#081520_32%,#09111a_100%)]">
           {/* Masthead */}
           <header className="relative z-40 overflow-visible border-b border-white/10 bg-[linear-gradient(135deg,#091a28_0%,#0f2941_34%,#8f1d2c_100%)] text-white">

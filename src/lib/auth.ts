@@ -79,6 +79,36 @@ async function findOrCreateOauthUser(params: {
   return user;
 }
 
+async function getUserCompletionState(userId: string) {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: {
+      dateOfBirth: true,
+      trustLevel: true,
+      memberships: {
+        select: { role: true },
+        take: 1,
+      },
+      placeRelationships: {
+        where: { isCurrent: true },
+        select: { id: true },
+        take: 1,
+      },
+    },
+  });
+
+  if (!user) {
+    return null;
+  }
+
+  return {
+    trustLevel: user.trustLevel,
+    role: user.memberships[0]?.role ?? 'READER',
+    needsDobCompletion: !user.dateOfBirth,
+    needsLocationCompletion: user.placeRelationships.length === 0,
+  };
+}
+
 export function buildAuthOptions(): NextAuthOptions {
   return {
     providers: [
@@ -146,20 +176,22 @@ export function buildAuthOptions(): NextAuthOptions {
         if (user?.id) {
           token.id = user.id;
 
-          const dbUser = await db.user.findUnique({
-            where: { id: user.id },
-            select: {
-              trustLevel: true,
-              memberships: {
-                select: { role: true },
-                take: 1,
-              },
-            },
-          });
+          const dbUser = await getUserCompletionState(user.id);
 
           if (dbUser) {
             token.trust_level = dbUser.trustLevel;
-            token.role = dbUser.memberships[0]?.role ?? 'READER';
+            token.role = dbUser.role;
+            token.needsDobCompletion = dbUser.needsDobCompletion;
+            token.needsLocationCompletion = dbUser.needsLocationCompletion;
+          }
+        } else if (typeof token.id === 'string') {
+          const dbUser = await getUserCompletionState(token.id);
+
+          if (dbUser) {
+            token.trust_level = dbUser.trustLevel;
+            token.role = dbUser.role;
+            token.needsDobCompletion = dbUser.needsDobCompletion;
+            token.needsLocationCompletion = dbUser.needsLocationCompletion;
           }
         }
 
@@ -173,6 +205,10 @@ export function buildAuthOptions(): NextAuthOptions {
             typeof token.role === 'string' ? token.role : undefined;
           (session.user as { id?: string; role?: string; trust_level?: string }).trust_level =
             typeof token.trust_level === 'string' ? token.trust_level : undefined;
+          (session.user as { needsDobCompletion?: boolean; needsLocationCompletion?: boolean }).needsDobCompletion =
+            Boolean(token.needsDobCompletion);
+          (session.user as { needsDobCompletion?: boolean; needsLocationCompletion?: boolean }).needsLocationCompletion =
+            Boolean(token.needsLocationCompletion);
         }
 
         return session;
@@ -194,6 +230,8 @@ export interface CustomSession {
     image?: string | null;
     trust_level?: string;
     role?: string;
+    needsDobCompletion?: boolean;
+    needsLocationCompletion?: boolean;
   };
   expires: string;
 }

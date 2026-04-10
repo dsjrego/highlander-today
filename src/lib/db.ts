@@ -22,7 +22,12 @@ function getClient(): PrismaClient {
     // Quick staleness check: if the cached client is missing a model we
     // expect to exist, the generated client has been updated but the
     // singleton hasn't. Discard it and create a fresh one.
-    if (!(global.prisma as any).loginEvent || !(global.prisma as any).organization || !(global.prisma as any).location) {
+    if (
+      !(global.prisma as any).loginEvent ||
+      !(global.prisma as any).organization ||
+      !(global.prisma as any).location ||
+      !(global.prisma as any).place
+    ) {
       console.warn('[db] Stale PrismaClient detected — recreating');
       global.prisma = createPrismaClient();
     }

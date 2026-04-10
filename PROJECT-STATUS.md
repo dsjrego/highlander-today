@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-04-09 (session 132)
+> **Last updated:** 2026-04-09 (session 143)
 > **Purpose:** Fast-start context for the next session. Read this file first, then open only the supporting docs relevant to the active slice.
 > **Detailed reference:** `PROJECT-STATUS-REFERENCE.md` preserves the fuller implementation ledger, rollout history, verification notes, deployment runbook, and infrastructure rationale that used to live here.
 
@@ -65,6 +65,28 @@
 > **Session 131 note:** recurring-event tech debt received a focused hardening pass without adding product scope. Scoped recurring edit/delete orchestration now lives in `src/lib/event-series-mutations.ts` instead of remaining embedded in `/api/events/[id]`, route-level coverage now protects `FUTURE` edit/delete branching plus approval guards, direct service-level tests now cover series-wide cadence rewrites, missing-scope failures, author re-review behavior, and one-event-left cleanup, and shared event date/time parsing/formatting now lives in `src/lib/event-datetime.ts` and is used by event creation, recurring mutation logic, and the admin recurring editor. Treat recurring-event behavior as materially safer to change than before, but still do a short manual QA pass on the live admin recurrence flows before considering the loop fully settled.
 >
 > **Session 132 note:** admin operational tech debt received a smaller cleanup pass. The stale client-side placeholder `Site Settings` page was rewired to the existing live `/api/settings` route instead of faking save success with a timeout, and the `/admin` dashboard no longer shows placeholder `Events`, `Marketplace Listings`, pending-review, or recent-activity content. Those cards now read real community-scoped counts plus live `ActivityLog` rows. Verification also stayed clean after the recurring-event hardening work and these admin cleanups: `npm run lint`, `npm run typecheck`, and `npm run test:unit` all pass, with the current unit suite now covering recurring route logic, recurring mutation helpers, and shared event datetime helpers in addition to the older permissions/trust/marketplace tests.
+>
+> **Session 133 note:** early-stage rollout/community-buy-in strategy is now documented in `COMMUNITY-ANCHORING-LAUNCH-STRATEGY.md`. Treat that document as the canonical source for controlled local launch posture, validator/contributor/supporter sequencing, and "anchor before broadcast" framing. Keep funding details in `GRANT-STRATEGY.md`, `CAPITAL-PLAN.md`, `MONETIZATION-PLAN.md`, and `DONATIONS-TRANSPARENCY-PLAN.md` rather than duplicating them there.
+>
+> **Session 134 note:** cross-document strategy guardrails are now consolidated in `STRATEGIC-DECISIONS.md`. Use that file as the short canonical reference for stable strategic rules before opening more detailed launch, funding, monetization, or memorial planning docs.
+>
+> **Session 135 note:** historical-record and community-timeline planning is now documented in `HISTORICAL-EVENTS-SYSTEM-PLAN.md`. Treat that document as the canonical direction for a dedicated timeline/history repository that stays separate from the article system while still supporting article-idea generation, private family-history contribution, memoriam linkage, per-item sharing controls, and mandatory editorial curation before any family-submitted material becomes public community history.
+>
+> **Session 136 note:** place, coverage-area, and geographic-reach planning is now documented in `PLACE-COVERAGE-PLAN.md`. Treat that document as the canonical direction for a curated place model that stays separate from tenant identity, supports low-friction user location capture with structured selection plus text fallback, allows login-IP geolocation to inform geographic reach without auto-creating canonical places, and gives `SUPER_ADMIN` density-based expansion intelligence weighted toward distinct-user concentration rather than one heavy user's activity.
+>
+> **Session 137 note:** `PLACE-COVERAGE-PLAN.md` now also defines the first launch-critical product surfaces for geography: a `SUPER_ADMIN` place and tenant-coverage management interface, early user location capture aligned with the existing date-of-birth/profile-completion flow, and a `SUPER_ADMIN` geographic-density dashboard for identifying emerging coverage clusters and future tenant opportunities.
+>
+> **Session 138 note:** the first build order for geography is now documented in `PLACE-COVERAGE-IMPLEMENTATION-PLAN.md`. Use that document for the concrete rollout sequence across Prisma models, Pennsylvania place seeding/import, profile/location capture, `SUPER_ADMIN` place and tenant-coverage interfaces, observed-geo aggregation from existing login events, and the density-based geography dashboard.
+>
+> **Session 139 note:** place/coverage implementation has started. Prisma now includes first-pass `Place`, `PlaceAlias`, `TenantCoverageArea`, `UserPlaceRelationship`, and `ObservedGeoLocation` models; `/api/places` now exposes selectable-place search; and `/api/profile` now reads/writes current-location plus connected-community data against the new relationship model. Verification passed with `npx prisma validate --schema prisma/schema.prisma`, `npm run typecheck`, and `npm run lint`. The repo still follows the historical `prisma db push` workflow rather than a committed migrations history, so the attempted `prisma migrate dev --create-only` step failed with a generic schema-engine error and did not produce a migration file.
+>
+> **Session 140 note:** place seeding is now wired into `prisma/seed.ts` through the new `prisma/place-seed.ts` helper. Local bootstrap now seeds Pennsylvania state/county geography plus an initial municipality set around the founding footprint and near-term expansion targets, and the local database was successfully updated/sealed with `npm run db:push` plus an escalated `npm run db:seed`. Current seeded scope is 67 Pennsylvania counties and 9 initial municipalities; full statewide municipality import remains follow-on work rather than being complete yet.
+>
+> **Session 141 note:** the first user/admin geography surfaces are now live in code. Auth/session state now tracks missing current-location completion, the shared shell now redirects authenticated users without a current location into their own `Account Settings` tab to complete that field, `AccountSettingsPanel` now supports current-location search/select plus fallback text entry through `/api/places` and `/api/profile`, and `SUPER_ADMIN` now has first-pass `/admin/places` and `/admin/coverage` management surfaces backed by new `/api/admin/places` and `/api/admin/tenant-coverage` routes. Verification passed with `npm run typecheck` and `npm run lint`.
+>
+> **Session 142 note:** observed-geo and geography-reporting foundations are now live in code. `src/lib/observed-geo.ts` can aggregate existing login-event city/region/country data into `ObservedGeoLocation`, `SUPER_ADMIN` now has `/api/admin/observed-geo` and `/api/admin/geography` routes plus a first-pass `/admin/geography` dashboard, and the admin sidebar now exposes `Geography` alongside `Places` and `Coverage`. The current dashboard emphasizes declared current-resident density, observed distinct-user reach, and coverage gaps rather than raw traffic volume. Verification passed with `npm run typecheck` and `npm run lint`.
+>
+> **Session 143 note:** observed-geo curation is now live in code. `SUPER_ADMIN` can now open `/admin/observed-geo`, review aggregated login-location signals, search canonical places, match observed locations to curated `Place` records, or mark them ignored through the new `/api/admin/observed-geo/[id]` route. The admin sidebar now exposes `Observed Geo` as a dedicated operational surface rather than leaving location matching buried in the geography dashboard. Verification passed with `npm run typecheck` and `npm run lint`.
 >
 > **Session 109 note:** the admin dashboard is starting to shed its static mock cards. `/admin` now reads the live user count from Prisma on the server and links that `Total Users` card into `/admin/users`; the old `News` card was also replaced with a live `Articles` card showing community-scoped `Pending`, `Approved` (`PUBLISHED`), and `Archived` (`UNPUBLISHED`) counts with a direct link into `/admin/articles`. The old placeholder `Pending Approvals` and `Recent Bans` cards were removed, while `Events` and `Marketplace Listings` are still placeholder values until their backing queries are wired.
 >
@@ -180,12 +202,14 @@ Current public/admin direction highlights:
 - Implement first-party analytics/reaction instrumentation from `CONTENT-ANALYTICS-PLAN.md`.
 - Continue the About/institutional-content track where it improves public trust and clarity.
 - Preserve compact, dense operational design in admin rather than drifting toward spacious public-page layouts.
+- Prioritize the shared place/coverage foundation from `PLACE-COVERAGE-PLAN.md`, including `SUPER_ADMIN` place and tenant-coverage management, early user location capture, and geography-density reporting before broader tenant expansion.
 - Do a short manual QA pass on the new recurring-event regeneration flows (`single`, `future`, `series`) before treating that loop as fully settled.
 - Keep recurring-event follow-up focused on QA, maintainability, and clear behavior contracts rather than expanding feature scope again immediately.
 - Continue the directory build with public organization detail pages, richer organization editing, and later self-claim/self-management flows.
 - Continue the organization presence build from the new `/organizations/[slug]` foundation toward richer organization editing, self-claim/self-management, and later custom-domain support.
 - Define the organization inbox / CRM subsystem before implementation so business/government/organization messaging lands on durable mailbox/contact-history primitives instead of DM-specific shortcuts.
 - Validate whether `/help-us-grow` actually reduces manual admin vouching and where the next trust-bootstrap gaps remain.
+- Define the shared place/coverage model before future tenant expansion so user location, service areas, and geographic traction are measured through canonical places and density signals rather than inferred from tenant membership alone.
 
 ## What Is Still Partial Or Pending
 
@@ -198,6 +222,9 @@ Current public/admin direction highlights:
 - Directory exists as an early live foundation now, with canonical public organization detail pages at `/organizations/[slug]` and richer admin organization editing at `/admin/organizations/[id]`, but self-claim/self-management flows are still pending.
 - Organization messaging to businesses / government / organizations is still planning-only; use `ORGANIZATION-INBOX-CRM-PLAN.md` as the canonical direction before implementation.
 - Organization-linked forms/questionnaires now have a first live public route, admin management surface, one-submission-per-user public response flow, and a basic admin results view. The current admin UI direction is list-first and nested-tabbed rather than card-stacked, but richer response review/editing is still partial. Use `ORGANIZATION-FORMS-PLAN.md` as the canonical direction for the remaining submission/review system.
+- Historical events / timeline / family-history contribution is still planning-only; use `HISTORICAL-EVENTS-SYSTEM-PLAN.md` as the canonical direction and keep the historical repository, memoriam stewardship, and article linkage as related-but-separate models rather than collapsing them into the article system.
+- Place / coverage / geographic-reach modeling is still planning-only; use `PLACE-COVERAGE-PLAN.md` as the canonical direction and keep canonical places, tenant service areas, user-declared locations, and IP-derived observed geo signals as separate layers rather than treating tenant membership or raw IP data as the location model.
+- Place / coverage implementation is now staged in `PLACE-COVERAGE-IMPLEMENTATION-PLAN.md`; use that as the concrete build sequence and keep the rollout focused on canonical places, early user location capture, tenant coverage management, observed-geo curation, and distinct-user-weighted geographic reporting.
 - Paid memberships/subscriptions are still planning-only; use `USER-SUBSCRIPTIONS-PLAN.md` as the canonical direction and do not bolt billing/subscription fields onto existing community or organization membership tables.
 - Organization self-listing/help CTA on `/directory` is still intentionally deferred; do not imply a self-serve org creation/claim path until submit-or-claim workflows actually exist.
 - `Help Us Grow` is live as the first in-product trust-bootstrap loop, but it still lacks dismiss/not-known actions, stronger recognition hints, and an explicit admin exception path for genuine newcomers no one recognizes.
@@ -318,8 +345,10 @@ For the full gotcha list, verification notes, and deployment constraints, read `
 Use these instead of growing this file again:
 
 - `PROJECT-STATUS-REFERENCE.md` — detailed implementation ledger, verification notes, deployment/bootstrap runbook, upload snapshot, and production infrastructure rationale
+- `STRATEGIC-DECISIONS.md` — short canonical strategy guardrails across rollout, funding, positioning, and expansion
 - `DESIGN-SYSTEM-ARCHITECTURE.md` — canonical shared UI vocabulary and layout/theming guidance
 - `ADMIN-CONTENT-REFERENCE-PLAN.md` — admin content-model/reference system plan
+- `COMMUNITY-ANCHORING-LAUNCH-STRATEGY.md` — early-stage local rollout, community anchoring, and controlled exposure strategy
 - `COMMUNITY-SECTION-PLAN.md` — planned `Community` top-level section
 - `CONTENT-ANALYTICS-PLAN.md` — first-party analytics/reaction plan
 - `DIRECTORY-PLAN.md` — organization/directory direction

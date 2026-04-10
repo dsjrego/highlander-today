@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { Save } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { CrudActionButton } from "@/components/shared/CrudAction";
 import FormCard, { FormCardActions } from "@/components/shared/FormCard";
@@ -19,6 +19,32 @@ type ProfileData = {
   dateOfBirth?: string | null;
   trustLevel: string;
   isIdentityLocked: boolean;
+  currentLocation?: {
+    place: {
+      id: string;
+      name: string;
+      displayName: string;
+      slug: string;
+      type: string;
+      countryCode: string;
+      admin1Code: string | null;
+      admin1Name: string | null;
+      admin2Name: string | null;
+    } | null;
+    fallbackLocationText?: string | null;
+  } | null;
+};
+
+type PlaceOption = {
+  id: string;
+  name: string;
+  displayName: string;
+  slug: string;
+  type: string;
+  countryCode: string;
+  admin1Code: string | null;
+  admin1Name: string | null;
+  admin2Name: string | null;
 };
 
 type AccountSettingsPanelProps = {
@@ -93,7 +119,8 @@ export default function AccountSettingsPanel({
   targetUserId,
 }: AccountSettingsPanelProps) {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const searchParams = useSearchParams();
+  const { data: session, status, update } = useSession();
   const sessionUser = session?.user as { id?: string; role?: string } | undefined;
   const isSuperAdmin = sessionUser?.role === "SUPER_ADMIN";
   const isProfileOwner = !targetUserId || sessionUser?.id === targetUserId;
@@ -106,6 +133,11 @@ export default function AccountSettingsPanel({
     dateOfBirth: "",
     profilePhotoUrl: "",
   });
+  const [locationQuery, setLocationQuery] = useState("");
+  const [locationResults, setLocationResults] = useState<PlaceOption[]>([]);
+  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
+  const [selectedCurrentPlace, setSelectedCurrentPlace] = useState<PlaceOption | null>(null);
+  const [currentLocationFallback, setCurrentLocationFallback] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
@@ -136,6 +168,7 @@ export default function AccountSettingsPanel({
           dateOfBirth: data.dateOfBirth,
           trustLevel: data.trustLevel,
           isIdentityLocked: data.isIdentityLocked,
+          currentLocation: data.currentLocation,
         });
         setFormData({
           firstName: data.firstName,
@@ -144,6 +177,8 @@ export default function AccountSettingsPanel({
           dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth).toISOString().split("T")[0] : "",
           profilePhotoUrl: data.profilePhotoUrl || "",
         });
+        setSelectedCurrentPlace(data.currentLocation?.place || null);
+        setCurrentLocationFallback(data.currentLocation?.fallbackLocationText || "");
       } catch {
         setError("An error occurred loading your profile.");
       } finally {
@@ -164,6 +199,43 @@ export default function AccountSettingsPanel({
     }));
   }
 
+  useEffect(() => {
+    if (!locationQuery.trim()) {
+      setLocationResults([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(async () => {
+      try {
+        setIsLoadingLocations(true);
+        const res = await fetch(`/api/places?query=${encodeURIComponent(locationQuery.trim())}&limit=10`, {
+          signal: controller.signal,
+        });
+
+        if (!res.ok) {
+          return;
+        }
+
+        const data = await res.json();
+        setLocationResults(data.places || []);
+      } catch {
+        if (!controller.signal.aborted) {
+          setLocationResults([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoadingLocations(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timeout);
+    };
+  }, [locationQuery]);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -175,6 +247,10 @@ export default function AccountSettingsPanel({
         ? {
             bio: formData.bio,
             profilePhotoUrl: formData.profilePhotoUrl || null,
+            currentLocation: {
+              placeId: selectedCurrentPlace?.id || null,
+              fallbackLocationText: currentLocationFallback,
+            },
           }
         : {
             firstName: formData.firstName,
@@ -182,6 +258,10 @@ export default function AccountSettingsPanel({
             bio: formData.bio,
             dateOfBirth: formData.dateOfBirth,
             profilePhotoUrl: formData.profilePhotoUrl || null,
+            currentLocation: {
+              placeId: selectedCurrentPlace?.id || null,
+              fallbackLocationText: currentLocationFallback,
+            },
           };
 
       const query = targetUserId ? `?userId=${encodeURIComponent(targetUserId)}` : "";
@@ -206,10 +286,22 @@ export default function AccountSettingsPanel({
               bio: formData.bio,
               dateOfBirth: profile?.isIdentityLocked ? prev.dateOfBirth : formData.dateOfBirth,
               profilePhotoUrl: formData.profilePhotoUrl || null,
+              currentLocation: {
+                place: selectedCurrentPlace,
+                fallbackLocationText: currentLocationFallback || null,
+              },
             }
           : prev
       );
       setSuccess("Profile updated successfully.");
+      await update();
+
+      const nextPath = searchParams.get("next");
+      if (searchParams.get("complete") === "location" && nextPath) {
+        router.replace(nextPath);
+        return;
+      }
+
       router.refresh();
     } catch {
       setError("An error occurred. Please try again.");
@@ -220,6 +312,10 @@ export default function AccountSettingsPanel({
 
   const showDobPrompt =
     !profile?.dateOfBirth && Boolean((session?.user as any)?.oauthNeedsProfileRedirect);
+  const showLocationPrompt =
+    isProfileOwner &&
+    !profile?.currentLocation &&
+    Boolean((session?.user as any)?.needsLocationCompletion || searchParams.get("complete") === "location");
 
   return (
     <section className="space-y-6">
@@ -242,6 +338,16 @@ export default function AccountSettingsPanel({
           <p>
             Date of birth is not displayed publicly. It is optional here, but leaving it blank may
             restrict access to some features and it is required before a user can become trusted.
+          </p>
+        </StatusMessage>
+      ) : null}
+
+      {showLocationPrompt ? (
+        <StatusMessage variant="warning" title="Add your current location">
+          <p>
+            Your current location helps Highlander Today understand where people are actually using
+            the platform and where future coverage may be needed. If you live outside the current
+            coverage area, you can still type your location.
           </p>
         </StatusMessage>
       ) : null}
@@ -305,6 +411,93 @@ export default function AccountSettingsPanel({
                     />
                   </div>
                 )}
+
+                <div>
+                  <label className="form-label text-slate-500">Current Location</label>
+                  <div className="space-y-3">
+                    {selectedCurrentPlace ? (
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                        <div className="font-semibold text-slate-900">{selectedCurrentPlace.displayName}</div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          {selectedCurrentPlace.type}
+                          {selectedCurrentPlace.admin2Name ? ` • ${selectedCurrentPlace.admin2Name}` : ""}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedCurrentPlace(null);
+                            setLocationQuery("");
+                          }}
+                          className="mt-2 text-xs font-semibold text-[#0f5771] hover:underline"
+                        >
+                          Choose a different place
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          value={locationQuery}
+                          onChange={(event) => setLocationQuery(event.target.value)}
+                          placeholder="Search for your borough, township, city, or county"
+                          className="form-input border-slate-500 bg-white text-slate-950"
+                        />
+                        <div className="rounded-xl border border-slate-200 bg-slate-50">
+                          {isLoadingLocations ? (
+                            <div className="px-4 py-3 text-sm text-slate-500">Searching places...</div>
+                          ) : locationResults.length > 0 ? (
+                            locationResults.map((place) => (
+                              <button
+                                key={place.id}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedCurrentPlace(place);
+                                  setCurrentLocationFallback("");
+                                  setLocationQuery("");
+                                  setLocationResults([]);
+                                }}
+                                className="block w-full border-b border-slate-200 px-4 py-3 text-left text-sm text-slate-700 last:border-b-0 hover:bg-white"
+                              >
+                                <div className="font-semibold text-slate-900">{place.displayName}</div>
+                                <div className="text-xs text-slate-500">
+                                  {place.type}
+                                  {place.admin2Name ? ` • ${place.admin2Name}` : ""}
+                                </div>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="px-4 py-3 text-sm text-slate-500">
+                              Search for a matching place, or use the fallback field below if you
+                              live outside the current catalog.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <label htmlFor="currentLocationFallback" className="form-label text-slate-500">
+                        Outside current catalog or coverage area?
+                      </label>
+                      <input
+                        id="currentLocationFallback"
+                        type="text"
+                        value={currentLocationFallback}
+                        onChange={(event) => {
+                          setCurrentLocationFallback(event.target.value);
+                          if (event.target.value.trim()) {
+                            setSelectedCurrentPlace(null);
+                          }
+                        }}
+                        placeholder="e.g. Middleburg, FL or Montana"
+                        className="form-input border-slate-500 bg-white text-slate-950"
+                      />
+                      <p className="mt-1 text-xs text-slate-500">
+                        Use this only if you cannot find your place above.
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
                 <div>
                   <label className="form-label text-slate-500">Email</label>

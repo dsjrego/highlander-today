@@ -6,6 +6,36 @@ import { recordLoginEvent } from '@/lib/login-events';
 import bcrypt from 'bcryptjs';
 import { headers } from 'next/headers';
 
+async function getUserCompletionState(userId: string) {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: {
+      trustLevel: true,
+      dateOfBirth: true,
+      memberships: {
+        select: { role: true },
+        take: 1,
+      },
+      placeRelationships: {
+        where: { isCurrent: true },
+        select: { id: true },
+        take: 1,
+      },
+    },
+  });
+
+  if (!user) {
+    return null;
+  }
+
+  return {
+    trustLevel: user.trustLevel,
+    role: user.memberships?.[0]?.role ?? 'READER',
+    needsDobCompletion: !user.dateOfBirth,
+    needsLocationCompletion: user.placeRelationships.length === 0,
+  };
+}
+
 const handler = NextAuth({
   // NOTE: PrismaAdapter removed intentionally.
   // PrismaAdapter is designed for database-session flows (e.g. magic-link / OAuth).
@@ -150,20 +180,26 @@ const handler = NextAuth({
 
         // Fetch membership role
         try {
-          const dbUser = await db.user.findUnique({
-            where: { id: user.id },
-            select: {
-              trustLevel: true,
-              memberships: {
-                select: { role: true },
-                take: 1,
-              },
-            },
-          });
+          const dbUser = await getUserCompletionState(user.id);
 
           if (dbUser) {
             token.trust_level = dbUser.trustLevel;
-            token.role = dbUser.memberships?.[0]?.role ?? 'READER';
+            token.role = dbUser.role;
+            token.needsDobCompletion = dbUser.needsDobCompletion;
+            token.needsLocationCompletion = dbUser.needsLocationCompletion;
+          }
+        } catch (err) {
+          console.error('[JWT] Error fetching user role:', err);
+        }
+      } else if (typeof token.id === 'string') {
+        try {
+          const dbUser = await getUserCompletionState(token.id);
+
+          if (dbUser) {
+            token.trust_level = dbUser.trustLevel;
+            token.role = dbUser.role;
+            token.needsDobCompletion = dbUser.needsDobCompletion;
+            token.needsLocationCompletion = dbUser.needsLocationCompletion;
           }
         } catch (err) {
           console.error('[JWT] Error fetching user role:', err);
@@ -178,6 +214,8 @@ const handler = NextAuth({
         (session.user as any).role = token.role;
         (session.user as any).trust_level = token.trust_level;
         (session.user as any).oauthNeedsProfileRedirect = Boolean(token.oauthNeedsProfileRedirect);
+        (session.user as any).needsDobCompletion = Boolean(token.needsDobCompletion);
+        (session.user as any).needsLocationCompletion = Boolean(token.needsLocationCompletion);
       }
       return session;
     },

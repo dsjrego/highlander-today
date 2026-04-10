@@ -1,4 +1,8 @@
+import { loadEnvConfig } from '@next/env';
 import { PrismaClient } from '@prisma/client';
+import { seedPlaces } from './place-seed';
+
+loadEnvConfig(process.cwd());
 
 const prisma = new PrismaClient();
 
@@ -160,6 +164,12 @@ async function main() {
     },
   });
   console.log('✓ Default site settings created');
+
+  // 5. Seed canonical places
+  const placeSeedSummary = await seedPlaces(prisma);
+  console.log(
+    `✓ Seeded places: ${placeSeedSummary.countiesSeeded} PA counties and ${placeSeedSummary.municipalitiesSeeded} initial municipalities`
+  );
 
   console.log('\n✓ Database seed completed successfully!');
   console.log('  Seeded structural data only (no user accounts created).');

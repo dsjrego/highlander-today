@@ -44,6 +44,7 @@ model Community {
   domains                TenantDomain[]
   categories             Category[]
   siteSettings           SiteSetting[]
+  tenantCoverageAreas    TenantCoverageArea[]
 
   @@map("communities")
 }
@@ -118,6 +119,7 @@ model User {
   createdOrganizationForms OrganizationForm[]        @relation("organizationFormCreatedBy")
   updatedOrganizationForms OrganizationForm[]        @relation("organizationFormUpdatedBy")
   organizationFormSubmissions OrganizationFormSubmission[]
+  placeRelationships       UserPlaceRelationship[]
 
   @@map("users")
 }
@@ -200,6 +202,167 @@ enum MembershipRole {
   EDITOR
   ADMIN
   SUPER_ADMIN
+}
+
+enum PlaceType {
+  BOROUGH
+  TOWNSHIP
+  TOWN
+  CITY
+  COUNTY
+  REGION
+  STATE
+  COUNTRY
+}
+
+enum TenantCoverageType {
+  PRIMARY
+  SECONDARY
+  EMERGING
+  WATCHLIST
+}
+
+enum UserPlaceRelationshipType {
+  CURRENT_RESIDENT
+  FORMER_RESIDENT
+  FROM_HERE
+  FAMILY_IN
+  WORKS_IN
+  OWNS_PROPERTY_IN
+  CARES_ABOUT
+}
+
+enum UserPlaceSource {
+  USER_SELECTED
+  ADMIN_SET
+  MIGRATED
+}
+
+enum ObservedGeoReviewStatus {
+  UNMATCHED
+  MATCHED_TO_PLACE
+  IGNORE
+  READY_FOR_CURATION
+  PROMOTED
+}
+
+model Place {
+  id             String    @id @default(uuid()) @db.Uuid
+  name           String
+  displayName    String
+  slug           String    @unique
+  type           PlaceType
+  countryCode    String
+  admin1Code     String?
+  admin1Name     String?
+  admin2Name     String?
+  parentPlaceId  String?   @db.Uuid
+  isSelectable   Boolean   @default(true)
+  isActive       Boolean   @default(true)
+  latitude       Decimal?  @db.Decimal(9, 6)
+  longitude      Decimal?  @db.Decimal(9, 6)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  parentPlace            Place?                  @relation("PlaceHierarchy", fields: [parentPlaceId], references: [id], onDelete: SetNull)
+  childPlaces            Place[]                 @relation("PlaceHierarchy")
+  aliases                PlaceAlias[]
+  tenantCoverageAreas    TenantCoverageArea[]
+  userRelationships      UserPlaceRelationship[]
+  matchedObservedGeos    ObservedGeoLocation[]
+
+  @@index([type])
+  @@index([countryCode])
+  @@index([parentPlaceId])
+  @@index([countryCode, admin1Code])
+  @@map("places")
+}
+
+model PlaceAlias {
+  id           String   @id @default(uuid()) @db.Uuid
+  placeId      String   @db.Uuid
+  alias        String
+  aliasType    String?
+  isSearchable Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@unique([placeId, alias])
+  @@index([placeId])
+  @@index([alias])
+  @@map("place_aliases")
+}
+
+model TenantCoverageArea {
+  id           String             @id @default(uuid()) @db.Uuid
+  communityId  String             @db.Uuid
+  placeId      String             @db.Uuid
+  coverageType TenantCoverageType @default(SECONDARY)
+  isPrimary    Boolean            @default(false)
+  isActive     Boolean            @default(true)
+  notes        String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  // Relations
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  place     Place     @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, placeId])
+  @@index([communityId])
+  @@index([placeId])
+  @@index([coverageType])
+  @@map("tenant_coverage_areas")
+}
+
+model UserPlaceRelationship {
+  id                   String                    @id @default(uuid()) @db.Uuid
+  userId               String                    @db.Uuid
+  placeId              String?                   @db.Uuid
+  relationshipType     UserPlaceRelationshipType
+  isPrimary            Boolean                   @default(false)
+  isCurrent            Boolean                   @default(false)
+  fallbackLocationText String?
+  source               UserPlaceSource           @default(USER_SELECTED)
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+
+  // Relations
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  place Place? @relation(fields: [placeId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([placeId])
+  @@index([relationshipType])
+  @@map("user_place_relationships")
+}
+
+model ObservedGeoLocation {
+  id                String                  @id @default(uuid()) @db.Uuid
+  normalizedLabel   String
+  city              String?
+  region            String?
+  country           String?
+  matchedPlaceId    String?                 @db.Uuid
+  reviewStatus      ObservedGeoReviewStatus @default(UNMATCHED)
+  firstSeenAt       DateTime
+  lastSeenAt        DateTime
+  loginCount        Int                     @default(0)
+  distinctUserCount Int                     @default(0)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  // Relations
+  matchedPlace Place? @relation(fields: [matchedPlaceId], references: [id], onDelete: SetNull)
+
+  @@unique([normalizedLabel])
+  @@index([matchedPlaceId])
+  @@index([reviewStatus])
+  @@map("observed_geo_locations")
 }
 
 model VouchRecord {

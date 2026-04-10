@@ -26,6 +26,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const visibleNavItems = isSuperAdmin
     ? [
         ...adminNavItems.slice(0, 7),
+        { href: '/admin/places', label: 'Places' as const },
+        { href: '/admin/coverage', label: 'Coverage' as const },
+        { href: '/admin/geography', label: 'Geography' as const },
+        { href: '/admin/observed-geo', label: 'Observed Geo' as const },
         { href: '/admin/roadmap', label: 'Roadmap Moderation' as const },
         ...adminNavItems.slice(7),
       ]
