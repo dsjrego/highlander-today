@@ -133,6 +133,36 @@ export async function GET(request: NextRequest) {
 
     const role = user.memberships?.[0]?.role ?? 'READER';
     const community = user.memberships?.[0]?.community ?? null;
+    const coverageAreas = community
+      ? await db.tenantCoverageArea.findMany({
+          where: {
+            communityId: community.id,
+            isActive: true,
+          },
+          orderBy: [
+            { coverageType: 'asc' },
+            { isPrimary: 'desc' },
+            { place: { displayName: 'asc' } },
+          ],
+          select: {
+            coverageType: true,
+            isPrimary: true,
+            place: {
+              select: {
+                id: true,
+                name: true,
+                displayName: true,
+                slug: true,
+                type: true,
+                countryCode: true,
+                admin1Code: true,
+                admin1Name: true,
+                admin2Name: true,
+              },
+            },
+          },
+        })
+      : [];
     const totalPosts =
       user._count.articles +
       user._count.eventsSubmitted +
@@ -155,6 +185,7 @@ export async function GET(request: NextRequest) {
       createdAt: user.createdAt,
       role,
       community,
+      coverageAreas,
       currentLocation,
       connectedPlaces,
       vouchCount: user.vouchesReceived.length,

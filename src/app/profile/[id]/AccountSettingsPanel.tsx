@@ -19,6 +19,21 @@ type ProfileData = {
   dateOfBirth?: string | null;
   trustLevel: string;
   isIdentityLocked: boolean;
+  coverageAreas: Array<{
+    coverageType: string;
+    isPrimary: boolean;
+    place: {
+      id: string;
+      name: string;
+      displayName: string;
+      slug: string;
+      type: string;
+      countryCode: string;
+      admin1Code: string | null;
+      admin1Name: string | null;
+      admin2Name: string | null;
+    };
+  }>;
   currentLocation?: {
     place: {
       id: string;
@@ -133,10 +148,8 @@ export default function AccountSettingsPanel({
     dateOfBirth: "",
     profilePhotoUrl: "",
   });
-  const [locationQuery, setLocationQuery] = useState("");
-  const [locationResults, setLocationResults] = useState<PlaceOption[]>([]);
-  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
   const [selectedCurrentPlace, setSelectedCurrentPlace] = useState<PlaceOption | null>(null);
+  const [locationMode, setLocationMode] = useState<"coverage" | "other">("coverage");
   const [currentLocationFallback, setCurrentLocationFallback] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -168,6 +181,7 @@ export default function AccountSettingsPanel({
           dateOfBirth: data.dateOfBirth,
           trustLevel: data.trustLevel,
           isIdentityLocked: data.isIdentityLocked,
+          coverageAreas: data.coverageAreas || [],
           currentLocation: data.currentLocation,
         });
         setFormData({
@@ -177,8 +191,16 @@ export default function AccountSettingsPanel({
           dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth).toISOString().split("T")[0] : "",
           profilePhotoUrl: data.profilePhotoUrl || "",
         });
-        setSelectedCurrentPlace(data.currentLocation?.place || null);
-        setCurrentLocationFallback(data.currentLocation?.fallbackLocationText || "");
+        const currentPlace = data.currentLocation?.place || null;
+        const isCoveredCurrentPlace = Boolean(
+          currentPlace &&
+            (data.coverageAreas || []).some((entry: { place: { id: string } }) => entry.place.id === currentPlace.id)
+        );
+        setSelectedCurrentPlace(isCoveredCurrentPlace ? currentPlace : null);
+        setCurrentLocationFallback(
+          data.currentLocation?.fallbackLocationText || (!isCoveredCurrentPlace && currentPlace ? currentPlace.displayName : "")
+        );
+        setLocationMode(isCoveredCurrentPlace ? "coverage" : "other");
       } catch {
         setError("An error occurred loading your profile.");
       } finally {
@@ -199,43 +221,6 @@ export default function AccountSettingsPanel({
     }));
   }
 
-  useEffect(() => {
-    if (!locationQuery.trim()) {
-      setLocationResults([]);
-      return;
-    }
-
-    const controller = new AbortController();
-    const timeout = setTimeout(async () => {
-      try {
-        setIsLoadingLocations(true);
-        const res = await fetch(`/api/places?query=${encodeURIComponent(locationQuery.trim())}&limit=10`, {
-          signal: controller.signal,
-        });
-
-        if (!res.ok) {
-          return;
-        }
-
-        const data = await res.json();
-        setLocationResults(data.places || []);
-      } catch {
-        if (!controller.signal.aborted) {
-          setLocationResults([]);
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoadingLocations(false);
-        }
-      }
-    }, 250);
-
-    return () => {
-      controller.abort();
-      clearTimeout(timeout);
-    };
-  }, [locationQuery]);
-
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -248,8 +233,8 @@ export default function AccountSettingsPanel({
             bio: formData.bio,
             profilePhotoUrl: formData.profilePhotoUrl || null,
             currentLocation: {
-              placeId: selectedCurrentPlace?.id || null,
-              fallbackLocationText: currentLocationFallback,
+              placeId: locationMode === "coverage" ? selectedCurrentPlace?.id || null : null,
+              fallbackLocationText: locationMode === "other" ? currentLocationFallback : "",
             },
           }
         : {
@@ -259,8 +244,8 @@ export default function AccountSettingsPanel({
             dateOfBirth: formData.dateOfBirth,
             profilePhotoUrl: formData.profilePhotoUrl || null,
             currentLocation: {
-              placeId: selectedCurrentPlace?.id || null,
-              fallbackLocationText: currentLocationFallback,
+              placeId: locationMode === "coverage" ? selectedCurrentPlace?.id || null : null,
+              fallbackLocationText: locationMode === "other" ? currentLocationFallback : "",
             },
           };
 
@@ -287,8 +272,8 @@ export default function AccountSettingsPanel({
               dateOfBirth: profile?.isIdentityLocked ? prev.dateOfBirth : formData.dateOfBirth,
               profilePhotoUrl: formData.profilePhotoUrl || null,
               currentLocation: {
-                place: selectedCurrentPlace,
-                fallbackLocationText: currentLocationFallback || null,
+                place: locationMode === "coverage" ? selectedCurrentPlace : null,
+                fallbackLocationText: locationMode === "other" ? currentLocationFallback || null : null,
               },
             }
           : prev
@@ -415,87 +400,68 @@ export default function AccountSettingsPanel({
                 <div>
                   <label className="form-label text-slate-500">Current Location</label>
                   <div className="space-y-3">
-                    {selectedCurrentPlace ? (
+                    <div>
+                      <label htmlFor="currentLocationSelect" className="form-label text-slate-500">
+                        Coverage Area
+                      </label>
+                      <select
+                        id="currentLocationSelect"
+                        value={locationMode === "other" ? "__other__" : selectedCurrentPlace?.id || ""}
+                        onChange={(event) => {
+                          if (event.target.value === "__other__") {
+                            setLocationMode("other");
+                            setSelectedCurrentPlace(null);
+                            return;
+                          }
+
+                          const nextPlace =
+                            profile.coverageAreas.find((entry) => entry.place.id === event.target.value)?.place || null;
+                          setLocationMode("coverage");
+                          setSelectedCurrentPlace(nextPlace);
+                          setCurrentLocationFallback("");
+                        }}
+                        className="form-input border-slate-500 bg-white text-slate-950"
+                      >
+                        <option value="">Select your location</option>
+                        {profile.coverageAreas.map((entry) => (
+                          <option key={entry.place.id} value={entry.place.id}>
+                            {entry.place.displayName}
+                            {entry.coverageType === "PRIMARY" ? " (Primary coverage)" : ""}
+                          </option>
+                        ))}
+                        <option value="__other__">Other</option>
+                      </select>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Choose from the tenant&apos;s coverage areas, or pick Other if you live outside them.
+                      </p>
+                    </div>
+
+                    {locationMode === "other" ? (
+                      <div>
+                        <label htmlFor="currentLocationFallback" className="form-label text-slate-500">
+                          Other Location
+                        </label>
+                        <input
+                          id="currentLocationFallback"
+                          type="text"
+                          value={currentLocationFallback}
+                          onChange={(event) => setCurrentLocationFallback(event.target.value)}
+                          placeholder="e.g. Chest Springs, PA or Middleburg, FL"
+                          className="form-input border-slate-500 bg-white text-slate-950"
+                        />
+                        <p className="mt-1 text-xs text-slate-500">
+                          Use this only if your place is outside the current coverage-area list.
+                        </p>
+                      </div>
+                    ) : selectedCurrentPlace ? (
                       <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
                         <div className="font-semibold text-slate-900">{selectedCurrentPlace.displayName}</div>
                         <div className="mt-1 text-xs text-slate-500">
                           {selectedCurrentPlace.type}
                           {selectedCurrentPlace.admin2Name ? ` • ${selectedCurrentPlace.admin2Name}` : ""}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedCurrentPlace(null);
-                            setLocationQuery("");
-                          }}
-                          className="mt-2 text-xs font-semibold text-[#0f5771] hover:underline"
-                        >
-                          Choose a different place
-                        </button>
                       </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <input
-                          type="text"
-                          value={locationQuery}
-                          onChange={(event) => setLocationQuery(event.target.value)}
-                          placeholder="Search for your borough, township, city, or county"
-                          className="form-input border-slate-500 bg-white text-slate-950"
-                        />
-                        <div className="rounded-xl border border-slate-200 bg-slate-50">
-                          {isLoadingLocations ? (
-                            <div className="px-4 py-3 text-sm text-slate-500">Searching places...</div>
-                          ) : locationResults.length > 0 ? (
-                            locationResults.map((place) => (
-                              <button
-                                key={place.id}
-                                type="button"
-                                onClick={() => {
-                                  setSelectedCurrentPlace(place);
-                                  setCurrentLocationFallback("");
-                                  setLocationQuery("");
-                                  setLocationResults([]);
-                                }}
-                                className="block w-full border-b border-slate-200 px-4 py-3 text-left text-sm text-slate-700 last:border-b-0 hover:bg-white"
-                              >
-                                <div className="font-semibold text-slate-900">{place.displayName}</div>
-                                <div className="text-xs text-slate-500">
-                                  {place.type}
-                                  {place.admin2Name ? ` • ${place.admin2Name}` : ""}
-                                </div>
-                              </button>
-                            ))
-                          ) : (
-                            <div className="px-4 py-3 text-sm text-slate-500">
-                              Search for a matching place, or use the fallback field below if you
-                              live outside the current catalog.
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    <div>
-                      <label htmlFor="currentLocationFallback" className="form-label text-slate-500">
-                        Outside current catalog or coverage area?
-                      </label>
-                      <input
-                        id="currentLocationFallback"
-                        type="text"
-                        value={currentLocationFallback}
-                        onChange={(event) => {
-                          setCurrentLocationFallback(event.target.value);
-                          if (event.target.value.trim()) {
-                            setSelectedCurrentPlace(null);
-                          }
-                        }}
-                        placeholder="e.g. Middleburg, FL or Montana"
-                        className="form-input border-slate-500 bg-white text-slate-950"
-                      />
-                      <p className="mt-1 text-xs text-slate-500">
-                        Use this only if you cannot find your place above.
-                      </p>
-                    </div>
+                    ) : null}
                   </div>
                 </div>
 
