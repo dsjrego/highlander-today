@@ -39,7 +39,13 @@ function readCurrentMode(): ThemeMode {
   return document.documentElement.dataset.themeMode === 'light' ? 'light' : 'dark';
 }
 
-export default function ThemeModeToggle() {
+export default function ThemeModeToggle({
+  className,
+  labelMode = 'desktop',
+}: {
+  className?: string;
+  labelMode?: 'desktop' | 'always' | 'hidden';
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [mode, setMode] = useState<ThemeMode>('dark');
@@ -51,6 +57,12 @@ export default function ThemeModeToggle() {
   const nextMode: ThemeMode = mode === 'dark' ? 'light' : 'dark';
   const label = mode === 'dark' ? 'Dark' : 'Light';
   const mobileGlyph = mode === 'dark' ? '◐' : '☼';
+  const buttonClassName = [
+    'masthead-utility-button flex h-[2.125rem] w-[2.125rem] items-center justify-center md:h-auto md:w-auto md:gap-1 md:px-3 md:py-2 md:text-sm md:font-medium',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <button
@@ -65,7 +77,7 @@ export default function ThemeModeToggle() {
           router.refresh();
         });
       }}
-      className="masthead-utility-button flex h-[2.125rem] w-[2.125rem] items-center justify-center md:h-auto md:w-auto md:gap-1 md:px-3 md:py-2 md:text-sm md:font-medium"
+      className={buttonClassName}
     >
       <span className="md:hidden" aria-hidden="true">
         {mobileGlyph}
@@ -74,7 +86,8 @@ export default function ThemeModeToggle() {
         {mode === 'dark' ? <MoonIcon /> : <SunIcon />}
       </span>
       <span className="sr-only">{label}</span>
-      <span className="hidden md:inline">{label}</span>
+      {labelMode === 'always' ? <span>{label}</span> : null}
+      {labelMode === 'desktop' ? <span className="hidden md:inline">{label}</span> : null}
     </button>
   );
 }

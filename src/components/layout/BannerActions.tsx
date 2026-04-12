@@ -234,8 +234,6 @@ export default function BannerActions() {
 
   return (
     <div className="flex flex-nowrap items-center justify-end gap-1.5 md:flex-wrap md:gap-2">
-      <ThemeModeToggle />
-
       {/* Search link */}
       <Link
         href="/search"
@@ -320,6 +318,12 @@ export default function BannerActions() {
               >
                 Logout
               </button>
+              <div className="border-t px-4 py-2">
+                <ThemeModeToggle
+                  labelMode="always"
+                  className="w-full justify-between gap-2 px-4 py-2 text-sm font-medium"
+                />
+              </div>
             </div>
           )}
         </div>
@@ -355,6 +359,12 @@ export default function BannerActions() {
               >
                 Sign In / Sign Up
               </Link>
+              <div className="border-t px-4 py-2">
+                <ThemeModeToggle
+                  labelMode="always"
+                  className="w-full justify-between gap-2 px-4 py-2 text-sm font-medium"
+                />
+              </div>
             </div>
           )}
         </div>
