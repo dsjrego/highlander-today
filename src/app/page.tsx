@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { cookies, headers } from 'next/headers';
+import { headers } from 'next/headers';
 import type { ReactNode } from 'react';
 import InternalPageHeader from '@/components/shared/InternalPageHeader';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -187,20 +187,13 @@ function renderComingSoonPanel(title: string, description: string) {
 
 export default async function Home() {
   const requestHeaders = headers();
-  const cookieStore = cookies();
   const communityId = await resolveHomepageCommunityId({
     preferredCommunityId: requestHeaders.get('x-community-id') || undefined,
     preferredDomain: requestHeaders.get('x-community-domain') || undefined,
     host: requestHeaders.get('host') || undefined,
   });
   const sections = communityId
-    ? await getHomepageSectionsData(communityId, {
-        previewTenantSlug:
-          process.env.NODE_ENV === 'development'
-            ? cookieStore.get('theme-tenant-preview')?.value ?? null
-            : null,
-        mode: cookieStore.get('theme-mode')?.value ?? null,
-      })
+    ? await getHomepageSectionsData(communityId)
     : [];
   const visibleSections = sections
     .filter((section) => section.isVisible)

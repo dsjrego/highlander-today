@@ -3,7 +3,7 @@ import { TenantThemeManifest } from '../types';
 export const highlanderTodayTheme: TenantThemeManifest = {
   tenantSlug: 'highlander-today',
   themeName: 'Highlander Today',
-  defaultMode: 'dark',
+  defaultMode: 'light',
   supports: ['light', 'dark'],
   identity: {
     siteName: 'Highlander Today',

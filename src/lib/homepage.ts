@@ -2,7 +2,7 @@ import type { Prisma } from '@prisma/client';
 import { db } from './db';
 import { ArticleStatus, EventStatus, MarketplaceStatus } from './constants';
 import { formatLocationPrimary } from './location-format';
-import { getArticleSocialImageUrl, type ArticleImageThemeContext } from './article-images';
+import { getArticleUiImageUrl } from './article-images';
 import { resolveTenantCommunityId } from './tenant';
 
 export type ManagedHomepageSectionType =
@@ -212,8 +212,7 @@ function formatMarketplaceMetadata(listing: {
 
 async function getArticleCandidates(
   communityId: string,
-  limit: number,
-  themeContext?: ArticleImageThemeContext
+  limit: number
 ) {
   const articles = await db.article.findMany({
     where: {
@@ -237,8 +236,8 @@ async function getArticleCandidates(
     contentId: article.id,
     title: article.title,
     description: article.excerpt ?? undefined,
-    imageUrl: getArticleSocialImageUrl(article.id, article.featuredImageUrl, themeContext),
-    imageDisplayMode: article.featuredImageUrl?.trim() ? 'cover' : 'contain',
+    imageUrl: getArticleUiImageUrl(article.featuredImageUrl) ?? undefined,
+    imageDisplayMode: article.featuredImageUrl?.trim() ? 'cover' : undefined,
     url: `/local-life/${article.id}`,
     metadata: formatArticleMetadata(article),
     author: {
@@ -324,15 +323,14 @@ async function getMarketplaceCandidates(communityId: string, limit: number) {
 
 async function getSectionCandidatePool(
   sectionType: ManagedHomepageSectionType,
-  communityId: string,
-  themeContext?: ArticleImageThemeContext
+  communityId: string
 ) {
   const config = HOMEPAGE_SECTION_CONFIG[sectionType];
   const candidateLimit = Math.max(config.maxItems * 4, 12);
 
   switch (config.contentType) {
     case 'ARTICLE':
-      return getArticleCandidates(communityId, candidateLimit, themeContext);
+      return getArticleCandidates(communityId, candidateLimit);
     case 'EVENT':
       return getEventCandidates(communityId, candidateLimit);
     case 'MARKETPLACE_LISTING':
@@ -355,8 +353,7 @@ function mapPinnedItems(
 }
 
 export async function getHomepageSectionsData(
-  communityId: string,
-  themeContext?: ArticleImageThemeContext
+  communityId: string
 ): Promise<HomepageSectionData[]> {
   const sections = await ensureHomepageSections(communityId);
 
@@ -365,8 +362,7 @@ export async function getHomepageSectionsData(
       sectionId: section.id,
       items: await getSectionCandidatePool(
         section.sectionType as ManagedHomepageSectionType,
-        communityId,
-        themeContext
+        communityId
       ),
     }))
   );

@@ -342,7 +342,7 @@ export async function searchContent(
         buildTextRelevance(trimmedQuery, [article.title, article.excerpt, article.body]) +
         (article.isFeatured ? 1 : 0),
       communityId: article.communityId,
-      imageUrl: getArticleUiImageUrl(article.featuredImageUrl),
+      imageUrl: getArticleUiImageUrl(article.featuredImageUrl) ?? undefined,
       metadata: buildArticleMetadata(article),
     })),
     ...events.map((event) => ({

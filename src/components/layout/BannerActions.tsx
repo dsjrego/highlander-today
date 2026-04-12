@@ -272,7 +272,7 @@ export default function BannerActions() {
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
             aria-label="Open user menu"
-            className="masthead-utility-button flex h-[2.125rem] w-[2.125rem] items-center justify-center md:!p-0 md:h-auto md:w-auto md:gap-1 md:px-3 md:py-2 md:text-sm md:font-medium"
+            className="masthead-utility-button flex h-[2.125rem] w-[2.125rem] items-center justify-center md:h-auto md:w-auto md:gap-1 md:px-3 md:py-2 md:text-sm md:font-medium"
           >
             <svg className="hidden w-4 h-4 md:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />

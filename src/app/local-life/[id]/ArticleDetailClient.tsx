@@ -202,11 +202,21 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
             </div>
 
             <figure className="article-card-image">
-              <img
-                src={imageUrl}
-                alt={article.title}
-                className="article-card-image-element"
-              />
+              {imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt={article.title}
+                  className="article-card-image-element"
+                />
+              ) : (
+                <div className="article-card-image-placeholder min-h-[18rem] rounded-none border-x-0 border-t-0 px-6 py-10">
+                  <div>
+                    <p className="article-card-image-placeholder-label text-xs font-semibold uppercase tracking-[0.28em]">
+                      {article.category?.name || 'Local Life'}
+                    </p>
+                  </div>
+                </div>
+              )}
               {article.featuredImageCaption?.trim() ? (
                 <figcaption className="article-card-image-hero-caption">
                   {article.featuredImageCaption.trim()}
@@ -253,8 +263,8 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
         </div>
 
         <aside className="space-y-5 xl:sticky xl:top-6">
-          <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-5 text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200">Author</p>
+          <div className="article-detail-aside-card rounded-[26px] p-5">
+            <p className="article-detail-aside-label text-xs font-semibold uppercase tracking-[0.28em]">Author</p>
             <div className="mt-4 flex items-start gap-3">
               <UserAvatar
                 firstName={article.author.firstName}
@@ -262,32 +272,32 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
                 profilePhotoUrl={article.author.profilePhotoUrl}
                 trustLevel={article.author.trustLevel}
                 className="h-12 w-12"
-                initialsClassName="bg-white/12 text-sm text-white/78"
+                initialsClassName="bg-black/10 text-sm text-current dark:bg-white/12"
               />
               <div>
                 <Link
                   href={`/profile/${article.author.id}`}
-                  className="font-semibold text-white transition-colors hover:text-cyan-200"
+                  className="article-detail-aside-link font-semibold"
                 >
                   {article.author.firstName} {article.author.lastName}
                 </Link>
                 {article.author.bio ? (
-                  <p className="mt-2 text-sm text-white/70">{article.author.bio}</p>
+                  <p className="article-detail-aside-text mt-2 text-sm">{article.author.bio}</p>
                 ) : (
-                  <p className="mt-2 text-sm text-white/50">No author bio yet.</p>
+                  <p className="article-detail-aside-text-muted mt-2 text-sm">No author bio yet.</p>
                 )}
               </div>
             </div>
           </div>
 
           {article.tags.length > 0 && (
-            <div className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#2c7f9e]">Tags</p>
+            <div className="article-detail-aside-card rounded-[26px] p-5">
+              <p className="article-detail-aside-label text-xs font-semibold uppercase tracking-[0.28em]">Tags</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {article.tags.map((at) => (
                   <span
                     key={at.tag.id}
-                    className="rounded-full bg-slate-950 px-3 py-1 text-xs font-medium text-white"
+                    className="article-detail-tag rounded-full px-3 py-1 text-xs font-medium"
                   >
                     #{at.tag.name}
                   </span>

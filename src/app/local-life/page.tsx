@@ -122,11 +122,7 @@ function LocalLifePageContent() {
             <Link
               key={cat.id}
               href={cat.href || `/local-life?category=${cat.slug}`}
-              className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
-                activeCategory === cat.slug
-                  ? 'border border-cyan-300/60 bg-slate-950/90 text-cyan-200 shadow-[0_10px_25px_rgba(15,23,42,0.22)]'
-                  : 'border border-cyan-200/25 bg-white/[0.04] text-cyan-300 hover:border-cyan-300/70 hover:bg-cyan-300/12 hover:text-cyan-100 hover:shadow-[0_12px_26px_rgba(34,211,238,0.12)]'
-              }`}
+              className={`subnav-pill px-2.5 py-1 text-xs font-medium ${activeCategory === cat.slug ? 'subnav-pill-active' : ''}`}
             >
               {cat.name}
             </Link>
@@ -163,11 +159,21 @@ function LocalLifePageContent() {
                 className="article-card"
               >
                 <div className="article-card-image h-52">
-                  <img
-                    src={getArticleUiImageUrl(article.featuredImageUrl)}
-                    alt={article.title}
-                    className="h-full w-full object-cover"
-                  />
+                  {getArticleUiImageUrl(article.featuredImageUrl) ? (
+                    <img
+                      src={getArticleUiImageUrl(article.featuredImageUrl) || ''}
+                      alt={article.title}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="article-card-image-placeholder h-full min-h-0 rounded-none border-x-0 border-t-0 px-5 text-center">
+                      <div>
+                        <p className="article-card-image-placeholder-label text-[11px] font-semibold uppercase tracking-[0.24em]">
+                          {article.category?.name || 'Local Life'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-4">

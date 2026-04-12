@@ -98,8 +98,20 @@ export default function ArticlePreview({
       </section>
 
       <figure className="overflow-hidden rounded-[28px] border border-white/10 bg-white/82 shadow-[0_24px_55px_rgba(7,17,26,0.14)]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={previewImageUrl} alt={title?.trim() || 'Article preview'} className="h-auto w-full" />
+        {previewImageUrl ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={previewImageUrl} alt={title?.trim() || 'Article preview'} className="h-auto w-full" />
+          </>
+        ) : (
+          <div className="article-card-image-placeholder min-h-[18rem] rounded-none border-x-0 border-t-0 px-6 py-10">
+            <div>
+              <p className="article-card-image-placeholder-label text-xs font-semibold uppercase tracking-[0.28em]">
+                {categoryName || 'Local Life'}
+              </p>
+            </div>
+          </div>
+        )}
         {featuredImageCaption?.trim() ? (
           <figcaption className="border-t border-slate-200/80 px-5 py-4 text-sm leading-6 text-slate-600 md:px-6">
             {featuredImageCaption.trim()}

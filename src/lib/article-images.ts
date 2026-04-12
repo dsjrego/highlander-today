@@ -45,14 +45,13 @@ function appendThemeContext(path: string, themeContext?: ArticleImageThemeContex
 }
 
 export function getArticleUiImageUrl(
-  featuredImageUrl?: string | null,
-  themeContext?: ArticleImageThemeContext
+  featuredImageUrl?: string | null
 ) {
   if (featuredImageUrl?.trim()) {
     return featuredImageUrl.trim();
   }
 
-  return appendThemeContext(DEFAULT_ARTICLE_IMAGE_PATH, themeContext);
+  return null;
 }
 
 export function getArticleSocialImageUrl(
