@@ -160,9 +160,9 @@ function LocalLifePageContent() {
             {articles.map((article) => (
               <article
                 key={article.id}
-                className="overflow-hidden rounded-[26px] border border-white/10 bg-white/82 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_24px_55px_rgba(15,23,42,0.12)]"
+                className="article-card"
               >
-                <div className="h-52 bg-slate-200">
+                <div className="article-card-image h-52">
                   <img
                     src={getArticleUiImageUrl(article.featuredImageUrl)}
                     alt={article.title}
@@ -174,7 +174,7 @@ function LocalLifePageContent() {
                   {article.category && (
                     <div className="mb-2">
                       <span
-                        className="inline-block rounded-full bg-[#eef6fb] px-3 py-1 text-xs font-semibold text-[#0f5771]"
+                        className="article-card-category-badge inline-block rounded-full px-3 py-1 text-xs font-semibold"
                       >
                         {article.category.name}
                       </span>
@@ -184,14 +184,14 @@ function LocalLifePageContent() {
                   <h3 className="mb-2">
                     <Link
                       href={`/local-life/${article.id}`}
-                      className="line-clamp-2 text-lg font-bold text-slate-950 transition-colors hover:text-[#8f1d2c]"
+                      className="article-card-title line-clamp-2 text-lg transition-colors"
                     >
                       {article.title}
                     </Link>
                   </h3>
 
                   {article.excerpt && (
-                    <p className="mb-3 line-clamp-2 text-sm leading-7 text-slate-600">
+                    <p className="article-card-excerpt mb-3 text-sm leading-7">
                       {article.excerpt}
                     </p>
                   )}
@@ -201,7 +201,7 @@ function LocalLifePageContent() {
                       {article.tags.slice(0, 3).map((at) => (
                         <span
                           key={at.tag.id}
-                          className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600"
+                          className="article-card-tag rounded-full px-2.5 py-1 text-xs"
                         >
                           #{at.tag.name}
                         </span>
@@ -209,13 +209,13 @@ function LocalLifePageContent() {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-400">
+                  <div className="article-card-footer border-t pt-3 text-xs">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-slate-600">
+                      <span className="article-card-author font-medium">
                         {article.author.firstName} {article.author.lastName}
                       </span>
                       <span>&middot;</span>
-                      <time dateTime={article.publishedAt}>
+                      <time className="article-card-date" dateTime={article.publishedAt}>
                         {new Date(article.publishedAt).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
@@ -225,7 +225,7 @@ function LocalLifePageContent() {
                     </div>
                     <Link
                       href={`/local-life/${article.id}`}
-                      className="font-semibold text-[#8f1d2c] hover:underline"
+                      className="article-card-read-link font-semibold"
                     >
                       Read &rarr;
                     </Link>

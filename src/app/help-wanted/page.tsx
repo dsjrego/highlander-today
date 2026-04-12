@@ -177,7 +177,7 @@ export default function HelpWantedPage() {
           </>
         }
       />
-      <p className="max-w-3xl text-sm leading-7 text-slate-500">
+      <p className="page-intro-copy max-w-3xl text-sm leading-7">
         Local jobs, service requests, and short-term tasks routed through trusted community messaging.
       </p>
 
@@ -194,19 +194,19 @@ export default function HelpWantedPage() {
       ) : null}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-5 text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
-          <p className="mb-1 text-sm font-semibold uppercase tracking-wide text-cyan-100/70">Open Now</p>
-          <p className="text-3xl font-bold text-white">{openPosts}</p>
-          <p className="mt-2 text-sm text-white/68">Published opportunities currently accepting responses.</p>
+        <div className="marketplace-summary-tile p-5">
+          <p className="marketplace-summary-label mb-1 text-sm font-semibold uppercase tracking-wide">Open Now</p>
+          <p className="marketplace-summary-value text-3xl font-bold">{openPosts}</p>
+          <p className="page-intro-copy mt-2 text-sm">Published opportunities currently accepting responses.</p>
         </div>
-        <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(160deg,rgba(57,20,34,0.95),rgba(20,13,24,0.95))] p-5 text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
-          <p className="mb-1 text-sm font-semibold uppercase tracking-wide text-cyan-100/70">Recently Resolved</p>
-          <p className="text-3xl font-bold text-white">{filledPosts + closedPosts}</p>
-          <p className="mt-2 text-sm text-white/68">Filled or closed posts stay visible when resolved listings are shown.</p>
+        <div className="marketplace-summary-tile marketplace-summary-tile-accent p-5">
+          <p className="marketplace-summary-label mb-1 text-sm font-semibold uppercase tracking-wide">Recently Resolved</p>
+          <p className="marketplace-summary-value text-3xl font-bold">{filledPosts + closedPosts}</p>
+          <p className="page-intro-copy mt-2 text-sm">Filled or closed posts stay visible when resolved listings are shown.</p>
         </div>
-        <div className="rounded-[26px] bg-slate-950 p-5 text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
-          <p className="mb-1 text-sm font-semibold uppercase tracking-wide text-cyan-100/70">How It Works</p>
-          <p className="text-sm text-white/72">
+        <div className="marketplace-summary-tile marketplace-summary-tile-deep p-5">
+          <p className="marketplace-summary-label mb-1 text-sm font-semibold uppercase tracking-wide">How It Works</p>
+          <p className="page-intro-copy text-sm">
             Trusted posters submit opportunities, staff review them, and trusted responders contact posters through Highlander Today messages.
           </p>
         </div>
@@ -256,7 +256,7 @@ export default function HelpWantedPage() {
           {error}
         </div>
       ) : filteredPosts.length === 0 ? (
-        <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-12 text-center text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
+        <div className="marketplace-empty-state p-12 text-center">
           <h2 className="empty-state-title mb-2">No matching opportunities yet</h2>
           <p className="empty-state-copy mx-auto mb-6 max-w-md">
             Help Wanted posts will appear here after editor review. Try a different filter, or post the first one if you are trusted.

@@ -169,7 +169,7 @@ export default function SubmitHelpWantedPage() {
           </button>
         }
       />
-      <p className="max-w-3xl text-sm leading-7 text-slate-500">
+      <p className="page-intro-copy max-w-3xl text-sm leading-7">
         Create a local opportunity for jobs, services, or short-term task work. Posts are reviewed before publication.
       </p>
 

@@ -106,7 +106,7 @@ export default function HelpUsGrowClient() {
   );
 
   if (status === 'loading' || isLoading) {
-    return <p className="py-10 text-center text-slate-500">Loading...</p>;
+    return <p className="page-intro-copy py-10 text-center">Loading...</p>;
   }
 
   if (!canAccess) {
@@ -132,18 +132,18 @@ export default function HelpUsGrowClient() {
         </div>
       ) : null}
 
-      <section className="overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(241,245,249,0.94))] shadow-[0_24px_55px_rgba(15,23,42,0.16)] backdrop-blur">
-        <div className="border-b border-slate-200/80 px-6 py-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
+      <section className="member-recognition-panel">
+        <div className="member-recognition-panel-header px-6 py-4">
+          <p className="member-recognition-panel-label text-xs font-semibold uppercase tracking-[0.28em]">
             Registered Members
           </p>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+          <p className="member-recognition-panel-copy mt-2 max-w-3xl text-sm leading-6">
             Help build our trusted community by welcoming new members. If you recognize someone
             who has recently registered, reach out and start a conversation. If you can personally
             confirm their identity, not just their name, but that you know them, please vouch for
             them.
           </p>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+          <p className="member-recognition-panel-copy mt-3 max-w-3xl text-sm leading-6">
             Vouching is how trust grows here. If you&apos;re unsure or can&apos;t confirm who someone is,
             hold off. Similar names can be misleading, and there are other paths to trusted
             membership.
@@ -151,7 +151,7 @@ export default function HelpUsGrowClient() {
         </div>
 
         {sortedUsers.length === 0 ? (
-          <div className="px-6 py-10 text-center font-semibold text-slate-500">
+          <div className="member-recognition-panel-empty px-6 py-10 text-center font-semibold">
             No registered members are currently waiting for recognition here.
           </div>
         ) : (

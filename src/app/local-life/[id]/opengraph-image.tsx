@@ -1,5 +1,8 @@
 import { ImageResponse } from 'next/og';
+import { cookies, headers } from 'next/headers';
+import { getCurrentCommunity } from '@/lib/community';
 import { db } from '@/lib/db';
+import { resolveTenantTheme } from '@/lib/theme/resolve-theme';
 
 export const size = {
   width: 1200,
@@ -44,17 +47,101 @@ function trimText(text: string | null | undefined, maxLength: number) {
   return trimmed.length > maxLength ? `${trimmed.slice(0, maxLength - 3).trimEnd()}...` : trimmed;
 }
 
+function OpenGraphMark({
+  letters,
+  shape = 'shield',
+  startColor,
+  endColor,
+}: {
+  letters: string;
+  shape?: 'shield' | 'hex';
+  startColor: string;
+  endColor: string;
+}) {
+  return (
+    <svg viewBox="0 0 512 512" width="220" height="250" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id={`article-og-mark-${shape}`} x1="96" y1="64" x2="424" y2="456" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor={startColor} />
+          <stop offset="1" stopColor={endColor} />
+        </linearGradient>
+      </defs>
+      {shape === 'hex' ? (
+        <>
+          <path d="M170 78h172l86 148-86 148H170L84 226l86-148Z" fill={`url(#article-og-mark-${shape})`} />
+          <path
+            d="M188 108h136l67 118-67 118H188l-67-118 67-118Z"
+            fill="rgba(15,23,42,0.16)"
+            stroke="rgba(255,255,255,0.22)"
+            strokeWidth="4"
+          />
+        </>
+      ) : (
+        <>
+          <path
+            d="M256 42 420 86v112c0 94-67 172-164 218C159 370 92 292 92 198V86l164-44Z"
+            fill={`url(#article-og-mark-${shape})`}
+          />
+          <path
+            d="M256 68 390 104v94c0 78-55 144-134 185-79-41-134-107-134-185v-94l134-36Z"
+            fill="rgba(15,23,42,0.18)"
+            stroke="rgba(255,255,255,0.22)"
+            strokeWidth="4"
+          />
+        </>
+      )}
+      <text
+        x="256"
+        y="278"
+        textAnchor="middle"
+        fill="#F8FBFF"
+        fontSize="132"
+        fontWeight="800"
+        letterSpacing="-10"
+        fontFamily="Inter, sans-serif"
+      >
+        {letters}
+      </text>
+    </svg>
+  );
+}
+
 export default async function ArticleOpenGraphImage({ params }: PageProps) {
+  const requestHeaders = headers();
+  const cookieStore = cookies();
+  const currentCommunity = await getCurrentCommunity({ headers: requestHeaders });
+  const previewTenantSlug =
+    process.env.NODE_ENV === 'development'
+      ? cookieStore.get('theme-tenant-preview')?.value ?? null
+      : null;
+  const resolvedTheme = resolveTenantTheme({
+    tenantSlug: currentCommunity?.slug,
+    manifestSlug: currentCommunity?.themeManifestSlug,
+    previewTenantSlug,
+    siteName: currentCommunity?.name,
+    mode: cookieStore.get('theme-mode')?.value ?? null,
+  });
+  const siteName = resolvedTheme.identity.siteName;
+  const mastheadEyebrow = resolvedTheme.identity.mastheadEyebrow ?? 'Community platform';
+  const markLetters =
+    resolvedTheme.identity.markLetters ??
+    siteName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? '')
+      .join('');
+  const markShape = resolvedTheme.identity.markShape ?? 'shield';
   const article = await getPublishedArticle(params.id);
 
-  const title = trimText(article?.title ?? 'Highlander Today', 110) ?? 'Highlander Today';
+  const title = trimText(article?.title ?? siteName, 110) ?? siteName;
   const category = trimText(article?.category?.name ?? 'Local Life', 32) ?? 'Local Life';
   const subtitle =
     trimText(article?.excerpt, 150) ??
-    'Local news, events, market, and community life rooted in Cambria Heights.';
+    'Local news, events, directories, and civic participation tailored to this tenant community.';
   const author = article
     ? `${article.author.firstName} ${article.author.lastName}`
-    : 'Highlander Today';
+    : siteName;
 
   return new ImageResponse(
     (
@@ -65,7 +152,7 @@ export default async function ArticleOpenGraphImage({ params }: PageProps) {
           display: 'flex',
           position: 'relative',
           overflow: 'hidden',
-          background: 'linear-gradient(135deg, #091a28 0%, #0f2941 34%, #8f1d2c 100%)',
+          background: resolvedTheme.tokens.mastheadBg,
           color: 'white',
           fontFamily: 'sans-serif',
         }}
@@ -78,7 +165,6 @@ export default async function ArticleOpenGraphImage({ params }: PageProps) {
               'radial-gradient(circle at 18% 12%, rgba(255,255,255,0.16), transparent 26%), radial-gradient(circle at 86% 18%, rgba(70,168,204,0.35), transparent 25%), radial-gradient(circle at 72% 90%, rgba(255,255,255,0.08), transparent 20%)',
           }}
         />
-
         <div
           style={{
             position: 'absolute',
@@ -87,10 +173,9 @@ export default async function ArticleOpenGraphImage({ params }: PageProps) {
             width: 460,
             height: 460,
             borderRadius: '9999px',
-            background: 'radial-gradient(circle, rgba(84,195,230,0.22), rgba(84,195,230,0))',
+            background: `radial-gradient(circle, ${resolvedTheme.tokens.mastheadIconStart}33, transparent)`,
           }}
         />
-
         <div
           style={{
             position: 'absolute',
@@ -99,7 +184,7 @@ export default async function ArticleOpenGraphImage({ params }: PageProps) {
             width: 520,
             height: 520,
             borderRadius: '9999px',
-            background: 'radial-gradient(circle, rgba(165,30,48,0.28), rgba(165,30,48,0))',
+            background: `radial-gradient(circle, ${resolvedTheme.tokens.mastheadIconEnd}45, transparent)`,
           }}
         />
 
@@ -152,12 +237,12 @@ export default async function ArticleOpenGraphImage({ params }: PageProps) {
                       display: 'flex',
                       padding: '10px 18px',
                       borderRadius: 9999,
-                      background: 'rgba(89, 194, 227, 0.16)',
+                      background: 'rgba(255,255,255,0.12)',
                       fontSize: 18,
                       fontWeight: 700,
                       letterSpacing: '0.24em',
                       textTransform: 'uppercase',
-                      color: 'rgba(186, 230, 253, 0.92)',
+                      color: resolvedTheme.tokens.mastheadEyebrow,
                     }}
                   >
                     {category}
@@ -172,7 +257,7 @@ export default async function ArticleOpenGraphImage({ params }: PageProps) {
                       color: 'rgba(255,255,255,0.5)',
                     }}
                   >
-                    Highlander Today
+                    {siteName}
                   </div>
                 </div>
 
@@ -247,10 +332,10 @@ export default async function ArticleOpenGraphImage({ params }: PageProps) {
                     fontWeight: 700,
                     letterSpacing: '0.22em',
                     textTransform: 'uppercase',
-                    color: 'rgba(186, 230, 253, 0.78)',
+                    color: resolvedTheme.tokens.mastheadEyebrow,
                   }}
                 >
-                  Community platform
+                  {mastheadEyebrow}
                 </div>
               </div>
             </div>
@@ -261,59 +346,14 @@ export default async function ArticleOpenGraphImage({ params }: PageProps) {
                 width: '27%',
                 alignItems: 'center',
                 justifyContent: 'center',
-                position: 'relative',
-                background:
-                  'linear-gradient(180deg, rgba(84,195,230,0.14), rgba(165,30,48,0.16))',
-                borderLeft: '1px solid rgba(255,255,255,0.08)',
               }}
             >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 220,
-                  height: 260,
-                  transform: 'rotate(8deg)',
-                }}
-              >
-                <svg
-                  viewBox="5 5 72 72"
-                  width="220"
-                  height="260"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <defs>
-                    <linearGradient id="htShieldArticleOg" x1="10%" y1="10%" x2="90%" y2="90%">
-                      <stop offset="0%" stopColor="#54c3e6" />
-                      <stop offset="100%" stopColor="#a51e30" />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d="M36 4 65 12v20c0 16.2-12 28.4-29 35.8C19 60.4 7 48.2 7 32V12L36 4Z"
-                    fill="url(#htShieldArticleOg)"
-                  />
-                  <path
-                    d="M36 8.5 61 15v17c0 13.6-10 24.2-25 30.8C21 56.2 11 45.6 11 32V15l25-6.5Z"
-                    fill="rgba(7,17,26,0.22)"
-                    stroke="rgba(255,255,255,0.22)"
-                    strokeWidth="1.5"
-                  />
-                  <path
-                    d="M17 23h5.2v8.8h7.6V23H35v24h-5.2V37h-7.6v10H17V23Z"
-                    fill="#f8fbff"
-                  />
-                  <path
-                    d="M36.8 23H54v5.2h-5V47h-6.2V28.2h-5V23Z"
-                    fill="#f8fbff"
-                  />
-                  <path
-                    d="M35.8 20.5H55v3.4H35.8Z"
-                    fill="#07111a"
-                    opacity="0.15"
-                  />
-                </svg>
-              </div>
+              <OpenGraphMark
+                letters={markLetters}
+                shape={markShape}
+                startColor={resolvedTheme.tokens.mastheadIconStart}
+                endColor={resolvedTheme.tokens.mastheadIconEnd}
+              />
             </div>
           </div>
         </div>

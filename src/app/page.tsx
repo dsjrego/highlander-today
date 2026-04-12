@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import type { ReactNode } from 'react';
 import InternalPageHeader from '@/components/shared/InternalPageHeader';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -8,7 +8,7 @@ import { getHomepageSectionsData, resolveHomepageCommunityId, type HomepageSecti
 
 function EmptySection({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(15,24,36,0.96),rgba(8,18,29,0.96))] p-8 text-center shadow-[0_20px_45px_rgba(7,17,26,0.18)]">
+    <div className="homepage-empty p-8 text-center">
       <p className="empty-state-copy mb-0">{children}</p>
     </div>
   );
@@ -23,11 +23,11 @@ function renderFeaturedMedia(item: HomepageSectionData['displayItems'][number]) 
     const useContainMode = item.imageDisplayMode === 'contain';
 
     return (
-      <div
-        className={`relative flex h-full min-h-[240px] overflow-hidden md:min-h-[320px] ${
+        <div
+          className={`relative flex h-full min-h-[240px] overflow-hidden md:min-h-[320px] ${
           useContainMode
-            ? 'items-center justify-center bg-[linear-gradient(145deg,rgba(11,26,40,0.98),rgba(19,41,63,0.98))]'
-            : 'bg-slate-900'
+            ? 'homepage-feature-media-contain items-center justify-center'
+            : 'homepage-feature-media-cover'
         }`}
       >
         <Image
@@ -43,16 +43,16 @@ function renderFeaturedMedia(item: HomepageSectionData['displayItems'][number]) 
         <div
           className={`absolute inset-0 ${
             useContainMode
-              ? 'bg-[linear-gradient(180deg,rgba(6,15,24,0.08),rgba(6,15,24,0.22))]'
-              : 'bg-[linear-gradient(180deg,rgba(6,15,24,0.02),rgba(6,15,24,0.26))]'
+              ? 'homepage-feature-media-overlay-contain'
+              : 'homepage-feature-media-overlay-cover'
           }`}
         />
         <div className="relative flex w-full flex-col justify-end p-6 md:p-8">
           <div className="flex flex-wrap gap-2">
-            <span className="rounded-full border border-white/16 bg-white/10 px-3 py-1 text-xs font-semibold text-white/88 backdrop-blur-sm">
+            <span className="homepage-feature-pill rounded-full border px-3 py-1 text-xs font-semibold backdrop-blur-sm">
               {category}
             </span>
-            <span className="rounded-full border border-cyan-200/20 bg-cyan-200/10 px-3 py-1 text-xs font-semibold text-cyan-100/88 backdrop-blur-sm">
+            <span className="homepage-feature-pill homepage-feature-pill-accent rounded-full border px-3 py-1 text-xs font-semibold backdrop-blur-sm">
               {published}
             </span>
           </div>
@@ -62,15 +62,15 @@ function renderFeaturedMedia(item: HomepageSectionData['displayItems'][number]) 
   }
 
   return (
-    <div className="relative flex h-full min-h-[240px] overflow-hidden bg-[linear-gradient(145deg,rgba(22,49,72,0.98),rgba(129,32,49,0.9))] p-6 md:min-h-[320px] md:p-8">
-      <div className="absolute inset-0 opacity-80 [background-image:radial-gradient(circle_at_20%_18%,rgba(125,223,253,0.24),transparent_26%),radial-gradient(circle_at_78%_24%,rgba(212,90,116,0.28),transparent_28%),linear-gradient(135deg,rgba(255,255,255,0.08)_0%,transparent_38%,rgba(255,255,255,0.04)_100%)]" />
-      <div className="absolute inset-y-0 right-0 w-1/2 opacity-60 [background-image:linear-gradient(135deg,transparent_0%,rgba(255,255,255,0.06)_50%,transparent_100%)]" />
-      <div className="relative flex w-full flex-col justify-end rounded-[24px] border border-white/12 bg-black/12 p-5 backdrop-blur-[2px]">
+    <div className="homepage-feature-fallback relative flex h-full min-h-[240px] overflow-hidden p-6 md:min-h-[320px] md:p-8">
+      <div className="homepage-feature-fallback-overlay absolute inset-0 opacity-80" />
+      <div className="homepage-feature-fallback-sheen absolute inset-y-0 right-0 w-1/2 opacity-60" />
+      <div className="homepage-feature-fallback-inner relative flex w-full flex-col justify-end rounded-[24px] border p-5 backdrop-blur-[2px]">
         <div className="flex flex-wrap gap-2">
-          <span className="rounded-full border border-white/16 bg-white/10 px-3 py-1 text-xs font-semibold text-white/88">
+          <span className="homepage-feature-pill rounded-full border px-3 py-1 text-xs font-semibold">
             {category}
           </span>
-          <span className="rounded-full border border-cyan-200/20 bg-cyan-200/10 px-3 py-1 text-xs font-semibold text-cyan-100/88">
+          <span className="homepage-feature-pill homepage-feature-pill-accent rounded-full border px-3 py-1 text-xs font-semibold">
             {published}
           </span>
         </div>
@@ -93,20 +93,20 @@ function renderFeaturedSection(section: HomepageSectionData) {
             <Link
               key={`${item.contentType}-${item.contentId}`}
               href={item.url}
-              className="group block overflow-hidden rounded-[28px] border border-white/12 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] no-underline shadow-[0_25px_60px_rgba(7,17,26,0.18)] transition duration-200 hover:-translate-y-0.5 hover:no-underline hover:shadow-[0_30px_70px_rgba(7,17,26,0.24)]"
+              className="homepage-feature-card group block no-underline transition duration-200 hover:-translate-y-0.5 hover:no-underline"
             >
               <div className={`grid grid-cols-1 ${isSingleCard ? 'lg:grid-cols-[1.2fr_0.8fr]' : ''}`}>
                 <div className="p-6 md:p-7">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/72">
+                  <p className="homepage-feature-label mb-3 text-xs font-semibold uppercase tracking-[0.28em]">
                     Featured
                   </p>
                   <h3 className="mb-3 text-xl font-bold leading-tight md:text-[1.75rem] md:leading-[1.15]">
-                    <span className="text-white transition-colors group-hover:text-cyan-200">
+                    <span className="homepage-feature-title transition-colors">
                       {item.title}
                     </span>
                   </h3>
                   {item.description && (
-                    <p className="mb-5 max-w-2xl text-sm leading-7 text-[#9ec8d8] md:text-[15px]">
+                    <p className="homepage-feature-description mb-5 max-w-2xl text-sm leading-7 md:text-[15px]">
                       {item.description}
                     </p>
                   )}
@@ -121,14 +121,14 @@ function renderFeaturedSection(section: HomepageSectionData) {
                         initialsClassName="bg-white/12 text-sm text-white/78"
                       />
                       <div className="flex min-h-[2.5rem] items-center">
-                        <p className="text-sm font-semibold leading-none text-[#b8d9e6]">
+                        <p className="homepage-feature-author text-sm font-semibold leading-none">
                           {item.author.firstName} {item.author.lastName}
                         </p>
                       </div>
                     </div>
                   ) : null}
                 </div>
-                <div className={isSingleCard ? 'h-full border-t border-white/10 lg:border-l lg:border-t-0' : 'h-full border-t border-white/10'}>
+                <div className={`homepage-feature-divider ${isSingleCard ? 'h-full border-t lg:border-l lg:border-t-0' : 'h-full border-t'}`}>
                   {renderFeaturedMedia(item)}
                 </div>
               </div>
@@ -147,16 +147,16 @@ function renderLatestNewsSection(section: HomepageSectionData) {
       {section.displayItems.length === 0 ? (
         <EmptySection>Latest published articles will appear here.</EmptySection>
       ) : (
-        <div className="rounded-[24px] border border-white/12 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] px-6 py-4 shadow-[0_20px_45px_rgba(7,17,26,0.18)]">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.28em] text-[#9be7ff]">
+        <div className="homepage-latest-card px-6 py-4">
+          <p className="homepage-latest-label mb-1 text-xs font-semibold uppercase tracking-[0.28em]">
             Other News
           </p>
-          <ul className="list-disc space-y-0 pl-5 marker:text-[#9be7ff]">
+          <ul className="homepage-latest-list list-disc space-y-0 pl-5">
             {section.displayItems.slice(0, 5).map((item) => (
               <li key={`${item.contentType}-${item.contentId}`}>
                 <Link
                   href={item.url}
-                  className="text-sm font-normal capitalize text-[#b8d9e6] no-underline transition-colors hover:text-cyan-200 hover:no-underline"
+                  className="homepage-latest-link text-sm font-normal capitalize no-underline transition-colors hover:no-underline"
                 >
                   {item.title}
                 </Link>
@@ -171,15 +171,15 @@ function renderLatestNewsSection(section: HomepageSectionData) {
 
 function renderComingSoonPanel(title: string, description: string) {
   return (
-    <section className="admin-card flex aspect-square w-full flex-col rounded-[28px] border-white/12 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] shadow-[0_25px_60px_rgba(7,17,26,0.18)]">
-      <div className="admin-card-header m-3 mb-0 rounded-[16px] border border-white/12 bg-white/[0.04]">
-        <div className="admin-card-header-label px-4 py-3 text-sm font-semibold uppercase tracking-[0.28em] text-[#9be7ff]">
+    <section className="homepage-coming-soon-panel flex aspect-square w-full flex-col rounded-[28px]">
+      <div className="homepage-coming-soon-header m-3 mb-0 rounded-[16px] border">
+        <div className="homepage-coming-soon-label px-4 py-3 text-sm font-semibold uppercase tracking-[0.28em]">
           Coming Soon
         </div>
       </div>
-      <div className="admin-card-body flex flex-1 flex-col gap-2 bg-transparent p-5 text-[#9ec8d8]">
-        <h2 className="text-lg font-bold leading-tight text-white">{title}</h2>
-        <p className="max-w-[11rem] text-xs leading-5 text-[#9ec8d8]">{description}</p>
+      <div className="homepage-coming-soon-body flex flex-1 flex-col gap-2 bg-transparent p-5">
+        <h2 className="homepage-coming-soon-title text-lg font-bold leading-tight">{title}</h2>
+        <p className="homepage-coming-soon-description max-w-[11rem] text-xs leading-5">{description}</p>
       </div>
     </section>
   );
@@ -187,12 +187,21 @@ function renderComingSoonPanel(title: string, description: string) {
 
 export default async function Home() {
   const requestHeaders = headers();
+  const cookieStore = cookies();
   const communityId = await resolveHomepageCommunityId({
     preferredCommunityId: requestHeaders.get('x-community-id') || undefined,
     preferredDomain: requestHeaders.get('x-community-domain') || undefined,
     host: requestHeaders.get('host') || undefined,
   });
-  const sections = communityId ? await getHomepageSectionsData(communityId) : [];
+  const sections = communityId
+    ? await getHomepageSectionsData(communityId, {
+        previewTenantSlug:
+          process.env.NODE_ENV === 'development'
+            ? cookieStore.get('theme-tenant-preview')?.value ?? null
+            : null,
+        mode: cookieStore.get('theme-mode')?.value ?? null,
+      })
+    : [];
   const visibleSections = sections
     .filter((section) => section.isVisible)
     .sort((a, b) => a.sortOrder - b.sortOrder);

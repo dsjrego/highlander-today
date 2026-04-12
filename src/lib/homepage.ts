@@ -2,7 +2,7 @@ import type { Prisma } from '@prisma/client';
 import { db } from './db';
 import { ArticleStatus, EventStatus, MarketplaceStatus } from './constants';
 import { formatLocationPrimary } from './location-format';
-import { getArticleSocialImageUrl } from './article-images';
+import { getArticleSocialImageUrl, type ArticleImageThemeContext } from './article-images';
 import { resolveTenantCommunityId } from './tenant';
 
 export type ManagedHomepageSectionType =
@@ -210,7 +210,11 @@ function formatMarketplaceMetadata(listing: {
     .join(' • ');
 }
 
-async function getArticleCandidates(communityId: string, limit: number) {
+async function getArticleCandidates(
+  communityId: string,
+  limit: number,
+  themeContext?: ArticleImageThemeContext
+) {
   const articles = await db.article.findMany({
     where: {
       communityId,
@@ -233,7 +237,7 @@ async function getArticleCandidates(communityId: string, limit: number) {
     contentId: article.id,
     title: article.title,
     description: article.excerpt ?? undefined,
-    imageUrl: getArticleSocialImageUrl(article.id, article.featuredImageUrl),
+    imageUrl: getArticleSocialImageUrl(article.id, article.featuredImageUrl, themeContext),
     imageDisplayMode: article.featuredImageUrl?.trim() ? 'cover' : 'contain',
     url: `/local-life/${article.id}`,
     metadata: formatArticleMetadata(article),
@@ -318,13 +322,17 @@ async function getMarketplaceCandidates(communityId: string, limit: number) {
   }));
 }
 
-async function getSectionCandidatePool(sectionType: ManagedHomepageSectionType, communityId: string) {
+async function getSectionCandidatePool(
+  sectionType: ManagedHomepageSectionType,
+  communityId: string,
+  themeContext?: ArticleImageThemeContext
+) {
   const config = HOMEPAGE_SECTION_CONFIG[sectionType];
   const candidateLimit = Math.max(config.maxItems * 4, 12);
 
   switch (config.contentType) {
     case 'ARTICLE':
-      return getArticleCandidates(communityId, candidateLimit);
+      return getArticleCandidates(communityId, candidateLimit, themeContext);
     case 'EVENT':
       return getEventCandidates(communityId, candidateLimit);
     case 'MARKETPLACE_LISTING':
@@ -346,13 +354,20 @@ function mapPinnedItems(
     .filter((item): item is HomepageContentItem => Boolean(item));
 }
 
-export async function getHomepageSectionsData(communityId: string): Promise<HomepageSectionData[]> {
+export async function getHomepageSectionsData(
+  communityId: string,
+  themeContext?: ArticleImageThemeContext
+): Promise<HomepageSectionData[]> {
   const sections = await ensureHomepageSections(communityId);
 
   const candidatePools = await Promise.all(
     sections.map(async (section) => ({
       sectionId: section.id,
-      items: await getSectionCandidatePool(section.sectionType as ManagedHomepageSectionType, communityId),
+      items: await getSectionCandidatePool(
+        section.sectionType as ManagedHomepageSectionType,
+        communityId,
+        themeContext
+      ),
     }))
   );
 

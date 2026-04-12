@@ -344,7 +344,7 @@ export default function SubmitEventPage() {
   return (
     <div className="space-y-8">
       <InternalPageHeader title="Events" titleClassName="text-white" />
-      <p className="max-w-3xl text-sm leading-7 text-slate-500">
+      <p className="page-intro-copy max-w-3xl text-sm leading-7">
         Share a local gathering, activity, or public event for community review.
       </p>
 

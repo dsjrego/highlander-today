@@ -1,3 +1,4 @@
+import { TenantDomainStatus } from '@prisma/client';
 import { db } from './db';
 import { normalizeDomain, resolveCommunityIdByDomain } from './tenant';
 
@@ -11,6 +12,22 @@ export interface CommunitySummary {
   colorPrimary: string;
   colorAccent: string;
   createdAt: Date;
+  themeManifestSlug: string | null;
+}
+
+interface CommunitySummaryRecord {
+  id: string;
+  name: string;
+  slug: string;
+  domain: string | null;
+  description: string | null;
+  logoUrl: string | null;
+  colorPrimary: string;
+  colorAccent: string;
+  createdAt: Date;
+  siteSettings: Array<{
+    value: string;
+  }>;
 }
 
 function selectCommunitySummary() {
@@ -24,7 +41,29 @@ function selectCommunitySummary() {
     colorPrimary: true,
     colorAccent: true,
     createdAt: true,
+    siteSettings: {
+      where: {
+        key: 'theme_manifest_slug',
+      },
+      select: {
+        value: true,
+      },
+      take: 1,
+    },
   } as const;
+}
+
+function normalizeCommunitySummary(community: CommunitySummaryRecord | null): CommunitySummary | null {
+  if (!community) {
+    return null;
+  }
+
+  const { siteSettings, ...rest } = community;
+
+  return {
+    ...rest,
+    themeManifestSlug: siteSettings[0]?.value?.trim() || null,
+  };
 }
 
 export async function ensureDefaultSiteSettings(communityId: string) {
@@ -59,7 +98,7 @@ export async function getCommunityFromDomain(domain: string): Promise<CommunityS
     await ensureDefaultSiteSettings(community.id);
   }
 
-  return community;
+  return normalizeCommunitySummary(community);
 }
 
 export async function getCommunityFromSlug(slug: string): Promise<CommunitySummary | null> {
@@ -76,7 +115,7 @@ export async function getCommunityFromSlug(slug: string): Promise<CommunitySumma
     await ensureDefaultSiteSettings(community.id);
   }
 
-  return community;
+  return normalizeCommunitySummary(community);
 }
 
 export async function getCurrentCommunity(request: {
@@ -103,7 +142,7 @@ export async function getCurrentCommunity(request: {
 
     if (community) {
       await ensureDefaultSiteSettings(community.id);
-      return community;
+      return normalizeCommunitySummary(community);
     }
   }
 
@@ -135,16 +174,23 @@ export async function getCurrentCommunity(request: {
 }
 
 export function getAllCommunities(): Promise<CommunitySummary[]> {
-  return db.community.findMany({
-    select: selectCommunitySummary(),
-    orderBy: { name: 'asc' },
-  });
+  return db.community
+    .findMany({
+      select: selectCommunitySummary(),
+      orderBy: { name: 'asc' },
+    })
+    .then((communities) =>
+      communities
+        .map((community) => normalizeCommunitySummary(community))
+        .filter((community): community is CommunitySummary => Boolean(community))
+    );
 }
 
 export async function createCommunity(data: {
   name: string;
   slug: string;
   domain?: string | null;
+  primaryDomainStatus?: TenantDomainStatus;
   description?: string | null;
   logoUrl?: string | null;
   colorPrimary?: string;
@@ -167,18 +213,12 @@ export async function createCommunity(data: {
     });
 
     if (normalizedDomain) {
-      await tx.tenantDomain.upsert({
-        where: { domain: normalizedDomain },
-        update: {
-          communityId: community.id,
-          isPrimary: true,
-          status: 'ACTIVE',
-        },
-        create: {
+      await tx.tenantDomain.create({
+        data: {
           communityId: community.id,
           domain: normalizedDomain,
           isPrimary: true,
-          status: 'ACTIVE',
+          status: data.primaryDomainStatus ?? TenantDomainStatus.ACTIVE,
         },
       });
     }
@@ -198,6 +238,6 @@ export async function createCommunity(data: {
       },
     });
 
-    return community;
+    return normalizeCommunitySummary(community) as CommunitySummary;
   });
 }

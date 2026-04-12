@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-04-09 (session 143)
+> **Last updated:** 2026-04-11 (session 148)
 > **Purpose:** Fast-start context for the next session. Read this file first, then open only the supporting docs relevant to the active slice.
 > **Detailed reference:** `PROJECT-STATUS-REFERENCE.md` preserves the fuller implementation ledger, rollout history, verification notes, deployment runbook, and infrastructure rationale that used to live here.
 
@@ -87,6 +87,14 @@
 > **Session 142 note:** observed-geo and geography-reporting foundations are now live in code. `src/lib/observed-geo.ts` can aggregate existing login-event city/region/country data into `ObservedGeoLocation`, `SUPER_ADMIN` now has `/api/admin/observed-geo` and `/api/admin/geography` routes plus a first-pass `/admin/geography` dashboard, and the admin sidebar now exposes `Geography` alongside `Places` and `Coverage`. The current dashboard emphasizes declared current-resident density, observed distinct-user reach, and coverage gaps rather than raw traffic volume. Verification passed with `npm run typecheck` and `npm run lint`.
 >
 > **Session 143 note:** observed-geo curation is now live in code. `SUPER_ADMIN` can now open `/admin/observed-geo`, review aggregated login-location signals, search canonical places, match observed locations to curated `Place` records, or mark them ignored through the new `/api/admin/observed-geo/[id]` route. The admin sidebar now exposes `Observed Geo` as a dedicated operational surface rather than leaving location matching buried in the geography dashboard. Verification passed with `npm run typecheck` and `npm run lint`.
+>
+> **Session 144 note:** multi-tenant theming structure is now documented in `TENANT-THEMING-ARCHITECTURE.md`. Treat that document as the canonical direction for tenant-specific skins, light/dark theme support, seasonal overlays, and the boundary between DB-managed tenant identity/settings and code-managed theme manifests/tokens. Keep shared layout/component structure reusable, move visual decisions toward semantic theme tokens, and avoid storing arbitrary CSS in the database.
+>
+> **Session 145 note:** the first concrete rollout sequence for tenant theming is now documented in `TENANT-THEMING-IMPLEMENTATION-PLAN.md`. Use that document for the phase-1 file touch list, token scope, Highlander-first build order, and acceptance criteria before refactoring the shell onto a real tenant-theme layer.
+>
+> **Session 146 note:** multi-tenant theming phase 1 is now live in code and visually verified across the current user-facing shell. `src/lib/theme/*` now provides typed tenant manifests plus resolver/CSS-var plumbing, the shared shell/layout/footer/masthead/page-header layer now resolves tenant identity plus light/dark mode, development now includes a tenant/mode preview switcher, fallback/generated article imagery is tenant-aware, and a broad set of public route surfaces were refactored off Highlander-specific hardcoded colors onto shared semantic classes (`homepage-*`, `article-card-*`, `marketplace-summary-*`, `events-empty-state`, `member-recognition-panel`, `page-intro-copy`, etc.). Highlander Today and the second proof tenant (`River Valley Local`) were both visually QA’d through the dev preview flow. Admin remains intentionally less themed for now, but the standard going forward is that new user-facing UI should consume semantic theme classes/tokens by default rather than route-local color decisions.
+>
+> **Session 147 note:** `/admin/sites` is no longer a placeholder list. `SUPER_ADMIN` now has a real site provisioning surface with the same compact admin-card/tab language used elsewhere: `/admin/sites` supports `All Sites` plus `+ Site`, creation now provisions a real `Community` with optional primary `TenantDomain`, and `/admin/sites/[id]` now provides `Details`, `Domains`, and `Provisioning` tabs. The site detail flow supports editing core site identity, adding/updating/deleting domains, storing launch/theme/provisioning notes through `SiteSetting`, and directly managing tenant coverage areas from the site editor rather than forcing all tenant setup through the separate coverage dashboard. Verification passed with `npm run typecheck` and `npm run lint`.
 >
 > **Session 109 note:** the admin dashboard is starting to shed its static mock cards. `/admin` now reads the live user count from Prisma on the server and links that `Total Users` card into `/admin/users`; the old `News` card was also replaced with a live `Articles` card showing community-scoped `Pending`, `Approved` (`PUBLISHED`), and `Archived` (`UNPUBLISHED`) counts with a direct link into `/admin/articles`. The old placeholder `Pending Approvals` and `Recent Bans` cards were removed, while `Events` and `Marketplace Listings` are still placeholder values until their backing queries are wired.
 >
@@ -201,6 +209,10 @@ Current public/admin direction highlights:
 - Validate real-world usage of the live marketplace and Help Wanted loops instead of expanding scope prematurely.
 - Implement first-party analytics/reaction instrumentation from `CONTENT-ANALYTICS-PLAN.md`.
 - Continue the About/institutional-content track where it improves public trust and clarity.
+- Expand the new tenant-theme foundation carefully, keeping new public surfaces on semantic theme classes/tokens instead of route-local color decisions.
+- Validate the remaining non-shell public pages for tenant-aware metadata, copy, and fallback assets before treating multi-tenant presentation as fully complete.
+- Use the new `/admin/sites` provisioning flow to stand up the first real non-Highlander tenant record and validate actual tenant/domain behavior outside the development preview switcher.
+- Decide the next theming slice after phase 1: real production second-tenant/domain proof, user theme preference persistence, or seasonal overlay support.
 - Preserve compact, dense operational design in admin rather than drifting toward spacious public-page layouts.
 - Prioritize the shared place/coverage foundation from `PLACE-COVERAGE-PLAN.md`, including `SUPER_ADMIN` place and tenant-coverage management, early user location capture, and geography-density reporting before broader tenant expansion.
 - Do a short manual QA pass on the new recurring-event regeneration flows (`single`, `future`, `series`) before treating that loop as fully settled.
@@ -215,8 +227,10 @@ Current public/admin direction highlights:
 
 - Messaging attachments are not live.
 - Experiences is still only partially real; non-event experience categories remain directional placeholders.
-- Multi-tenant provisioning is only phase 1; there is no full Super Admin create/edit site/domain workflow yet.
 - Cross-site sister-site pull-through is not implemented.
+- Multi-tenant theming is now phase 1 live rather than architecture-only. Keep `TENANT-THEMING-ARCHITECTURE.md` and `TENANT-THEMING-IMPLEMENTATION-PLAN.md` as the canonical direction, keep theme manifests/tokens in code, and continue avoiding arbitrary CSS in the database.
+- Multi-tenant provisioning now has a first real `SUPER_ADMIN` path through `/admin/sites`, including site create/list/detail flows, domain management, provisioning notes, direct coverage editing, and explicit DB-to-code theme-manifest mapping through `theme_manifest_slug`. The current admin surface now validates configured manifest slugs against registered code manifests and runtime theme resolution honors that mapping. It is still phase 1 rather than complete tenant operations: there is not yet a full end-to-end production second-tenant/domain proof, no confirmed real non-Highlander tenant record running through a live host/domain path, and no richer per-site operational checklist beyond the current provisioning notes/coverage/domain tooling.
+- Seasonal overlays and persistent per-user theme preference are still pending on top of the new theme foundation.
 - Donations/transparency, sourcing/citations, creator network, and delivery/jobs remain planned follow-on work.
 - Food / recipe / grocery is planning-only; use `FOOD-RECIPE-GROCERY-PLAN.md` as the canonical direction for future recipe editorial, structured ingredient utility, and store-linked grocery reservation work rather than extending marketplace models.
 - Directory exists as an early live foundation now, with canonical public organization detail pages at `/organizations/[slug]` and richer admin organization editing at `/admin/organizations/[id]`, but self-claim/self-management flows are still pending.

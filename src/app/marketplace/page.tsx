@@ -330,7 +330,7 @@ export default function MarketplacePage() {
           ) : null
         }
       />
-      <p className="max-w-3xl text-sm leading-7 text-slate-500">
+      <p className="page-intro-copy max-w-3xl text-sm leading-7">
         Local store listings for products, artisan food, and community services.
       </p>
 
@@ -361,17 +361,17 @@ export default function MarketplacePage() {
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-2xl border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-4 text-white">
-              <p className="text-sm text-white/62">Public listings</p>
-              <p className="mt-2 text-3xl font-bold text-white">{marketplaceSummary.listings}</p>
+            <div className="marketplace-summary-tile p-4">
+              <p className="marketplace-summary-label text-sm">Public listings</p>
+              <p className="marketplace-summary-value mt-2 text-3xl font-bold">{marketplaceSummary.listings}</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-[linear-gradient(160deg,rgba(57,20,34,0.95),rgba(20,13,24,0.95))] p-4 text-white">
-              <p className="text-sm text-white/62">Approved stores</p>
-              <p className="mt-2 text-3xl font-bold text-white">{marketplaceSummary.stores}</p>
+            <div className="marketplace-summary-tile marketplace-summary-tile-accent p-4">
+              <p className="marketplace-summary-label text-sm">Approved stores</p>
+              <p className="marketplace-summary-value mt-2 text-3xl font-bold">{marketplaceSummary.stores}</p>
             </div>
-            <div className="rounded-2xl bg-slate-950 p-4 text-white">
-              <p className="text-sm text-white/62">Categories</p>
-              <p className="mt-2 text-3xl font-bold text-white">{marketplaceSummary.categories}</p>
+            <div className="marketplace-summary-tile marketplace-summary-tile-deep p-4">
+              <p className="marketplace-summary-label text-sm">Categories</p>
+              <p className="marketplace-summary-value mt-2 text-3xl font-bold">{marketplaceSummary.categories}</p>
             </div>
           </div>
         </div>
@@ -557,7 +557,7 @@ export default function MarketplacePage() {
           {error}
         </div>
       ) : filteredListings.length === 0 ? (
-        <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] p-12 text-center text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
+        <div className="marketplace-empty-state p-12 text-center">
           <h2 className="empty-state-title mb-2">No listings found</h2>
           <p className="empty-state-copy mx-auto max-w-xl">
             There are no public listings that match your current filters yet.

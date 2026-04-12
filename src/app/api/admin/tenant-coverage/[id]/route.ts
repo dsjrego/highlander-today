@@ -14,47 +14,71 @@ function isSuperAdmin(request: NextRequest) {
   return request.headers.get('x-user-role') === 'SUPER_ADMIN';
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     if (!isSuperAdmin(request)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    const body = await request.json();
-    const validated = UpdateCoverageSchema.parse(body);
-
-    const coverageArea = await db.tenantCoverageArea.update({
+    const existing = await db.tenantCoverageArea.findUnique({
       where: { id: params.id },
-      data: {
-        ...(validated.coverageType !== undefined ? { coverageType: validated.coverageType } : {}),
-        ...(validated.isPrimary !== undefined ? { isPrimary: validated.isPrimary } : {}),
-        ...(validated.isActive !== undefined ? { isActive: validated.isActive } : {}),
-        ...(validated.notes !== undefined ? { notes: validated.notes || null } : {}),
-      },
       select: {
         id: true,
         communityId: true,
-        coverageType: true,
-        isPrimary: true,
-        isActive: true,
-        notes: true,
-        community: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
-        place: {
-          select: {
-            id: true,
-            displayName: true,
-            slug: true,
-            type: true,
-            admin2Name: true,
-          },
-        },
       },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: 'Coverage area not found' }, { status: 404 });
+    }
+
+    const body = await request.json();
+    const validated = UpdateCoverageSchema.parse(body);
+
+    const coverageArea = await db.$transaction(async (tx) => {
+      if (validated.isPrimary) {
+        await tx.tenantCoverageArea.updateMany({
+          where: { communityId: existing.communityId },
+          data: { isPrimary: false },
+        });
+      }
+
+      return tx.tenantCoverageArea.update({
+        where: { id: params.id },
+        data: {
+          ...(validated.coverageType ? { coverageType: validated.coverageType } : {}),
+          ...(validated.isPrimary !== undefined ? { isPrimary: validated.isPrimary } : {}),
+          ...(validated.isActive !== undefined ? { isActive: validated.isActive } : {}),
+          ...(validated.notes !== undefined ? { notes: validated.notes || null } : {}),
+        },
+        select: {
+          id: true,
+          communityId: true,
+          coverageType: true,
+          isPrimary: true,
+          isActive: true,
+          notes: true,
+          community: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          place: {
+            select: {
+              id: true,
+              displayName: true,
+              slug: true,
+              type: true,
+              admin2Name: true,
+            },
+          },
+        },
+      });
     });
 
     return NextResponse.json({ coverageArea });
@@ -65,5 +89,34 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     console.error('Error updating tenant coverage area:', error);
     return NextResponse.json({ error: 'Failed to update tenant coverage area' }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    if (!isSuperAdmin(request)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
+
+    const existing = await db.tenantCoverageArea.findUnique({
+      where: { id: params.id },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: 'Coverage area not found' }, { status: 404 });
+    }
+
+    await db.tenantCoverageArea.delete({
+      where: { id: params.id },
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error('Error deleting tenant coverage area:', error);
+    return NextResponse.json({ error: 'Failed to delete tenant coverage area' }, { status: 500 });
   }
 }

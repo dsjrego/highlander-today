@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import { getArticleSocialImageUrl } from '@/lib/article-images';
 import ArticleDetailClient from './ArticleDetailClient';
@@ -54,6 +55,7 @@ async function getPublishedArticleForMetadata(id: string) {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const cookieStore = cookies();
   const article = await getPublishedArticleForMetadata(params.id);
 
   if (!article) {
@@ -66,7 +68,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const description = buildArticleDescription(article.excerpt, article.body);
   const url = `/local-life/${article.id}`;
   const authorName = `${article.author.firstName} ${article.author.lastName}`;
-  const imageUrl = getArticleSocialImageUrl(article.id, article.featuredImageUrl);
+  const imageUrl = getArticleSocialImageUrl(article.id, article.featuredImageUrl, {
+    previewTenantSlug:
+      process.env.NODE_ENV === 'development'
+        ? cookieStore.get('theme-tenant-preview')?.value ?? null
+        : null,
+    mode: cookieStore.get('theme-mode')?.value ?? null,
+  });
 
   return {
     title: article.title,

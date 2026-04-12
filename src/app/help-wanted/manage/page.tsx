@@ -349,7 +349,7 @@ export default function ManageHelpWantedPage() {
           </Link>
         }
       />
-      <p className="max-w-3xl text-sm leading-7 text-slate-500">
+      <p className="page-intro-copy max-w-3xl text-sm leading-7">
         Review drafts, resubmit rejected posts, and manage open opportunities.
       </p>
 

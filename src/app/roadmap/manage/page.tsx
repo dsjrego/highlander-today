@@ -179,7 +179,7 @@ export default function ManageRoadmapIdeasPage() {
           </>
         }
       />
-      <p className="max-w-3xl text-sm leading-7 text-slate-500">
+      <p className="page-intro-copy max-w-3xl text-sm leading-7">
         Track moderation status, revise declined ideas, and follow which submissions have moved into the public roadmap.
       </p>
 

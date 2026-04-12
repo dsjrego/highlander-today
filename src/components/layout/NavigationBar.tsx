@@ -88,7 +88,7 @@ function NavDropdown({ section }: { section: NavSection }) {
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={`Toggle ${section.label} submenu`}
-        className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-cyan-300 transition hover:border-cyan-300/25 hover:bg-white/[0.11] hover:text-white"
+        className="masthead-nav-pill flex items-center gap-2 px-4 py-2 text-sm font-semibold transition"
         onClick={() => setOpen((current) => !current)}
       >
         <span>{section.label}</span>
@@ -106,14 +106,14 @@ function NavDropdown({ section }: { section: NavSection }) {
       {/* Dropdown panel */}
       {open && (
         <div
-          className="absolute left-0 top-full z-50 mt-2 w-64 rounded-2xl border border-white/10 bg-[#111827]/95 py-2 shadow-2xl backdrop-blur"
+          className="masthead-dropdown-panel absolute left-0 top-full z-50 mt-2 w-64 rounded-2xl py-2 shadow-2xl backdrop-blur"
           role="menu"
         >
           {section.subcategories.map((sub) => (
             <Link
               key={sub.slug}
               href={sub.href || `${section.href}?category=${sub.slug}`}
-              className="block px-4 py-2.5 text-sm text-white/78 transition-colors hover:bg-white/5 hover:text-white"
+              className="masthead-dropdown-link block px-4 py-2.5 text-sm transition-colors"
               onClick={() => setOpen(false)}
             >
               {sub.label}
@@ -129,7 +129,7 @@ function NavLink({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href}
-      className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-cyan-300 transition hover:border-cyan-300/25 hover:bg-white/[0.11] hover:text-white"
+      className="masthead-nav-pill rounded-full px-4 py-2 text-sm font-semibold transition"
     >
       {label}
     </Link>
@@ -197,7 +197,7 @@ export default function NavigationBar() {
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/"
-            className="rounded-full border border-white/25 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-cyan-300 transition hover:bg-white/[0.12] hover:text-white"
+            className="masthead-nav-pill rounded-full px-4 py-2 text-sm font-semibold transition"
           >
             Home
           </Link>

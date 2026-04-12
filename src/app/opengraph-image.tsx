@@ -1,13 +1,106 @@
 import { ImageResponse } from 'next/og';
+import { cookies, headers } from 'next/headers';
+import { getCurrentCommunity } from '@/lib/community';
+import { resolveTenantTheme } from '@/lib/theme/resolve-theme';
 
-export const alt = 'Highlander Today';
+export const alt = 'Community platform';
 export const size = {
   width: 1200,
   height: 630,
 };
 export const contentType = 'image/png';
 
-export default function OpenGraphImage() {
+function OpenGraphMark({
+  letters,
+  shape = 'shield',
+  startColor,
+  endColor,
+}: {
+  letters: string;
+  shape?: 'shield' | 'hex';
+  startColor: string;
+  endColor: string;
+}) {
+  return (
+    <svg viewBox="0 0 512 512" width="260" height="300" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id={`og-mark-${shape}`} x1="96" y1="64" x2="424" y2="456" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor={startColor} />
+          <stop offset="1" stopColor={endColor} />
+        </linearGradient>
+      </defs>
+      {shape === 'hex' ? (
+        <>
+          <path d="M170 78h172l86 148-86 148H170L84 226l86-148Z" fill={`url(#og-mark-${shape})`} />
+          <path
+            d="M188 108h136l67 118-67 118H188l-67-118 67-118Z"
+            fill="rgba(15,23,42,0.16)"
+            stroke="rgba(255,255,255,0.22)"
+            strokeWidth="4"
+          />
+        </>
+      ) : (
+        <>
+          <path
+            d="M256 42 420 86v112c0 94-67 172-164 218C159 370 92 292 92 198V86l164-44Z"
+            fill={`url(#og-mark-${shape})`}
+          />
+          <path
+            d="M256 68 390 104v94c0 78-55 144-134 185-79-41-134-107-134-185v-94l134-36Z"
+            fill="rgba(15,23,42,0.18)"
+            stroke="rgba(255,255,255,0.22)"
+            strokeWidth="4"
+          />
+        </>
+      )}
+      <text
+        x="256"
+        y="278"
+        textAnchor="middle"
+        fill="#F8FBFF"
+        fontSize="142"
+        fontWeight="800"
+        letterSpacing="-10"
+        fontFamily="Inter, sans-serif"
+      >
+        {letters}
+      </text>
+    </svg>
+  );
+}
+
+export default async function OpenGraphImage() {
+  const requestHeaders = headers();
+  const cookieStore = cookies();
+  const currentCommunity = await getCurrentCommunity({ headers: requestHeaders });
+  const previewTenantSlug =
+    process.env.NODE_ENV === 'development'
+      ? cookieStore.get('theme-tenant-preview')?.value ?? null
+      : null;
+  const resolvedTheme = resolveTenantTheme({
+    tenantSlug: currentCommunity?.slug,
+    manifestSlug: currentCommunity?.themeManifestSlug,
+    previewTenantSlug,
+    siteName: currentCommunity?.name,
+    mode: cookieStore.get('theme-mode')?.value ?? null,
+  });
+
+  const siteName = resolvedTheme.identity.siteName;
+  const mastheadEyebrow = resolvedTheme.identity.mastheadEyebrow ?? 'Community platform';
+  const markLetters =
+    resolvedTheme.identity.markLetters ??
+    siteName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? '')
+      .join('');
+  const markShape = resolvedTheme.identity.markShape ?? 'shield';
+  const tagline =
+    siteName === 'Highlander Today'
+      ? 'Local news, events, market, and community life rooted in Cambria Heights.'
+      : 'Local news, events, directories, and civic participation tailored to this tenant community.';
+
   return new ImageResponse(
     (
       <div
@@ -17,8 +110,7 @@ export default function OpenGraphImage() {
           display: 'flex',
           position: 'relative',
           overflow: 'hidden',
-          background:
-            'linear-gradient(135deg, #091a28 0%, #0f2941 34%, #8f1d2c 100%)',
+          background: resolvedTheme.tokens.mastheadBg,
           color: 'white',
           fontFamily: 'sans-serif',
         }}
@@ -31,7 +123,6 @@ export default function OpenGraphImage() {
               'radial-gradient(circle at 18% 12%, rgba(255,255,255,0.16), transparent 26%), radial-gradient(circle at 86% 18%, rgba(70,168,204,0.35), transparent 25%), radial-gradient(circle at 72% 90%, rgba(255,255,255,0.08), transparent 20%)',
           }}
         />
-
         <div
           style={{
             position: 'absolute',
@@ -40,10 +131,9 @@ export default function OpenGraphImage() {
             width: 460,
             height: 460,
             borderRadius: '9999px',
-            background: 'radial-gradient(circle, rgba(84,195,230,0.22), rgba(84,195,230,0))',
+            background: `radial-gradient(circle, ${resolvedTheme.tokens.mastheadIconStart}33, transparent)`,
           }}
         />
-
         <div
           style={{
             position: 'absolute',
@@ -52,7 +142,7 @@ export default function OpenGraphImage() {
             width: 520,
             height: 520,
             borderRadius: '9999px',
-            background: 'radial-gradient(circle, rgba(165,30,48,0.28), rgba(165,30,48,0))',
+            background: `radial-gradient(circle, ${resolvedTheme.tokens.mastheadIconEnd}45, transparent)`,
           }}
         />
 
@@ -83,10 +173,10 @@ export default function OpenGraphImage() {
                 fontWeight: 700,
                 letterSpacing: '0.32em',
                 textTransform: 'uppercase',
-                color: 'rgba(186, 230, 253, 0.88)',
+                color: resolvedTheme.tokens.mastheadEyebrow,
               }}
             >
-              Community platform
+              {mastheadEyebrow}
             </div>
             <div
               style={{
@@ -104,7 +194,7 @@ export default function OpenGraphImage() {
                   letterSpacing: '-0.06em',
                 }}
               >
-                Highlander Today
+                {siteName}
               </div>
               <div
                 style={{
@@ -115,7 +205,7 @@ export default function OpenGraphImage() {
                   maxWidth: 620,
                 }}
               >
-                Local news, events, market, and community life rooted in Cambria Heights.
+                {tagline}
               </div>
             </div>
           </div>
@@ -131,42 +221,12 @@ export default function OpenGraphImage() {
               transform: 'rotate(8deg)',
             }}
           >
-            <svg
-              viewBox="0 0 512 512"
-              width="260"
-              height="300"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <defs>
-                <linearGradient id="htOgIconBg" x1="96" y1="64" x2="424" y2="456" gradientUnits="userSpaceOnUse">
-                  <stop offset="0" stopColor="#54C3E6" />
-                  <stop offset="1" stopColor="#A51E30" />
-                </linearGradient>
-                <linearGradient id="htOgIconInner" x1="128" y1="96" x2="384" y2="416" gradientUnits="userSpaceOnUse">
-                  <stop offset="0" stopColor="#6FAFCC" stopOpacity="0.9" />
-                  <stop offset="1" stopColor="#A51E30" stopOpacity="0.7" />
-                </linearGradient>
-              </defs>
-              <rect x="86" y="70" width="340" height="372" rx="60" fill="url(#htOgIconBg)" />
-              <rect
-                x="110"
-                y="94"
-                width="292"
-                height="324"
-                rx="44"
-                fill="url(#htOgIconInner)"
-                stroke="rgba(255,255,255,0.22)"
-                strokeWidth="4"
-              />
-              <path
-                d="M184 177.5L214.2 181.7L204.9 248.6L263.6 256.8L272.9 189.9L303.1 194.1L278 373.7L247.8 369.5L257.8 297.7L199.1 289.5L189.1 361.3L158.9 357.1L184 177.5Z"
-                fill="#F8FBFF"
-              />
-              <path
-                d="M317.6 196.1L417.1 210L412.8 240.9L382.4 236.7L361.1 389L324.9 383.9L346.2 231.6L314.8 227.2L317.6 196.1Z"
-                fill="#F8FBFF"
-              />
-            </svg>
+            <OpenGraphMark
+              letters={markLetters}
+              shape={markShape}
+              startColor={resolvedTheme.tokens.mastheadIconStart}
+              endColor={resolvedTheme.tokens.mastheadIconEnd}
+            />
           </div>
         </div>
       </div>

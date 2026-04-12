@@ -79,39 +79,48 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = CreateCoverageSchema.parse(body);
 
-    const coverageArea = await db.tenantCoverageArea.create({
-      data: {
-        communityId: validated.communityId,
-        placeId: validated.placeId,
-        coverageType: validated.coverageType,
-        isPrimary: validated.isPrimary ?? false,
-        isActive: validated.isActive ?? true,
-        notes: validated.notes || null,
-      },
-      select: {
-        id: true,
-        communityId: true,
-        coverageType: true,
-        isPrimary: true,
-        isActive: true,
-        notes: true,
-        community: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
+    const coverageArea = await db.$transaction(async (tx) => {
+      if (validated.isPrimary) {
+        await tx.tenantCoverageArea.updateMany({
+          where: { communityId: validated.communityId },
+          data: { isPrimary: false },
+        });
+      }
+
+      return tx.tenantCoverageArea.create({
+        data: {
+          communityId: validated.communityId,
+          placeId: validated.placeId,
+          coverageType: validated.coverageType,
+          isPrimary: validated.isPrimary ?? false,
+          isActive: validated.isActive ?? true,
+          notes: validated.notes || null,
+        },
+        select: {
+          id: true,
+          communityId: true,
+          coverageType: true,
+          isPrimary: true,
+          isActive: true,
+          notes: true,
+          community: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          place: {
+            select: {
+              id: true,
+              displayName: true,
+              slug: true,
+              type: true,
+              admin2Name: true,
+            },
           },
         },
-        place: {
-          select: {
-            id: true,
-            displayName: true,
-            slug: true,
-            type: true,
-            admin2Name: true,
-          },
-        },
-      },
+      });
     });
 
     return NextResponse.json({ coverageArea }, { status: 201 });

@@ -65,7 +65,7 @@ function ExperiencesPageContent() {
   return (
     <div className="space-y-8">
       <InternalPageHeader title="Experiences" titleClassName="text-white" />
-      <p className="max-w-3xl text-sm leading-7 text-slate-500">
+      <p className="page-intro-copy max-w-3xl text-sm leading-7">
         Explore things to do around Cambria Heights, from public events and outdoor recreation
         to classes, attractions, and seasonal local activity.
       </p>

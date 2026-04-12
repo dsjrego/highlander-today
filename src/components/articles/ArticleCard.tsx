@@ -45,16 +45,13 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
 
       <div className="article-card-content">
         <div className="mb-3">
-          <span
-            className="inline-block px-3 py-1 text-xs font-semibold text-white rounded-full"
-            style={{ backgroundColor: '#46A8CC' }}
-          >
+          <span className="article-card-category-badge inline-block rounded-full px-3 py-1 text-xs font-semibold">
             {category}
           </span>
         </div>
 
         <h3 className="article-card-title">
-          <Link href={`/local-life/${id}`} className="transition-colors hover:text-[#2c7f9e]">
+          <Link href={`/local-life/${id}`} className="transition-colors hover:text-[var(--card-title)]">
             {title}
           </Link>
         </h3>
@@ -64,7 +61,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-4">
             {tags.slice(0, 3).map((tag) => (
-              <span key={tag} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+              <span key={tag} className="article-card-tag rounded px-2 py-1 text-xs">
                 #{tag}
               </span>
             ))}
@@ -79,8 +76,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
           </div>
           <Link
             href={`/local-life/${id}`}
-            className="font-medium hover:underline"
-            style={{ color: '#46A8CC' }}
+            className="article-card-read-link font-medium hover:underline"
           >
             Read →
           </Link>

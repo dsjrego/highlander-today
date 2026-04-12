@@ -297,7 +297,7 @@ export default function MyStoresPage() {
           </Link>
         }
       />
-      <p className="max-w-3xl text-sm leading-7 text-slate-500">
+      <p className="page-intro-copy max-w-3xl text-sm leading-7">
         Manage your marketplace stores, track approval status, and resubmit rejected stores.
       </p>
 

@@ -126,7 +126,7 @@ export default function SubmitRoadmapIdeaPage() {
           </button>
         }
       />
-      <p className="max-w-3xl text-sm leading-7 text-slate-500">
+      <p className="page-intro-copy max-w-3xl text-sm leading-7">
         Propose a clear product improvement. Staff will review, clarify, merge, or decline ideas before they enter the roadmap pool.
       </p>
 

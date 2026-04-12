@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { getCategoryHref } from '@/lib/category-config';
+import ThemeModeToggle from '@/components/theme/ThemeModeToggle';
 import { hasTrustedAccess } from '@/lib/trust-access';
 
 const ADMIN_ROLES = ['STAFF_WRITER', 'EDITOR', 'ADMIN', 'SUPER_ADMIN'];
@@ -173,10 +174,10 @@ export default function BannerActions() {
   }, [categories, session?.user?.role, session?.user?.trust_level]);
 
   const renderMobileNavigation = () => (
-    <div className="border-b border-white/10 py-2 md:hidden">
+    <div className="masthead-menu-divider border-b py-2 md:hidden">
       <Link
         href="/"
-        className="block px-4 py-2 text-right text-sm font-semibold text-cyan-200 hover:bg-white/5 hover:text-white"
+        className="masthead-menu-item block px-4 py-2 text-right text-sm font-semibold"
         onClick={() => setDropdownOpen(false)}
       >
         Home
@@ -189,7 +190,7 @@ export default function BannerActions() {
               onClick={() =>
                 setOpenMobileSection((current) => (current === section.slug ? null : section.slug))
               }
-              className="flex w-full items-center justify-end gap-2 px-4 py-2 text-right text-sm font-semibold text-cyan-200 transition hover:bg-white/5 hover:text-white"
+              className="masthead-menu-item flex w-full items-center justify-end gap-2 px-4 py-2 text-right text-sm font-semibold transition"
             >
               <svg
                 className={`h-3.5 w-3.5 transition-transform ${openMobileSection === section.slug ? 'rotate-180' : ''}`}
@@ -208,7 +209,7 @@ export default function BannerActions() {
                   <Link
                     key={sub.slug}
                     href={sub.href}
-                    className="block px-4 py-2 text-right text-sm text-white/70 hover:bg-white/5 hover:text-white"
+                    className="masthead-menu-item block px-4 py-2 text-right text-sm"
                     onClick={() => setDropdownOpen(false)}
                   >
                     {sub.label}
@@ -221,7 +222,7 @@ export default function BannerActions() {
           <Link
             key={section.slug}
             href={section.href}
-            className="block px-4 py-2 text-right text-sm font-semibold text-cyan-200 hover:bg-white/5 hover:text-white"
+            className="masthead-menu-item block px-4 py-2 text-right text-sm font-semibold"
             onClick={() => setDropdownOpen(false)}
           >
             {section.label}
@@ -233,11 +234,13 @@ export default function BannerActions() {
 
   return (
     <div className="flex flex-nowrap items-center justify-end gap-1.5 md:flex-wrap md:gap-2">
+      <ThemeModeToggle />
+
       {/* Search link */}
       <Link
         href="/search"
         aria-label="Search"
-        className="flex h-[2.125rem] w-[2.125rem] items-center justify-center rounded-full border border-white/18 bg-white/[0.05] text-cyan-300 transition hover:border-white/28 hover:bg-white/[0.1] hover:text-white md:h-auto md:w-auto md:gap-1 md:px-3 md:py-2 md:text-sm md:font-medium"
+        className="masthead-utility-button flex h-[2.125rem] w-[2.125rem] items-center justify-center md:h-auto md:w-auto md:gap-1 md:px-3 md:py-2 md:text-sm md:font-medium"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -249,7 +252,7 @@ export default function BannerActions() {
       <Link
         href="/messages"
         aria-label="Messages"
-        className="relative flex h-[2.125rem] w-[2.125rem] items-center justify-center rounded-full border border-white/18 bg-white/[0.05] text-cyan-300 transition hover:border-white/28 hover:bg-white/[0.1] hover:text-white md:h-auto md:w-auto md:gap-1 md:px-3 md:py-2 md:text-sm md:font-medium"
+        className="masthead-utility-button relative flex h-[2.125rem] w-[2.125rem] items-center justify-center md:h-auto md:w-auto md:gap-1 md:px-3 md:py-2 md:text-sm md:font-medium"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -257,7 +260,7 @@ export default function BannerActions() {
         <span className="sr-only md:not-sr-only">Messages</span>
         {session?.user && unreadCount > 0 && (
           <span
-            className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#A51E30] px-1 text-[11px] font-bold leading-none text-white md:static md:ml-1"
+            className="masthead-unread-badge absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center px-1 text-[11px] font-bold leading-none md:static md:ml-1"
             aria-label={`${unreadCount} unread messages`}
           >
             {unreadCount > 99 ? '99+' : unreadCount}
@@ -271,7 +274,7 @@ export default function BannerActions() {
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
             aria-label="Open user menu"
-            className="flex h-[2.125rem] w-[2.125rem] items-center justify-center rounded-full border border-white/18 bg-white/[0.05] text-white/88 transition hover:border-white/28 hover:bg-white/[0.1] hover:text-white md:!p-0 md:h-auto md:w-auto md:gap-1 md:px-3 md:py-2 md:text-sm md:font-medium"
+            className="masthead-utility-button flex h-[2.125rem] w-[2.125rem] items-center justify-center md:!p-0 md:h-auto md:w-auto md:gap-1 md:px-3 md:py-2 md:text-sm md:font-medium"
           >
             <svg className="hidden w-4 h-4 md:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -284,17 +287,17 @@ export default function BannerActions() {
           </button>
 
           {dropdownOpen && (
-            <div className="absolute right-0 z-50 mt-2 w-64 rounded-2xl border border-white/10 bg-[#111827]/95 py-1 shadow-2xl backdrop-blur">
-              <div className="border-b border-white/10 px-4 py-2 text-right text-xs font-semibold uppercase tracking-[0.24em] text-cyan-100/65 md:hidden">
+            <div className="masthead-menu-panel absolute right-0 z-50 mt-2 w-64 rounded-2xl py-1 shadow-2xl backdrop-blur">
+              <div className="masthead-menu-label border-b px-4 py-2 text-right text-xs font-semibold uppercase tracking-[0.24em] md:hidden">
                 Menu
               </div>
               {renderMobileNavigation()}
-              <div className="px-4 py-2 text-right text-sm font-medium text-white/88 md:hidden">
+              <div className="masthead-menu-item px-4 py-2 text-right text-sm font-medium md:hidden">
                 {session.user.name || 'Profile'}
               </div>
               <Link
                 href={`/profile/${(session.user as any).id}`}
-                className="block px-4 py-2 text-right text-sm text-white/82 hover:bg-white/5"
+                className="masthead-menu-item block px-4 py-2 text-right text-sm"
                 onClick={() => setDropdownOpen(false)}
               >
                 Profile
@@ -302,7 +305,7 @@ export default function BannerActions() {
               {showAdmin && (
                 <Link
                   href="/admin"
-                  className="block px-4 py-2 text-right text-sm text-white/82 hover:bg-white/5"
+                  className="masthead-menu-item block px-4 py-2 text-right text-sm"
                   onClick={() => setDropdownOpen(false)}
                 >
                   Admin
@@ -313,7 +316,7 @@ export default function BannerActions() {
                   setDropdownOpen(false);
                   signOut({ callbackUrl: '/' });
                 }}
-                className="block w-full px-4 py-2 text-right text-sm text-white/82 hover:bg-white/5"
+                className="masthead-menu-item block w-full px-4 py-2 text-right text-sm"
               >
                 Logout
               </button>
@@ -324,7 +327,7 @@ export default function BannerActions() {
         <div className="relative" ref={dropdownRef}>
           <Link
             href="/login"
-            className="hidden items-center gap-1 rounded-full border border-white/18 bg-white/[0.05] px-3 py-2 text-sm font-medium text-cyan-300 transition hover:border-white/28 hover:bg-white/[0.1] hover:text-white md:flex"
+            className="masthead-utility-button hidden items-center gap-1 px-3 py-2 text-sm font-medium md:flex"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
@@ -335,19 +338,19 @@ export default function BannerActions() {
             type="button"
             onClick={() => setDropdownOpen(!dropdownOpen)}
             aria-label="Open menu"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/18 bg-white/[0.05] text-white/88 transition hover:border-white/28 hover:bg-white/[0.1] hover:text-white md:hidden"
+            className="masthead-utility-button flex h-9 w-9 items-center justify-center md:hidden"
           >
             <MobileHamburgerIcon />
           </button>
           {dropdownOpen && (
-            <div className="absolute right-0 z-50 mt-2 w-64 rounded-2xl border border-white/10 bg-[#111827]/95 py-1 shadow-2xl backdrop-blur md:hidden">
-              <div className="border-b border-white/10 px-4 py-2 text-right text-xs font-semibold uppercase tracking-[0.24em] text-cyan-100/65">
+            <div className="masthead-menu-panel absolute right-0 z-50 mt-2 w-64 rounded-2xl py-1 shadow-2xl backdrop-blur md:hidden">
+              <div className="masthead-menu-label border-b px-4 py-2 text-right text-xs font-semibold uppercase tracking-[0.24em]">
                 Menu
               </div>
               {renderMobileNavigation()}
               <Link
                 href="/login"
-                className="block px-4 py-2 text-right text-sm text-white/82 hover:bg-white/5"
+                className="masthead-menu-item block px-4 py-2 text-right text-sm"
                 onClick={() => setDropdownOpen(false)}
               >
                 Sign In / Sign Up
