@@ -8,12 +8,13 @@ type ThemeMode = 'light' | 'dark';
 
 function SunIcon() {
   return (
-    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="3.5" fill="currentColor" />
       <path
+        d="M12 2.75v3M12 18.25v3M21.25 12h-3M5.75 12h-3M18.54 5.46l-2.12 2.12M7.58 16.42l-2.12 2.12M18.54 18.54l-2.12-2.12M7.58 7.58 5.46 5.46"
+        stroke="currentColor"
         strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M12 3v2.25M12 18.75V21M4.97 4.97l1.59 1.59M17.44 17.44l1.59 1.59M3 12h2.25M18.75 12H21M4.97 19.03l1.59-1.59M17.44 6.56l1.59-1.59M15.75 12A3.75 3.75 0 1112 8.25 3.75 3.75 0 0115.75 12z"
+        strokeWidth="1.8"
       />
     </svg>
   );
@@ -21,12 +22,10 @@ function SunIcon() {
 
 function MoonIcon() {
   return (
-    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
         d="M21 12.79A9 9 0 1111.21 3c-.01.14-.01.29-.01.43A7.5 7.5 0 0018.57 10.8c.14 0 .29 0 .43-.01Z"
+        fill="currentColor"
       />
     </svg>
   );
@@ -51,6 +50,7 @@ export default function ThemeModeToggle() {
 
   const nextMode: ThemeMode = mode === 'dark' ? 'light' : 'dark';
   const label = mode === 'dark' ? 'Dark' : 'Light';
+  const mobileGlyph = mode === 'dark' ? '◐' : '☼';
 
   return (
     <button
@@ -67,8 +67,14 @@ export default function ThemeModeToggle() {
       }}
       className="masthead-utility-button flex h-[2.125rem] w-[2.125rem] items-center justify-center md:h-auto md:w-auto md:gap-1 md:px-3 md:py-2 md:text-sm md:font-medium"
     >
-      {mode === 'dark' ? <MoonIcon /> : <SunIcon />}
-      <span className="sr-only md:not-sr-only">{label}</span>
+      <span className="md:hidden" aria-hidden="true">
+        {mobileGlyph}
+      </span>
+      <span className="hidden md:inline-flex">
+        {mode === 'dark' ? <MoonIcon /> : <SunIcon />}
+      </span>
+      <span className="sr-only">{label}</span>
+      <span className="hidden md:inline">{label}</span>
     </button>
   );
 }
