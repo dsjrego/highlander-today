@@ -6,6 +6,7 @@ const adminNavItems = [
   { href: '/admin', label: 'Dashboard' },
   { href: '/admin/homepage', label: 'Homepage Curation' },
   { href: '/admin/articles', label: 'Articles' },
+  { href: '/admin/recipes', label: 'Recipes' },
   { href: '/admin/events', label: 'Events' },
   { href: '/admin/organizations', label: 'Organizations' },
   { href: '/admin/categories', label: 'Navigation' },

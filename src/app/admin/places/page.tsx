@@ -24,11 +24,20 @@ type PlaceRow = {
   }>;
 };
 
+type Pagination = {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+};
+
 const PLACE_TYPES = ['BOROUGH', 'TOWNSHIP', 'TOWN', 'CITY', 'COUNTY', 'REGION', 'STATE', 'COUNTRY'] as const;
 
 export default function AdminPlacesPage() {
   const [places, setPlaces] = useState<PlaceRow[]>([]);
   const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
@@ -45,32 +54,53 @@ export default function AdminPlacesPage() {
     parentPlaceId: '',
   });
 
-  const fetchPlaces = useCallback(async (search = query) => {
+  const fetchPlaces = useCallback(async (search = query, nextPage = page) => {
     setIsLoading(true);
     setError('');
 
     try {
-      const res = await fetch(`/api/admin/places${search.trim() ? `?query=${encodeURIComponent(search.trim())}` : ''}`);
+      const trimmedSearch = search.trim();
+
+      if (!trimmedSearch) {
+        setPlaces([]);
+        setPagination({
+          page: 1,
+          limit: 25,
+          total: 0,
+          totalPages: 0,
+        });
+        return;
+      }
+
+      const params = new URLSearchParams({
+        query: trimmedSearch,
+        page: String(nextPage),
+      });
+      const res = await fetch(`/api/admin/places?${params.toString()}`);
       if (!res.ok) {
         throw new Error('Failed to fetch places');
       }
-
       const data = await res.json();
       setPlaces(data.places || []);
+      setPagination(data.pagination || null);
     } catch (fetchError) {
       setError(fetchError instanceof Error ? fetchError.message : 'Failed to fetch places');
     } finally {
       setIsLoading(false);
     }
-  }, [query]);
+  }, [page, query]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      void fetchPlaces(query);
+      void fetchPlaces(query, page);
     }, 250);
 
     return () => clearTimeout(timeout);
-  }, [fetchPlaces, query]);
+  }, [fetchPlaces, page, query]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query]);
 
   async function handleCreatePlace(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -99,7 +129,7 @@ export default function AdminPlacesPage() {
         admin2Name: '',
         parentPlaceId: '',
       }));
-      await fetchPlaces('');
+      await fetchPlaces('', 1);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Failed to create place');
     } finally {
@@ -127,7 +157,10 @@ export default function AdminPlacesPage() {
               <input
                 type="text"
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setPage(1);
+                }}
                 className="admin-list-filter-input"
                 placeholder="Search places"
               />
@@ -149,6 +182,10 @@ export default function AdminPlacesPage() {
                 {isLoading ? (
                   <tr className="admin-list-row">
                     <td className="admin-list-empty" colSpan={5}>Loading places...</td>
+                  </tr>
+                ) : !query.trim() ? (
+                  <tr className="admin-list-row">
+                    <td className="admin-list-empty" colSpan={5}>Search by name, display name, or slug to load places.</td>
                   </tr>
                 ) : places.length > 0 ? (
                   places.map((place) => (
@@ -180,6 +217,32 @@ export default function AdminPlacesPage() {
               </tbody>
             </table>
           </div>
+
+          {query.trim() && pagination && pagination.totalPages > 1 ? (
+            <div className="mt-4 flex items-center justify-between gap-4 px-2 text-sm text-slate-600">
+              <div>
+                Page {pagination.page} of {pagination.totalPages} · {pagination.total} places
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  disabled={pagination.page <= 1}
+                  className="btn-neutral disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPage((current) => Math.min(pagination.totalPages, current + 1))}
+                  disabled={pagination.page >= pagination.totalPages}
+                  className="btn-neutral disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

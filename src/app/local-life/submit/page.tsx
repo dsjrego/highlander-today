@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
 import ArticlePreview from '@/components/articles/ArticlePreview';
@@ -32,7 +32,10 @@ interface FormCategoryOption {
 
 export default function SubmitArticlePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session, status: sessionStatus } = useSession();
+  const parentSlug = searchParams.get('parent')?.trim() || 'local-life';
+  const requestedCategorySlug = searchParams.get('category')?.trim() || '';
 
   const [categoryOptions, setCategoryOptions] = useState<FormCategoryOption[]>([]);
   const [formData, setFormData] = useState({
@@ -51,11 +54,11 @@ export default function SubmitArticlePage() {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Fetch Local Life categories from the DB-backed cached categories endpoint.
+  // Fetch category options for the current parent context and preselect the requested child category.
   useEffect(() => {
     async function fetchCategories() {
       try {
-        const res = await fetch('/api/categories?parent=local-life');
+        const res = await fetch(`/api/categories?parent=${encodeURIComponent(parentSlug)}`);
         if (res.ok) {
           const data = await res.json();
           const allCats: Category[] = data.categories || [];
@@ -68,9 +71,18 @@ export default function SubmitArticlePage() {
             }));
 
           setCategoryOptions(orderedOptions);
+          if (requestedCategorySlug) {
+            const requested = orderedOptions.find((category) => category.slug === requestedCategorySlug);
+            if (requested) {
+              setFormData((prev) => ({
+                ...prev,
+                categoryId: prev.categoryId || requested.id,
+              }));
+            }
+          }
 
           if (orderedOptions.length === 0) {
-            console.warn('[Submit] No Local Life categories found');
+            console.warn(`[Submit] No categories found for parent "${parentSlug}"`);
           }
         } else {
           const errData = await res.json().catch(() => ({}));
@@ -83,7 +95,7 @@ export default function SubmitArticlePage() {
       }
     }
     fetchCategories();
-  }, []);
+  }, [parentSlug, requestedCategorySlug]);
 
   function handleInputChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>

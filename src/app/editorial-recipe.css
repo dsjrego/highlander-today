@@ -1,0 +1,488 @@
+/* ============================================================
+   EDITORIAL RECIPE — Enhanced Stylesheet
+   All original class names preserved. No new classes added.
+   Relies on CSS custom properties from the host theme.
+   ============================================================ */
+
+.editorial-article-shell {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.editorial-article-surface {
+  border: 1px solid var(--surface-border);
+  border-radius: 1.75rem;
+  background: color-mix(in srgb, var(--card-bg) 94%, white 6%);
+  box-shadow: var(--surface-shadow);
+}
+
+.editorial-article-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--surface-border) 82%, transparent);
+}
+
+.editorial-article-kicker {
+  margin: 0 0 1rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--brand-primary);
+  font-family: var(--font-sans);
+}
+
+.editorial-article-title {
+  margin: 0;
+  font-family: var(--font-editorial-display);
+  font-size: clamp(2.2rem, 5vw, 3.55rem);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  color: var(--page-title);
+}
+
+.editorial-article-dek {
+  margin: 1rem auto 0;
+  max-width: 600px;
+  font-family: var(--font-editorial-display);
+  font-size: 1.12rem;
+  font-style: italic;
+  line-height: 1.6;
+  color: color-mix(in srgb, var(--card-label) 90%, transparent);
+}
+
+.editorial-article-meta {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.65rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--brand-primary) 88%, transparent);
+}
+
+.editorial-article-image {
+  overflow: hidden;
+  border-top: 1px solid color-mix(in srgb, var(--surface-border) 78%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--surface-border) 78%, transparent);
+  background: color-mix(in srgb, var(--card-bg-accent) 22%, white 78%);
+}
+
+.editorial-article-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.editorial-article-image-caption {
+  margin: 0;
+  padding: 0.85rem 1.5rem 1rem;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  font-style: italic;
+  color: color-mix(in srgb, var(--card-label) 86%, transparent);
+}
+
+.editorial-article-body,
+.article-card-content,
+.editor-content {
+  font-family: var(--font-editorial-body);
+  font-size: 1.06rem;
+  line-height: 1.78;
+  color: color-mix(in srgb, var(--page-title) 82%, transparent);
+}
+
+.editorial-article-body,
+.article-card-content {
+  max-width: 660px;
+  margin: 0 auto;
+}
+
+.editorial-article-body p,
+.article-card-content p,
+.editor-content p {
+  margin-bottom: 1.35rem;
+}
+
+.editorial-article-body strong,
+.article-card-content strong,
+.editor-content strong {
+  font-weight: 700;
+  color: var(--page-title);
+}
+
+.editorial-article-body h2,
+.article-card-content h2,
+.editor-content h2 {
+  margin: 3rem 0 0.85rem;
+  font-family: var(--font-editorial-display);
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--page-title);
+}
+
+.editorial-article-body h3:not(.editorial-recipe-card-title),
+.article-card-content h3:not(.editorial-recipe-card-title),
+.editor-content h3:not(.editorial-recipe-card-title) {
+  margin: 2rem 0 0.75rem;
+  font-family: var(--font-editorial-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--page-title);
+}
+
+/* --- DROP CAP ------------------------------------------------ */
+
+.editor-content .editorial-dropcap::first-letter,
+.article-card-content .editorial-dropcap::first-letter {
+  float: left;
+  margin: 0.15rem 0.65rem 0 -0.04em;
+  font-size: 4.6rem;
+  line-height: 0.72;
+  font-weight: 800;
+  color: var(--brand-primary);
+  font-feature-settings: "kern" 1, "liga" 1;
+  text-shadow: 0 1px 0 color-mix(in srgb, var(--brand-primary) 18%, transparent);
+}
+
+/* --- PULL QUOTE ---------------------------------------------- */
+
+.editor-content .editorial-pullquote,
+.article-card-content .editorial-pullquote {
+  position: relative;
+  margin: 2.75rem 0 2.75rem 1.5rem;
+  border-left: none;
+  padding: 0.75rem 0 0.75rem 1.75rem;
+  font-size: 1.22rem;
+  line-height: 1.72;
+  font-style: italic;
+  font-weight: 500;
+  color: var(--brand-primary);
+  letter-spacing: -0.005em;
+}
+
+.editor-content .editorial-pullquote::before,
+.article-card-content .editorial-pullquote::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3.5px;
+  border-radius: 3px;
+  background: linear-gradient(
+    to bottom,
+    var(--brand-primary),
+    color-mix(in srgb, var(--brand-primary) 35%, transparent)
+  );
+}
+
+.editor-content .editorial-pullquote::after,
+.article-card-content .editorial-pullquote::after {
+  content: "\201C";
+  position: absolute;
+  top: -0.6rem;
+  left: 1.5rem;
+  font-size: 3.2rem;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1;
+  color: color-mix(in srgb, var(--brand-primary) 12%, transparent);
+  pointer-events: none;
+}
+
+/* --- RECIPE CARD --------------------------------------------- */
+
+.editor-content .editorial-recipe-card,
+.article-card-content .editorial-recipe-card {
+  position: relative;
+  margin: 3.5rem 0;
+  border: 1px solid var(--surface-border);
+  border-radius: 1.25rem;
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--card-bg) 94%, white 6%) 0%,
+      color-mix(in srgb, var(--card-bg) 88%, white 12%) 100%
+    );
+  box-shadow:
+    var(--surface-shadow),
+    0 0 0 1px color-mix(in srgb, var(--surface-border) 30%, transparent),
+    0 12px 40px -12px color-mix(in srgb, var(--brand-primary) 6%, transparent);
+  padding: 2.5rem 2.25rem 2.25rem;
+  overflow: hidden;
+}
+
+/* subtle top accent bar */
+.editor-content .editorial-recipe-card::before,
+.article-card-content .editorial-recipe-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 2rem;
+  right: 2rem;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--brand-primary) 20%,
+    var(--brand-primary) 80%,
+    transparent 100%
+  );
+  opacity: 0.7;
+}
+
+/* --- RECIPE CARD TITLE --------------------------------------- */
+
+.editor-content .editorial-recipe-card-title,
+.article-card-content .editorial-recipe-card-title {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-editorial-display);
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--page-title);
+}
+
+/* --- RECIPE CARD SUBTITLE ------------------------------------ */
+
+.editor-content .editorial-recipe-card-subtitle,
+.article-card-content .editorial-recipe-card-subtitle {
+  margin: 0.6rem 0 1.75rem;
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--card-label);
+  opacity: 0.75;
+}
+
+/* --- RECIPE META GRID ---------------------------------------- */
+
+.editor-content .editorial-recipe-card-meta,
+.article-card-content .editorial-recipe-card-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.75rem;
+  margin: 0 0 2rem;
+  padding: 1.15rem 0;
+  border-top: 1px solid color-mix(in srgb, var(--surface-border) 70%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--surface-border) 70%, transparent);
+}
+
+.editor-content .editorial-recipe-card-meta-item,
+.article-card-content .editorial-recipe-card-meta-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  text-align: center;
+}
+
+.editor-content .editorial-recipe-card-meta-label,
+.article-card-content .editorial-recipe-card-meta-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--card-label);
+  opacity: 0.65;
+}
+
+.editor-content .editorial-recipe-card-meta-value,
+.article-card-content .editorial-recipe-card-meta-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--page-title);
+  letter-spacing: -0.01em;
+}
+
+/* --- SECTION HEADINGS ---------------------------------------- */
+
+.editor-content .editorial-recipe-card-section-head,
+.article-card-content .editorial-recipe-card-section-head {
+  margin: 2.25rem 0 0.85rem;
+  padding-bottom: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--brand-primary);
+  border-bottom: 1.5px solid color-mix(in srgb, var(--brand-primary) 18%, transparent);
+}
+
+/* --- LISTS (UL + OL) ----------------------------------------- */
+
+.editor-content .editorial-recipe-card ul,
+.editor-content .editorial-recipe-card ol,
+.article-card-content .editorial-recipe-card ul,
+.article-card-content .editorial-recipe-card ol {
+  margin-left: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.editor-content .editorial-recipe-card li,
+.article-card-content .editorial-recipe-card li {
+  position: relative;
+  margin: 0;
+  padding: 0.72rem 0;
+  border-bottom: 1px dotted color-mix(in srgb, var(--surface-border) 60%, transparent);
+  font-size: 0.94rem;
+  line-height: 1.6;
+}
+
+.editor-content .editorial-recipe-card li:last-child,
+.article-card-content .editorial-recipe-card li:last-child {
+  border-bottom: none;
+}
+
+/* Ingredient bullets (ul) — small brand-colored dot */
+.editor-content .editorial-recipe-card ul li,
+.article-card-content .editorial-recipe-card ul li {
+  padding-left: 1.4rem;
+}
+
+.editor-content .editorial-recipe-card ul li::before,
+.article-card-content .editorial-recipe-card ul li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 1.1rem;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--brand-primary) 50%, transparent);
+}
+
+/* Ordered list — numbered circles */
+.editor-content .editorial-recipe-card ol,
+.article-card-content .editorial-recipe-card ol {
+  counter-reset: recipe-step;
+}
+
+.editor-content .editorial-recipe-card ol li,
+.article-card-content .editorial-recipe-card ol li {
+  padding-left: 3.25rem;
+  padding-top: 0.9rem;
+  padding-bottom: 0.9rem;
+}
+
+.editor-content .editorial-recipe-card ol li::before,
+.article-card-content .editorial-recipe-card ol li::before {
+  counter-increment: recipe-step;
+  content: counter(recipe-step);
+  position: absolute;
+  left: 0;
+  top: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 9999px;
+  background: var(--brand-primary);
+  color: white;
+  font-size: 0.78rem;
+  font-weight: 800;
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--brand-primary) 25%, transparent);
+}
+
+/* --- NOTE BOX ------------------------------------------------ */
+
+.editor-content .editorial-note-box,
+.article-card-content .editorial-note-box {
+  margin-top: 2.25rem;
+  border-radius: 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--surface-border) 80%, transparent);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--card-bg-accent) 90%, white 10%) 0%,
+      color-mix(in srgb, var(--card-bg-accent) 82%, white 18%) 100%
+    );
+  padding: 1.5rem 1.5rem;
+}
+
+.editor-content .editorial-note-box p,
+.article-card-content .editorial-note-box p {
+  font-size: 0.88rem;
+  line-height: 1.65;
+  margin: 0 0 0.85rem;
+}
+
+.editor-content .editorial-note-box p:last-child,
+.article-card-content .editorial-note-box p:last-child {
+  margin-bottom: 0;
+}
+
+.editor-content .editorial-note-box-title,
+.article-card-content .editorial-note-box-title {
+  margin: 0 0 0.85rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--brand-primary);
+}
+
+/* --- RESPONSIVE ---------------------------------------------- */
+
+@media (max-width: 640px) {
+  .editorial-article-title {
+    font-size: 2rem;
+  }
+
+  .editorial-article-dek {
+    font-size: 1rem;
+  }
+
+  .editor-content .editorial-pullquote,
+  .article-card-content .editorial-pullquote {
+    margin-left: 0;
+    margin-right: 0;
+    font-size: 1.1rem;
+  }
+
+  .editor-content .editorial-recipe-card,
+  .article-card-content .editorial-recipe-card {
+    padding: 1.75rem 1.25rem 1.5rem;
+    border-radius: 1rem;
+  }
+
+  .editor-content .editorial-recipe-card::before,
+  .article-card-content .editorial-recipe-card::before {
+    left: 1.25rem;
+    right: 1.25rem;
+  }
+
+  .editor-content .editorial-recipe-card-title,
+  .article-card-content .editorial-recipe-card-title {
+    font-size: 1.35rem;
+  }
+
+  .editor-content .editorial-recipe-card-meta,
+  .article-card-content .editorial-recipe-card-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .editor-content .editorial-recipe-card ol li,
+  .article-card-content .editorial-recipe-card ol li {
+    padding-left: 2.75rem;
+  }
+
+  .editor-content .editorial-recipe-card ol li::before,
+  .article-card-content .editorial-recipe-card ol li::before {
+    width: 1.85rem;
+    height: 1.85rem;
+    font-size: 0.72rem;
+  }
+}

@@ -15,6 +15,7 @@ import { SUPPORT_NAV_ITEMS } from "@/lib/support";
 import { resolveTenantTheme } from "@/lib/theme/resolve-theme";
 import { themeToCssVars } from "@/lib/theme/to-css-vars";
 import "./globals.css";
+import "./editorial-recipe.css";
 
 function getMetadataBase() {
   try {

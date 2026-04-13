@@ -3,8 +3,8 @@ import ArticleCategorySectionPage from '@/components/sections/ArticleCategorySec
 import { getArticleSectionData } from '@/lib/category-sections';
 import { getCategoryHref } from '@/lib/category-config';
 
-export default async function LocalLifePage() {
-  const sectionData = await getArticleSectionData('local-life', getCategoryHref);
+export default async function CommunityPage() {
+  const sectionData = await getArticleSectionData('community', getCategoryHref);
 
   if (!sectionData) {
     notFound();
@@ -14,7 +14,7 @@ export default async function LocalLifePage() {
     <ArticleCategorySectionPage
       sectionSlug={sectionData.section.slug}
       sectionName={sectionData.section.name}
-      intro="Stories, news, and perspectives from the heart of the community."
+      intro="Our community history and culture lives here"
       categoryPills={sectionData.categoryPills}
     />
   );

@@ -33,6 +33,10 @@ function getPlainText(html?: string) {
   return (html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+function hasEditorialArticleMarkup(html?: string) {
+  return /editorial-(dropcap|pullquote|recipe-card|note-box)/.test(html || '');
+}
+
 export default function ArticlePreview({
   title,
   excerpt,
@@ -49,6 +53,7 @@ export default function ArticlePreview({
 }: ArticlePreviewProps) {
   const hasBody = getPlainText(body).length > 0;
   const previewImageUrl = getArticleUiImageUrl(featuredImageUrl);
+  const isEditorialArticle = hasEditorialArticleMarkup(body);
 
   return (
     <div className={joinClasses('space-y-6', className)}>
@@ -59,44 +64,71 @@ export default function ArticlePreview({
         <p className="mb-0 leading-6 text-slate-600">{previewDescription}</p>
       </div>
 
-      <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(143,29,44,0.96),rgba(10,32,51,0.94))] px-6 py-8 text-white shadow-[0_35px_80px_rgba(7,17,26,0.22)] md:px-10 md:py-10">
-        <div className="max-w-4xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/72">
-            {categoryName || 'Local Life'}
-          </p>
-          <h2 className="mt-4 text-4xl font-black leading-[0.95] tracking-[-0.05em] md:text-6xl">
-            {title?.trim() || 'Your article title will appear here'}
-          </h2>
-          {excerpt?.trim() ? (
-            <p className="mt-5 max-w-3xl text-base leading-8 text-white/78 md:text-lg">{excerpt}</p>
-          ) : (
-            <p className="mt-5 max-w-3xl text-base italic leading-8 text-white/52 md:text-lg">
-              Add an excerpt to show a short summary beneath the title.
+      {isEditorialArticle ? (
+        <section className="editorial-article-surface px-6 py-8 md:px-10 md:py-10">
+          <div className="editorial-article-shell">
+            <header className="editorial-article-header">
+              <p className="editorial-article-kicker">{categoryName || 'Local Life'}</p>
+              <h2 className="editorial-article-title">
+                {title?.trim() || 'Your article title will appear here'}
+              </h2>
+              {excerpt?.trim() ? (
+                <p className="editorial-article-dek">{excerpt}</p>
+              ) : null}
+              {(author || publishedLabel) ? (
+                <div className="editorial-article-meta">
+                  {author ? (
+                    <span>
+                      {author.firstName} {author.lastName}
+                    </span>
+                  ) : null}
+                  {publishedLabel ? <span>{publishedLabel}</span> : null}
+                </div>
+              ) : null}
+            </header>
+          </div>
+        </section>
+      ) : (
+        <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(143,29,44,0.96),rgba(10,32,51,0.94))] px-6 py-8 text-white shadow-[0_35px_80px_rgba(7,17,26,0.22)] md:px-10 md:py-10">
+          <div className="max-w-4xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/72">
+              {categoryName || 'Local Life'}
             </p>
-          )}
-          {author ? (
-            <div className="mt-6 flex items-center gap-3">
-              <UserAvatar
-                firstName={author.firstName}
-                lastName={author.lastName}
-                profilePhotoUrl={author.profilePhotoUrl}
-                trustLevel={author.trustLevel}
-                className="h-11 w-11"
-                initialsClassName="bg-white/12 text-sm text-white/78"
-              />
-              <div>
-                <p className="text-sm font-semibold text-white">
-                  {author.firstName} {author.lastName}
-                </p>
-                <p className="text-xs text-white/60">
-                  {publishedLabel || 'Publication date preview'}
-                </p>
+            <h2 className="mt-4 text-4xl font-black leading-[0.95] tracking-[-0.05em] md:text-6xl">
+              {title?.trim() || 'Your article title will appear here'}
+            </h2>
+            {excerpt?.trim() ? (
+              <p className="mt-5 max-w-3xl text-base leading-8 text-white/78 md:text-lg">{excerpt}</p>
+            ) : (
+              <p className="mt-5 max-w-3xl text-base italic leading-8 text-white/52 md:text-lg">
+                Add an excerpt to show a short summary beneath the title.
+              </p>
+            )}
+            {author ? (
+              <div className="mt-6 flex items-center gap-3">
+                <UserAvatar
+                  firstName={author.firstName}
+                  lastName={author.lastName}
+                  profilePhotoUrl={author.profilePhotoUrl}
+                  trustLevel={author.trustLevel}
+                  className="h-11 w-11"
+                  initialsClassName="bg-white/12 text-sm text-white/78"
+                />
+                <div>
+                  <p className="text-sm font-semibold text-white">
+                    {author.firstName} {author.lastName}
+                  </p>
+                  <p className="text-xs text-white/60">
+                    {publishedLabel || 'Publication date preview'}
+                  </p>
+                </div>
               </div>
-            </div>
-          ) : null}
-        </div>
-      </section>
+            ) : null}
+          </div>
+        </section>
+      )}
 
+      {previewImageUrl || !isEditorialArticle ? (
       <figure className="overflow-hidden rounded-[28px] border border-white/10 bg-white/82 shadow-[0_24px_55px_rgba(7,17,26,0.14)]">
         {previewImageUrl ? (
           <>
@@ -118,11 +150,12 @@ export default function ArticlePreview({
           </figcaption>
         ) : null}
       </figure>
+      ) : null}
 
-      <section className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
+      <section className={`p-6 md:p-8 ${isEditorialArticle ? 'editorial-article-surface' : 'rounded-[28px] border border-white/10 bg-white/82 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur'}`}>
         {hasBody ? (
           <div
-            className="prose prose-lg max-w-none prose-headings:text-slate-950 prose-p:text-slate-700 prose-li:text-slate-700 prose-a:text-[#8f1d2c]"
+            className={`article-card-content prose prose-lg max-w-none prose-headings:text-slate-950 prose-p:text-slate-700 prose-li:text-slate-700 prose-a:text-[#8f1d2c] ${isEditorialArticle ? 'editorial-article-body' : ''}`}
             dangerouslySetInnerHTML={{ __html: body || '' }}
           />
         ) : (

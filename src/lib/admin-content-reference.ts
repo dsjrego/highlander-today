@@ -33,6 +33,7 @@ export type CategoryGuidance = {
 
 export const CATEGORY_CONTENT_MODELS = [
   'ARTICLE',
+  'RECIPE',
   'EVENT',
   'HELP_WANTED',
   'MARKETPLACE',
@@ -44,6 +45,7 @@ export type CategoryContentModel = (typeof CATEGORY_CONTENT_MODELS)[number];
 
 export const CATEGORY_CONTENT_MODEL_LABELS: Record<CategoryContentModel, string> = {
   ARTICLE: 'Article',
+  RECIPE: 'Recipe',
   EVENT: 'Event',
   HELP_WANTED: 'Help Wanted',
   MARKETPLACE: 'Marketplace / Store',
@@ -81,6 +83,12 @@ export const ADMIN_CONTENT_MODELS: AdminContentModel[] = [
     guidance: 'Use Article when the user-facing need is to read and understand something, not attend it, apply for it, or buy it.',
   },
   {
+    name: 'Recipe',
+    summary: 'Structured recipe content with typed ingredients, steps, timing, notes, and optional editorial intro text.',
+    likelyHomes: ['Local Life -> Recipes & Food', 'Future grocery-linked food surfaces'],
+    guidance: 'Use Recipe when the primary user need is to cook, follow ingredients, or use structured food data. Keep long descriptive copy as recipe intro/editorial text, not the primary record.',
+  },
+  {
     name: 'Event',
     summary: 'Time-bound happenings with dates, timing, venue, and event-specific discovery needs.',
     likelyHomes: ['Local Life -> Events', 'Future event-driven subsections elsewhere'],
@@ -112,6 +120,12 @@ export const ADMIN_CATEGORY_MAPPING_EXAMPLES: AdminCategoryMappingExample[] = [
     subsection: 'Moving To',
     primaryModel: 'Article',
     guidance: 'Orientation guides, newcomer explainers, and area overviews belong here as informational content.',
+  },
+  {
+    section: 'Local Life',
+    subsection: 'Recipes & Food',
+    primaryModel: 'Recipe',
+    guidance: 'Structured cooking content should use the Recipe model even when it carries article-like story or local grocery context.',
   },
   {
     section: 'Local Life',
@@ -218,6 +232,15 @@ export function getCategoryGuidance(
         modelLabel: 'HelpWantedPost',
         summary: 'Use Help Wanted for jobs, paid opportunities, and service requests.',
         caution: 'Do not route hiring through Article or Marketplace categories.',
+      };
+    }
+
+    if (normalizedSlug === 'recipes-food') {
+      return {
+        sectionLabel: 'Local Life',
+        modelLabel: 'Recipe',
+        summary: 'Use Recipe for structured cooking content with ingredients, steps, timing, and notes.',
+        caution: 'Keep descriptive or editorial copy as recipe intro text rather than storing the recipe itself as an article body.',
       };
     }
 

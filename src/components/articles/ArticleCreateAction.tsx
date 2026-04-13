@@ -6,6 +6,9 @@ import { useSession } from 'next-auth/react';
 
 interface ArticleCreateActionProps {
   href?: string;
+  label?: string;
+  dialogTitle?: string;
+  trustRequiredMessage?: string;
 }
 
 const TRUST_REQUIRED_MESSAGE =
@@ -13,6 +16,9 @@ const TRUST_REQUIRED_MESSAGE =
 
 export default function ArticleCreateAction({
   href = '/local-life/submit',
+  label = 'Article',
+  dialogTitle = 'Trusted users only',
+  trustRequiredMessage = TRUST_REQUIRED_MESSAGE,
 }: ArticleCreateActionProps) {
   const { data: session } = useSession();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -37,7 +43,7 @@ export default function ArticleCreateAction({
       >
         <path d="M8 3.25v9.5M3.25 8h9.5" />
       </svg>
-      <span className="page-header-action-label">Article</span>
+      <span className="page-header-action-label">{label}</span>
     </>
   );
 
@@ -46,8 +52,8 @@ export default function ArticleCreateAction({
       {isTrustedUser ? (
         <Link
           href={href}
-          aria-label="Add article"
-          title="Add article"
+          aria-label={`Add ${label.toLowerCase()}`}
+          title={`Add ${label.toLowerCase()}`}
           className="page-header-action border-white bg-white text-slate-950 hover:opacity-90"
         >
           {content}
@@ -56,8 +62,8 @@ export default function ArticleCreateAction({
         <button
           type="button"
           onClick={() => setIsDialogOpen(true)}
-          aria-label="Add article"
-          title="Add article"
+          aria-label={`Add ${label.toLowerCase()}`}
+          title={`Add ${label.toLowerCase()}`}
           className="page-header-action border-white bg-white text-slate-950 hover:opacity-90"
         >
           {content}
@@ -80,13 +86,13 @@ export default function ArticleCreateAction({
               id="trusted-article-dialog-title"
               className="mb-3 text-2xl font-semibold tracking-tight text-white"
             >
-              Trusted users only
+              {dialogTitle}
             </h2>
             <p
               id="trusted-article-dialog-description"
               className="text-sm leading-7 text-cyan-50/78"
             >
-              {TRUST_REQUIRED_MESSAGE}
+              {trustRequiredMessage}
             </p>
             <div className="mt-5 rounded-2xl border border-cyan-300/20 bg-cyan-300/8 px-4 py-3 text-sm leading-6 text-cyan-100/86">
               Registered accounts can browse and participate, but publishing into Local Life

@@ -62,6 +62,7 @@ export async function GET(request: NextRequest) {
         _count: {
           select: {
             articles: true,
+            recipes: true,
             childCategories: true,
           },
         },

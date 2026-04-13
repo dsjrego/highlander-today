@@ -81,6 +81,10 @@ export default async function AdminDashboard() {
     totalUsers,
     totalOrganizations,
     pendingOrganizations,
+    totalRecipes,
+    pendingRecipes,
+    publishedRecipes,
+    unpublishedRecipes,
     totalEvents,
     pendingEvents,
     totalListings,
@@ -95,6 +99,10 @@ export default async function AdminDashboard() {
     db.user.count(),
     db.organization.count({ where: communityWhere }),
     db.organization.count({ where: { ...communityWhere, status: 'PENDING_APPROVAL' } }),
+    db.recipe.count({ where: communityWhere }),
+    db.recipe.count({ where: { ...communityWhere, status: 'PENDING_REVIEW' } }),
+    db.recipe.count({ where: { ...communityWhere, status: 'PUBLISHED' } }),
+    db.recipe.count({ where: { ...communityWhere, status: 'UNPUBLISHED' } }),
     db.event.count({ where: communityWhere }),
     db.event.count({ where: { ...communityWhere, status: 'PENDING_REVIEW' } }),
     db.marketplaceListing.count({ where: communityWhere }),
@@ -172,6 +180,29 @@ export default async function AdminDashboard() {
             </div>
           </div>
           <p className="mt-3 text-sm font-semibold text-[#2c7f9e]">Open organization management</p>
+        </Link>
+        <Link
+          href="/admin/recipes"
+          className="rounded-lg border border-[#46A8CC] bg-white p-6 transition hover:bg-sky-50"
+        >
+          <p className="mb-4 text-sm text-gray-600">Recipes</p>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-700">Pending</p>
+              <p className="text-2xl font-bold text-[#46A8CC]">{formatCount(pendingRecipes)}</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-green-700">Approved</p>
+              <p className="text-2xl font-bold text-[#46A8CC]">{formatCount(publishedRecipes)}</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">Archived</p>
+              <p className="text-2xl font-bold text-[#46A8CC]">{formatCount(unpublishedRecipes)}</p>
+            </div>
+          </div>
+          <p className="mt-3 text-sm font-semibold text-[#2c7f9e]">
+            Open recipe management ({formatCount(totalRecipes)} total)
+          </p>
         </Link>
         <Link
           href="/admin/articles"

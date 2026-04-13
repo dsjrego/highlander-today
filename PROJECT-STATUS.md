@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-04-11 (session 149)
+> **Last updated:** 2026-04-12 (session 150)
 > **Purpose:** Fast-start context for the next session. Read this file first, then open only the supporting docs relevant to the active slice.
 > **Detailed reference:** `PROJECT-STATUS-REFERENCE.md` preserves the fuller implementation ledger, rollout history, verification notes, deployment runbook, and infrastructure rationale that used to live here.
 
@@ -9,6 +9,8 @@
 > **Open mobile masthead note:** the live phone masthead received another compact layout pass. Search/messages/account actions are tighter and the mobile title/logo row is better aligned than before, but the user should still visually confirm the small-screen masthead on a real device before treating it as fully settled.
 >
 > **Open mobile page-header note:** the shared `InternalPageHeader` now has explicit mobile alignment/compactness controls and the `Directory` header is using that cleaned-up path rather than brittle page-level overrides. Treat the mobile page-header system as materially improved, but still worth a quick browser/device QA pass before considering it complete.
+>
+> **Open recipe/editorial note:** recipe styling and HTML import work exposed a likely model mismatch. The current `editorial-recipe.css` and importer/preview work should be treated as a temporary presentation bridge for food editorial, not proof that recipes belong permanently inside generic article rich text. Use `FOOD-RECIPE-GROCERY-PLAN.md` as the canonical product direction: recipes may share article-like presentation early, but the likely next architectural step is a dedicated structured recipe model rather than more investment in arbitrary HTML/CSS import.
 
 > **Session 91 note:** directory foundations are now live. `User` now supports opt-in directory inclusion, Prisma now includes `Organization` / `OrganizationMembership` plus structured organization child models, `/admin/organizations` now exists as a compact admin moderation/create surface, and `/directory` now reads real opted-in people plus approved organizations with unified results, yellow-pages-style type dropdown pills for businesses/organizations, sorting, and pagination.
 >
@@ -234,7 +236,7 @@ Current public/admin direction highlights:
 - Multi-tenant provisioning now has a first real `SUPER_ADMIN` path through `/admin/sites`, including site create/list/detail flows, domain management, provisioning notes, direct coverage editing, and explicit DB-to-code theme-manifest mapping through `theme_manifest_slug`. The current admin surface now validates configured manifest slugs against registered code manifests and runtime theme resolution honors that mapping. It is still phase 1 rather than complete tenant operations: there is not yet a full end-to-end production second-tenant/domain proof, no confirmed real non-Highlander tenant record running through a live host/domain path, and no richer per-site operational checklist beyond the current provisioning notes/coverage/domain tooling.
 - Seasonal overlays and DB-backed per-user theme preference are still pending on top of the new theme foundation. Public light/dark switching is now live through the shared masthead toggle using the `theme-mode` cookie, but signed-in preference persistence beyond the cookie is not built yet.
 - Donations/transparency, sourcing/citations, creator network, and delivery/jobs remain planned follow-on work.
-- Food / recipe / grocery is planning-only; use `FOOD-RECIPE-GROCERY-PLAN.md` as the canonical direction for future recipe editorial, structured ingredient utility, and store-linked grocery reservation work rather than extending marketplace models.
+- Food / recipe / grocery is planning-only; use `FOOD-RECIPE-GROCERY-PLAN.md` as the canonical direction for future recipe editorial, structured ingredient utility, and store-linked grocery reservation work rather than extending marketplace models. Current repo experiments around `editorial-recipe.css`, HTML import, and article preview rendering should be treated as temporary editorial bridge work, not as a decision to keep recipes as unstructured article-body content permanently.
 - Directory exists as an early live foundation now, with canonical public organization detail pages at `/organizations/[slug]` and richer admin organization editing at `/admin/organizations/[id]`, but self-claim/self-management flows are still pending.
 - Organization messaging to businesses / government / organizations is still planning-only; use `ORGANIZATION-INBOX-CRM-PLAN.md` as the canonical direction before implementation.
 - Organization-linked forms/questionnaires now have a first live public route, admin management surface, one-submission-per-user public response flow, and a basic admin results view. The current admin UI direction is list-first and nested-tabbed rather than card-stacked, but richer response review/editing is still partial. Use `ORGANIZATION-FORMS-PLAN.md` as the canonical direction for the remaining submission/review system.

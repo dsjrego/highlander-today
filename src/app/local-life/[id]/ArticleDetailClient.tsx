@@ -153,6 +153,9 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
   const viewerTrustLevel = session?.user?.trust_level || '';
   const canComment = viewerTrustLevel === 'TRUSTED';
   const imageUrl = getArticleUiImageUrl(article.featuredImageUrl);
+  const isEditorialArticle = /editorial-(dropcap|pullquote|recipe-card|note-box)/.test(
+    article.body || ''
+  );
 
   return (
     <div className="space-y-4">
@@ -191,59 +194,104 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(300px,1fr)] xl:items-start">
         <div className="min-w-0 space-y-0.5">
-          <article className="article-card">
-            <div className="article-card-header">
-              <div className="article-card-header-content">
-                <h1 className="article-card-header-title">{article.title}</h1>
-              </div>
-              <div className="article-card-header-actions">
-                <span className="article-card-header-badge">Article</span>
-              </div>
-            </div>
+          {isEditorialArticle ? (
+            <article className="editorial-article-surface overflow-hidden p-6 md:p-8">
+              <div className="editorial-article-shell">
+                <header className="editorial-article-header">
+                  <p className="editorial-article-kicker">{article.category?.name || 'Local Life'}</p>
+                  <h1 className="editorial-article-title">{article.title}</h1>
+                  {article.excerpt?.trim() ? (
+                    <p className="editorial-article-dek">{article.excerpt.trim()}</p>
+                  ) : null}
+                  <div className="editorial-article-meta">
+                    <span>
+                      {article.author.firstName} {article.author.lastName}
+                    </span>
+                    <span>{publishedDate || 'Not published yet'}</span>
+                  </div>
+                </header>
 
-            <figure className="article-card-image">
-              {imageUrl ? (
-                <img
-                  src={imageUrl}
-                  alt={article.title}
-                  className="article-card-image-element"
+                {imageUrl ? (
+                  <figure className="editorial-article-image">
+                    <img src={imageUrl} alt={article.title} />
+                    {article.featuredImageCaption?.trim() ? (
+                      <figcaption className="editorial-article-image-caption">
+                        {article.featuredImageCaption.trim()}
+                      </figcaption>
+                    ) : null}
+                  </figure>
+                ) : null}
+
+                <div
+                  className="article-card-content editorial-article-body mt-8"
+                  dangerouslySetInnerHTML={{ __html: article.body }}
                 />
-              ) : (
-                <div className="article-card-image-placeholder min-h-[18rem] rounded-none border-x-0 border-t-0 px-6 py-10">
-                  <div>
-                    <p className="article-card-image-placeholder-label text-xs font-semibold uppercase tracking-[0.28em]">
-                      {article.category?.name || 'Local Life'}
-                    </p>
+
+                <div className="article-card-footer mt-8 border-t border-[color:var(--surface-border)] pt-4">
+                  <span>{article.category?.name || 'Local Life'}</span>
+                  <div className="article-card-footer-actions">
+                    <Link href="/local-life" className="article-card-footer-link">
+                      Back to Local Life
+                    </Link>
                   </div>
                 </div>
-              )}
-              {article.featuredImageCaption?.trim() ? (
-                <figcaption className="article-card-image-hero-caption">
-                  {article.featuredImageCaption.trim()}
-                </figcaption>
-              ) : null}
-            </figure>
-
-            <div className="article-card-body">
-              <p className="article-card-date">{publishedDate || 'Not published yet'}</p>
-              <p className="article-card-author">
-                {article.author.firstName} {article.author.lastName}
-              </p>
-              <div
-                className="article-card-content"
-                dangerouslySetInnerHTML={{ __html: article.body }}
-              />
-            </div>
-
-            <div className="article-card-footer">
-              <span>{article.category?.name || 'Local Life'}</span>
-              <div className="article-card-footer-actions">
-                <Link href="/local-life" className="article-card-footer-link">
-                  Back to Local Life
-                </Link>
               </div>
-            </div>
-          </article>
+            </article>
+          ) : (
+            <article className="article-card">
+              <div className="article-card-header">
+                <div className="article-card-header-content">
+                  <h1 className="article-card-header-title">{article.title}</h1>
+                </div>
+                <div className="article-card-header-actions">
+                  <span className="article-card-header-badge">Article</span>
+                </div>
+              </div>
+
+              <figure className="article-card-image">
+                {imageUrl ? (
+                  <img
+                    src={imageUrl}
+                    alt={article.title}
+                    className="article-card-image-element"
+                  />
+                ) : (
+                  <div className="article-card-image-placeholder min-h-[18rem] rounded-none border-x-0 border-t-0 px-6 py-10">
+                    <div>
+                      <p className="article-card-image-placeholder-label text-xs font-semibold uppercase tracking-[0.28em]">
+                        {article.category?.name || 'Local Life'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {article.featuredImageCaption?.trim() ? (
+                  <figcaption className="article-card-image-hero-caption">
+                    {article.featuredImageCaption.trim()}
+                  </figcaption>
+                ) : null}
+              </figure>
+
+              <div className="article-card-body">
+                <p className="article-card-date">{publishedDate || 'Not published yet'}</p>
+                <p className="article-card-author">
+                  {article.author.firstName} {article.author.lastName}
+                </p>
+                <div
+                  className="article-card-content"
+                  dangerouslySetInnerHTML={{ __html: article.body }}
+                />
+              </div>
+
+              <div className="article-card-footer">
+                <span>{article.category?.name || 'Local Life'}</span>
+                <div className="article-card-footer-actions">
+                  <Link href="/local-life" className="article-card-footer-link">
+                    Back to Local Life
+                  </Link>
+                </div>
+              </div>
+            </article>
+          )}
 
           {article.status === 'PUBLISHED' && (
             <div className="w-full overflow-hidden rounded-[28px] border border-white/10 bg-white/82 p-0 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">

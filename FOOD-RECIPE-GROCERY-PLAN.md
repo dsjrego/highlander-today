@@ -1,8 +1,10 @@
 # Highlander Today — Food, Recipe, And Grocery Plan
 
-> **Last updated:** 2026-04-04
+> **Last updated:** 2026-04-12
 > **Status:** Product and architecture planning only. Not implemented.
 > **Purpose:** Define how Highlander Today should evolve from local food editorial into a structured recipe and grocery-reservation system without collapsing that work into the existing marketplace domain.
+
+> **2026-04-12 implementation note:** current codebase experimentation around `editorial-recipe.css`, TipTap HTML import, and article-preview/article-detail rendering is useful only as a temporary editorial bridge. That work does **not** change the intended product direction in this document. If recipe authoring starts to demand custom HTML/CSS, duplicated article chrome, or brittle importer rules, treat that as evidence that `RecipeStructure` should become a first-class model sooner rather than as a reason to deepen article-body complexity.
 
 ## Product Intent
 
@@ -80,6 +82,7 @@ Important rule:
 - A recipe may initially render inside article-like presentation patterns
 - A recipe should not remain trapped forever as unstructured rich-text article content
 - Grocery reservation should not be modeled as generic marketplace listings
+- If a recipe requires rich structured styling such as grouped ingredients, timed metadata, numbered method cards, baker/cook notes, print layouts, or store-linked ingredient handling, that is a strong signal to move from article-body authoring toward a dedicated recipe model rather than expanding arbitrary HTML import.
 
 ## Public Rollout Progression
 

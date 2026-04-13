@@ -29,6 +29,7 @@ model Community {
   // Relations
   memberships            UserCommunityMembership[]
   articles               Article[]
+  recipes                Recipe[]
   events                 Event[]
   eventSeries            EventSeries[]
   stores                 Store[]
@@ -90,6 +91,7 @@ model User {
   vouchesGiven             VouchRecord[]             @relation("voucherUser")
   vouchesReceived          VouchRecord[]             @relation("vouchedUser")
   articles                 Article[]
+  recipes                  Recipe[]
   comments                 Comment[]
   eventsSubmitted          Event[]
   eventSeriesCreated       EventSeries[]
@@ -724,6 +726,155 @@ enum ArticleStatus {
   UNPUBLISHED
 }
 
+enum RecipeStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  UNPUBLISHED
+}
+
+enum RecipeNoteKind {
+  COOK_NOTE
+  SUBSTITUTION
+  STORAGE
+  SERVING
+  TROUBLESHOOTING
+}
+
+enum RecipeMediaType {
+  IMAGE
+  VIDEO_EMBED
+}
+
+enum RecipeVideoProvider {
+  YOUTUBE
+  VIMEO
+}
+
+model Recipe {
+  id                   String       @id @default(uuid()) @db.Uuid
+  communityId          String       @db.Uuid
+  authorUserId         String       @db.Uuid
+  title                String
+  slug                 String
+  excerpt              String?
+  introHtml            String?      @map("intro_html")
+  featuredImageUrl     String?
+  featuredImageCaption String?      @map("featured_image_caption")
+  status               RecipeStatus @default(DRAFT)
+  categoryId           String?      @db.Uuid
+  yieldLabel           String?      @map("yield_label")
+  prepMinutes          Int?         @map("prep_minutes")
+  cookMinutes          Int?         @map("cook_minutes")
+  totalMinutes         Int?         @map("total_minutes")
+  servings             Int?
+  sourceName           String?      @map("source_name")
+  sourceUrl            String?      @map("source_url")
+  structuredInputRaw   Json?        @map("structured_input_raw")
+  publishedAt          DateTime?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  community           Community                 @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  author              User                      @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  category            Category?                 @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  ingredientSections  RecipeIngredientSection[]
+  ingredients         RecipeIngredient[]
+  instructionSteps    RecipeInstructionStep[]
+  notes               RecipeNote[]
+  media               RecipeMedia[]
+
+  @@unique([communityId, slug])
+  @@index([communityId])
+  @@index([authorUserId])
+  @@index([categoryId])
+  @@index([status])
+  @@map("recipes")
+}
+
+model RecipeIngredientSection {
+  id        String @id @default(uuid()) @db.Uuid
+  recipeId  String @db.Uuid
+  title     String?
+  sortOrder Int    @default(0) @map("sort_order")
+
+  recipe      Recipe             @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredients RecipeIngredient[]
+
+  @@index([recipeId, sortOrder])
+  @@map("recipe_ingredient_sections")
+}
+
+model RecipeIngredient {
+  id               String  @id @default(uuid()) @db.Uuid
+  recipeId         String  @db.Uuid
+  sectionId        String? @db.Uuid @map("section_id")
+  sortOrder        Int     @default(0) @map("sort_order")
+  amount           String?
+  unit             String?
+  ingredientName   String  @map("ingredient_name")
+  preparationNote  String? @map("preparation_note")
+  isOptional       Boolean @default(false) @map("is_optional")
+  substitutionNote String? @map("substitution_note")
+
+  recipe  Recipe                   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  section RecipeIngredientSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+
+  @@index([recipeId, sortOrder])
+  @@index([sectionId])
+  @@map("recipe_ingredients")
+}
+
+model RecipeInstructionStep {
+  id           String  @id @default(uuid()) @db.Uuid
+  recipeId     String  @db.Uuid
+  sortOrder    Int     @default(0) @map("sort_order")
+  title        String?
+  body         String
+  timerMinutes Int?    @map("timer_minutes")
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  media  RecipeMedia[]
+
+  @@index([recipeId, sortOrder])
+  @@map("recipe_instruction_steps")
+}
+
+model RecipeNote {
+  id        String         @id @default(uuid()) @db.Uuid
+  recipeId  String         @db.Uuid
+  kind      RecipeNoteKind
+  title     String?
+  body      String
+  sortOrder Int            @default(0) @map("sort_order")
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@index([recipeId, sortOrder])
+  @@map("recipe_notes")
+}
+
+model RecipeMedia {
+  id            String              @id @default(uuid()) @db.Uuid
+  recipeId      String              @db.Uuid
+  stepId        String?             @db.Uuid @map("step_id")
+  type          RecipeMediaType
+  provider      RecipeVideoProvider?
+  imageUrl      String?             @map("image_url")
+  embedUrl      String?             @map("embed_url")
+  caption       String?
+  altText       String?             @map("alt_text")
+  sortOrder     Int                 @default(0) @map("sort_order")
+  createdAt     DateTime            @default(now()) @map("created_at")
+
+  recipe Recipe                 @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  step   RecipeInstructionStep? @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  @@index([recipeId, sortOrder])
+  @@index([stepId, sortOrder])
+  @@map("recipe_media")
+}
+
 model Tag {
   id   String @id @default(uuid()) @db.Uuid
   name String @unique
@@ -763,6 +914,7 @@ model Category {
   parentCategory  Category?  @relation("categoryHierarchy", fields: [parentCategoryId], references: [id], onDelete: Cascade)
   childCategories Category[] @relation("categoryHierarchy")
   articles        Article[]
+  recipes         Recipe[]
 
   @@index([communityId])
   @@index([parentCategoryId])
@@ -771,6 +923,7 @@ model Category {
 
 enum CategoryContentModel {
   ARTICLE
+  RECIPE
   EVENT
   HELP_WANTED
   MARKETPLACE
@@ -1411,6 +1564,7 @@ enum ActivityAction {
 
 enum ResourceType {
   ARTICLE
+  RECIPE
   COMMENT
   EVENT
   HELP_WANTED_POST

@@ -36,6 +36,7 @@ type CategoryRecord = {
   } | null;
   _count: {
     articles: number;
+    recipes: number;
     childCategories: number;
   };
 };
@@ -214,6 +215,8 @@ function CategoryEditorRow({
       <td className="admin-list-cell">
         <div className="text-xs text-slate-500">
           {category._count.articles} articles
+          <br />
+          {category._count.recipes} recipes
           <br />
           {category._count.childCategories} children
         </div>

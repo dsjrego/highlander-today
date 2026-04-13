@@ -1,10 +1,20 @@
 import { loadEnvConfig } from '@next/env';
-import { PrismaClient } from '@prisma/client';
+import { CategoryContentModel, PrismaClient } from '@prisma/client';
 import { seedPlaces } from './place-seed';
 
 loadEnvConfig(process.cwd());
 
 const prisma = new PrismaClient();
+
+type SeedCategoryNode = {
+  name: string;
+  slug: string;
+  children: Array<{
+    name: string;
+    slug: string;
+    contentModel: CategoryContentModel;
+  }>;
+};
 
 async function main() {
   console.log('Starting database seed...');
@@ -49,14 +59,14 @@ async function main() {
   // Two top-level sections: "Local Life" (text-based content) and
   // "Experiences" (activity/event-based content). Children are the
   // subcategories that will drive nav dropdowns and DB queries.
-  const categoryHierarchy = [
+  const categoryHierarchy: SeedCategoryNode[] = [
     {
       name: 'Local Life',
       slug: 'local-life',
       children: [
         { name: 'Local Stores',             slug: 'local-stores', contentModel: 'MARKETPLACE' as const },
         { name: 'Our People',               slug: 'people', contentModel: 'ARTICLE' as const },
-        { name: 'Recipes & Food',           slug: 'recipes-food', contentModel: 'ARTICLE' as const },
+        { name: 'Recipes & Food',           slug: 'recipes-food', contentModel: 'RECIPE' as const },
         { name: 'Gardening & Nature',       slug: 'outdoors-tips', contentModel: 'ARTICLE' as const },
         { name: 'Arts & Music',             slug: 'arts-creativity', contentModel: 'ARTICLE' as const },
         { name: 'History & Heritage',       slug: 'history-heritage', contentModel: 'ARTICLE' as const },

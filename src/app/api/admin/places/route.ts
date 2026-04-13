@@ -26,51 +26,76 @@ export async function GET(request: NextRequest) {
     }
 
     const query = request.nextUrl.searchParams.get('query')?.trim() || '';
+    const rawPage = Number.parseInt(request.nextUrl.searchParams.get('page') || '1', 10);
+    const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+    const limit = 25;
 
-    const places = await db.place.findMany({
-      where: {
-        ...(query
-          ? {
-              OR: [
-                { name: { contains: query, mode: 'insensitive' } },
-                { displayName: { contains: query, mode: 'insensitive' } },
-                { slug: { contains: query, mode: 'insensitive' } },
-              ],
-            }
-          : {}),
-      },
-      orderBy: [{ type: 'asc' }, { admin2Name: 'asc' }, { name: 'asc' }],
-      take: query ? 100 : 200,
-      select: {
-        id: true,
-        name: true,
-        displayName: true,
-        slug: true,
-        type: true,
-        countryCode: true,
-        admin1Code: true,
-        admin1Name: true,
-        admin2Name: true,
-        isSelectable: true,
-        isActive: true,
-        parentPlace: {
-          select: {
-            id: true,
-            displayName: true,
+    if (!query) {
+      return NextResponse.json({
+        places: [],
+        pagination: {
+          page: 1,
+          limit,
+          total: 0,
+          totalPages: 0,
+        },
+      });
+    }
+
+    const where = {
+      OR: [
+        { name: { contains: query, mode: 'insensitive' as const } },
+        { displayName: { contains: query, mode: 'insensitive' as const } },
+        { slug: { contains: query, mode: 'insensitive' as const } },
+      ],
+    };
+
+    const [total, places] = await Promise.all([
+      db.place.count({ where }),
+      db.place.findMany({
+        where,
+        orderBy: [{ type: 'asc' }, { admin2Name: 'asc' }, { name: 'asc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+        select: {
+          id: true,
+          name: true,
+          displayName: true,
+          slug: true,
+          type: true,
+          countryCode: true,
+          admin1Code: true,
+          admin1Name: true,
+          admin2Name: true,
+          isSelectable: true,
+          isActive: true,
+          parentPlace: {
+            select: {
+              id: true,
+              displayName: true,
+            },
+          },
+          aliases: {
+            where: { isSearchable: true },
+            select: {
+              id: true,
+              alias: true,
+            },
+            orderBy: { alias: 'asc' },
           },
         },
-        aliases: {
-          where: { isSearchable: true },
-          select: {
-            id: true,
-            alias: true,
-          },
-          orderBy: { alias: 'asc' },
-        },
+      }),
+    ]);
+
+    return NextResponse.json({
+      places,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     });
-
-    return NextResponse.json({ places });
   } catch (error) {
     console.error('Error listing admin places:', error);
     return NextResponse.json({ error: 'Failed to list places' }, { status: 500 });

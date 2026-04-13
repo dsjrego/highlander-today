@@ -15,6 +15,116 @@ interface TipTapEditorProps {
   placeholder?: string;
 }
 
+function unwrapElement(element: Element) {
+  const parent = element.parentNode;
+  if (!parent) return;
+
+  while (element.firstChild) {
+    parent.insertBefore(element.firstChild, element);
+  }
+
+  parent.removeChild(element);
+}
+
+function normalizeImportedHtml(rawHtml: string): string {
+  if (typeof window === 'undefined') {
+    return rawHtml;
+  }
+
+  const parser = new DOMParser();
+  const document = parser.parseFromString(rawHtml, 'text/html');
+  const root = document.body;
+
+  root
+    .querySelectorAll('script, style, meta, link, title, noscript, iframe, object, embed')
+    .forEach((node) => node.remove());
+
+  root
+    .querySelectorAll('.header-band, .hero, .footer-band, .section-rule, .article-header')
+    .forEach((node) => node.remove());
+  root.querySelectorAll('.article-body, .closing, .page-shell, .editor-content').forEach((node) => unwrapElement(node));
+
+  root.querySelectorAll('.dropcap').forEach((node) => {
+    node.classList.remove('dropcap');
+    node.classList.add('editorial-dropcap');
+  });
+
+  root.querySelectorAll('.pullquote').forEach((node) => {
+    const quote = document.createElement('blockquote');
+    quote.className = 'editorial-pullquote';
+    quote.innerHTML = node.innerHTML;
+    node.replaceWith(quote);
+  });
+
+  root.querySelectorAll('.recipe-card').forEach((node) => {
+    node.classList.remove('recipe-card');
+    node.classList.add('editorial-recipe-card');
+  });
+
+  root.querySelectorAll('.recipe-title').forEach((node) => {
+    const heading = document.createElement('h3');
+    heading.className = 'editorial-recipe-card-title';
+    heading.innerHTML = node.innerHTML;
+    node.replaceWith(heading);
+  });
+
+  root.querySelectorAll('.recipe-subtitle').forEach((node) => {
+    const subtitle = document.createElement('p');
+    subtitle.className = 'editorial-recipe-card-subtitle';
+    subtitle.innerHTML = node.innerHTML;
+    node.replaceWith(subtitle);
+  });
+
+  root.querySelectorAll('.recipe-meta').forEach((node) => {
+    node.classList.remove('recipe-meta');
+    node.classList.add('editorial-recipe-card-meta');
+  });
+
+  root.querySelectorAll('.meta-item').forEach((node) => {
+    node.classList.remove('meta-item');
+    node.classList.add('editorial-recipe-card-meta-item');
+  });
+
+  root.querySelectorAll('.meta-label').forEach((node) => {
+    const label = document.createElement('span');
+    label.className = 'editorial-recipe-card-meta-label';
+    label.innerHTML = node.innerHTML;
+    node.replaceWith(label);
+  });
+
+  root.querySelectorAll('.meta-value').forEach((node) => {
+    const value = document.createElement('span');
+    value.className = 'editorial-recipe-card-meta-value';
+    value.innerHTML = node.innerHTML;
+    node.replaceWith(value);
+  });
+
+  root.querySelectorAll('.recipe-section-head').forEach((node) => {
+    const heading = document.createElement('h4');
+    heading.className = 'editorial-recipe-card-section-head';
+    heading.innerHTML = node.innerHTML;
+    node.replaceWith(heading);
+  });
+
+  root.querySelectorAll('.ingredient-amount').forEach((node) => {
+    const strong = document.createElement('strong');
+    strong.className = 'editorial-recipe-card-amount';
+    strong.innerHTML = node.innerHTML;
+    node.replaceWith(strong);
+  });
+
+  root.querySelectorAll('.recipe-notes').forEach((node) => {
+    node.classList.remove('recipe-notes');
+    node.classList.add('editorial-note-box');
+  });
+
+  root.querySelectorAll('.recipe-notes h4').forEach((node) => {
+    node.className = 'editorial-note-box-title';
+  });
+
+  return root.innerHTML.trim();
+}
+
 // ─── Toolbar button ────────────────────────────────────────────────
 function ToolbarButton({
   onClick,
@@ -114,6 +224,8 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
   // ── Image upload + insertion ────────────────────────────────────
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isImportHtmlOpen, setIsImportHtmlOpen] = useState(false);
+  const [htmlImportValue, setHtmlImportValue] = useState('');
 
   const handleImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,6 +267,22 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
   const addImage = useCallback(() => {
     imageInputRef.current?.click();
   }, []);
+
+  const openImportHtml = useCallback(() => {
+    if (!editor) return;
+    setHtmlImportValue(editor.getHTML());
+    setIsImportHtmlOpen(true);
+  }, [editor]);
+
+  const handleImportHtml = useCallback(() => {
+    if (!editor) return;
+
+    const normalizedHtml = normalizeImportedHtml(htmlImportValue);
+    const nextContent = normalizedHtml.length > 0 ? normalizedHtml : '<p></p>';
+    editor.commands.setContent(nextContent, true);
+    onChange(editor.getHTML());
+    setIsImportHtmlOpen(false);
+  }, [editor, htmlImportValue, onChange]);
 
   if (!editor) return null;
 
@@ -266,6 +394,12 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
           )}
         </ToolbarButton>
+        <ToolbarButton
+          onClick={openImportHtml}
+          title="Import HTML"
+        >
+          <span className="text-[10px] font-semibold tracking-[0.08em]">HTML</span>
+        </ToolbarButton>
 
         <Sep />
 
@@ -324,6 +458,62 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
 
       {/* ── Editor content area ─────────────────────────────────── */}
       <EditorContent editor={editor} />
+
+      {isImportHtmlOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="import-html-title"
+        >
+          <div className="w-full max-w-3xl rounded-[28px] border border-white/10 bg-white p-6 shadow-[0_28px_80px_rgba(2,8,23,0.35)]">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 id="import-html-title" className="text-xl font-semibold tracking-tight text-slate-950">
+                  Import HTML
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                  Paste raw HTML here to replace the current editor content. The importer strips
+                  document-level markup and normalizes some editorial patterns before the normal
+                  save sanitization runs.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsImportHtmlOpen(false)}
+                className="rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-950"
+              >
+                Close
+              </button>
+            </div>
+
+            <textarea
+              value={htmlImportValue}
+              onChange={(e) => setHtmlImportValue(e.target.value)}
+              spellCheck={false}
+              className="mt-5 h-80 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-sm leading-6 text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-200"
+              placeholder="<p>Paste HTML here...</p>"
+            />
+
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsImportHtmlOpen(false)}
+                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-950"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleImportHtml}
+                className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                Import HTML
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* ── Editor styles ──────────────────────────────────────── */}
       <style jsx global>{`
