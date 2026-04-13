@@ -136,6 +136,7 @@ async function main() {
   const sectionTypes = [
     'FEATURED_ARTICLES',
     'LATEST_NEWS',
+    'FEATURED_RECIPES',
     'UPCOMING_EVENTS',
     'RECENT_MARKETPLACE',
   ] as const;

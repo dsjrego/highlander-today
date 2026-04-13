@@ -8,10 +8,11 @@ import { resolveTenantCommunityId } from './tenant';
 export type ManagedHomepageSectionType =
   | 'FEATURED_ARTICLES'
   | 'LATEST_NEWS'
+  | 'FEATURED_RECIPES'
   | 'UPCOMING_EVENTS'
   | 'RECENT_MARKETPLACE';
 
-export type HomepageContentType = 'ARTICLE' | 'EVENT' | 'MARKETPLACE_LISTING';
+export type HomepageContentType = 'ARTICLE' | 'RECIPE' | 'EVENT' | 'MARKETPLACE_LISTING';
 
 export interface HomepageContentItem {
   contentType: HomepageContentType;
@@ -68,6 +69,11 @@ export const HOMEPAGE_SECTION_CONFIG: Record<ManagedHomepageSectionType, Section
     contentType: 'ARTICLE',
     maxItems: 5,
   },
+  FEATURED_RECIPES: {
+    title: 'Recipes & Food',
+    contentType: 'RECIPE',
+    maxItems: 3,
+  },
   UPCOMING_EVENTS: {
     title: 'Upcoming Events',
     contentType: 'EVENT',
@@ -83,6 +89,7 @@ export const HOMEPAGE_SECTION_CONFIG: Record<ManagedHomepageSectionType, Section
 export const DEFAULT_SECTION_ORDER = [
   'FEATURED_ARTICLES',
   'LATEST_NEWS',
+  'FEATURED_RECIPES',
   'UPCOMING_EVENTS',
   'RECENT_MARKETPLACE',
 ] as const;
@@ -254,6 +261,63 @@ export async function getHomepageArticleCandidates(communityId: string, limit = 
   return getArticleCandidates(communityId, limit);
 }
 
+export async function getHomepageRecipeCandidates(communityId: string, limit = 100) {
+  return getRecipeCandidates(communityId, limit);
+}
+
+function formatRecipeMetadata(recipe: {
+  category: { name: string } | null;
+  author: { firstName: string; lastName: string };
+  totalMinutes: number | null;
+  servings: number | null;
+}) {
+  return [
+    recipe.category?.name,
+    `${recipe.author.firstName} ${recipe.author.lastName}`.trim(),
+    recipe.totalMinutes ? `${recipe.totalMinutes} min` : null,
+    recipe.servings ? `${recipe.servings} servings` : null,
+  ]
+    .filter(Boolean)
+    .join(' • ');
+}
+
+async function getRecipeCandidates(communityId: string, limit: number) {
+  const recipes = await db.recipe.findMany({
+    where: {
+      communityId,
+      status: 'PUBLISHED',
+    },
+    include: {
+      author: {
+        select: { firstName: true, lastName: true, profilePhotoUrl: true, trustLevel: true },
+      },
+      category: {
+        select: { name: true },
+      },
+    },
+    orderBy: { publishedAt: 'desc' },
+    take: limit,
+  });
+
+  return recipes.map<HomepageContentItem>((recipe) => ({
+    contentType: 'RECIPE',
+    contentId: recipe.id,
+    title: recipe.title,
+    description: recipe.excerpt ?? undefined,
+    imageUrl: getArticleUiImageUrl(recipe.featuredImageUrl) ?? undefined,
+    imageDisplayMode: recipe.featuredImageUrl?.trim() ? 'cover' : undefined,
+    url: `/recipes/${recipe.id}`,
+    metadata: formatRecipeMetadata(recipe),
+    author: {
+      firstName: recipe.author.firstName,
+      lastName: recipe.author.lastName,
+      profilePhotoUrl: recipe.author.profilePhotoUrl ?? undefined,
+      trustLevel: recipe.author.trustLevel ?? undefined,
+    },
+    searchText: `${recipe.title} ${recipe.author.lastName}`.toLowerCase(),
+  }));
+}
+
 async function getEventCandidates(communityId: string, limit: number) {
   const events = await db.event.findMany({
     where: {
@@ -331,6 +395,8 @@ async function getSectionCandidatePool(
   switch (config.contentType) {
     case 'ARTICLE':
       return getArticleCandidates(communityId, candidateLimit);
+    case 'RECIPE':
+      return getRecipeCandidates(communityId, candidateLimit);
     case 'EVENT':
       return getEventCandidates(communityId, candidateLimit);
     case 'MARKETPLACE_LISTING':

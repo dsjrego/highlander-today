@@ -23,14 +23,15 @@ import type {
 type HomepageSection = HomepageSectionData;
 type HomepageItem = HomepageContentItem;
 type ArticleBucketType = 'FEATURED_ARTICLES' | 'LATEST_NEWS';
-type DragSource = 'pool' | 'hero' | 'latest';
+type DragSource = 'article-pool' | 'hero' | 'latest' | 'recipe-pool' | 'recipe-lane';
 
 interface HomepageSectionsResponse {
   sections: HomepageSection[];
   articleCandidates: HomepageItem[];
+  recipeCandidates: HomepageItem[];
 }
 
-interface DraggedArticle {
+interface DraggedContentItem {
   item: HomepageItem;
   source: DragSource;
   index: number | null;
@@ -193,12 +194,14 @@ function ArticleBucket({
 export default function HomepageCurationPage() {
   const [sections, setSections] = useState<HomepageSection[]>([]);
   const [articleCandidates, setArticleCandidates] = useState<HomepageItem[]>([]);
+  const [recipeCandidates, setRecipeCandidates] = useState<HomepageItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [articleFilter, setArticleFilter] = useState('');
-  const [draggedArticle, setDraggedArticle] = useState<DraggedArticle | null>(null);
+  const [recipeFilter, setRecipeFilter] = useState('');
+  const [draggedItem, setDraggedItem] = useState<DraggedContentItem | null>(null);
 
   useEffect(() => {
     async function fetchSections() {
@@ -209,12 +212,18 @@ export default function HomepageCurationPage() {
         const response = await fetch('/api/homepage/sections');
         const data: HomepageSectionsResponse | { error: string } = await response.json();
 
-        if (!response.ok || !('sections' in data) || !('articleCandidates' in data)) {
+        if (
+          !response.ok ||
+          !('sections' in data) ||
+          !('articleCandidates' in data) ||
+          !('recipeCandidates' in data)
+        ) {
           throw new Error('Failed to load homepage sections');
         }
 
         setSections(data.sections.sort((a, b) => a.sortOrder - b.sortOrder));
         setArticleCandidates(data.articleCandidates);
+        setRecipeCandidates(data.recipeCandidates);
       } catch (fetchError) {
         console.error(fetchError);
         setError('Failed to load homepage curation data.');
@@ -228,9 +237,12 @@ export default function HomepageCurationPage() {
 
   const featuredSection = getSectionByType(sections, 'FEATURED_ARTICLES');
   const latestNewsSection = getSectionByType(sections, 'LATEST_NEWS');
+  const recipeSection = getSectionByType(sections, 'FEATURED_RECIPES');
   const otherSections = sections.filter(
     (section) =>
-      section.sectionType !== 'FEATURED_ARTICLES' && section.sectionType !== 'LATEST_NEWS'
+      section.sectionType !== 'FEATURED_ARTICLES' &&
+      section.sectionType !== 'LATEST_NEWS' &&
+      section.sectionType !== 'FEATURED_RECIPES'
   );
 
   const normalizedArticleFilter = articleFilter.trim().toLowerCase();
@@ -256,6 +268,27 @@ export default function HomepageCurationPage() {
           matchesArticleFilter(item, normalizedArticleFilter)
       ),
     [articleCandidates, assignedArticleKeys, normalizedArticleFilter]
+  );
+
+  const normalizedRecipeFilter = recipeFilter.trim().toLowerCase();
+  const assignedRecipeKeys = useMemo(() => {
+    const assignedKeys = new Set<string>();
+
+    if (recipeSection) {
+      recipeSection.pinnedItems.forEach((item) => assignedKeys.add(getItemKey(item)));
+    }
+
+    return assignedKeys;
+  }, [recipeSection]);
+
+  const sourceRecipes = useMemo(
+    () =>
+      recipeCandidates.filter(
+        (item) =>
+          !assignedRecipeKeys.has(getItemKey(item)) &&
+          matchesArticleFilter(item, normalizedRecipeFilter)
+      ),
+    [recipeCandidates, assignedRecipeKeys, normalizedRecipeFilter]
   );
 
   const updateSection = (
@@ -461,23 +494,23 @@ export default function HomepageCurationPage() {
     });
   };
 
-  const handleArticleDragStart = (
+  const handleContentDragStart = (
     item: HomepageItem,
     source: DragSource,
     index: number | null
   ) => {
-    setDraggedArticle({ item, source, index });
+    setDraggedItem({ item, source, index });
   };
 
   const handleHeroDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
 
-    if (!draggedArticle) {
+    if (!draggedItem) {
       return;
     }
 
-    moveArticleToBucket(draggedArticle.item, 'FEATURED_ARTICLES');
-    setDraggedArticle(null);
+    moveArticleToBucket(draggedItem.item, 'FEATURED_ARTICLES');
+    setDraggedItem(null);
   };
 
   const handleLatestDrop = (
@@ -486,32 +519,128 @@ export default function HomepageCurationPage() {
   ) => {
     event.preventDefault();
 
-    if (!draggedArticle) {
+    if (!draggedItem) {
       return;
     }
 
     if (
-      draggedArticle.source === 'latest' &&
-      draggedArticle.index !== null &&
+      draggedItem.source === 'latest' &&
+      draggedItem.index !== null &&
       targetIndex !== undefined
     ) {
-      reorderLatestArticle(draggedArticle.index, targetIndex);
+      reorderLatestArticle(draggedItem.index, targetIndex);
     } else {
-      moveArticleToBucket(draggedArticle.item, 'LATEST_NEWS', targetIndex);
+      moveArticleToBucket(draggedItem.item, 'LATEST_NEWS', targetIndex);
     }
 
-    setDraggedArticle(null);
+    setDraggedItem(null);
   };
 
   const handleApprovedStoriesDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
 
-    if (!draggedArticle || draggedArticle.source === 'pool') {
+    if (!draggedItem || draggedItem.source === 'article-pool') {
       return;
     }
 
-    removeArticleFromBuckets(draggedArticle.item);
-    setDraggedArticle(null);
+    removeArticleFromBuckets(draggedItem.item);
+    setDraggedItem(null);
+  };
+
+  const moveRecipeToLane = (item: HomepageItem, targetIndex?: number) => {
+    if (!recipeSection) {
+      return;
+    }
+
+    updateSection(recipeSection.id, (section) => {
+      const nextPinnedItems = section.pinnedItems.filter(
+        (pinnedItem) => getItemKey(pinnedItem) !== getItemKey(item)
+      );
+      const insertIndex =
+        targetIndex === undefined
+          ? nextPinnedItems.length
+          : Math.max(0, Math.min(targetIndex, nextPinnedItems.length));
+      const isAlreadyPinned = section.pinnedItems.some(
+        (pinnedItem) => getItemKey(pinnedItem) === getItemKey(item)
+      );
+
+      if (!isAlreadyPinned && section.pinnedItems.length >= section.maxItems) {
+        return section;
+      }
+
+      nextPinnedItems.splice(insertIndex, 0, item);
+
+      return {
+        ...section,
+        pinnedItems: nextPinnedItems,
+      };
+    });
+  };
+
+  const removeRecipeFromLane = (item: HomepageItem) => {
+    if (!recipeSection) {
+      return;
+    }
+
+    updateSection(recipeSection.id, (section) => ({
+      ...section,
+      pinnedItems: section.pinnedItems.filter(
+        (pinnedItem) => getItemKey(pinnedItem) !== getItemKey(item)
+      ),
+    }));
+  };
+
+  const reorderRecipeLane = (fromIndex: number, toIndex: number) => {
+    if (!recipeSection || fromIndex === toIndex) {
+      return;
+    }
+
+    updateSection(recipeSection.id, (section) => {
+      const nextItems = [...section.pinnedItems];
+      const [movedItem] = nextItems.splice(fromIndex, 1);
+
+      if (!movedItem) {
+        return section;
+      }
+
+      nextItems.splice(toIndex, 0, movedItem);
+
+      return {
+        ...section,
+        pinnedItems: nextItems,
+      };
+    });
+  };
+
+  const handleRecipeLaneDrop = (event: DragEvent<HTMLDivElement>, targetIndex?: number) => {
+    event.preventDefault();
+
+    if (!draggedItem) {
+      return;
+    }
+
+    if (
+      draggedItem.source === 'recipe-lane' &&
+      draggedItem.index !== null &&
+      targetIndex !== undefined
+    ) {
+      reorderRecipeLane(draggedItem.index, targetIndex);
+    } else {
+      moveRecipeToLane(draggedItem.item, targetIndex);
+    }
+
+    setDraggedItem(null);
+  };
+
+  const handleRecipePoolDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+
+    if (!draggedItem || draggedItem.source === 'recipe-pool') {
+      return;
+    }
+
+    removeRecipeFromLane(draggedItem.item);
+    setDraggedItem(null);
   };
 
   const handleSave = async () => {
@@ -543,12 +672,18 @@ export default function HomepageCurationPage() {
 
       const data: HomepageSectionsResponse | { error: string } = await response.json();
 
-      if (!response.ok || !('sections' in data) || !('articleCandidates' in data)) {
+      if (
+        !response.ok ||
+        !('sections' in data) ||
+        !('articleCandidates' in data) ||
+        !('recipeCandidates' in data)
+      ) {
         throw new Error('Failed to save homepage sections');
       }
 
       setSections(data.sections.sort((a, b) => a.sortOrder - b.sortOrder));
       setArticleCandidates(data.articleCandidates);
+      setRecipeCandidates(data.recipeCandidates);
       setSuccessMessage('Homepage curation saved.');
     } catch (saveError) {
       console.error(saveError);
@@ -576,8 +711,7 @@ export default function HomepageCurationPage() {
         </div>
         <div className="admin-card-body">
           <p className="text-sm text-slate-600">
-            Drag approved stories into the hero and latest-news buckets. A story can live in one
-            article bucket only, never both.
+            Curate the homepage hero, latest news, and the dedicated recipe lane here. Article buckets stay article-only, while recipes are pinned in their own homepage section.
           </p>
 
           {error ? (
@@ -667,7 +801,7 @@ export default function HomepageCurationPage() {
                         draggable
                         onDragStart={(event) => {
                           event.dataTransfer.effectAllowed = 'move';
-                          handleArticleDragStart(item, 'pool', null);
+                          handleContentDragStart(item, 'article-pool', null);
                         }}
                       />
                     ))}
@@ -703,7 +837,7 @@ export default function HomepageCurationPage() {
                           draggable
                           onDragStart={(event) => {
                             event.dataTransfer.effectAllowed = 'move';
-                            handleArticleDragStart(item, 'hero', 0);
+                              handleContentDragStart(item, 'hero', 0);
                           }}
                           onRemove={() => removeArticleFromBuckets(item)}
                         />
@@ -743,7 +877,7 @@ export default function HomepageCurationPage() {
                             draggable
                             onDragStart={(event) => {
                               event.dataTransfer.effectAllowed = 'move';
-                              handleArticleDragStart(item, 'latest', index);
+                              handleContentDragStart(item, 'latest', index);
                             }}
                             onRemove={() => removeArticleFromBuckets(item)}
                           />
@@ -774,6 +908,137 @@ export default function HomepageCurationPage() {
               <span className="inline-flex items-center gap-1 text-xs text-slate-500">
                 <MoveVertical className="h-3.5 w-3.5" />
                 Drop back into Approved Stories to remove from a bucket.
+              </span>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {recipeSection ? (
+        <section className="admin-card">
+          <div className="admin-card-header">
+            <div className="flex items-center gap-0">
+              <div className="admin-card-header-icon" aria-hidden="true">
+                <PanelsTopLeft className="h-4 w-4" />
+              </div>
+              <div className="admin-card-header-label">Recipe Lane</div>
+            </div>
+            <div className="admin-card-header-actions">Drag and drop</div>
+          </div>
+          <div className="admin-card-body">
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+              <div
+                className="rounded-xl border border-slate-200 bg-slate-50/55 p-4"
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={handleRecipePoolDrop}
+              >
+                <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Published Recipes</h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Published recipes available for the homepage recipe lane.
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-slate-300 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    {sourceRecipes.length} available
+                  </span>
+                </div>
+
+                <label className="admin-list-filter mb-4">
+                  <span className="admin-list-filter-label">Filter: Title, Author</span>
+                  <span className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      value={recipeFilter}
+                      onChange={(event) => setRecipeFilter(event.target.value)}
+                      placeholder="Search by title or author last name"
+                      className="admin-list-filter-input pl-9"
+                    />
+                  </span>
+                </label>
+
+                {sourceRecipes.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
+                    No published recipes match the current filter.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {sourceRecipes.map((item) => (
+                      <ArticleCard
+                        key={getItemKey(item)}
+                        item={item}
+                        originLabel="Published recipes"
+                        draggable
+                        onDragStart={(event) => {
+                          event.dataTransfer.effectAllowed = 'move';
+                          handleContentDragStart(item, 'recipe-pool', null);
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <ArticleBucket
+                title="Homepage Recipe Lane"
+                description="Ordered recipe cards shown in the dedicated homepage Recipes & Food section."
+                countLabel={`${recipeSection.pinnedItems.length}/${recipeSection.maxItems}`}
+                isVisible={recipeSection.isVisible}
+                onVisibleChange={(checked) =>
+                  updateSection(recipeSection.id, (section) => ({
+                    ...section,
+                    isVisible: checked,
+                  }))
+                }
+                onDrop={(event) => handleRecipeLaneDrop(event)}
+              >
+                {recipeSection.pinnedItems.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
+                    Drag up to {recipeSection.maxItems} recipes here. Drop between cards to order them.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {recipeSection.pinnedItems.map((item, index) => (
+                      <div
+                        key={getItemKey(item)}
+                        onDragOver={(event) => event.preventDefault()}
+                        onDrop={(event) => handleRecipeLaneDrop(event, index)}
+                      >
+                        <ArticleCard
+                          item={item}
+                          originLabel={`Recipe lane ${index + 1}`}
+                          draggable
+                          onDragStart={(event) => {
+                            event.dataTransfer.effectAllowed = 'move';
+                            handleContentDragStart(item, 'recipe-lane', index);
+                          }}
+                          onRemove={() => removeRecipeFromLane(item)}
+                        />
+                      </div>
+                    ))}
+                    {recipeSection.pinnedItems.length < recipeSection.maxItems ? (
+                      <div
+                        className="rounded-lg border border-dashed border-slate-300 bg-white px-4 py-3 text-sm text-slate-500"
+                        onDragOver={(event) => event.preventDefault()}
+                        onDrop={(event) => handleRecipeLaneDrop(event, recipeSection.pinnedItems.length)}
+                      >
+                        Drop here to append another homepage recipe.
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+              </ArticleBucket>
+            </div>
+          </div>
+          <div className="admin-card-footer">
+            <div className="admin-card-footer-label">
+              Drop a recipe back into Published Recipes to remove it from the homepage lane.
+            </div>
+            <div className="admin-card-footer-actions">
+              <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                <MoveVertical className="h-3.5 w-3.5" />
+                Reorder recipes directly inside the lane.
               </span>
             </div>
           </div>

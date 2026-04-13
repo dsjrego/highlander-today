@@ -16,10 +16,11 @@ const PinSchema = z.object({
   sectionType: z.enum([
     'FEATURED_ARTICLES',
     'LATEST_NEWS',
+    'FEATURED_RECIPES',
     'UPCOMING_EVENTS',
     'RECENT_MARKETPLACE',
   ]),
-  contentType: z.enum(['ARTICLE', 'EVENT', 'MARKETPLACE_LISTING']).optional(),
+  contentType: z.enum(['ARTICLE', 'RECIPE', 'EVENT', 'MARKETPLACE_LISTING']).optional(),
   contentId: z.string().uuid().optional(),
   pinnedItemId: z.string().uuid().optional(),
   order: z.array(z.string().uuid()).optional(),

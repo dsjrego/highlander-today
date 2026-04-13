@@ -6,6 +6,7 @@ import {
   DEFAULT_SECTION_ORDER,
   ensureHomepageSections,
   getHomepageArticleCandidates,
+  getHomepageRecipeCandidates,
   getHomepageSectionsData,
   HOMEPAGE_SECTION_CONFIG,
   resolveHomepageCommunityId,
@@ -20,7 +21,7 @@ const HomepageSectionInputSchema = z.object({
   isVisible: z.boolean(),
   pinnedItems: z.array(
     z.object({
-      contentType: z.enum(['ARTICLE', 'EVENT', 'MARKETPLACE_LISTING']),
+      contentType: z.enum(['ARTICLE', 'RECIPE', 'EVENT', 'MARKETPLACE_LISTING']),
       contentId: z.string().uuid(),
     })
   ),
@@ -54,8 +55,11 @@ export async function GET(request: NextRequest) {
     }
 
     const sections = await getHomepageSectionsData(communityId);
-    const articleCandidates = await getHomepageArticleCandidates(communityId);
-    return NextResponse.json({ sections, articleCandidates });
+    const [articleCandidates, recipeCandidates] = await Promise.all([
+      getHomepageArticleCandidates(communityId),
+      getHomepageRecipeCandidates(communityId),
+    ]);
+    return NextResponse.json({ sections, articleCandidates, recipeCandidates });
   } catch (error) {
     console.error('Error fetching homepage sections:', error);
     return NextResponse.json(
@@ -171,8 +175,11 @@ export async function PUT(request: NextRequest) {
     });
 
     const sections = await getHomepageSectionsData(communityId);
-    const articleCandidates = await getHomepageArticleCandidates(communityId);
-    return NextResponse.json({ sections, articleCandidates });
+    const [articleCandidates, recipeCandidates] = await Promise.all([
+      getHomepageArticleCandidates(communityId),
+      getHomepageRecipeCandidates(communityId),
+    ]);
+    return NextResponse.json({ sections, articleCandidates, recipeCandidates });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

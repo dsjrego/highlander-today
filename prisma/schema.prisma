@@ -1459,6 +1459,7 @@ model HomepageSection {
 enum HomepageSectionType {
   FEATURED_ARTICLES
   LATEST_NEWS
+  FEATURED_RECIPES
   UPCOMING_EVENTS
   RECENT_MARKETPLACE
   RECENT_GALLERIES
@@ -1484,6 +1485,7 @@ model HomepagePinnedItem {
 
 enum ContentType {
   ARTICLE
+  RECIPE
   EVENT
   MARKETPLACE_LISTING
   GALLERY

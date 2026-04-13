@@ -169,6 +169,76 @@ function renderLatestNewsSection(section: HomepageSectionData) {
   );
 }
 
+function renderRecipeLane(section: HomepageSectionData) {
+  return (
+    <section key={section.id} className="rounded-[28px] border border-white/10 bg-white/82 p-5 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--brand-primary)]">
+            Recipes & Food
+          </p>
+          <h2 className="mt-2 text-xl font-bold text-slate-950">From the community kitchen</h2>
+        </div>
+        <Link
+          href="/community?category=recipes-food"
+          className="text-sm font-semibold text-[color:var(--brand-accent)] transition hover:opacity-80"
+        >
+          View all
+        </Link>
+      </div>
+
+      {section.displayItems.length === 0 ? (
+        <EmptySection>Featured recipes will appear here once editors pin them.</EmptySection>
+      ) : (
+        <div className="space-y-4">
+          {section.displayItems.map((item) => (
+            <Link
+              key={`${item.contentType}-${item.contentId}`}
+              href={item.url}
+              className="block overflow-hidden rounded-[22px] border border-slate-200 bg-slate-50 transition hover:-translate-y-0.5 hover:border-slate-300 hover:no-underline"
+            >
+              {item.imageUrl ? (
+                <div className="relative h-44 w-full overflow-hidden">
+                  <Image
+                    src={item.imageUrl}
+                    alt={item.title}
+                    fill
+                    className="object-cover transition duration-300 hover:scale-[1.02]"
+                  />
+                </div>
+              ) : null}
+              <div className="p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  {item.metadata || 'Recipe'}
+                </p>
+                <h3 className="mt-2 text-lg font-bold leading-6 text-slate-950">{item.title}</h3>
+                {item.description ? (
+                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">{item.description}</p>
+                ) : null}
+                {item.author ? (
+                  <div className="mt-3 flex items-center gap-3">
+                    <UserAvatar
+                      firstName={item.author.firstName}
+                      lastName={item.author.lastName}
+                      profilePhotoUrl={item.author.profilePhotoUrl}
+                      trustLevel={item.author.trustLevel}
+                      className="h-9 w-9"
+                      initialsClassName="bg-slate-200 text-xs text-slate-700"
+                    />
+                    <p className="text-sm font-semibold text-slate-700">
+                      {item.author.firstName} {item.author.lastName}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function renderComingSoonPanel(title: string, description: string) {
   return (
     <section className="homepage-coming-soon-panel flex aspect-square w-full flex-col rounded-[28px]">
@@ -200,6 +270,7 @@ export default async function Home() {
     .sort((a, b) => a.sortOrder - b.sortOrder);
   const featuredSection = visibleSections.find((section) => section.sectionType === 'FEATURED_ARTICLES');
   const latestNewsSection = visibleSections.find((section) => section.sectionType === 'LATEST_NEWS');
+  const recipeSection = visibleSections.find((section) => section.sectionType === 'FEATURED_RECIPES');
 
   if (visibleSections.length === 0) {
     return (
@@ -228,6 +299,7 @@ export default async function Home() {
           {latestNewsSection ? renderLatestNewsSection(latestNewsSection) : null}
         </div>
         <div className="space-y-6">
+          {recipeSection ? renderRecipeLane(recipeSection) : null}
           {renderComingSoonPanel(
             'Events',
             'See Community Events'
