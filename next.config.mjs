@@ -14,7 +14,11 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'cdn.example.com',
+        hostname: 'cdn.highlander.today',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.highlander-today.com',
       },
     ],
     formats: ['image/avif', 'image/webp'],
