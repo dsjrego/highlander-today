@@ -101,6 +101,10 @@
   margin: 0 auto;
 }
 
+.article-detail-content {
+  max-width: 46rem;
+}
+
 .editorial-article-body p,
 .article-card-content p,
 .editor-content p {

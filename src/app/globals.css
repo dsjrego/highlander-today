@@ -732,6 +732,21 @@
     line-height: 1.6;
   }
 
+  .article-detail-hero {
+    width: min(100%, 56rem);
+    margin: 0.25rem auto 0;
+  }
+
+  .article-detail-editorial-hero {
+    width: min(100%, 56rem);
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .article-detail-content {
+    max-width: 46rem;
+  }
+
   .article-card-image-placeholder {
     display: flex;
     min-height: 240px;

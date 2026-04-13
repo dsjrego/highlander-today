@@ -1,10 +1,27 @@
 # Highlander Today — Food / Recipe Implementation Plan
 
 > **Last updated:** 2026-04-13
-> **Status:** Proposed implementation plan
+> **Status:** Foundations implemented; use this document for remaining recipe-system expansion
 > **Purpose:** Turn the existing food/recipe product direction into a concrete build sequence for structured recipe authoring, JSON ingest, and visually strong presentation without forcing recipe-specific HTML/CSS into the generic `Article` body model.
 
 ## Problem Statement
+
+Implementation status as of 2026-04-13:
+
+- dedicated structured recipe Prisma models are live
+- JSON import and shared recipe normalization are live
+- public recipe list/detail/submit routes are live
+- recipe admin moderation is live
+- recipe media support is live for stored images plus YouTube/Vimeo embeds
+- recipe categories now use `CategoryContentModel.RECIPE`
+- homepage curation now includes a dedicated recipe lane
+
+Still pending from the broader direction in this document:
+
+- richer recipe editing beyond create/status/category flows
+- deeper browse/filter/search
+- canonical ingredient/product mapping
+- grocery reservation and store-operations layers
 
 The current bridge approach is proving the architectural point:
 

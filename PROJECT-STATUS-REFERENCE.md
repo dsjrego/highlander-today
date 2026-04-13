@@ -58,6 +58,8 @@ Supporting planning docs:
 - `CONTENT-ANALYTICS-PLAN.md` — first-party site/content analytics plan covering purpose, event taxonomy, reaction/usefulness signals, architecture direction, privacy guardrails, and phased rollout for understanding what content people use and value
 - `DONATIONS-TRANSPARENCY-PLAN.md` — donations/transparency plan, provider recommendation, data model, rollout phases, launch recommendation
 - `DIRECTORY-PLAN.md` — directory model for people and organizations, trusted-only messaging, opt-in listing rules, organization roster visibility, recommended `Organization` / `OrganizationMembership` direction, and the now-partially-implemented public/admin directory foundation
+- `GARDENING-MERCHANTS-PLAN.md` — gardening product/domain direction covering tenant growing-zone metadata, future cross-tenant content sharing, structured garden projects/plant profiles, merchant product mapping, and kit-oriented commerce
+- `GARDENING-IMPLEMENTATION-PLAN.md` — staged rollout sequence for gardening, starting with tenant growing profiles and zone-aware relevance before building garden-project models and merchant kit flows
 - `DESIGN-SYSTEM-ARCHITECTURE.md` — shared UI terminology, page/section/card hierarchy, component-vs-theme separation, and tenant-aware theming direction
 - `ORGANIZATION-INBOX-CRM-PLAN.md` — separate organization inbox / CRM direction with role-based mailboxes, org-scoped contact history, assignment, internal notes, and future billing/payment compatibility
 - `LOCAL-CREATOR-NETWORK-PLAN.md` — local creator/shows network direction focused on structured discovery, audience measurement, creator monetization, external-host-first media strategy, and future connected-TV distribution rather than social-video imitation

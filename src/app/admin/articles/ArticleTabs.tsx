@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { FolderPen, ListChecks } from 'lucide-react';
+import { FolderPen, ListChecks, Trash2 } from 'lucide-react';
 import { CrudActionButton } from '@/components/shared/CrudAction';
 
 const ARTICLE_TABS = ['draft', 'pending', 'approved', 'archived'] as const;
@@ -80,8 +80,10 @@ export default function ArticleTabs({ articles, articleCategories }: ArticleTabs
   const [savingCategoryArticleId, setSavingCategoryArticleId] = useState<string | null>(null);
   const [editingStatusArticleId, setEditingStatusArticleId] = useState<string | null>(null);
   const [savingStatusArticleId, setSavingStatusArticleId] = useState<string | null>(null);
+  const [deletingArticleId, setDeletingArticleId] = useState<string | null>(null);
   const [categoryError, setCategoryError] = useState('');
   const [statusError, setStatusError] = useState('');
+  const [deleteError, setDeleteError] = useState('');
 
   const normalizedFilter = filterValue.trim().toLowerCase();
   const currentStatus = getStatusForTab(activeTab);
@@ -195,6 +197,29 @@ export default function ArticleTabs({ articles, articleCategories }: ArticleTabs
     }
   }
 
+  async function handleDeleteArticle(article: ArticleRecord) {
+    setDeletingArticleId(article.id);
+    setDeleteError('');
+
+    try {
+      const response = await fetch(`/api/articles/${article.id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete article');
+      }
+
+      setRows((current) => current.filter((entry) => entry.id !== article.id));
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : 'Failed to delete article');
+    } finally {
+      setDeletingArticleId(null);
+    }
+  }
+
   return (
     <div className="space-y-0">
       <div className="relative top-[2px] flex flex-wrap gap-0 pb-0">
@@ -234,6 +259,7 @@ export default function ArticleTabs({ articles, articleCategories }: ArticleTabs
 
           {categoryError ? <div className="admin-list-error">{categoryError}</div> : null}
           {statusError ? <div className="admin-list-error">{statusError}</div> : null}
+          {deleteError ? <div className="admin-list-error">{deleteError}</div> : null}
 
           <div className="admin-list-table-wrap">
             <table className="admin-list-table">
@@ -244,6 +270,7 @@ export default function ArticleTabs({ articles, articleCategories }: ArticleTabs
                   <th className="admin-list-header-cell">Category</th>
                   <th className="admin-list-header-cell">Status</th>
                   <th className="admin-list-header-cell">Published</th>
+                  <th className="admin-list-header-cell">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -330,11 +357,68 @@ export default function ArticleTabs({ articles, articleCategories }: ArticleTabs
                         )}
                       </td>
                       <td className="admin-list-cell">{formatDate(article.publishedAt)}</td>
+                      <td className="admin-list-cell">
+                        {(() => {
+                          const deletePopoverId = `article-delete-popover-${article.id}`;
+
+                          return (
+                            <>
+                              <CrudActionButton
+                                type="button"
+                                variant="inline-danger"
+                                icon={Trash2}
+                                label="Delete article"
+                                popoverTarget={deletePopoverId}
+                                aria-haspopup="dialog"
+                                disabled={deletingArticleId === article.id}
+                              >
+                                {deletingArticleId === article.id ? 'Deleting...' : 'Delete'}
+                              </CrudActionButton>
+                              <div
+                                id={deletePopoverId}
+                                popover="auto"
+                                className="backdrop:fixed backdrop:inset-0 backdrop:bg-slate-950/70 backdrop:backdrop-blur-sm fixed inset-0 m-auto h-fit w-full max-w-md rounded-[28px] border border-white/10 bg-[linear-gradient(165deg,rgba(17,34,52,0.98),rgba(10,24,38,0.98))] p-6 text-white shadow-[0_28px_80px_rgba(2,8,23,0.55)]"
+                              >
+                                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/72">
+                                  Delete Article
+                                </p>
+                                <h3 className="mb-3 text-2xl font-semibold tracking-tight text-white">
+                                  Delete &ldquo;{article.title}&rdquo;?
+                                </h3>
+                                <p className="text-sm leading-7 text-cyan-50/78">
+                                  This permanently removes the article by {article.author.firstName} {article.author.lastName}.
+                                  This cannot be undone.
+                                </p>
+                                <div className="mt-6 flex justify-end gap-3">
+                                  <button
+                                    type="button"
+                                    popoverTarget={deletePopoverId}
+                                    popoverTargetAction="hide"
+                                    className="rounded-full border border-cyan-300/35 bg-white/[0.06] px-4 py-2 text-sm font-medium text-cyan-100 transition hover:border-cyan-300/60 hover:bg-white/[0.1] hover:text-white"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <CrudActionButton
+                                    type="button"
+                                    variant="danger"
+                                    icon={Trash2}
+                                    label={deletingArticleId === article.id ? 'Deleting article' : 'Confirm delete article'}
+                                    onClick={() => handleDeleteArticle(article)}
+                                    disabled={deletingArticleId === article.id}
+                                  >
+                                    {deletingArticleId === article.id ? 'Deleting...' : 'Delete Article'}
+                                  </CrudActionButton>
+                                </div>
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td className="admin-list-empty" colSpan={5}>
+                    <td className="admin-list-empty" colSpan={6}>
                       No {activeTab} articles match the current filter.
                     </td>
                   </tr>

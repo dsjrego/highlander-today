@@ -54,6 +54,24 @@ export default function ArticlePreview({
   const hasBody = getPlainText(body).length > 0;
   const previewImageUrl = getArticleUiImageUrl(featuredImageUrl);
   const isEditorialArticle = hasEditorialArticleMarkup(body);
+  const articleHeaderStyle = {
+    background:
+      'linear-gradient(145deg, color-mix(in srgb, var(--brand-accent) 74%, transparent), color-mix(in srgb, var(--card-bg-accent) 92%, var(--card-bg) 8%))',
+    borderColor: 'color-mix(in srgb, var(--page-title) 10%, transparent)',
+    boxShadow: '0 35px 80px color-mix(in srgb, var(--brand-primary) 10%, rgba(7, 17, 26, 0.22))',
+  } as const;
+  const articleKickerStyle = {
+    color: 'color-mix(in srgb, var(--brand-primary) 34%, var(--page-title) 66%)',
+  } as const;
+  const articleExcerptStyle = {
+    color: 'color-mix(in srgb, var(--page-title) 78%, transparent)',
+  } as const;
+  const articleExcerptPlaceholderStyle = {
+    color: 'color-mix(in srgb, var(--page-title) 52%, transparent)',
+  } as const;
+  const articleAuthorSubtleStyle = {
+    color: 'color-mix(in srgb, var(--page-title) 60%, transparent)',
+  } as const;
 
   return (
     <div className={joinClasses('space-y-6', className)}>
@@ -89,18 +107,21 @@ export default function ArticlePreview({
           </div>
         </section>
       ) : (
-        <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(143,29,44,0.96),rgba(10,32,51,0.94))] px-6 py-8 text-white shadow-[0_35px_80px_rgba(7,17,26,0.22)] md:px-10 md:py-10">
+        <section
+          className="overflow-hidden rounded-[32px] border px-6 py-8 shadow-[0_35px_80px_rgba(7,17,26,0.22)] md:px-10 md:py-10"
+          style={articleHeaderStyle}
+        >
           <div className="max-w-4xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/72">
+            <p className="text-xs font-semibold uppercase tracking-[0.32em]" style={articleKickerStyle}>
               {categoryName || 'Local Life'}
             </p>
-            <h2 className="mt-4 text-4xl font-black leading-[0.95] tracking-[-0.05em] md:text-6xl">
+            <h2 className="mt-4 text-4xl font-black leading-[0.95] tracking-[-0.05em] md:text-6xl" style={{ color: 'var(--page-title)' }}>
               {title?.trim() || 'Your article title will appear here'}
             </h2>
             {excerpt?.trim() ? (
-              <p className="mt-5 max-w-3xl text-base leading-8 text-white/78 md:text-lg">{excerpt}</p>
+              <p className="mt-5 max-w-3xl text-base leading-8 md:text-lg" style={articleExcerptStyle}>{excerpt}</p>
             ) : (
-              <p className="mt-5 max-w-3xl text-base italic leading-8 text-white/52 md:text-lg">
+              <p className="mt-5 max-w-3xl text-base italic leading-8 md:text-lg" style={articleExcerptPlaceholderStyle}>
                 Add an excerpt to show a short summary beneath the title.
               </p>
             )}
@@ -115,10 +136,10 @@ export default function ArticlePreview({
                   initialsClassName="bg-white/12 text-sm text-white/78"
                 />
                 <div>
-                  <p className="text-sm font-semibold text-white">
+                  <p className="text-sm font-semibold" style={{ color: 'var(--page-title)' }}>
                     {author.firstName} {author.lastName}
                   </p>
-                  <p className="text-xs text-white/60">
+                  <p className="text-xs" style={articleAuthorSubtleStyle}>
                     {publishedLabel || 'Publication date preview'}
                   </p>
                 </div>

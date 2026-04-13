@@ -22,7 +22,7 @@ interface PageProps {
   };
 }
 
-async function getUserProfile(id: string) {
+async function getUserProfile(id: string, includeOwnerArticleStatuses: boolean) {
   const userProfileSelect = Prisma.validator<Prisma.UserSelect>()({
     id: true,
     firstName: true,
@@ -63,14 +63,17 @@ async function getUserProfile(id: string) {
       },
     },
     articles: {
-      where: { status: "PUBLISHED" },
+      where: includeOwnerArticleStatuses
+        ? { status: { in: ["DRAFT", "PENDING_REVIEW", "PUBLISHED", "UNPUBLISHED"] } }
+        : { status: "PUBLISHED" },
       orderBy: { createdAt: "desc" },
-      take: 3,
+      take: includeOwnerArticleStatuses ? 10 : 3,
       select: {
         id: true,
         title: true,
         slug: true,
         createdAt: true,
+        status: true,
       },
     },
     marketplaceListings: {
@@ -115,7 +118,7 @@ async function getUserProfile(id: string) {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const user = await getUserProfile(params.id);
+  const user = await getUserProfile(params.id, false);
   if (!user) {
     return { title: "User Not Found" };
   }
@@ -215,13 +218,14 @@ function ProfileOwnerCard({
 
 export default async function UserProfilePage({ params, searchParams }: PageProps) {
   const session = await getServerSession(authOptions);
-  const profile = await getUserProfile(params.id);
+  const viewerId = (session?.user as { id?: string } | undefined)?.id;
+  const isOwnProfile = viewerId === params.id;
+  const profile = await getUserProfile(params.id, isOwnProfile);
 
   if (!profile) {
     notFound();
   }
 
-  const isOwnProfile = (session?.user as { id?: string } | undefined)?.id === profile.id;
   const isSuperAdmin = (session?.user as { role?: string } | undefined)?.role === "SUPER_ADMIN";
 
   const community = profile.memberships?.[0]?.community?.name ?? null;
@@ -289,12 +293,26 @@ export default async function UserProfilePage({ params, searchParams }: PageProp
     href: `/events/${event.id}`,
     meta: new Date(event.startDatetime).toLocaleDateString(),
   }));
-  const localLifeItems: ProfileContentCardItem[] = profile.articles.map((article) => ({
-    id: article.id,
-    title: article.title,
-    href: `/local-life/${article.id}`,
-    meta: timeAgo(new Date(article.createdAt)),
-  }));
+  const localLifeItems: ProfileContentCardItem[] = profile.articles.map((article) => {
+    const isApprovedArticle = article.status === "PUBLISHED";
+    const statusLabel =
+      article.status === "PENDING_REVIEW"
+        ? "Pending review"
+        : article.status === "UNPUBLISHED"
+          ? "Unpublished"
+          : article.status === "DRAFT"
+            ? "Draft"
+            : "Published";
+
+    return {
+      id: article.id,
+      title: article.title,
+      href: isOwnProfile && !isApprovedArticle ? `/local-life/submit?edit=${article.id}` : `/local-life/${article.id}`,
+      meta: isOwnProfile
+        ? `${statusLabel} • ${timeAgo(new Date(article.createdAt))}${isApprovedArticle ? "" : " • opens editor"}`
+        : timeAgo(new Date(article.createdAt)),
+    };
+  });
   const aboutTab = (
     <div className="space-y-6">
       {isOwnProfile && !profile.dateOfBirth ? (
@@ -361,7 +379,7 @@ export default async function UserProfilePage({ params, searchParams }: PageProp
           <ProfileOwnerCard
             isOwnProfile={isOwnProfile}
             ownerTitle="Manage Articles"
-            ownerDescription="For now this mirrors your published Local Life posts. Later this card can become an editing and management surface."
+            ownerDescription="Published articles remain public. Draft, pending-review, and unpublished articles appear only for you here and open directly in the editor."
             emptyMessage="You have no articles to manage yet."
             items={localLifeItems}
           />

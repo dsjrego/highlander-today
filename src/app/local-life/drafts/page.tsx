@@ -241,6 +241,13 @@ export default function MyDraftsPage() {
                   <div className="flex flex-col gap-2 shrink-0">
                     {article.status === 'DRAFT' && (
                       <>
+                        <Link
+                          href={`/local-life/submit?edit=${article.id}`}
+                          className="px-4 py-1.5 text-xs font-semibold rounded-full hover:opacity-90 transition text-center"
+                          style={{ color: '#A51E30', border: '1px solid #A51E30' }}
+                        >
+                          Edit
+                        </Link>
                         <button
                           onClick={() => handleSubmitForReview(article.id)}
                           disabled={isActionInProgress}
@@ -259,17 +266,44 @@ export default function MyDraftsPage() {
                       </>
                     )}
                     {article.status === 'PENDING_REVIEW' && (
-                      <span className="text-xs text-yellow-600 font-medium text-center">
-                        Awaiting editor review
-                      </span>
+                      <>
+                        <Link
+                          href={`/local-life/submit?edit=${article.id}`}
+                          className="px-4 py-1.5 text-xs font-semibold rounded-full hover:opacity-90 transition text-center"
+                          style={{ color: '#A51E30', border: '1px solid #A51E30' }}
+                        >
+                          Edit
+                        </Link>
+                        <span className="text-xs text-yellow-600 font-medium text-center">
+                          Awaiting editor review
+                        </span>
+                      </>
                     )}
                     {article.status === 'PUBLISHED' && (
+                      <>
+                        <Link
+                          href={`/local-life/submit?edit=${article.id}`}
+                          className="px-4 py-1.5 text-xs font-semibold rounded-full hover:opacity-90 transition text-center"
+                          style={{ color: '#A51E30', border: '1px solid #A51E30' }}
+                        >
+                          Edit
+                        </Link>
+                        <Link
+                          href={`/local-life/${article.id}`}
+                          className="px-4 py-1.5 text-xs font-semibold rounded-full hover:opacity-90 transition text-center"
+                          style={{ color: '#A51E30', border: '1px solid #A51E30' }}
+                        >
+                          View
+                        </Link>
+                      </>
+                    )}
+                    {article.status === 'UNPUBLISHED' && (
                       <Link
-                        href={`/local-life/${article.id}`}
+                        href={`/local-life/submit?edit=${article.id}`}
                         className="px-4 py-1.5 text-xs font-semibold rounded-full hover:opacity-90 transition text-center"
                         style={{ color: '#A51E30', border: '1px solid #A51E30' }}
                       >
-                        View
+                        Edit
                       </Link>
                     )}
                   </div>

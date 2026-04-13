@@ -36,6 +36,8 @@ export default function SubmitArticlePage() {
   const { data: session, status: sessionStatus } = useSession();
   const parentSlug = searchParams.get('parent')?.trim() || 'local-life';
   const requestedCategorySlug = searchParams.get('category')?.trim() || '';
+  const editArticleId = searchParams.get('edit')?.trim() || '';
+  const isEditMode = Boolean(editArticleId);
 
   const [categoryOptions, setCategoryOptions] = useState<FormCategoryOption[]>([]);
   const [formData, setFormData] = useState({
@@ -51,8 +53,12 @@ export default function SubmitArticlePage() {
   const [viewMode, setViewMode] = useState<'write' | 'preview'>('write');
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingArticle, setIsLoadingArticle] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [loadedArticleStatus, setLoadedArticleStatus] = useState<
+    'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'UNPUBLISHED' | ''
+  >('');
 
   // Fetch category options for the current parent context and preselect the requested child category.
   useEffect(() => {
@@ -96,6 +102,56 @@ export default function SubmitArticlePage() {
     }
     fetchCategories();
   }, [parentSlug, requestedCategorySlug]);
+
+  useEffect(() => {
+    if (!editArticleId) return;
+
+    let isCancelled = false;
+
+    async function fetchArticleForEdit() {
+      setIsLoadingArticle(true);
+      setError('');
+
+      try {
+        const res = await fetch(`/api/articles/${editArticleId}`);
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          if (!isCancelled) {
+            setError(data.error || 'Failed to load article for editing');
+          }
+          return;
+        }
+
+        if (isCancelled) return;
+
+        setFormData({
+          title: data.title || '',
+          excerpt: data.excerpt || '',
+          body: data.body || '',
+          categoryId: data.category?.id || '',
+          tags: Array.isArray(data.tags) ? data.tags.map((entry: { tag?: { name?: string } }) => entry.tag?.name).filter(Boolean) : [],
+          featuredImageUrl: data.featuredImageUrl || '',
+          featuredImageCaption: data.featuredImageCaption || '',
+        });
+        setLoadedArticleStatus(data.status || '');
+      } catch {
+        if (!isCancelled) {
+          setError('Failed to load article for editing');
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingArticle(false);
+        }
+      }
+    }
+
+    fetchArticleForEdit();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [editArticleId]);
 
   function handleInputChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -152,8 +208,8 @@ export default function SubmitArticlePage() {
     saving(true);
 
     try {
-      const res = await fetch('/api/articles', {
-        method: 'POST',
+      const res = await fetch(isEditMode ? `/api/articles/${editArticleId}` : '/api/articles', {
+        method: isEditMode ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: formData.title,
@@ -163,7 +219,7 @@ export default function SubmitArticlePage() {
           featuredImageUrl: formData.featuredImageUrl || undefined,
           featuredImageCaption: formData.featuredImageCaption.trim() || undefined,
           tags: formData.tags.length > 0 ? formData.tags : undefined,
-          status: submitForReview ? 'PENDING_REVIEW' : 'DRAFT',
+          ...(submitForReview ? { status: 'PENDING_REVIEW' } : {}),
         }),
       });
 
@@ -173,14 +229,38 @@ export default function SubmitArticlePage() {
         return;
       }
 
-      await res.json();
+      const savedArticle = await res.json();
+      const nextStatus = savedArticle?.status || (submitForReview ? 'PENDING_REVIEW' : loadedArticleStatus);
+      setLoadedArticleStatus(nextStatus);
 
       if (submitForReview) {
-        setSuccessMessage('Article submitted for review! An editor will review it shortly.');
-        setTimeout(() => router.push('/local-life/drafts'), 2000);
+        setSuccessMessage(
+          isEditMode
+            ? 'Article updated and submitted for review.'
+            : 'Article submitted for review! An editor will review it shortly.'
+        );
+        setTimeout(() => {
+          if ((session?.user as { role?: string } | undefined)?.role && ['EDITOR', 'ADMIN', 'SUPER_ADMIN'].includes((session?.user as { role?: string }).role || '')) {
+            router.push(`/admin/articles/${editArticleId || savedArticle.id}`);
+            return;
+          }
+          router.push('/local-life/drafts');
+        }, 1500);
       } else {
-        setSuccessMessage('Draft saved successfully!');
-        setTimeout(() => router.push(`/local-life/drafts`), 1500);
+        setSuccessMessage(
+          isEditMode
+            ? nextStatus === 'DRAFT'
+              ? 'Article changes saved. The article is now in draft.'
+              : 'Article changes saved.'
+            : 'Draft saved successfully!'
+        );
+        setTimeout(() => {
+          if (isEditMode && (session?.user as { role?: string } | undefined)?.role && ['EDITOR', 'ADMIN', 'SUPER_ADMIN'].includes((session?.user as { role?: string }).role || '')) {
+            router.push(`/admin/articles/${editArticleId}`);
+            return;
+          }
+          router.push(`/local-life/drafts`);
+        }, 1500);
       }
     } catch {
       setError('An error occurred. Please try again.');
@@ -189,7 +269,7 @@ export default function SubmitArticlePage() {
     }
   }
 
-  if (sessionStatus === 'loading') {
+  if (sessionStatus === 'loading' || isLoadingArticle) {
     return (
       <div className="rounded-[28px] border border-white/10 bg-white/70 px-6 py-20 text-center text-slate-500 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">
         Loading...
@@ -216,14 +296,18 @@ export default function SubmitArticlePage() {
   return (
     <div className="space-y-8">
       <InternalPageHeader
-        title="Local Life"
-        description="Draft first, then submit when the story is clear, categorized, and ready for editor review."
+        title={isEditMode ? 'Edit Article' : 'Local Life'}
+        description={
+          isEditMode
+            ? 'Update the article, preview the reader-facing result, and save or resubmit as needed.'
+            : 'Draft first, then submit when the story is clear, categorized, and ready for editor review.'
+        }
         titleClassName="text-white"
         actions={
           <button
             onClick={() => {
               const userId = (session?.user as { id?: string } | undefined)?.id;
-              router.push(userId ? `/profile/${userId}?tab=local-life` : '/profile');
+              router.push(userId ? `/profile/${userId}?tab=articles` : '/profile');
             }}
             aria-label="My articles"
             title="My articles"
@@ -268,6 +352,11 @@ export default function SubmitArticlePage() {
               Editor
             </p>
             <h2 className="mt-1 text-xl font-bold text-slate-950">Write and preview your article</h2>
+            {isEditMode ? (
+              <p className="mt-1 text-sm text-slate-500">
+                Current status: {loadedArticleStatus ? loadedArticleStatus.replace('_', ' ') : 'Loading'}
+              </p>
+            ) : null}
           </div>
           <div className="inline-flex rounded-full border border-slate-200 bg-slate-100 p-1">
             <button
@@ -459,7 +548,7 @@ export default function SubmitArticlePage() {
             disabled={isSaving || isSubmitting}
             className="btn btn-neutral"
           >
-            {isSaving ? 'Saving...' : 'Save as Draft'}
+            {isSaving ? 'Saving...' : isEditMode ? 'Save Changes' : 'Save as Draft'}
           </button>
           <button
             type="button"
@@ -467,7 +556,7 @@ export default function SubmitArticlePage() {
             disabled={isSaving || isSubmitting}
             className="btn btn-primary"
           >
-            {isSubmitting ? 'Submitting...' : 'Submit for Review'}
+            {isSubmitting ? 'Submitting...' : isEditMode ? 'Save and Submit for Review' : 'Submit for Review'}
           </button>
         </FormCardActions>
       </FormCard>

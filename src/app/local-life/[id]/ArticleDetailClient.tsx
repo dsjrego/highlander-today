@@ -212,7 +212,7 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
                 </header>
 
                 {imageUrl ? (
-                  <figure className="editorial-article-image">
+                  <figure className="editorial-article-image article-detail-editorial-hero">
                     <img src={imageUrl} alt={article.title} />
                     {article.featuredImageCaption?.trim() ? (
                       <figcaption className="editorial-article-image-caption">
@@ -223,7 +223,7 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
                 ) : null}
 
                 <div
-                  className="article-card-content editorial-article-body mt-8"
+                  className="article-card-content article-detail-content editorial-article-body mt-8"
                   dangerouslySetInnerHTML={{ __html: article.body }}
                 />
 
@@ -248,7 +248,7 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
                 </div>
               </div>
 
-              <figure className="article-card-image">
+              <figure className="article-card-image article-detail-hero">
                 {imageUrl ? (
                   <img
                     src={imageUrl}
@@ -277,7 +277,7 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
                   {article.author.firstName} {article.author.lastName}
                 </p>
                 <div
-                  className="article-card-content"
+                  className="article-card-content article-detail-content"
                   dangerouslySetInnerHTML={{ __html: article.body }}
                 />
               </div>

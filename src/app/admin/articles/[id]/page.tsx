@@ -161,14 +161,22 @@ export default async function AdminArticleDetailPage({
           </p>
         </div>
 
-        {article.status === 'PUBLISHED' ? (
+        <div className="flex flex-wrap items-center gap-3">
           <Link
-            href={`/local-life/${article.id}`}
+            href={`/local-life/submit?edit=${article.id}`}
             className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
           >
-            View Public Page
+            Edit Article
           </Link>
-        ) : null}
+          {article.status === 'PUBLISHED' ? (
+            <Link
+              href={`/local-life/${article.id}`}
+              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+            >
+              View Public Page
+            </Link>
+          ) : null}
+        </div>
       </div>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
