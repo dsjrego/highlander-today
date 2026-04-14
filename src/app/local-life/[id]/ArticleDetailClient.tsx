@@ -240,21 +240,32 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
           ) : (
             <article className="article-card">
               <div className="article-card-header">
-                <div className="article-card-header-content">
-                  <h1 className="article-card-header-title">{article.title}</h1>
-                </div>
-                <div className="article-card-header-actions">
-                  <span className="article-card-header-badge">Article</span>
+                <div className="article-detail-main-column article-card-header-shell">
+                  <div className="article-card-header-content">
+                    <h1 className="article-card-header-title">{article.title}</h1>
+                  </div>
+                  <div className="article-card-header-actions">
+                    <span className="article-card-header-badge">Article</span>
+                  </div>
                 </div>
               </div>
 
               <figure className="article-card-image article-detail-hero">
                 {imageUrl ? (
-                  <img
-                    src={imageUrl}
-                    alt={article.title}
-                    className="article-card-image-element"
-                  />
+                  <div className="article-detail-hero-media">
+                    <img
+                      src={imageUrl}
+                      alt={article.title}
+                      className="article-card-image-element"
+                    />
+                    <div className="article-detail-hero-overlay">
+                      <p className="article-detail-hero-eyebrow">{article.category?.name || 'Local Life'}</p>
+                      <p className="article-detail-hero-meta">
+                        {article.author.firstName} {article.author.lastName}
+                        {publishedDate ? ` • ${publishedDate}` : ''}
+                      </p>
+                    </div>
+                  </div>
                 ) : (
                   <div className="article-card-image-placeholder min-h-[18rem] rounded-none border-x-0 border-t-0 px-6 py-10">
                     <div>
@@ -272,22 +283,26 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
               </figure>
 
               <div className="article-card-body">
-                <p className="article-card-date">{publishedDate || 'Not published yet'}</p>
-                <p className="article-card-author">
-                  {article.author.firstName} {article.author.lastName}
-                </p>
-                <div
-                  className="article-card-content article-detail-content"
-                  dangerouslySetInnerHTML={{ __html: article.body }}
-                />
+                <div className="article-detail-main-column">
+                  <p className="article-card-date">{publishedDate || 'Not published yet'}</p>
+                  <p className="article-card-author">
+                    {article.author.firstName} {article.author.lastName}
+                  </p>
+                  <div
+                    className="article-card-content article-detail-content"
+                    dangerouslySetInnerHTML={{ __html: article.body }}
+                  />
+                </div>
               </div>
 
               <div className="article-card-footer">
-                <span>{article.category?.name || 'Local Life'}</span>
-                <div className="article-card-footer-actions">
-                  <Link href="/local-life" className="article-card-footer-link">
-                    Back to Local Life
-                  </Link>
+                <div className="article-detail-main-column article-card-footer-shell">
+                  <span>{article.category?.name || 'Local Life'}</span>
+                  <div className="article-card-footer-actions">
+                    <Link href="/local-life" className="article-card-footer-link">
+                      Back to Local Life
+                    </Link>
+                  </div>
                 </div>
               </div>
             </article>
