@@ -998,23 +998,42 @@
   }
 
   .homepage-feature-media-overlay-contain {
-    background: linear-gradient(180deg, rgba(6, 15, 24, 0.08), rgba(6, 15, 24, 0.22));
+    background:
+      linear-gradient(180deg, rgba(6, 15, 24, 0.02) 0%, rgba(6, 15, 24, 0.08) 36%, rgba(6, 15, 24, 0.3) 100%),
+      linear-gradient(0deg, rgba(6, 15, 24, 0.22), rgba(6, 15, 24, 0.22));
   }
 
   .homepage-feature-media-overlay-cover {
-    background: linear-gradient(180deg, rgba(6, 15, 24, 0.02), rgba(6, 15, 24, 0.26));
+    background:
+      linear-gradient(180deg, rgba(6, 15, 24, 0.01) 0%, rgba(6, 15, 24, 0.12) 38%, rgba(6, 15, 24, 0.52) 100%),
+      linear-gradient(0deg, rgba(6, 15, 24, 0.16), rgba(6, 15, 24, 0.16));
+  }
+
+  .homepage-feature-pill-row {
+    align-self: flex-start;
+    padding: 0.5rem 0.55rem;
+    border: 1px solid color-mix(in srgb, var(--page-title) 14%, transparent);
+    border-radius: 9999px;
+    background: linear-gradient(180deg, rgba(7, 17, 26, 0.42), rgba(7, 17, 26, 0.64));
+    box-shadow: 0 10px 30px rgba(7, 17, 26, 0.22);
+    backdrop-filter: blur(12px);
   }
 
   .homepage-feature-pill {
-    border-color: color-mix(in srgb, var(--page-title) 18%, transparent);
-    background: color-mix(in srgb, var(--page-title) 10%, transparent);
-    color: color-mix(in srgb, var(--page-title) 88%, transparent);
+    border-color: color-mix(in srgb, var(--brand-primary) 24%, rgba(255,255,255,0.18));
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--brand-primary) 34%, rgba(255,255,255,0.1)),
+      color-mix(in srgb, var(--brand-primary) 22%, rgba(7,17,26,0.18))
+    );
+    color: white;
+    text-shadow: 0 1px 2px rgba(7, 17, 26, 0.35);
   }
 
   .homepage-feature-pill-accent {
-    border-color: color-mix(in srgb, var(--card-label) 20%, transparent);
-    background: color-mix(in srgb, var(--card-label) 10%, transparent);
-    color: color-mix(in srgb, var(--card-label) 88%, transparent);
+    border-color: color-mix(in srgb, var(--brand-primary) 18%, transparent);
+    background: color-mix(in srgb, var(--brand-primary) 18%, rgba(255,255,255,0.04));
+    color: color-mix(in srgb, white 92%, var(--brand-primary) 8%);
   }
 
   .homepage-feature-fallback {

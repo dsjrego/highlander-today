@@ -48,7 +48,7 @@ function renderFeaturedMedia(item: HomepageSectionData['displayItems'][number]) 
           }`}
         />
         <div className="relative flex w-full flex-col justify-end p-6 md:p-8">
-          <div className="flex flex-wrap gap-2">
+          <div className="homepage-feature-pill-row flex flex-wrap gap-2">
             <span className="homepage-feature-pill rounded-full border px-3 py-1 text-xs font-semibold backdrop-blur-sm">
               {category}
             </span>
