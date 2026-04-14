@@ -692,13 +692,15 @@
     color: var(--article-card-muted-text);
     font-size: 0.8125rem;
     line-height: 1.5;
+    font-weight: 700;
   }
 
   .article-card-author {
-    margin-top: 0.25rem;
-    margin-bottom: 0.5rem;
+    margin-top: 0.35rem;
+    margin-bottom: 1.35rem;
     font-size: 0.875rem;
     line-height: 1.5;
+    font-weight: 700;
   }
 
   .article-card-image {
@@ -728,7 +730,7 @@
 
   .article-card-image-hero-caption {
     margin: 0;
-    padding: 0.5rem 1.25rem 0;
+    padding: 0.8rem 1.25rem 0;
     color: var(--article-card-muted-text);
     font-size: 0.75rem;
     font-style: italic;
@@ -748,6 +750,9 @@
 
   .article-detail-content {
     max-width: 52rem;
+    margin-left: 0;
+    margin-right: 0;
+    text-align: left;
   }
 
   .article-detail-main-column {
@@ -774,6 +779,14 @@
     border-radius: 18px;
     background: linear-gradient(180deg, rgba(7, 17, 26, 0.28), rgba(7, 17, 26, 0.72));
     backdrop-filter: blur(10px);
+  }
+
+  .article-detail-hero-caption {
+    margin: 0 0 0.2rem;
+    color: color-mix(in srgb, white 78%, transparent);
+    font-size: 0.78rem;
+    font-style: italic;
+    line-height: 1.55;
   }
 
   .article-detail-hero-eyebrow {

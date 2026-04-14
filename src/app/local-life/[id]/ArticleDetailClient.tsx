@@ -259,6 +259,9 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
                       className="article-card-image-element"
                     />
                     <div className="article-detail-hero-overlay">
+                      {article.featuredImageCaption?.trim() ? (
+                        <p className="article-detail-hero-caption">{article.featuredImageCaption.trim()}</p>
+                      ) : null}
                       <p className="article-detail-hero-eyebrow">{article.category?.name || 'Local Life'}</p>
                       <p className="article-detail-hero-meta">
                         {article.author.firstName} {article.author.lastName}
@@ -275,19 +278,10 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
                     </div>
                   </div>
                 )}
-                {article.featuredImageCaption?.trim() ? (
-                  <figcaption className="article-card-image-hero-caption">
-                    {article.featuredImageCaption.trim()}
-                  </figcaption>
-                ) : null}
               </figure>
 
               <div className="article-card-body">
                 <div className="article-detail-main-column">
-                  <p className="article-card-date">{publishedDate || 'Not published yet'}</p>
-                  <p className="article-card-author">
-                    {article.author.firstName} {article.author.lastName}
-                  </p>
                   <div
                     className="article-card-content article-detail-content"
                     dangerouslySetInnerHTML={{ __html: article.body }}

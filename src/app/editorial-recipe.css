@@ -103,6 +103,8 @@
 
 .article-detail-content {
   max-width: 46rem;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .editorial-article-body p,
