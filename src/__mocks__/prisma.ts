@@ -125,16 +125,15 @@ export const prismaMock = {
     create: jest.fn(),
     deleteMany: jest.fn(),
   },
-  homepageSection: {
+  homepageBox: {
     create: jest.fn(),
+    update: jest.fn(),
+    findFirst: jest.fn(),
     findMany: jest.fn(),
     deleteMany: jest.fn(),
   },
-  homepagePinnedItem: {
-    create: jest.fn(),
-    findMany: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
+  homepageBoxItem: {
+    createMany: jest.fn(),
     deleteMany: jest.fn(),
   },
   category: {

@@ -41,7 +41,8 @@ model Community {
   roadmapIdeas           RoadmapIdea[]
   roadmapBallots         RoadmapRankingBallot[]
   domainInfluenceWeights DomainInfluenceWeight[]
-  homepageSections       HomepageSection[]
+  homepageBoxes          HomepageBox[]
+  homepageSectionsLegacy HomepageSectionLegacy[]
   domains                TenantDomain[]
   categories             Category[]
   siteSettings           SiteSetting[]
@@ -108,7 +109,8 @@ model User {
   messagesSent             Message[]
   userBlocksInitiated      UserBlock[]               @relation("blockerUser")
   userBlocksReceived       UserBlock[]               @relation("blockedUser")
-  homepagePinnedItems      HomepagePinnedItem[]
+  homepageBoxItems         HomepageBoxItem[]
+  homepagePinnedItemsLegacy HomepagePinnedItemLegacy[]
   loginEvents              LoginEvent[]
   activityLogs             ActivityLog[]
   ownedStores              Store[]                   @relation("storeOwner")
@@ -1441,42 +1443,92 @@ model UserBlock {
 // HOMEPAGE & SITE CONFIGURATION
 // ============================================================================
 
-model HomepageSection {
-  id          String              @id @default(uuid()) @db.Uuid
-  communityId String              @db.Uuid
-  sectionType HomepageSectionType
-  sortOrder   Int                 @default(0)
-  isVisible   Boolean             @default(true)
+model HomepageBox {
+  id          String          @id @default(uuid()) @db.Uuid
+  communityId String          @db.Uuid
+  boxType     HomepageBoxType
+  sortOrder   Int             @default(0)
+  isVisible   Boolean         @default(true)
+  maxLinks    Int             @default(5)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
-  // Relations
-  community   Community            @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  pinnedItems HomepagePinnedItem[]
+  community Community         @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  items     HomepageBoxItem[]
+
+  @@unique([communityId, boxType])
+  @@index([communityId, sortOrder])
+  @@map("homepage_boxes")
+}
+
+model HomepageSectionLegacy {
+  id          String                    @id @default(uuid()) @db.Uuid
+  communityId String                    @db.Uuid
+  sectionType HomepageSectionLegacyType
+  sortOrder   Int                       @default(0)
+  isVisible   Boolean                   @default(true)
+
+  community   Community                 @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  pinnedItems HomepagePinnedItemLegacy[]
 
   @@index([communityId])
   @@map("homepage_sections")
 }
 
-enum HomepageSectionType {
+enum HomepageSectionLegacyType {
   FEATURED_ARTICLES
   LATEST_NEWS
   FEATURED_RECIPES
   UPCOMING_EVENTS
   RECENT_MARKETPLACE
   RECENT_GALLERIES
+
+  @@map("HomepageSectionType")
 }
 
-model HomepagePinnedItem {
-  id                String      @id @default(uuid()) @db.Uuid
-  homepageSectionId String      @db.Uuid
-  contentType       ContentType
-  contentId         String      @db.Uuid
-  pinnedByUserId    String      @db.Uuid
-  sortOrder         Int         @default(0)
-  pinnedAt          DateTime    @default(now())
+enum HomepageBoxType {
+  ARTICLES
+  EVENTS
+  RECIPES
+  MARKETPLACE
+  HELP_WANTED
+  GARDENING
+}
 
-  // Relations
-  homepageSection HomepageSection @relation(fields: [homepageSectionId], references: [id], onDelete: Cascade)
-  pinnedBy        User            @relation(fields: [pinnedByUserId], references: [id], onDelete: Cascade)
+enum HomepageBoxItemRole {
+  HERO
+  LINK
+}
+
+model HomepageBoxItem {
+  id            String              @id @default(uuid()) @db.Uuid
+  homepageBoxId String              @db.Uuid
+  role          HomepageBoxItemRole
+  contentType   ContentType
+  contentId     String              @db.Uuid
+  pinnedByUserId String             @db.Uuid
+  sortOrder     Int                 @default(0)
+  pinnedAt      DateTime            @default(now())
+
+  homepageBox HomepageBox           @relation(fields: [homepageBoxId], references: [id], onDelete: Cascade)
+  pinnedBy    User                  @relation(fields: [pinnedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([homepageBoxId, role, sortOrder])
+  @@index([pinnedByUserId])
+  @@map("homepage_box_items")
+}
+
+model HomepagePinnedItemLegacy {
+  id                String               @id @default(uuid()) @db.Uuid
+  homepageSectionId String               @db.Uuid
+  contentType       ContentType
+  contentId         String               @db.Uuid
+  pinnedByUserId    String               @db.Uuid
+  sortOrder         Int                  @default(0)
+  pinnedAt          DateTime             @default(now())
+
+  homepageSection HomepageSectionLegacy  @relation(fields: [homepageSectionId], references: [id], onDelete: Cascade)
+  pinnedBy        User                   @relation(fields: [pinnedByUserId], references: [id], onDelete: Cascade)
 
   @@index([homepageSectionId])
   @@index([pinnedByUserId])

@@ -3,43 +3,81 @@ import { z } from 'zod';
 import { checkPermission } from '@/lib/permissions';
 import { db } from '@/lib/db';
 import {
-  DEFAULT_SECTION_ORDER,
-  ensureHomepageSections,
+  DEFAULT_HOMEPAGE_BOX_ORDER,
+  ensureHomepageBoxes,
   getHomepageArticleCandidates,
+  getHomepageBoxesData,
+  getHomepageEventCandidates,
+  getHomepageMarketplaceCandidates,
   getHomepageRecipeCandidates,
-  getHomepageSectionsData,
-  HOMEPAGE_SECTION_CONFIG,
   resolveHomepageCommunityId,
+  type HomepageBoxType,
   type HomepageContentType,
-  type ManagedHomepageSectionType,
 } from '@/lib/homepage';
 
-const HomepageSectionInputSchema = z.object({
-  id: z.string().uuid(),
-  sectionType: z.enum(DEFAULT_SECTION_ORDER),
+const HomepageBoxTypeSchema = z.enum(['ARTICLES', 'RECIPES', 'EVENTS', 'MARKETPLACE']);
+const HomepageItemSelectionSchema = z.object({
+  contentType: z.enum(['ARTICLE', 'RECIPE', 'EVENT', 'MARKETPLACE_LISTING']),
+  contentId: z.string().uuid(),
+});
+
+const HomepageBoxInputSchema = z.object({
+  boxType: HomepageBoxTypeSchema,
   sortOrder: z.number().int().min(1),
   isVisible: z.boolean(),
-  pinnedItems: z.array(
-    z.object({
-      contentType: z.enum(['ARTICLE', 'RECIPE', 'EVENT', 'MARKETPLACE_LISTING']),
-      contentId: z.string().uuid(),
-    })
-  ),
+  maxLinks: z.number().int().min(0).max(5).optional(),
+  heroItem: HomepageItemSelectionSchema.nullable(),
+  linkItems: z.array(HomepageItemSelectionSchema).max(5),
 });
 
-const UpdateHomepageSectionsSchema = z.object({
-  sections: z.array(HomepageSectionInputSchema).length(DEFAULT_SECTION_ORDER.length),
+const UpdateHomepageBoxesSchema = z.object({
+  boxes: z.array(HomepageBoxInputSchema).length(DEFAULT_HOMEPAGE_BOX_ORDER.length),
 });
 
-function getExpectedContentType(sectionType: ManagedHomepageSectionType): HomepageContentType {
-  return HOMEPAGE_SECTION_CONFIG[sectionType].contentType;
+const BOX_CONTENT_TYPE: Record<HomepageBoxType, HomepageContentType> = {
+  ARTICLES: 'ARTICLE',
+  RECIPES: 'RECIPE',
+  EVENTS: 'EVENT',
+  MARKETPLACE: 'MARKETPLACE_LISTING',
+};
+
+function validateBoxPayload(box: z.infer<typeof HomepageBoxInputSchema>) {
+  const expectedContentType = BOX_CONTENT_TYPE[box.boxType];
+
+  if (box.heroItem && box.heroItem.contentType !== expectedContentType) {
+    throw new Error(`${box.boxType} hero must be ${expectedContentType}`);
+  }
+
+  if (box.linkItems.some((item) => item.contentType !== expectedContentType)) {
+    throw new Error(`${box.boxType} only accepts ${expectedContentType} content`);
+  }
+
+  if (!box.heroItem && box.linkItems.length > 0) {
+    throw new Error(`${box.boxType} needs a hero item before supporting links can be added`);
+  }
+
+  if (box.heroItem) {
+    const heroKey = `${box.heroItem.contentType}:${box.heroItem.contentId}`;
+    if (box.linkItems.some((item) => `${item.contentType}:${item.contentId}` === heroKey)) {
+      throw new Error(`${box.boxType} hero cannot also appear in the supporting links`);
+    }
+  }
 }
 
-function getSectionInput(
-  sections: Array<z.infer<typeof HomepageSectionInputSchema>>,
-  sectionType: ManagedHomepageSectionType
-) {
-  return sections.find((section) => section.sectionType === sectionType) ?? null;
+function responsePayload(communityId: string) {
+  return Promise.all([
+    getHomepageBoxesData(communityId),
+    getHomepageArticleCandidates(communityId),
+    getHomepageRecipeCandidates(communityId),
+    getHomepageEventCandidates(communityId),
+    getHomepageMarketplaceCandidates(communityId),
+  ]).then(([boxes, articleCandidates, recipeCandidates, eventCandidates, marketplaceCandidates]) => ({
+    boxes,
+    articleCandidates,
+    recipeCandidates,
+    eventCandidates,
+    marketplaceCandidates,
+  }));
 }
 
 export async function GET(request: NextRequest) {
@@ -51,19 +89,14 @@ export async function GET(request: NextRequest) {
     });
 
     if (!communityId) {
-      return NextResponse.json({ sections: [] });
+      return NextResponse.json({ boxes: [] });
     }
 
-    const sections = await getHomepageSectionsData(communityId);
-    const [articleCandidates, recipeCandidates] = await Promise.all([
-      getHomepageArticleCandidates(communityId),
-      getHomepageRecipeCandidates(communityId),
-    ]);
-    return NextResponse.json({ sections, articleCandidates, recipeCandidates });
+    return NextResponse.json(await responsePayload(communityId));
   } catch (error) {
-    console.error('Error fetching homepage sections:', error);
+    console.error('Error fetching homepage boxes:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch homepage sections' },
+      { error: 'Failed to fetch homepage boxes' },
       { status: 500 }
     );
   }
@@ -79,10 +112,7 @@ export async function PUT(request: NextRequest) {
     }
 
     if (!checkPermission(userRole, 'homepage:pin')) {
-      return NextResponse.json(
-        { error: 'Insufficient permissions' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     const communityId = await resolveHomepageCommunityId({
@@ -90,96 +120,80 @@ export async function PUT(request: NextRequest) {
       preferredDomain: request.headers.get('x-community-domain') || undefined,
       host: request.headers.get('host') || undefined,
     });
+
     if (!communityId) {
       return NextResponse.json({ error: 'Community not found' }, { status: 404 });
     }
 
-    const body = await request.json();
-    const validated = UpdateHomepageSectionsSchema.parse(body);
+    const validated = UpdateHomepageBoxesSchema.parse(await request.json());
+    validated.boxes.forEach(validateBoxPayload);
 
-    const ensuredSections = await ensureHomepageSections(communityId);
-    const sectionIds = new Set(ensuredSections.map((section) => section.id));
-
-    for (const section of validated.sections) {
-      if (!sectionIds.has(section.id)) {
-        return NextResponse.json(
-          { error: `Unknown homepage section: ${section.id}` },
-          { status: 400 }
-        );
-      }
-
-      const expectedContentType = getExpectedContentType(section.sectionType);
-      const maxItems = HOMEPAGE_SECTION_CONFIG[section.sectionType].maxItems;
-
-      if (section.pinnedItems.length > maxItems) {
-        return NextResponse.json(
-          { error: `${section.sectionType} supports at most ${maxItems} pinned items` },
-          { status: 400 }
-        );
-      }
-
-      if (section.pinnedItems.some((item) => item.contentType !== expectedContentType)) {
-        return NextResponse.json(
-          { error: `${section.sectionType} only accepts ${expectedContentType} content` },
-          { status: 400 }
-        );
-      }
-    }
-
-    const featuredSection = getSectionInput(validated.sections, 'FEATURED_ARTICLES');
-    const latestNewsSection = getSectionInput(validated.sections, 'LATEST_NEWS');
-
-    if (featuredSection && latestNewsSection) {
-      const featuredArticleIds = new Set(
-        featuredSection.pinnedItems.map((item) => item.contentId)
+    const uniqueBoxTypes = new Set(validated.boxes.map((box) => box.boxType));
+    if (uniqueBoxTypes.size !== validated.boxes.length) {
+      return NextResponse.json(
+        { error: 'Each homepage box type can appear only once.' },
+        { status: 400 }
       );
-
-      const duplicateArticleId = latestNewsSection.pinnedItems.find((item) =>
-        featuredArticleIds.has(item.contentId)
-      )?.contentId;
-
-      if (duplicateArticleId) {
-        return NextResponse.json(
-          { error: 'A homepage article cannot be pinned in both Hero and Latest News.' },
-          { status: 400 }
-        );
-      }
     }
+
+    const ensuredBoxes = await ensureHomepageBoxes(communityId);
+    const boxIdsByType = new Map(
+      ensuredBoxes.map((box) => [box.boxType as HomepageBoxType, box.id])
+    );
+    const orderedBoxes = [...validated.boxes].sort((a, b) => a.sortOrder - b.sortOrder);
 
     await db.$transaction(async (tx) => {
-      for (const section of validated.sections) {
-        await tx.homepageSection.update({
-          where: { id: section.id },
+      for (const [index, box] of orderedBoxes.entries()) {
+        const homepageBoxId = boxIdsByType.get(box.boxType);
+
+        if (!homepageBoxId) {
+          throw new Error(`Homepage box missing for ${box.boxType}`);
+        }
+
+        await tx.homepageBox.update({
+          where: { id: homepageBoxId },
           data: {
-            sortOrder: section.sortOrder,
-            isVisible: section.isVisible,
+            sortOrder: index + 1,
+            isVisible: box.isVisible,
+            maxLinks: box.maxLinks ?? 5,
           },
         });
 
-        await tx.homepagePinnedItem.deleteMany({
-          where: { homepageSectionId: section.id },
+        await tx.homepageBoxItem.deleteMany({
+          where: { homepageBoxId },
         });
 
-        if (section.pinnedItems.length > 0) {
-          await tx.homepagePinnedItem.createMany({
-            data: section.pinnedItems.map((item, index) => ({
-              homepageSectionId: section.id,
+        const items = [
+          ...(box.heroItem
+            ? [
+                {
+                  ...box.heroItem,
+                  role: 'HERO' as const,
+                },
+              ]
+            : []),
+          ...box.linkItems.map((item) => ({
+            ...item,
+            role: 'LINK' as const,
+          })),
+        ];
+
+        if (items.length > 0) {
+          await tx.homepageBoxItem.createMany({
+            data: items.map((item, itemIndex) => ({
+              homepageBoxId,
+              role: item.role,
               contentType: item.contentType,
               contentId: item.contentId,
               pinnedByUserId: userId,
-              sortOrder: index + 1,
+              sortOrder: itemIndex + 1,
             })),
           });
         }
       }
     });
 
-    const sections = await getHomepageSectionsData(communityId);
-    const [articleCandidates, recipeCandidates] = await Promise.all([
-      getHomepageArticleCandidates(communityId),
-      getHomepageRecipeCandidates(communityId),
-    ]);
-    return NextResponse.json({ sections, articleCandidates, recipeCandidates });
+    return NextResponse.json(await responsePayload(communityId));
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -188,9 +202,13 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    console.error('Error saving homepage sections:', error);
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    console.error('Error saving homepage boxes:', error);
     return NextResponse.json(
-      { error: 'Failed to save homepage sections' },
+      { error: 'Failed to save homepage boxes' },
       { status: 500 }
     );
   }

@@ -5,14 +5,8 @@ import { formatLocationPrimary } from './location-format';
 import { getArticleUiImageUrl } from './article-images';
 import { resolveTenantCommunityId } from './tenant';
 
-export type ManagedHomepageSectionType =
-  | 'FEATURED_ARTICLES'
-  | 'LATEST_NEWS'
-  | 'FEATURED_RECIPES'
-  | 'UPCOMING_EVENTS'
-  | 'RECENT_MARKETPLACE';
-
 export type HomepageContentType = 'ARTICLE' | 'RECIPE' | 'EVENT' | 'MARKETPLACE_LISTING';
+export type HomepageBoxType = 'ARTICLES' | 'EVENTS' | 'RECIPES' | 'MARKETPLACE';
 
 export interface HomepageContentItem {
   contentType: HomepageContentType;
@@ -34,16 +28,19 @@ export interface HomepageContentItem {
   searchText?: string;
 }
 
-export interface HomepageSectionData {
+export interface HomepageBoxData {
   id: string;
-  sectionType: ManagedHomepageSectionType;
+  boxType: HomepageBoxType;
   title: string;
+  description: string;
+  contentType: HomepageContentType;
   sortOrder: number;
   isVisible: boolean;
-  maxItems: number;
+  maxLinks: number;
+  heroItem: HomepageContentItem | null;
+  linkItems: HomepageContentItem[];
   pinnedItems: HomepageContentItem[];
   availableItems: HomepageContentItem[];
-  displayItems: HomepageContentItem[];
 }
 
 export interface ResolveHomepageCommunityOptions {
@@ -52,51 +49,60 @@ export interface ResolveHomepageCommunityOptions {
   host?: string;
 }
 
-type SectionConfig = {
+type HomepageBoxConfig = {
   title: string;
+  description: string;
   contentType: HomepageContentType;
-  maxItems: number;
+  defaultSortOrder: number;
 };
 
-export const HOMEPAGE_SECTION_CONFIG: Record<ManagedHomepageSectionType, SectionConfig> = {
-  FEATURED_ARTICLES: {
-    title: 'Featured',
+export const HOMEPAGE_BOX_CONFIG: Record<HomepageBoxType, HomepageBoxConfig> = {
+  ARTICLES: {
+    title: 'Local Life',
+    description: 'A lead story with optional supporting links.',
     contentType: 'ARTICLE',
-    maxItems: 1,
+    defaultSortOrder: 1,
   },
-  LATEST_NEWS: {
-    title: 'Latest News',
-    contentType: 'ARTICLE',
-    maxItems: 5,
-  },
-  FEATURED_RECIPES: {
-    title: 'Recipes & Food',
-    contentType: 'RECIPE',
-    maxItems: 3,
-  },
-  UPCOMING_EVENTS: {
-    title: 'Upcoming Events',
+  EVENTS: {
+    title: 'Events',
+    description: 'One featured event with optional supporting links.',
     contentType: 'EVENT',
-    maxItems: 4,
+    defaultSortOrder: 2,
   },
-  RECENT_MARKETPLACE: {
-    title: 'Market',
+  RECIPES: {
+    title: 'Recipes & Food',
+    description: 'One featured recipe with optional supporting links.',
+    contentType: 'RECIPE',
+    defaultSortOrder: 3,
+  },
+  MARKETPLACE: {
+    title: 'Marketplace',
+    description: 'One featured listing with optional supporting links.',
     contentType: 'MARKETPLACE_LISTING',
-    maxItems: 3,
+    defaultSortOrder: 4,
   },
 };
 
-export const DEFAULT_SECTION_ORDER = [
-  'FEATURED_ARTICLES',
-  'LATEST_NEWS',
-  'FEATURED_RECIPES',
-  'UPCOMING_EVENTS',
-  'RECENT_MARKETPLACE',
-] as const;
+export const DEFAULT_HOMEPAGE_BOX_ORDER = [
+  'ARTICLES',
+  'EVENTS',
+  'RECIPES',
+  'MARKETPLACE',
+] as const satisfies readonly HomepageBoxType[];
 
-type HomepageSectionWithPins = Prisma.HomepageSectionGetPayload<{
+type HomepageBoxWithItems = Prisma.HomepageBoxGetPayload<{
   include: {
-    pinnedItems: true;
+    items: {
+      orderBy: [{ role: 'asc' }, { sortOrder: 'asc' }];
+    };
+  };
+}>;
+
+type LegacyHomepageSectionWithPins = Prisma.HomepageSectionLegacyGetPayload<{
+  include: {
+    pinnedItems: {
+      orderBy: { sortOrder: 'asc' };
+    };
   };
 }>;
 
@@ -104,53 +110,245 @@ export async function resolveHomepageCommunityId(options?: ResolveHomepageCommun
   return resolveTenantCommunityId(options);
 }
 
-export async function ensureHomepageSections(communityId: string): Promise<HomepageSectionWithPins[]> {
-  const existingSections = await db.homepageSection.findMany({
+export async function ensureHomepageBoxes(communityId: string): Promise<HomepageBoxWithItems[]> {
+  const existingBoxes = await db.homepageBox.findMany({
     where: {
       communityId,
-      sectionType: { in: Array.from(DEFAULT_SECTION_ORDER) },
+      boxType: { in: Array.from(DEFAULT_HOMEPAGE_BOX_ORDER) },
     },
     include: {
-      pinnedItems: {
-        orderBy: { sortOrder: 'asc' },
+      items: {
+        orderBy: [{ role: 'asc' }, { sortOrder: 'asc' }],
       },
     },
     orderBy: { sortOrder: 'asc' },
   });
 
-  const existingTypes = new Set(existingSections.map((section) => section.sectionType));
+  const existingTypes = new Set(existingBoxes.map((box) => box.boxType as HomepageBoxType));
 
-  if (existingTypes.size !== DEFAULT_SECTION_ORDER.length) {
+  if (existingTypes.size !== DEFAULT_HOMEPAGE_BOX_ORDER.length) {
     await db.$transaction(
-      DEFAULT_SECTION_ORDER
-        .filter((sectionType) => !existingTypes.has(sectionType))
-        .map((sectionType, index) =>
-          db.homepageSection.create({
+      DEFAULT_HOMEPAGE_BOX_ORDER
+        .filter((boxType) => !existingTypes.has(boxType))
+        .map((boxType) =>
+          db.homepageBox.create({
             data: {
               communityId,
-              sectionType,
-              sortOrder: DEFAULT_SECTION_ORDER.indexOf(sectionType) + 1 + index,
+              boxType,
+              sortOrder: HOMEPAGE_BOX_CONFIG[boxType].defaultSortOrder,
               isVisible: true,
+              maxLinks: 5,
             },
           })
         )
     );
 
-    return db.homepageSection.findMany({
+  }
+
+  await maybeImportLegacyHomepageData(communityId);
+
+  return db.homepageBox.findMany({
+    where: {
+      communityId,
+      boxType: { in: Array.from(DEFAULT_HOMEPAGE_BOX_ORDER) },
+    },
+    include: {
+      items: {
+        orderBy: [{ role: 'asc' }, { sortOrder: 'asc' }],
+      },
+    },
+    orderBy: { sortOrder: 'asc' },
+  });
+}
+
+async function maybeImportLegacyHomepageData(communityId: string) {
+  const [boxes, legacySections] = await Promise.all([
+    db.homepageBox.findMany({
       where: {
         communityId,
-        sectionType: { in: Array.from(DEFAULT_SECTION_ORDER) },
+        boxType: { in: Array.from(DEFAULT_HOMEPAGE_BOX_ORDER) },
+      },
+      include: {
+        items: {
+          orderBy: [{ role: 'asc' }, { sortOrder: 'asc' }],
+        },
+      },
+      orderBy: { sortOrder: 'asc' },
+    }),
+    db.homepageSectionLegacy.findMany({
+      where: {
+        communityId,
+        sectionType: {
+          in: [
+            'FEATURED_ARTICLES',
+            'LATEST_NEWS',
+            'FEATURED_RECIPES',
+            'UPCOMING_EVENTS',
+            'RECENT_MARKETPLACE',
+          ],
+        },
       },
       include: {
         pinnedItems: {
           orderBy: { sortOrder: 'asc' },
         },
       },
-      orderBy: { sortOrder: 'asc' },
+    }),
+  ]);
+
+  const alreadyMigrated = boxes.some((box) => box.items.length > 0);
+  const legacyHasPins = legacySections.some((section) => section.pinnedItems.length > 0);
+
+  if (alreadyMigrated || !legacyHasPins) {
+    return;
+  }
+
+  const legacyByType = new Map(
+    legacySections.map((section) => [section.sectionType, section])
+  );
+  const boxByType = new Map(boxes.map((box) => [box.boxType as HomepageBoxType, box]));
+  const migrationPlan = buildLegacyHomepageMigrationPlan(legacyByType, boxByType);
+
+  if (migrationPlan.length === 0) {
+    return;
+  }
+
+  await db.$transaction(
+    migrationPlan.flatMap((entry) => {
+      const operations: Prisma.PrismaPromise<unknown>[] = [
+        db.homepageBox.update({
+          where: { id: entry.boxId },
+          data: {
+            sortOrder: entry.sortOrder,
+            isVisible: entry.isVisible,
+            maxLinks: 5,
+          },
+        }),
+      ];
+
+      if (entry.items.length > 0) {
+        operations.push(
+          db.homepageBoxItem.createMany({
+            data: entry.items.map((item, index) => ({
+              homepageBoxId: entry.boxId,
+              role: item.role,
+              contentType: item.contentType,
+              contentId: item.contentId,
+              pinnedByUserId: item.pinnedByUserId,
+              sortOrder: index + 1,
+              pinnedAt: item.pinnedAt,
+            })),
+          })
+        );
+      }
+
+      return operations;
+    })
+  );
+}
+
+function buildLegacyHomepageMigrationPlan(
+  legacyByType: Map<string, LegacyHomepageSectionWithPins>,
+  boxByType: Map<HomepageBoxType, HomepageBoxWithItems>
+) {
+  const articleBox = boxByType.get('ARTICLES');
+  const eventBox = boxByType.get('EVENTS');
+  const recipeBox = boxByType.get('RECIPES');
+  const marketplaceBox = boxByType.get('MARKETPLACE');
+  const featuredArticles = legacyByType.get('FEATURED_ARTICLES');
+  const latestNews = legacyByType.get('LATEST_NEWS');
+  const featuredRecipes = legacyByType.get('FEATURED_RECIPES');
+  const upcomingEvents = legacyByType.get('UPCOMING_EVENTS');
+  const recentMarketplace = legacyByType.get('RECENT_MARKETPLACE');
+
+  const plan: Array<{
+    boxId: string;
+    sortOrder: number;
+    isVisible: boolean;
+    items: Array<{
+      role: 'HERO' | 'LINK';
+      contentType: HomepageContentType;
+      contentId: string;
+      pinnedByUserId: string;
+      pinnedAt: Date;
+    }>;
+  }> = [];
+
+  if (articleBox) {
+    const heroItem = featuredArticles?.pinnedItems[0];
+    const linkItems = latestNews?.pinnedItems ?? [];
+    const items = [
+      ...(heroItem
+        ? [
+            {
+              role: 'HERO' as const,
+              contentType: heroItem.contentType as HomepageContentType,
+              contentId: heroItem.contentId,
+              pinnedByUserId: heroItem.pinnedByUserId,
+              pinnedAt: heroItem.pinnedAt,
+            },
+          ]
+        : []),
+      ...linkItems.slice(0, 5).map((item) => ({
+        role: 'LINK' as const,
+        contentType: item.contentType as HomepageContentType,
+        contentId: item.contentId,
+        pinnedByUserId: item.pinnedByUserId,
+        pinnedAt: item.pinnedAt,
+      })),
+    ];
+
+    plan.push({
+      boxId: articleBox.id,
+      sortOrder: featuredArticles?.sortOrder ?? HOMEPAGE_BOX_CONFIG.ARTICLES.defaultSortOrder,
+      isVisible: featuredArticles?.isVisible ?? true,
+      items,
     });
   }
 
-  return existingSections;
+  const simpleMappings: Array<{
+    box: HomepageBoxWithItems | undefined;
+    section: LegacyHomepageSectionWithPins | undefined;
+    fallbackSortOrder: number;
+  }> = [
+    {
+      box: eventBox,
+      section: upcomingEvents,
+      fallbackSortOrder: HOMEPAGE_BOX_CONFIG.EVENTS.defaultSortOrder,
+    },
+    {
+      box: recipeBox,
+      section: featuredRecipes,
+      fallbackSortOrder: HOMEPAGE_BOX_CONFIG.RECIPES.defaultSortOrder,
+    },
+    {
+      box: marketplaceBox,
+      section: recentMarketplace,
+      fallbackSortOrder: HOMEPAGE_BOX_CONFIG.MARKETPLACE.defaultSortOrder,
+    },
+  ];
+
+  simpleMappings.forEach(({ box, section, fallbackSortOrder }) => {
+    if (!box) {
+      return;
+    }
+
+    plan.push({
+      boxId: box.id,
+      sortOrder: section?.sortOrder ?? fallbackSortOrder,
+      isVisible: section?.isVisible ?? true,
+      items:
+        section?.pinnedItems.slice(0, 6).map((item, index) => ({
+          role: (index === 0 ? 'HERO' : 'LINK') as 'HERO' | 'LINK',
+          contentType: item.contentType as HomepageContentType,
+          contentId: item.contentId,
+          pinnedByUserId: item.pinnedByUserId,
+          pinnedAt: item.pinnedAt,
+        })) ?? [],
+    });
+  });
+
+  return plan;
 }
 
 function formatArticleMetadata(article: {
@@ -168,6 +366,22 @@ function formatArticleMetadata(article: {
           year: 'numeric',
         })
       : null,
+  ]
+    .filter(Boolean)
+    .join(' • ');
+}
+
+function formatRecipeMetadata(recipe: {
+  category: { name: string } | null;
+  author: { firstName: string; lastName: string };
+  totalMinutes: number | null;
+  servings: number | null;
+}) {
+  return [
+    recipe.category?.name,
+    `${recipe.author.firstName} ${recipe.author.lastName}`.trim(),
+    recipe.totalMinutes ? `${recipe.totalMinutes} min` : null,
+    recipe.servings ? `${recipe.servings} servings` : null,
   ]
     .filter(Boolean)
     .join(' • ');
@@ -208,19 +422,10 @@ function formatMarketplaceMetadata(listing: {
     currency: 'USD',
   }).format(listing.priceCents / 100);
 
-  return [
-    listing.category,
-    formattedPrice,
-    listing.store.name,
-  ]
-    .filter(Boolean)
-    .join(' • ');
+  return [listing.category, formattedPrice, listing.store.name].filter(Boolean).join(' • ');
 }
 
-async function getArticleCandidates(
-  communityId: string,
-  limit: number
-) {
+async function getArticleCandidates(communityId: string, limit: number) {
   const articles = await db.article.findMany({
     where: {
       communityId,
@@ -255,30 +460,6 @@ async function getArticleCandidates(
     },
     searchText: `${article.title} ${article.author.lastName}`.toLowerCase(),
   }));
-}
-
-export async function getHomepageArticleCandidates(communityId: string, limit = 100) {
-  return getArticleCandidates(communityId, limit);
-}
-
-export async function getHomepageRecipeCandidates(communityId: string, limit = 100) {
-  return getRecipeCandidates(communityId, limit);
-}
-
-function formatRecipeMetadata(recipe: {
-  category: { name: string } | null;
-  author: { firstName: string; lastName: string };
-  totalMinutes: number | null;
-  servings: number | null;
-}) {
-  return [
-    recipe.category?.name,
-    `${recipe.author.firstName} ${recipe.author.lastName}`.trim(),
-    recipe.totalMinutes ? `${recipe.totalMinutes} min` : null,
-    recipe.servings ? `${recipe.servings} servings` : null,
-  ]
-    .filter(Boolean)
-    .join(' • ');
 }
 
 async function getRecipeCandidates(communityId: string, limit: number) {
@@ -349,6 +530,7 @@ async function getEventCandidates(communityId: string, limit: number) {
     imageDisplayMode: event.photoUrl ? 'cover' : undefined,
     url: `/events/${event.id}`,
     metadata: formatEventMetadata(event),
+    searchText: `${event.title} ${event.location.name ?? event.location.city}`.toLowerCase(),
   }));
 }
 
@@ -382,26 +564,28 @@ async function getMarketplaceCandidates(communityId: string, limit: number) {
     metadata: formatMarketplaceMetadata(listing),
     secondaryUrl: `/marketplace/stores/${listing.storeId}`,
     secondaryLabel: `View ${listing.store.name}`,
+    searchText: `${listing.title} ${listing.store.name}`.toLowerCase(),
   }));
 }
 
-async function getSectionCandidatePool(
-  sectionType: ManagedHomepageSectionType,
-  communityId: string
-) {
-  const config = HOMEPAGE_SECTION_CONFIG[sectionType];
-  const candidateLimit = Math.max(config.maxItems * 4, 12);
+export async function getHomepageArticleCandidates(communityId: string, limit = 100) {
+  return getArticleCandidates(communityId, limit);
+}
 
-  switch (config.contentType) {
-    case 'ARTICLE':
-      return getArticleCandidates(communityId, candidateLimit);
-    case 'RECIPE':
-      return getRecipeCandidates(communityId, candidateLimit);
-    case 'EVENT':
-      return getEventCandidates(communityId, candidateLimit);
-    case 'MARKETPLACE_LISTING':
-      return getMarketplaceCandidates(communityId, candidateLimit);
-  }
+export async function getHomepageRecipeCandidates(communityId: string, limit = 100) {
+  return getRecipeCandidates(communityId, limit);
+}
+
+export async function getHomepageEventCandidates(communityId: string, limit = 100) {
+  return getEventCandidates(communityId, limit);
+}
+
+export async function getHomepageMarketplaceCandidates(communityId: string, limit = 100) {
+  return getMarketplaceCandidates(communityId, limit);
+}
+
+function getHomepageItemKey(item: Pick<HomepageContentItem, 'contentType' | 'contentId'>) {
+  return `${item.contentType}:${item.contentId}`;
 }
 
 function mapPinnedItems(
@@ -409,96 +593,86 @@ function mapPinnedItems(
   candidates: HomepageContentItem[]
 ) {
   const byKey = new Map(
-    candidates.map((candidate) => [`${candidate.contentType}:${candidate.contentId}`, candidate])
+    candidates.map((candidate) => [getHomepageItemKey(candidate), candidate])
   );
 
   return pinnedItems
     .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map((pinnedItem) => byKey.get(`${pinnedItem.contentType}:${pinnedItem.contentId}`))
+    .map((pinnedItem) => byKey.get(getHomepageItemKey(pinnedItem)))
     .filter((item): item is HomepageContentItem => Boolean(item));
 }
 
-export async function getHomepageSectionsData(
-  communityId: string
-): Promise<HomepageSectionData[]> {
-  const sections = await ensureHomepageSections(communityId);
+function getCandidatesForBoxType(
+  boxType: HomepageBoxType,
+  candidatePools: {
+    articles: HomepageContentItem[];
+    events: HomepageContentItem[];
+    recipes: HomepageContentItem[];
+    marketplace: HomepageContentItem[];
+  }
+) {
+  switch (boxType) {
+    case 'ARTICLES':
+      return candidatePools.articles;
+    case 'EVENTS':
+      return candidatePools.events;
+    case 'RECIPES':
+      return candidatePools.recipes;
+    case 'MARKETPLACE':
+      return candidatePools.marketplace;
+  }
+}
 
-  const candidatePools = await Promise.all(
-    sections.map(async (section) => ({
-      sectionId: section.id,
-      items: await getSectionCandidatePool(
-        section.sectionType as ManagedHomepageSectionType,
-        communityId
-      ),
-    }))
-  );
+export async function getHomepageBoxesData(communityId: string): Promise<HomepageBoxData[]> {
+  const boxes = await ensureHomepageBoxes(communityId);
+  const [articles, events, recipes, marketplace] = await Promise.all([
+    getHomepageArticleCandidates(communityId),
+    getHomepageEventCandidates(communityId),
+    getHomepageRecipeCandidates(communityId),
+    getHomepageMarketplaceCandidates(communityId),
+  ]);
 
-  const candidatesBySectionId = new Map(
-    candidatePools.map((pool) => [pool.sectionId, pool.items])
-  );
+  const candidatePools = { articles, events, recipes, marketplace };
 
-  const resolvedSections = sections
+  return boxes
+    .filter((box) => DEFAULT_HOMEPAGE_BOX_ORDER.includes(box.boxType as HomepageBoxType))
     .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map((section) => {
-      const sectionType = section.sectionType as ManagedHomepageSectionType;
-      const config = HOMEPAGE_SECTION_CONFIG[sectionType];
-      const availableItems = candidatesBySectionId.get(section.id) ?? [];
+    .map((box) => {
+      const boxType = box.boxType as HomepageBoxType;
+      const config = HOMEPAGE_BOX_CONFIG[boxType];
+      const candidates = getCandidatesForBoxType(boxType, candidatePools);
       const pinnedItems = mapPinnedItems(
-        section.pinnedItems.map((item) => ({
+        box.items.map((item) => ({
           contentType: item.contentType as HomepageContentType,
           contentId: item.contentId,
           sortOrder: item.sortOrder,
         })),
-        availableItems
+        candidates
       );
-      const availableExcludingPinned = availableItems.filter(
-        (item) =>
-          !pinnedItems.some(
-            (pinnedItem) =>
-              pinnedItem.contentType === item.contentType && pinnedItem.contentId === item.contentId
-          )
+      const availableItems = candidates.filter(
+        (candidate) =>
+          !pinnedItems.some((pinnedItem) => getHomepageItemKey(pinnedItem) === getHomepageItemKey(candidate))
       );
+      const heroItem = pinnedItems[0] ?? candidates[0] ?? null;
+      const linkCandidates =
+        pinnedItems.length > 0
+          ? pinnedItems.slice(1)
+          : candidates.filter((candidate) => getHomepageItemKey(candidate) !== getHomepageItemKey(heroItem ?? candidate));
+      const linkItems = linkCandidates.slice(0, box.maxLinks);
 
       return {
-        id: section.id,
-        sectionType,
+        id: box.id,
+        boxType,
         title: config.title,
-        sortOrder: section.sortOrder,
-        isVisible: section.isVisible,
-        maxItems: config.maxItems,
+        description: config.description,
+        contentType: config.contentType,
+        sortOrder: box.sortOrder,
+        isVisible: box.isVisible,
+        maxLinks: box.maxLinks,
+        heroItem,
+        linkItems,
         pinnedItems,
-        availableItems: availableExcludingPinned,
-        displayItems: (pinnedItems.length > 0 ? pinnedItems : availableItems).slice(0, config.maxItems),
+        availableItems,
       };
     });
-
-  const featuredSection = resolvedSections.find(
-    (section) => section.sectionType === 'FEATURED_ARTICLES' && section.isVisible
-  );
-
-  if (!featuredSection) {
-    return resolvedSections;
-  }
-
-  const featuredArticleIds = new Set(
-    featuredSection.displayItems
-      .filter((item) => item.contentType === 'ARTICLE')
-      .map((item) => item.contentId)
-  );
-
-  return resolvedSections.map((section) => {
-    if (section.sectionType !== 'LATEST_NEWS') {
-      return section;
-    }
-
-    const pinnedItems = section.pinnedItems.filter((item) => !featuredArticleIds.has(item.contentId));
-    const availableItems = section.availableItems.filter((item) => !featuredArticleIds.has(item.contentId));
-
-    return {
-      ...section,
-      pinnedItems,
-      availableItems,
-      displayItems: (pinnedItems.length > 0 ? pinnedItems : availableItems).slice(0, section.maxItems),
-    };
-  });
 }

@@ -132,32 +132,27 @@ async function main() {
   }
   console.log('✓ Default categories created');
 
-  // 3. Create Homepage Sections
-  const sectionTypes = [
-    'FEATURED_ARTICLES',
-    'LATEST_NEWS',
-    'FEATURED_RECIPES',
-    'UPCOMING_EVENTS',
-    'RECENT_MARKETPLACE',
-  ] as const;
+  // 3. Create Homepage Boxes
+  const boxTypes = ['ARTICLES', 'EVENTS', 'RECIPES', 'MARKETPLACE'] as const;
 
-  for (let i = 0; i < sectionTypes.length; i++) {
-    const existing = await prisma.homepageSection.findFirst({
-      where: { communityId: community.id, sectionType: sectionTypes[i] },
+  for (let i = 0; i < boxTypes.length; i++) {
+    const existing = await prisma.homepageBox.findFirst({
+      where: { communityId: community.id, boxType: boxTypes[i] },
     });
 
     if (!existing) {
-      await prisma.homepageSection.create({
+      await prisma.homepageBox.create({
         data: {
           communityId: community.id,
-          sectionType: sectionTypes[i],
-          sortOrder: i,
+          boxType: boxTypes[i],
+          sortOrder: i + 1,
           isVisible: true,
+          maxLinks: 5,
         },
       });
     }
   }
-  console.log('✓ Homepage sections created');
+  console.log('✓ Homepage boxes created');
 
   // 4. Create Default Site Setting
   await prisma.siteSetting.upsert({
