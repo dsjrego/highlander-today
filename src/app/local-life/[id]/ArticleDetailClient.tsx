@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import { Share2 } from 'lucide-react';
 import { CommentThread, type ThreadComment } from '@/components/articles/CommentThread';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { getArticleUiImageUrl } from '@/lib/article-images';
@@ -45,6 +46,7 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
   const [article, setArticle] = useState<Article | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [shareMessage, setShareMessage] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchArticle() {
@@ -115,6 +117,32 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
 
     await refreshArticle();
   }
+
+  async function handleShare() {
+    try {
+      if (typeof window === 'undefined') {
+        return;
+      }
+
+      await navigator.clipboard.writeText(window.location.href);
+      setShareMessage('URL copied to clipboard');
+    } catch (error) {
+      console.error('Failed to copy article URL:', error);
+      setShareMessage('Unable to copy URL');
+    }
+  }
+
+  useEffect(() => {
+    if (!shareMessage) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setShareMessage(null);
+    }, 1800);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [shareMessage]);
 
   if (isLoading) {
     return (
@@ -321,6 +349,24 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
 
         <aside className="space-y-5 xl:sticky xl:top-6">
           <div className="article-detail-aside-card rounded-[26px] p-5">
+            <div className="mb-4 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleShare}
+                className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/80 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-white"
+              >
+                <Share2 className="h-4 w-4" />
+                Share
+              </button>
+              <span
+                className={`text-xs text-slate-500 transition-opacity duration-500 ${
+                  shareMessage ? 'opacity-100' : 'opacity-0'
+                }`}
+                aria-live="polite"
+              >
+                {shareMessage ?? 'URL copied to clipboard'}
+              </span>
+            </div>
             <p className="article-detail-aside-label text-xs font-semibold uppercase tracking-[0.28em]">Author</p>
             <div className="mt-4 flex items-start gap-3">
               <UserAvatar
