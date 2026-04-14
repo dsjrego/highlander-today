@@ -36,15 +36,13 @@ function HomepageBoxCard({
   if (!box.heroItem) {
     return (
       <section className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
-        <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--brand-primary)]">
               {box.title}
             </p>
-            <h2 className="mt-2 text-xl font-bold text-slate-950">Coming soon</h2>
           </div>
         </div>
-        <EmptyHomepageState message={`${box.title} content will appear here once editors publish or pin it.`} />
       </section>
     );
   }
@@ -62,7 +60,6 @@ function HomepageBoxCard({
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--brand-primary)]">
             {box.title}
           </p>
-          <p className="mt-1 text-sm text-slate-500">{box.description}</p>
         </div>
         <Link
           href={getBoxBrowseUrl(box)}
@@ -120,27 +117,25 @@ function HomepageBoxCard({
         </Link>
 
         <div className={`${emphasize ? 'lg:border-l' : ''} border-slate-200/70 p-5 md:p-6`}>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-            More from {box.title}
-          </p>
-          {box.linkItems.length === 0 ? (
-            <p className="mt-4 text-sm leading-6 text-slate-500">
-              This box is currently running just the featured item.
-            </p>
-          ) : (
-            <ul className="mt-4 space-y-3">
-              {box.linkItems.map((item) => (
-                <li key={`${item.contentType}-${item.contentId}`} className="border-b border-slate-200/80 pb-3 last:border-b-0 last:pb-0">
-                  <Link
-                    href={item.url}
-                    className="text-sm font-semibold leading-6 text-slate-900 no-underline transition hover:text-[color:var(--brand-accent)] hover:no-underline"
-                  >
-                    {item.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+          {box.linkItems.length > 0 ? (
+            <>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                More from {box.title}
+              </p>
+              <ul className="mt-4 space-y-3">
+                {box.linkItems.map((item) => (
+                  <li key={`${item.contentType}-${item.contentId}`} className="border-b border-slate-200/80 pb-3 last:border-b-0 last:pb-0">
+                    <Link
+                      href={item.url}
+                      className="text-sm font-semibold leading-6 text-slate-900 no-underline transition hover:text-[color:var(--brand-accent)] hover:no-underline"
+                    >
+                      {item.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
         </div>
       </div>
     </section>
