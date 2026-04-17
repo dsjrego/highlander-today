@@ -1824,6 +1824,7 @@
 
   @screen md {
     .page-header {
+      margin-top: 0.5rem;
       padding: 0.625rem 0.75rem;
     }
 

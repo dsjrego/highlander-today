@@ -26,7 +26,7 @@ export default function InternalPageHeader({
   actions,
   mobileAlign = 'center',
   compactMobile = false,
-  reserveActionsSpace = false,
+  reserveActionsSpace = true,
   className,
   innerClassName,
   mainClassName,

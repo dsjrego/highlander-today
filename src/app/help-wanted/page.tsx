@@ -123,7 +123,6 @@ export default function HelpWantedPage() {
     <div className="space-y-8">
       <InternalPageHeader
         title="Help Wanted"
-        titleClassName="text-white"
         actions={
           <>
             {isTrusted ? (

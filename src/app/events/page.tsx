@@ -133,7 +133,6 @@ export default function EventsPage() {
     <div className="space-y-8">
       <InternalPageHeader
         title="Events"
-        titleClassName="text-white"
         actions={
           <>
             {session?.user && (

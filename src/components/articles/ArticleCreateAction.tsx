@@ -9,6 +9,7 @@ interface ArticleCreateActionProps {
   label?: string;
   dialogTitle?: string;
   trustRequiredMessage?: string;
+  dialogEyebrow?: string;
 }
 
 const TRUST_REQUIRED_MESSAGE =
@@ -19,6 +20,7 @@ export default function ArticleCreateAction({
   label = 'Article',
   dialogTitle = 'Trusted users only',
   trustRequiredMessage = TRUST_REQUIRED_MESSAGE,
+  dialogEyebrow = 'Local Life',
 }: ArticleCreateActionProps) {
   const { data: session } = useSession();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -80,7 +82,7 @@ export default function ArticleCreateAction({
         >
           <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[linear-gradient(165deg,rgba(17,34,52,0.98),rgba(10,24,38,0.98))] p-6 text-white shadow-[0_28px_80px_rgba(2,8,23,0.55)]">
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/72">
-              Local Life
+              {dialogEyebrow}
             </p>
             <h2
               id="trusted-article-dialog-title"

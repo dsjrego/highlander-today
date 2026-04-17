@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { isValidOrganizationType } from '@/lib/organization-taxonomy';
 import { sanitizeArticleHtml } from '@/lib/sanitize';
+import { hasTrustedAccess } from '@/lib/trust-access';
 
 function hasValidPhoneDigits(value: string) {
   const digits = value.replace(/\D/g, '');
@@ -112,8 +113,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const userId = request.headers.get('x-user-id');
+    const userRole = request.headers.get('x-user-role') || '';
+    const userTrustLevel = request.headers.get('x-user-trust-level') || '';
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!hasTrustedAccess({ trustLevel: userTrustLevel, role: userRole })) {
+      return NextResponse.json(
+        { error: 'Trusted membership is required to submit an organization.' },
+        { status: 403 }
+      );
     }
 
     const communityId = await resolveCommunityId(request);

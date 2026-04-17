@@ -302,7 +302,6 @@ export default function SubmitArticlePage() {
             ? 'Update the article, preview the reader-facing result, and save or resubmit as needed.'
             : 'Draft first, then submit when the story is clear, categorized, and ready for editor review.'
         }
-        titleClassName="text-white"
         actions={
           <button
             onClick={() => {

@@ -45,7 +45,6 @@ export default function RecipesPage() {
       <InternalPageHeader
         title="Recipes"
         description="Structured recipes with reusable ingredients, method steps, and visually deliberate presentation."
-        titleClassName="text-white"
         actions={
           session?.user ? (
             <Link href="/recipes/submit" className="page-header-action" aria-label="Create recipe" title="Create recipe">

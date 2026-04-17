@@ -290,15 +290,87 @@ export default async function DirectoryPage({
   const safePage = Math.min(currentPage, totalPages);
   const pageStart = (safePage - 1) * DIRECTORY_PAGE_SIZE;
   const pagedRows = rows.slice(pageStart, pageStart + DIRECTORY_PAGE_SIZE);
+  const organizationActionPopoverId = 'directory-organization-trust-popover';
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       <InternalPageHeader
         title="Directory"
-        mobileAlign="center"
-        compactMobile
-        className="mb-0"
-        titleClassName="text-center leading-none"
+        actions={
+          canUseDirectoryMessaging ? (
+            <Link
+              href="/organizations/submit"
+              aria-label="Add your organization"
+              title="Add your organization"
+              className="page-header-action border-white bg-white text-slate-950 hover:opacity-90"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 16 16"
+                className="h-3.5 w-3.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
+                <path d="M8 3.25v9.5M3.25 8h9.5" />
+              </svg>
+              <span className="page-header-action-label">Your Organization</span>
+            </Link>
+          ) : (
+            <>
+              <button
+                type="button"
+                popoverTarget={organizationActionPopoverId}
+                aria-label="Add your organization"
+                title="Add your organization"
+                aria-haspopup="dialog"
+                className="page-header-action border-white bg-white text-slate-950 hover:opacity-90"
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 16 16"
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                >
+                  <path d="M8 3.25v9.5M3.25 8h9.5" />
+                </svg>
+                <span className="page-header-action-label">Your Organization</span>
+              </button>
+              <div
+                id={organizationActionPopoverId}
+                popover="auto"
+                className="backdrop:fixed backdrop:inset-0 backdrop:bg-slate-950/70 backdrop:backdrop-blur-sm fixed inset-0 m-auto h-fit w-full max-w-md rounded-[28px] border border-white/10 bg-[linear-gradient(165deg,rgba(17,34,52,0.98),rgba(10,24,38,0.98))] p-6 text-white shadow-[0_28px_80px_rgba(2,8,23,0.55)]"
+              >
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/72">
+                  Directory
+                </p>
+                <h2 className="mb-3 text-2xl font-semibold tracking-tight text-white">
+                  Trusted users only
+                </h2>
+                <p className="text-sm leading-7 text-cyan-50/78">
+                  You must be a trusted user to submit a new organization or request access to an existing one.
+                  {!sessionUser
+                    ? ' Sign in first, then complete the trust flow before continuing.'
+                    : ' Complete the trust flow before continuing.'}
+                </p>
+                <div className="mt-6 flex justify-end">
+                  <button
+                    type="button"
+                    popoverTarget={organizationActionPopoverId}
+                    popoverTargetAction="hide"
+                    className="rounded-full border border-cyan-300/35 bg-white/[0.06] px-4 py-2 text-sm font-medium text-cyan-100 transition hover:border-cyan-300/60 hover:bg-white/[0.1] hover:text-white"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </>
+          )
+        }
       />
 
       <section className="space-y-3 overflow-visible rounded-[24px] border border-slate-200 bg-white px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.04)] sm:px-5">

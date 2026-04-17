@@ -111,7 +111,7 @@ export default function HelpUsGrowClient() {
 
   if (!canAccess) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-8">
         <InternalPageHeader title="Help Us Grow" />
         <div className="rounded-[28px] border border-amber-200 bg-amber-50 px-6 py-5 text-amber-900">
           This section is available to trusted members and staff only.
@@ -121,7 +121,7 @@ export default function HelpUsGrowClient() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <InternalPageHeader
         title="Help Us Grow"
       />

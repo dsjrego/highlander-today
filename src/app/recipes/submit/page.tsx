@@ -416,7 +416,6 @@ export default function SubmitRecipePage() {
       <InternalPageHeader
         title="Recipes"
         description="Build recipes from structured fields, then import JSON when you already have machine-friendly data."
-        titleClassName="text-white"
       />
 
       {error ? (

@@ -148,7 +148,6 @@ export default function SubmitHelpWantedPage() {
     <div className="space-y-8">
       <InternalPageHeader
         title="Help Wanted"
-        titleClassName="text-white"
         actions={
           <button
             type="button"

@@ -48,6 +48,7 @@ function HomepageBoxCard({
   }
 
   const hero = box.heroItem;
+  const linkLabel = box.boxType === 'ARTICLES' ? 'More headlines' : `More from ${box.title}`;
 
   return (
     <section
@@ -120,16 +121,39 @@ function HomepageBoxCard({
           {box.linkItems.length > 0 ? (
             <>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                More from {box.title}
+                {linkLabel}
               </p>
               <ul className="mt-4 space-y-3">
                 {box.linkItems.map((item) => (
                   <li key={`${item.contentType}-${item.contentId}`} className="border-b border-slate-200/80 pb-3 last:border-b-0 last:pb-0">
                     <Link
                       href={item.url}
-                      className="text-sm font-semibold leading-6 text-slate-900 no-underline transition hover:text-[color:var(--brand-accent)] hover:no-underline"
+                      className="flex items-start gap-3 no-underline transition hover:no-underline"
                     >
-                      {item.title}
+                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                        {item.imageUrl ? (
+                          <Image
+                            src={item.imageUrl}
+                            alt={item.title}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                            {item.contentType === 'ARTICLE' ? 'News' : 'Item'}
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold leading-6 text-slate-900 transition hover:text-[color:var(--brand-accent)]">
+                          {item.title}
+                        </p>
+                        {item.metadata ? (
+                          <p className="mt-0.5 text-xs font-medium text-slate-500">
+                            • {item.metadata.split(' • ').at(-1)}
+                          </p>
+                        ) : null}
+                      </div>
                     </Link>
                   </li>
                 ))}
@@ -157,7 +181,7 @@ export default async function Home() {
   if (visibleBoxes.length === 0) {
     return (
       <div className="space-y-8">
-        <InternalPageHeader title="Today in Cambria Heights" titleClassName="text-white" />
+        <InternalPageHeader title="Today in Cambria Heights" />
         <section className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
           <h2 className="empty-state-title mb-3">
             Make local feel alive, useful, and worth checking every day.
@@ -173,7 +197,7 @@ export default async function Home() {
 
   return (
     <div className="space-y-8">
-      <InternalPageHeader title="Today in Cambria Heights" titleClassName="text-white" />
+      <InternalPageHeader title="Today in Cambria Heights" />
       <div className="grid gap-6 xl:grid-cols-3 xl:items-start">
         {visibleBoxes.map((box, index) => (
           <HomepageBoxCard

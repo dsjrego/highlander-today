@@ -284,7 +284,6 @@ export default function MarketplacePage() {
     <div className="space-y-8">
       <InternalPageHeader
         title="Market"
-        titleClassName="text-white"
         actions={
           sessionStatus === "authenticated" ? (
             <>
