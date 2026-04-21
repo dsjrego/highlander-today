@@ -1,0 +1,1341 @@
+'use client';
+
+import Link from 'next/link';
+import { useState } from 'react';
+import {
+  canAddReporterSource,
+  canAssignReporterRun,
+  canConvertReporterToArticle,
+  canEditReporterRun,
+  canGenerateReporterDraft,
+} from '@/lib/reporter/permissions';
+
+type TabKey = 'details' | 'sources' | 'blockers' | 'analysis' | 'drafts';
+
+interface ReporterRunDetailClientProps {
+  run: any;
+  assignees: { id: string; firstName: string; lastName: string }[];
+  userRole: string;
+}
+
+const TABS: Array<{ key: TabKey; label: string }> = [
+  { key: 'details', label: 'Details' },
+  { key: 'sources', label: 'Sources' },
+  { key: 'blockers', label: 'Blockers' },
+  { key: 'analysis', label: 'Analysis' },
+  { key: 'drafts', label: 'Drafts' },
+];
+
+const EMPTY_SOURCE_FORM = {
+  sourceType: 'STAFF_NOTE',
+  title: '',
+  url: '',
+  publisher: '',
+  author: '',
+  excerpt: '',
+  note: '',
+  contentText: '',
+  reliabilityTier: 'UNVERIFIED',
+};
+
+const BLOCKER_CODE_OPTIONS = [
+  'SOURCE_GAP',
+  'CORROBORATION_NEEDED',
+  'TIMEFRAME_UNCLEAR',
+  'SUBJECT_UNCLEAR',
+  'AWAITING_RESPONSE',
+  'MISSING_PRIMARY_SOURCE',
+  'LEGAL_REVIEW',
+  'EDITORIAL_REVIEW',
+  'OTHER',
+] as const;
+
+function normalizeOptionalUrl(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return '';
+  }
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+}
+
+function EditIcon() {
+  return <span aria-hidden="true" className="text-sm font-semibold leading-none">✎</span>;
+}
+
+function DeleteIcon() {
+  return <span aria-hidden="true" className="text-sm font-semibold leading-none">✕</span>;
+}
+
+function ResolveIcon() {
+  return <span aria-hidden="true" className="text-sm font-semibold leading-none">✓</span>;
+}
+
+function ReopenIcon() {
+  return <span aria-hidden="true" className="text-sm font-semibold leading-none">↺</span>;
+}
+
+function ConvertIcon() {
+  return <span aria-hidden="true" className="text-sm font-semibold leading-none">→</span>;
+}
+
+function ViewIcon() {
+  return <span aria-hidden="true" className="text-sm font-semibold leading-none">◉</span>;
+}
+
+export default function ReporterRunDetailClient({
+  run,
+  assignees,
+  userRole,
+}: ReporterRunDetailClientProps) {
+  const [activeTab, setActiveTab] = useState<TabKey>('details');
+  const [currentRun, setCurrentRun] = useState(run);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [sourceForm, setSourceForm] = useState(EMPTY_SOURCE_FORM);
+  const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
+  const [savingSource, setSavingSource] = useState(false);
+  const [deletingSourceId, setDeletingSourceId] = useState<string | null>(null);
+  const [blockerForm, setBlockerForm] = useState({
+    code: 'SOURCE_GAP',
+    message: '',
+  });
+  const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
+  const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
+  const [isConvertingDraft, setIsConvertingDraft] = useState<string | null>(null);
+  const articleDrafts = currentRun.drafts.filter((draft: any) => draft.draftType === 'ARTICLE_DRAFT');
+  const analysisDrafts = currentRun.drafts.filter(
+    (draft: any) => draft.draftType === 'SOURCE_PACKET_SUMMARY'
+  );
+  const [selectedDraftId, setSelectedDraftId] = useState<string | null>(
+    run.drafts?.find((draft: any) => draft.draftType === 'ARTICLE_DRAFT')?.id || null
+  );
+  const [selectedAnalysisId, setSelectedAnalysisId] = useState<string | null>(
+    run.drafts?.find((draft: any) => draft.draftType === 'SOURCE_PACKET_SUMMARY')?.id || null
+  );
+  const openBlockers = currentRun.blockers.filter((blocker: any) => !blocker.isResolved);
+  const unresolvedValidationIssues = (currentRun.validationIssues || []).filter(
+    (issue: any) => !issue.isResolved
+  );
+  const hasSources = currentRun.sources.length > 0;
+  const canEditRun = canEditReporterRun(userRole);
+  const canAssignRun = canAssignReporterRun(userRole);
+  const canManageSources = canAddReporterSource(userRole);
+  const canGenerateDraft = canGenerateReporterDraft(userRole);
+  const canConvertDraft = canConvertReporterToArticle(userRole);
+  const isConvertedRun =
+    currentRun.status === 'CONVERTED_TO_ARTICLE' || Boolean(currentRun.linkedArticle);
+  const selectedDraft =
+    articleDrafts.find((draft: any) => draft.id === selectedDraftId) || articleDrafts[0] || null;
+  const selectedAnalysis =
+    analysisDrafts.find((draft: any) => draft.id === selectedAnalysisId) || analysisDrafts[0] || null;
+  const draftGenerationBlockedReason = !hasSources
+    ? 'Draft generation is unavailable until the run has source material.'
+    : openBlockers.length > 0
+      ? 'Draft generation is unavailable until all open blockers are resolved.'
+      : currentRun.status === 'ARCHIVED'
+          ? 'This run is archived. Reopen it before generating another draft.'
+          : 'Draft generation is unavailable for the current run state.';
+  const canDraftNow =
+    canGenerateDraft &&
+    hasSources &&
+    openBlockers.length === 0 &&
+    currentRun.status !== 'ARCHIVED';
+  const readinessTone = isConvertedRun
+    ? 'border-sky-200 bg-sky-50 text-sky-900'
+    : !hasSources
+      ? 'border-amber-200 bg-amber-50 text-amber-900'
+      : openBlockers.length > 0
+        ? 'border-red-200 bg-red-50 text-red-900'
+        : unresolvedValidationIssues.length > 0
+          ? 'border-amber-200 bg-amber-50 text-amber-900'
+          : 'border-emerald-200 bg-emerald-50 text-emerald-900';
+  const readinessLabel = isConvertedRun
+    ? 'Linked article exists'
+    : !hasSources
+      ? 'Needs source packet'
+      : openBlockers.length > 0
+        ? 'Blocked'
+        : unresolvedValidationIssues.length > 0
+          ? 'Validation issues to review'
+          : canGenerateDraft
+            ? 'Ready for draft'
+            : 'Ready for editorial review';
+  const readinessDescription = isConvertedRun
+    ? canGenerateDraft && hasSources && openBlockers.length === 0
+      ? 'This run already has a linked article draft, and you can still generate additional drafts for comparison or revision.'
+      : 'This run already has a linked article draft. Continue editing from the article workflow or resolve any remaining blockers before generating another draft.'
+    : !hasSources
+      ? 'Add at least one source before drafting.'
+      : openBlockers.length > 0
+        ? `${openBlockers.length} open blocker${openBlockers.length === 1 ? '' : 's'} must be resolved before drafting.`
+        : unresolvedValidationIssues.length > 0
+          ? `${unresolvedValidationIssues.length} validation issue${unresolvedValidationIssues.length === 1 ? '' : 's'} remain on the current run.`
+          : canGenerateDraft
+            ? 'Source packet is assembled and this run can move into draft generation.'
+            : 'Source packet looks usable, but this role cannot generate drafts.';
+
+  async function patchRun(payload: Record<string, unknown>) {
+    setSaving(true);
+    setError('');
+    try {
+      const response = await fetch(`/api/reporter/runs/${currentRun.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update reporter run');
+      }
+      setCurrentRun((prev: any) => ({ ...prev, ...data }));
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : 'Failed to update run');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function populateSourceForm(source: any) {
+    setSourceForm({
+      sourceType: source.sourceType || 'STAFF_NOTE',
+      title: source.title || '',
+      url: source.url || '',
+      publisher: source.publisher || '',
+      author: source.author || '',
+      excerpt: source.excerpt || '',
+      note: source.note || '',
+      contentText: source.contentText || '',
+      reliabilityTier: source.reliabilityTier || 'UNVERIFIED',
+    });
+    setEditingSourceId(source.id);
+  }
+
+  function resetSourceForm() {
+    setSourceForm(EMPTY_SOURCE_FORM);
+    setEditingSourceId(null);
+    setDeletingSourceId(null);
+  }
+
+  async function handleAddSource(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError('');
+    setSavingSource(true);
+    try {
+      const payload = {
+        ...sourceForm,
+        url: normalizeOptionalUrl(sourceForm.url),
+      };
+      const isEditing = Boolean(editingSourceId);
+      const response = await fetch(
+        isEditing
+          ? `/api/reporter/sources/${editingSourceId}`
+          : `/api/reporter/runs/${currentRun.id}/sources`,
+        {
+          method: isEditing ? 'PATCH' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }
+      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(
+          data.error || `Failed to ${isEditing ? 'update' : 'add'} source`
+        );
+      }
+      setCurrentRun((prev: any) => ({
+        ...prev,
+        sources: isEditing
+          ? prev.sources.map((source: any) => (source.id === data.id ? data : source))
+          : [...prev.sources, data],
+      }));
+      resetSourceForm();
+    } catch (sourceError) {
+      setError(
+        sourceError instanceof Error
+          ? sourceError.message
+          : `Failed to ${editingSourceId ? 'update' : 'add'} source`
+      );
+    } finally {
+      setSavingSource(false);
+    }
+  }
+
+  async function handleDeleteSource(sourceId: string) {
+    setError('');
+    setDeletingSourceId(sourceId);
+    try {
+      const response = await fetch(`/api/reporter/sources/${sourceId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete source');
+      }
+      setCurrentRun((prev: any) => ({
+        ...prev,
+        sources: prev.sources.filter((source: any) => source.id !== sourceId),
+      }));
+      if (editingSourceId === sourceId) {
+        resetSourceForm();
+      } else {
+        setDeletingSourceId(null);
+      }
+    } catch (sourceError) {
+      setError(sourceError instanceof Error ? sourceError.message : 'Failed to delete source');
+      setDeletingSourceId(null);
+    }
+  }
+
+  async function handleResolveBlocker(blockerId: string, isResolved: boolean) {
+    setError('');
+    try {
+      const response = await fetch(`/api/reporter/blockers/${blockerId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isResolved }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update blocker');
+      }
+      setCurrentRun((prev: any) => ({
+        ...prev,
+        blockers: prev.blockers.map((blocker: any) =>
+          blocker.id === blockerId ? data : blocker
+        ),
+      }));
+    } catch (blockerError) {
+      setError(blockerError instanceof Error ? blockerError.message : 'Failed to update blocker');
+    }
+  }
+
+  async function handleAddBlocker(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError('');
+    try {
+      const response = await fetch(`/api/reporter/runs/${currentRun.id}/blockers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(blockerForm),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to add blocker');
+      }
+      setCurrentRun((prev: any) => ({
+        ...prev,
+        status: 'BLOCKED',
+        blockers: [data, ...prev.blockers],
+      }));
+      setBlockerForm({ code: 'SOURCE_GAP', message: '' });
+    } catch (blockerError) {
+      setError(blockerError instanceof Error ? blockerError.message : 'Failed to add blocker');
+    }
+  }
+
+  async function handleGenerateDraft() {
+    setError('');
+    setIsGeneratingDraft(true);
+    try {
+      const response = await fetch(`/api/reporter/runs/${currentRun.id}/draft`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draftType: 'ARTICLE_DRAFT' }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate draft');
+      }
+      setCurrentRun((prev: any) => ({
+        ...prev,
+        status: data.validation?.hasCriticalIssues
+          ? 'BLOCKED'
+          : prev.linkedArticle
+            ? 'CONVERTED_TO_ARTICLE'
+            : 'DRAFT_CREATED',
+        drafts: [data.draft, ...(prev.drafts || [])],
+      }));
+      setSelectedDraftId(data.draft.id);
+    } catch (draftError) {
+      setError(draftError instanceof Error ? draftError.message : 'Failed to generate draft');
+    } finally {
+      setIsGeneratingDraft(false);
+    }
+  }
+
+  async function handleGenerateAnalysis() {
+    setError('');
+    setIsGeneratingAnalysis(true);
+    try {
+      const response = await fetch(`/api/reporter/runs/${currentRun.id}/draft`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draftType: 'SOURCE_PACKET_SUMMARY' }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate reporter analysis');
+      }
+      setCurrentRun((prev: any) => ({
+        ...prev,
+        status: data.validation?.hasCriticalIssues ? 'BLOCKED' : prev.status,
+        drafts: [data.draft, ...(prev.drafts || [])],
+      }));
+      setSelectedAnalysisId(data.draft.id);
+      setActiveTab('analysis');
+    } catch (analysisError) {
+      setError(
+        analysisError instanceof Error
+          ? analysisError.message
+          : 'Failed to generate reporter analysis'
+      );
+    } finally {
+      setIsGeneratingAnalysis(false);
+    }
+  }
+
+  async function handleConvertDraft(draftId: string) {
+    setError('');
+    setIsConvertingDraft(draftId);
+    try {
+      const response = await fetch(
+        `/api/reporter/runs/${currentRun.id}/convert-to-article`,
+        { method: 'POST' }
+      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to convert draft');
+      }
+      window.location.href = `/local-life/submit?edit=${data.id}`;
+    } catch (convertError) {
+      setError(
+        convertError instanceof Error ? convertError.message : 'Failed to convert draft'
+      );
+    } finally {
+      setIsConvertingDraft(null);
+    }
+  }
+
+  return (
+    <div className="space-y-0">
+      <div className="relative top-[2px] flex flex-wrap gap-0 pb-0">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setActiveTab(tab.key)}
+            className={`admin-card-tab ${
+              tab.key === activeTab ? 'admin-card-tab-active' : 'admin-card-tab-inactive'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="admin-card-tab-body space-y-4">
+        {error ? <div className="admin-list-error">{error}</div> : null}
+
+        <section className="grid gap-3 lg:grid-cols-5">
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+              Status
+            </div>
+            <div className="mt-2 text-sm font-semibold text-slate-900">{currentRun.status}</div>
+          </div>
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+              Assignee
+            </div>
+            <div className="mt-2 text-sm font-semibold text-slate-900">
+              {currentRun.assignedTo
+                ? `${currentRun.assignedTo.firstName} ${currentRun.assignedTo.lastName}`
+                : 'Unassigned'}
+            </div>
+          </div>
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+              Sources
+            </div>
+            <div className="mt-2 text-sm font-semibold text-slate-900">
+              {currentRun.sources.length}
+            </div>
+          </div>
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+              Open Blockers
+            </div>
+            <div className="mt-2 text-sm font-semibold text-slate-900">
+              {openBlockers.length}
+            </div>
+          </div>
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+              Drafts
+            </div>
+            <div className="mt-2 text-sm font-semibold text-slate-900">
+              {currentRun.drafts.length}
+            </div>
+          </div>
+        </section>
+
+        <section className={`rounded-3xl border px-4 py-4 ${readinessTone}`}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">
+                Run Readiness
+              </p>
+              <h2 className="mt-1 text-base font-semibold">{readinessLabel}</h2>
+              <p className="mt-1 text-sm opacity-90">{readinessDescription}</p>
+            </div>
+            <div className="text-sm font-medium">
+              {currentRun.linkedArticle ? 'Linked to article draft' : 'Pre-publication workflow'}
+            </div>
+          </div>
+        </section>
+
+        {activeTab === 'details' ? (
+          <div className="grid gap-4 lg:grid-cols-2">
+            <section className="admin-list rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="space-y-4">
+                <label className="admin-list-filter">
+                  <span className="admin-list-filter-label">Topic</span>
+                  <input
+                    className="admin-list-filter-input"
+                    defaultValue={currentRun.topic}
+                    onBlur={(event) => {
+                      if (event.target.value !== currentRun.topic) {
+                        patchRun({ topic: event.target.value });
+                      }
+                    }}
+                  />
+                </label>
+                <label className="admin-list-filter">
+                  <span className="admin-list-filter-label">Title</span>
+                  <input
+                    className="admin-list-filter-input"
+                    defaultValue={currentRun.title || ''}
+                    onBlur={(event) => patchRun({ title: event.target.value })}
+                  />
+                </label>
+                <label className="admin-list-filter">
+                  <span className="admin-list-filter-label">Subject</span>
+                  <input
+                    className="admin-list-filter-input"
+                    defaultValue={currentRun.subjectName || ''}
+                    onBlur={(event) => patchRun({ subjectName: event.target.value })}
+                  />
+                </label>
+                <label className="admin-list-filter">
+                  <span className="admin-list-filter-label">Status</span>
+                  <select
+                    className="admin-list-cell-select"
+                    value={currentRun.status}
+                    onChange={(event) => patchRun({ status: event.target.value })}
+                    disabled={saving || !canEditRun}
+                  >
+                    {[
+                      'NEW',
+                      'NEEDS_REVIEW',
+                      'SOURCE_PACKET_IN_PROGRESS',
+                      'READY_FOR_DRAFT',
+                      'BLOCKED',
+                      'DRAFT_CREATED',
+                      'ARCHIVED',
+                    ].map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="admin-list-filter">
+                  <span className="admin-list-filter-label">Assignee</span>
+                  <select
+                    className="admin-list-cell-select"
+                    value={currentRun.assignedToUserId || ''}
+                    onChange={(event) =>
+                      patchRun({ assignedToUserId: event.target.value || null })
+                    }
+                    disabled={saving || !canAssignRun}
+                  >
+                    <option value="">Unassigned</option>
+                    {assignees.map((assignee) => (
+                      <option key={assignee.id} value={assignee.id}>
+                        {assignee.firstName} {assignee.lastName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            <section className="admin-list rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="space-y-4">
+                <label className="admin-list-filter">
+                  <span className="admin-list-filter-label">Request Summary</span>
+                  <textarea
+                    className="admin-list-filter-input min-h-[140px]"
+                    defaultValue={currentRun.requestSummary || ''}
+                    onBlur={(event) => patchRun({ requestSummary: event.target.value })}
+                  />
+                </label>
+                <label className="admin-list-filter">
+                  <span className="admin-list-filter-label">Editor Notes</span>
+                  <textarea
+                    className="admin-list-filter-input min-h-[140px]"
+                    defaultValue={currentRun.editorNotes || ''}
+                    onBlur={(event) => patchRun({ editorNotes: event.target.value })}
+                  />
+                </label>
+                {currentRun.linkedArticle ? (
+                <div className="text-sm text-slate-600">
+                  Linked article:{' '}
+                    <Link
+                      href={`/local-life/submit?edit=${currentRun.linkedArticle.id}`}
+                      className="admin-list-link"
+                    >
+                      {currentRun.linkedArticle.title}
+                    </Link>
+                  </div>
+                ) : null}
+                {!canAssignRun ? (
+                  <div className="text-xs text-slate-500">
+                    This role can review the assignee, but assignment changes require editor access.
+                  </div>
+                ) : null}
+              </div>
+            </section>
+          </div>
+        ) : null}
+
+        {activeTab === 'sources' ? (
+          <div className="space-y-4">
+            <section className="admin-list rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="admin-list-table-wrap">
+                <table className="admin-list-table">
+                  <thead className="admin-list-head">
+                    <tr>
+                      <th className="admin-list-header-cell">Type</th>
+                      <th className="admin-list-header-cell">Title</th>
+                      <th className="admin-list-header-cell">Reliability</th>
+                      <th className="admin-list-header-cell">Source</th>
+                      <th className="admin-list-header-cell">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentRun.sources.length === 0 ? (
+                      <tr className="admin-list-row">
+                        <td className="admin-list-empty" colSpan={5}>
+                          No sources yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      currentRun.sources.map((source: any) => (
+                        <tr key={source.id} className="admin-list-row">
+                          <td className="admin-list-cell">{source.sourceType}</td>
+                          <td className="admin-list-cell">
+                            <div
+                              className="max-w-[280px] truncate text-sm font-medium text-slate-900 md:max-w-[360px] lg:max-w-[440px]"
+                              title={
+                                source.title || source.note || source.contentText || 'Untitled source'
+                              }
+                            >
+                              {source.title || source.note || source.contentText || 'Untitled source'}
+                            </div>
+                          </td>
+                          <td className="admin-list-cell">{source.reliabilityTier}</td>
+                          <td className="admin-list-cell">
+                            {source.url ? (
+                              <a
+                                href={source.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="admin-list-link"
+                              >
+                                Link
+                              </a>
+                            ) : (
+                              'Inline note'
+                            )}
+                          </td>
+                          <td className="admin-list-cell">
+                            {canManageSources ? (
+                              <div className="flex min-w-[88px] items-center justify-end gap-2">
+                                <button
+                                  type="button"
+                                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-400 bg-slate-100 text-slate-700 shadow-sm transition hover:border-slate-900 hover:bg-slate-200 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+                                  onClick={() => populateSourceForm(source)}
+                                  disabled={!canManageSources}
+                                  aria-label={`Edit source ${source.title || source.id}`}
+                                  title="Edit source"
+                                >
+                                  <EditIcon />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-rose-300 bg-rose-50 text-rose-700 shadow-sm transition hover:border-rose-600 hover:bg-rose-100 hover:text-rose-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                  onClick={() => handleDeleteSource(source.id)}
+                                  disabled={!canManageSources || deletingSourceId === source.id}
+                                  aria-label={`Delete source ${source.title || source.id}`}
+                                  title="Delete source"
+                                >
+                                  <DeleteIcon />
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-slate-500">View only</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {canManageSources ? (
+            <section className="admin-list rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    {editingSourceId ? 'Edit Source' : 'Add Source'}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Track the source packet with notes, links, and reliability context.
+                  </p>
+                </div>
+                {editingSourceId ? (
+                  <button
+                    type="button"
+                    className="admin-list-cell-button"
+                    onClick={resetSourceForm}
+                  >
+                    Cancel Edit
+                  </button>
+                ) : null}
+              </div>
+              <form className="grid gap-4 md:grid-cols-2" onSubmit={handleAddSource}>
+                <label className="admin-list-filter">
+                  <span className="admin-list-filter-label">Source Type</span>
+                  <select
+                    className="admin-list-cell-select"
+                    value={sourceForm.sourceType}
+                    onChange={(event) =>
+                      setSourceForm((prev) => ({ ...prev, sourceType: event.target.value }))
+                    }
+                  >
+                    {[
+                      'STAFF_NOTE',
+                      'USER_NOTE',
+                      'OFFICIAL_URL',
+                      'NEWS_ARTICLE',
+                      'DOCUMENT',
+                      'TRANSCRIPT_EXCERPT',
+                    ].map((sourceType) => (
+                      <option key={sourceType} value={sourceType}>
+                        {sourceType}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="admin-list-filter">
+                  <span className="admin-list-filter-label">Reliability</span>
+                  <select
+                    className="admin-list-cell-select"
+                    value={sourceForm.reliabilityTier}
+                    onChange={(event) =>
+                      setSourceForm((prev) => ({
+                        ...prev,
+                        reliabilityTier: event.target.value,
+                      }))
+                    }
+                  >
+                    {['UNVERIFIED', 'LOW', 'MEDIUM', 'HIGH', 'PRIMARY'].map((tier) => (
+                      <option key={tier} value={tier}>
+                        {tier}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="admin-list-filter md:col-span-2">
+                  <span className="admin-list-filter-label">Title</span>
+                  <input
+                    className="admin-list-filter-input"
+                    value={sourceForm.title}
+                    onChange={(event) =>
+                      setSourceForm((prev) => ({ ...prev, title: event.target.value }))
+                    }
+                  />
+                </label>
+                <label className="admin-list-filter">
+                  <span className="admin-list-filter-label">Publisher</span>
+                  <input
+                    className="admin-list-filter-input"
+                    value={sourceForm.publisher}
+                    onChange={(event) =>
+                      setSourceForm((prev) => ({ ...prev, publisher: event.target.value }))
+                    }
+                  />
+                </label>
+                <label className="admin-list-filter">
+                  <span className="admin-list-filter-label">Author</span>
+                  <input
+                    className="admin-list-filter-input"
+                    value={sourceForm.author}
+                    onChange={(event) =>
+                      setSourceForm((prev) => ({ ...prev, author: event.target.value }))
+                    }
+                  />
+                </label>
+                <label className="admin-list-filter md:col-span-2">
+                  <span className="admin-list-filter-label">URL</span>
+                  <input
+                    className="admin-list-filter-input"
+                    value={sourceForm.url}
+                    onChange={(event) =>
+                      setSourceForm((prev) => ({ ...prev, url: event.target.value }))
+                    }
+                    placeholder="example.com/story or https://example.com/story"
+                  />
+                </label>
+                <label className="admin-list-filter md:col-span-2">
+                  <span className="admin-list-filter-label">Excerpt</span>
+                  <textarea
+                    className="admin-list-filter-input min-h-[100px]"
+                    value={sourceForm.excerpt}
+                    onChange={(event) =>
+                      setSourceForm((prev) => ({ ...prev, excerpt: event.target.value }))
+                    }
+                  />
+                </label>
+                <label className="admin-list-filter md:col-span-2">
+                  <span className="admin-list-filter-label">Staff Note</span>
+                  <textarea
+                    className="admin-list-filter-input min-h-[100px]"
+                    value={sourceForm.note}
+                    onChange={(event) =>
+                      setSourceForm((prev) => ({ ...prev, note: event.target.value }))
+                    }
+                  />
+                </label>
+                <label className="admin-list-filter md:col-span-2">
+                  <span className="admin-list-filter-label">Content / Note</span>
+                  <textarea
+                    className="admin-list-filter-input min-h-[140px]"
+                    value={sourceForm.contentText}
+                    onChange={(event) =>
+                      setSourceForm((prev) => ({ ...prev, contentText: event.target.value }))
+                    }
+                  />
+                </label>
+                <div className="md:col-span-2 flex justify-end">
+                  <button
+                    type="submit"
+                    className="page-header-action"
+                    disabled={savingSource}
+                  >
+                    {savingSource
+                      ? editingSourceId
+                        ? 'Saving...'
+                        : 'Adding...'
+                      : editingSourceId
+                        ? 'Save Source'
+                        : 'Add Source'}
+                  </button>
+                </div>
+              </form>
+            </section>
+            ) : (
+              <section className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                This role can view the source packet but cannot change sources.
+              </section>
+            )}
+          </div>
+        ) : null}
+
+        {activeTab === 'blockers' ? (
+          <div className="space-y-4">
+            <section className="admin-list rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="admin-list-table-wrap">
+                <table className="admin-list-table">
+                  <thead className="admin-list-head">
+                    <tr>
+                      <th className="admin-list-header-cell">Code</th>
+                      <th className="admin-list-header-cell">Message</th>
+                      <th className="admin-list-header-cell">State</th>
+                      <th className="admin-list-header-cell">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentRun.blockers.length === 0 ? (
+                      <tr className="admin-list-row">
+                        <td className="admin-list-empty" colSpan={4}>
+                          No blockers yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      currentRun.blockers.map((blocker: any) => (
+                        <tr key={blocker.id} className="admin-list-row">
+                          <td className="admin-list-cell">{blocker.code}</td>
+                          <td className="admin-list-cell">
+                            <div
+                              className="max-w-[320px] truncate text-sm text-slate-700 md:max-w-[420px] lg:max-w-[520px]"
+                              title={blocker.message}
+                            >
+                              {blocker.message}
+                            </div>
+                          </td>
+                          <td className="admin-list-cell">
+                            {blocker.isResolved ? 'Resolved' : 'Open'}
+                          </td>
+                          <td className="admin-list-cell">
+                            {canEditRun ? (
+                              <div className="flex min-w-[44px] items-center justify-end">
+                                <button
+                                  type="button"
+                                  className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                                    blocker.isResolved
+                                      ? 'border-amber-300 bg-amber-50 text-amber-700 hover:border-amber-500 hover:bg-amber-100 hover:text-amber-800'
+                                      : 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:border-emerald-600 hover:bg-emerald-100 hover:text-emerald-800'
+                                  }`}
+                                  onClick={() =>
+                                    handleResolveBlocker(blocker.id, !blocker.isResolved)
+                                  }
+                                  disabled={!canEditRun}
+                                  aria-label={blocker.isResolved ? 'Reopen blocker' : 'Resolve blocker'}
+                                  title={blocker.isResolved ? 'Reopen blocker' : 'Resolve blocker'}
+                                >
+                                  {blocker.isResolved ? <ReopenIcon /> : <ResolveIcon />}
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-slate-500">View only</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {canEditRun ? (
+            <section className="admin-list rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <form className="space-y-4" onSubmit={handleAddBlocker}>
+                <label className="admin-list-filter">
+                  <span className="admin-list-filter-label">Blocker Code</span>
+                  <select
+                    className="admin-list-cell-select"
+                    value={blockerForm.code}
+                    onChange={(event) =>
+                      setBlockerForm((prev) => ({ ...prev, code: event.target.value }))
+                    }
+                  >
+                    {BLOCKER_CODE_OPTIONS.map((code) => (
+                      <option key={code} value={code}>
+                        {code}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="admin-list-filter">
+                  <span className="admin-list-filter-label">Message</span>
+                  <textarea
+                    className="admin-list-filter-input min-h-[140px]"
+                    value={blockerForm.message}
+                    onChange={(event) =>
+                      setBlockerForm((prev) => ({ ...prev, message: event.target.value }))
+                    }
+                    placeholder="Describe the specific reporting gap or hold."
+                  />
+                </label>
+                <div className="flex justify-end">
+                  <button type="submit" className="page-header-action">
+                    Add Blocker
+                  </button>
+                </div>
+              </form>
+            </section>
+            ) : null}
+          </div>
+        ) : null}
+
+        {activeTab === 'analysis' ? (
+          <div className="space-y-4">
+            <section className="admin-list rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="mb-4 flex justify-end">
+                <button
+                  type="button"
+                  className="page-header-action"
+                  onClick={handleGenerateAnalysis}
+                  disabled={!hasSources || isGeneratingAnalysis}
+                >
+                  {isGeneratingAnalysis ? 'Analyzing...' : 'Generate Analysis'}
+                </button>
+              </div>
+              {!hasSources ? (
+                <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  Add at least one source before generating Reporter Agent analysis.
+                </div>
+              ) : null}
+              <div className="admin-list-table-wrap">
+                <table className="admin-list-table">
+                  <thead className="admin-list-head">
+                    <tr>
+                      <th className="admin-list-header-cell">Analysis</th>
+                      <th className="admin-list-header-cell">Headline</th>
+                      <th className="admin-list-header-cell">Model</th>
+                      <th className="admin-list-header-cell">Created</th>
+                      <th className="admin-list-header-cell">Preview</th>
+                      <th className="admin-list-header-cell">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analysisDrafts.length === 0 ? (
+                      <tr className="admin-list-row">
+                        <td className="admin-list-empty" colSpan={6}>
+                          No Reporter Agent analysis yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      analysisDrafts.map((draft: any, index: number) => (
+                        <tr key={draft.id} className="admin-list-row">
+                          <td className="admin-list-cell">
+                            <span className="font-semibold text-slate-900">
+                              Analysis {analysisDrafts.length - index}
+                            </span>
+                          </td>
+                          <td className="admin-list-cell">
+                            <div
+                              className="max-w-[260px] truncate text-sm font-medium text-slate-900 md:max-w-[340px] lg:max-w-[420px]"
+                              title={draft.headline || 'Reporter Agent Analysis'}
+                            >
+                              {draft.headline || 'Reporter Agent Analysis'}
+                            </div>
+                          </td>
+                          <td className="admin-list-cell">
+                            <div className="max-w-[180px] truncate text-sm text-slate-700">
+                              {draft.modelProvider ? (
+                                <span title={[draft.modelProvider, draft.modelName].filter(Boolean).join(' • ')}>
+                                  {draft.modelProvider}
+                                  {draft.modelName ? ` • ${draft.modelName}` : ''}
+                                </span>
+                              ) : (
+                                <span className="text-slate-500">Fallback</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="admin-list-cell">
+                            {draft.createdAt
+                              ? new Date(draft.createdAt).toLocaleString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                })
+                              : '—'}
+                          </td>
+                          <td className="admin-list-cell">
+                            <div
+                              className="max-w-[260px] truncate text-sm text-slate-700 md:max-w-[340px] lg:max-w-[420px]"
+                              title={draft.body}
+                            >
+                              {draft.body}
+                            </div>
+                          </td>
+                          <td className="admin-list-cell">
+                            <div className="flex min-w-[44px] items-center justify-end">
+                              <button
+                                type="button"
+                                className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border shadow-sm transition ${
+                                  selectedAnalysis?.id === draft.id
+                                    ? 'border-slate-700 bg-slate-900 text-white'
+                                    : 'border-slate-300 bg-slate-50 text-slate-700 hover:border-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                                }`}
+                                onClick={() => setSelectedAnalysisId(draft.id)}
+                                aria-label="View Reporter Agent analysis"
+                                title="View Reporter Agent analysis"
+                              >
+                                <ViewIcon />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {selectedAnalysis ? (
+              <section className="admin-list rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-900">
+                      {selectedAnalysis.headline || 'Reporter Agent Analysis'}
+                    </h3>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {selectedAnalysis.modelProvider
+                        ? `${selectedAnalysis.modelProvider}${selectedAnalysis.modelName ? ` • ${selectedAnalysis.modelName}` : ''}`
+                        : 'Fallback'}
+                    </p>
+                  </div>
+                  {selectedAnalysis.createdAt ? (
+                    <div className="text-xs text-slate-500">
+                      {new Date(selectedAnalysis.createdAt).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+                <div className="whitespace-pre-wrap rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-700">
+                  {selectedAnalysis.body}
+                </div>
+                {selectedAnalysis.generationNotes ? (
+                  <p className="mt-3 text-xs text-slate-500">{selectedAnalysis.generationNotes}</p>
+                ) : null}
+              </section>
+            ) : null}
+          </div>
+        ) : null}
+
+        {activeTab === 'drafts' ? (
+          <div className="space-y-4">
+            <section className="admin-list rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="mb-4 flex justify-end">
+                <button
+                  type="button"
+                  className="page-header-action"
+                  onClick={handleGenerateDraft}
+                  disabled={!canDraftNow || isGeneratingDraft}
+                >
+                  {isGeneratingDraft ? 'Generating...' : 'Generate Draft'}
+                </button>
+              </div>
+              {!canGenerateDraft ? (
+                <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                  This role can review drafts but cannot generate them.
+                </div>
+              ) : null}
+              {canGenerateDraft && !canDraftNow ? (
+                <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  {draftGenerationBlockedReason}
+                </div>
+              ) : null}
+              <div className="admin-list-table-wrap">
+                <table className="admin-list-table">
+                  <thead className="admin-list-head">
+                    <tr>
+                      <th className="admin-list-header-cell">Draft</th>
+                      <th className="admin-list-header-cell">Headline</th>
+                      <th className="admin-list-header-cell">Type</th>
+                      <th className="admin-list-header-cell">Status</th>
+                      <th className="admin-list-header-cell">Model</th>
+                      <th className="admin-list-header-cell">Created</th>
+                      <th className="admin-list-header-cell">Preview</th>
+                      <th className="admin-list-header-cell">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {articleDrafts.length === 0 ? (
+                      <tr className="admin-list-row">
+                        <td className="admin-list-empty" colSpan={8}>
+                          No reporter drafts yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      articleDrafts.map((draft: any, index: number) => (
+                        <tr key={draft.id} className="admin-list-row">
+                          <td className="admin-list-cell">
+                            <span className="font-semibold text-slate-900">
+                              Draft {articleDrafts.length - index}
+                            </span>
+                          </td>
+                          <td className="admin-list-cell">
+                            <div
+                              className="max-w-[260px] truncate text-sm font-medium text-slate-900 md:max-w-[340px] lg:max-w-[420px]"
+                              title={draft.headline || 'Untitled draft'}
+                            >
+                              {draft.headline || 'Untitled draft'}
+                            </div>
+                          </td>
+                          <td className="admin-list-cell">{draft.draftType}</td>
+                          <td className="admin-list-cell">{draft.status}</td>
+                          <td className="admin-list-cell">
+                            <div className="max-w-[180px] truncate text-sm text-slate-700">
+                              {draft.modelProvider ? (
+                                <span title={[draft.modelProvider, draft.modelName].filter(Boolean).join(' • ')}>
+                                  {draft.modelProvider}
+                                  {draft.modelName ? ` • ${draft.modelName}` : ''}
+                                </span>
+                              ) : (
+                                <span className="text-slate-500">Fallback</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="admin-list-cell">
+                            {draft.createdAt
+                              ? new Date(draft.createdAt).toLocaleString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                })
+                              : '—'}
+                          </td>
+                          <td className="admin-list-cell">
+                            <div
+                              className="max-w-[260px] truncate text-sm text-slate-700 md:max-w-[340px] lg:max-w-[420px]"
+                              title={draft.body}
+                            >
+                              {draft.body}
+                            </div>
+                          </td>
+                          <td className="admin-list-cell">
+                            <div className="flex min-w-[88px] items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border shadow-sm transition ${
+                                  selectedDraft?.id === draft.id
+                                    ? 'border-slate-700 bg-slate-900 text-white'
+                                    : 'border-slate-300 bg-slate-50 text-slate-700 hover:border-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                                }`}
+                                onClick={() => setSelectedDraftId(draft.id)}
+                                aria-label="View reporter draft"
+                                title="View reporter draft"
+                              >
+                                <ViewIcon />
+                              </button>
+                              {currentRun.linkedArticle ? (
+                                <Link
+                                  href={`/local-life/submit?edit=${currentRun.linkedArticle.id}`}
+                                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-slate-50 text-slate-700 shadow-sm transition hover:border-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                                  aria-label="Open linked article"
+                                  title="Open linked article"
+                                >
+                                  <ConvertIcon />
+                                </Link>
+                              ) : canConvertDraft ? (
+                                <button
+                                  type="button"
+                                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-sky-300 bg-sky-50 text-sky-700 shadow-sm transition hover:border-sky-600 hover:bg-sky-100 hover:text-sky-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                  onClick={() => handleConvertDraft(draft.id)}
+                                  disabled={
+                                    !canConvertDraft ||
+                                    Boolean(currentRun.linkedArticle) ||
+                                    isConvertingDraft === draft.id
+                                  }
+                                  aria-label="Convert draft to article"
+                                  title="Convert to article"
+                                >
+                                  <ConvertIcon />
+                                </button>
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {selectedDraft ? (
+              <section className="admin-list rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-900">
+                      {selectedDraft.headline || 'Untitled draft'}
+                    </h3>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {selectedDraft.draftType} • {selectedDraft.status}
+                      {selectedDraft.modelProvider
+                        ? ` • ${selectedDraft.modelProvider}${selectedDraft.modelName ? ` • ${selectedDraft.modelName}` : ''}`
+                        : ' • Fallback'}
+                    </p>
+                  </div>
+                  {selectedDraft.createdAt ? (
+                    <div className="text-xs text-slate-500">
+                      {new Date(selectedDraft.createdAt).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+                {selectedDraft.dek ? (
+                  <p className="mb-4 text-sm font-medium text-slate-700">{selectedDraft.dek}</p>
+                ) : null}
+                <div className="whitespace-pre-wrap rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-700">
+                  {selectedDraft.body}
+                </div>
+                {selectedDraft.generationNotes ? (
+                  <p className="mt-3 text-xs text-slate-500">{selectedDraft.generationNotes}</p>
+                ) : null}
+              </section>
+            ) : null}
+
+            {currentRun.validationIssues?.length ? (
+              <section className="admin-list rounded-3xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+                <div className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-amber-800">
+                  Validation Issues
+                </div>
+                <div className="admin-list-table-wrap">
+                  <table className="admin-list-table">
+                    <thead className="admin-list-head">
+                      <tr>
+                        <th className="admin-list-header-cell">Severity</th>
+                        <th className="admin-list-header-cell">Code</th>
+                        <th className="admin-list-header-cell">Message</th>
+                        <th className="admin-list-header-cell">Evidence</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {currentRun.validationIssues.map((issue: any) => (
+                        <tr key={issue.id} className="admin-list-row">
+                          <td className="admin-list-cell">{issue.severity}</td>
+                          <td className="admin-list-cell">
+                            <span className="font-mono text-xs text-slate-600">{issue.code}</span>
+                          </td>
+                          <td className="admin-list-cell">
+                            <div
+                              className="max-w-[320px] truncate text-sm text-slate-700 md:max-w-[420px] lg:max-w-[520px]"
+                              title={issue.message}
+                            >
+                              {issue.message}
+                            </div>
+                          </td>
+                          <td className="admin-list-cell">
+                            {issue.evidenceSpan || '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}

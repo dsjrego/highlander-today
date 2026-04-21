@@ -44,6 +44,7 @@ model Community {
   homepageBoxes          HomepageBox[]
   homepageSectionsLegacy HomepageSectionLegacy[]
   domains                TenantDomain[]
+  reporterRuns           ReporterRun[]
   categories             Category[]
   siteSettings           SiteSetting[]
   tenantCoverageAreas    TenantCoverageArea[]
@@ -124,6 +125,11 @@ model User {
   updatedOrganizationForms OrganizationForm[]        @relation("organizationFormUpdatedBy")
   organizationFormSubmissions OrganizationFormSubmission[]
   placeRelationships       UserPlaceRelationship[]
+  reporterRunsCreated      ReporterRun[]             @relation("reporterRunCreatedBy")
+  reporterRunsAssigned     ReporterRun[]             @relation("reporterRunAssignedTo")
+  reporterSourcesCreated   ReporterSource[]          @relation("reporterSourceCreatedBy")
+  reporterDraftsCreated    ReporterDraft[]           @relation("reporterDraftCreatedBy")
+  reporterBlockersResolved ReporterBlocker[]         @relation("reporterBlockerResolvedBy")
 
   @@map("users")
 }
@@ -275,6 +281,7 @@ model Place {
   tenantCoverageAreas    TenantCoverageArea[]
   userRelationships      UserPlaceRelationship[]
   matchedObservedGeos    ObservedGeoLocation[]
+  reporterSources        ReporterSource[]        @relation("reporterSourcePlace")
 
   @@index([type])
   @@index([countryCode])
@@ -460,6 +467,7 @@ model Organization {
   eventSeries EventSeries[]
   forms       OrganizationForm[]
   formSubmissions OrganizationFormSubmission[]
+  reporterSources ReporterSource[] @relation("reporterSourceOrganization")
 
   @@unique([communityId, slug])
   @@index([communityId])
@@ -712,6 +720,8 @@ model Article {
   category  Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   tags      ArticleTag[]
   comments  Comment[]
+  reporterRunLinks ReporterRun[]    @relation("reporterRunLinkedArticle")
+  reporterSources  ReporterSource[] @relation("reporterSourceArticle")
 
   @@unique([communityId, slug])
   @@index([communityId])
@@ -726,6 +736,212 @@ enum ArticleStatus {
   PENDING_REVIEW
   PUBLISHED
   UNPUBLISHED
+}
+
+enum ReporterRunStatus {
+  NEW
+  NEEDS_REVIEW
+  SOURCE_PACKET_IN_PROGRESS
+  READY_FOR_DRAFT
+  BLOCKED
+  DRAFT_CREATED
+  CONVERTED_TO_ARTICLE
+  ARCHIVED
+}
+
+enum ReporterMode {
+  REQUEST
+  INTERVIEW
+  RESEARCH
+  HYBRID
+}
+
+enum ReporterRequestType {
+  ARTICLE_REQUEST
+  STORY_TIP
+  EDITOR_ASSIGNMENT
+}
+
+enum ReporterSourceType {
+  USER_NOTE
+  STAFF_NOTE
+  INTERVIEW_NOTE
+  TRANSCRIPT_EXCERPT
+  DOCUMENT
+  OFFICIAL_URL
+  NEWS_ARTICLE
+  HIGHLANDER_ARTICLE
+  EVENT_RECORD
+  ORGANIZATION_RECORD
+  PLACE_RECORD
+}
+
+enum ReporterReliabilityTier {
+  PRIMARY
+  HIGH
+  MEDIUM
+  LOW
+  UNVERIFIED
+}
+
+enum ReporterValidationSeverity {
+  CRITICAL
+  WARNING
+}
+
+enum ReporterDraftStatus {
+  GENERATED
+  REVIEWED
+  REJECTED
+  CONVERTED_TO_ARTICLE
+}
+
+enum ReporterDraftType {
+  ARTICLE_DRAFT
+  SOURCE_PACKET_SUMMARY
+}
+
+model ReporterRun {
+  id                 String              @id @default(uuid()) @db.Uuid
+  communityId        String              @db.Uuid
+  createdByUserId    String?             @db.Uuid
+  assignedToUserId   String?             @db.Uuid
+  linkedArticleId    String?             @unique @db.Uuid
+  status             ReporterRunStatus   @default(NEW)
+  mode               ReporterMode        @default(REQUEST)
+  requestType        ReporterRequestType @default(ARTICLE_REQUEST)
+  title              String?
+  topic              String
+  subjectName        String?
+  requestedArticleType String?
+  requesterName      String?
+  requesterEmail     String?
+  requesterPhone     String?
+  requesterUserId    String?             @db.Uuid
+  requestSummary     String?
+  editorNotes        String?
+  publicDescription  String?
+  debugNotes         String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  community         Community                @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  createdBy         User?                    @relation("reporterRunCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  assignedTo        User?                    @relation("reporterRunAssignedTo", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  linkedArticle     Article?                 @relation("reporterRunLinkedArticle", fields: [linkedArticleId], references: [id], onDelete: SetNull)
+  sources           ReporterSource[]
+  blockers          ReporterBlocker[]
+  drafts            ReporterDraft[]
+  validationIssues  ReporterValidationIssue[]
+
+  @@index([communityId, status])
+  @@index([assignedToUserId, status])
+  @@index([createdByUserId])
+  @@index([requesterUserId])
+  @@index([createdAt])
+  @@map("reporter_runs")
+}
+
+model ReporterSource {
+  id                   String                   @id @default(uuid()) @db.Uuid
+  reporterRunId        String                   @db.Uuid
+  sourceType           ReporterSourceType
+  title                String?
+  url                  String?
+  publisher            String?
+  author               String?
+  publishedAt          DateTime?
+  retrievedAt          DateTime?
+  contentText          String?
+  excerpt              String?
+  note                 String?
+  reliabilityTier      ReporterReliabilityTier @default(UNVERIFIED)
+  linkedArticleId      String?                  @db.Uuid
+  linkedEventId        String?                  @db.Uuid
+  linkedOrganizationId String?                  @db.Uuid
+  linkedPlaceId        String?                  @db.Uuid
+  sortOrder            Int                      @default(0)
+  createdByUserId      String?                  @db.Uuid
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+
+  reporterRun        ReporterRun   @relation(fields: [reporterRunId], references: [id], onDelete: Cascade)
+  createdBy          User?         @relation("reporterSourceCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  linkedArticle      Article?      @relation("reporterSourceArticle", fields: [linkedArticleId], references: [id], onDelete: SetNull)
+  linkedEvent        Event?        @relation("reporterSourceEvent", fields: [linkedEventId], references: [id], onDelete: SetNull)
+  linkedOrganization Organization? @relation("reporterSourceOrganization", fields: [linkedOrganizationId], references: [id], onDelete: SetNull)
+  linkedPlace        Place?        @relation("reporterSourcePlace", fields: [linkedPlaceId], references: [id], onDelete: SetNull)
+
+  @@index([reporterRunId, sortOrder])
+  @@index([sourceType])
+  @@index([linkedArticleId])
+  @@index([linkedEventId])
+  @@index([linkedOrganizationId])
+  @@index([linkedPlaceId])
+  @@map("reporter_sources")
+}
+
+model ReporterBlocker {
+  id               String   @id @default(uuid()) @db.Uuid
+  reporterRunId    String   @db.Uuid
+  code             String
+  message          String
+  isResolved       Boolean  @default(false)
+  resolvedAt       DateTime?
+  resolvedByUserId String?  @db.Uuid
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  reporterRun ReporterRun @relation(fields: [reporterRunId], references: [id], onDelete: Cascade)
+  resolvedBy  User?       @relation("reporterBlockerResolvedBy", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([reporterRunId, isResolved])
+  @@index([resolvedByUserId])
+  @@map("reporter_blockers")
+}
+
+model ReporterDraft {
+  id              String              @id @default(uuid()) @db.Uuid
+  reporterRunId   String              @db.Uuid
+  headline        String?
+  dek             String?
+  body            String
+  draftType       ReporterDraftType   @default(ARTICLE_DRAFT)
+  status          ReporterDraftStatus @default(GENERATED)
+  modelProvider   String?
+  modelName       String?
+  generationNotes String?
+  createdByUserId String?             @db.Uuid
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  reporterRun       ReporterRun               @relation(fields: [reporterRunId], references: [id], onDelete: Cascade)
+  createdBy         User?                     @relation("reporterDraftCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  validationIssues  ReporterValidationIssue[]
+
+  @@index([reporterRunId, createdAt])
+  @@index([createdByUserId])
+  @@map("reporter_drafts")
+}
+
+model ReporterValidationIssue {
+  id             String                     @id @default(uuid()) @db.Uuid
+  reporterRunId  String                     @db.Uuid
+  reporterDraftId String?                   @db.Uuid
+  code           String
+  severity       ReporterValidationSeverity
+  message        String
+  evidenceSpan   String?
+  isResolved     Boolean                    @default(false)
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+
+  reporterRun   ReporterRun   @relation(fields: [reporterRunId], references: [id], onDelete: Cascade)
+  reporterDraft ReporterDraft? @relation(fields: [reporterDraftId], references: [id], onDelete: SetNull)
+
+  @@index([reporterRunId])
+  @@index([reporterDraftId])
+  @@map("reporter_validation_issues")
 }
 
 enum RecipeStatus {
@@ -994,6 +1210,7 @@ model Event {
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   series       EventSeries?  @relation(fields: [seriesId], references: [id], onDelete: SetNull)
   location     Location      @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  reporterSources ReporterSource[] @relation("reporterSourceEvent")
 
   @@index([communityId])
   @@index([submittedByUserId])
@@ -1618,6 +1835,8 @@ enum ActivityAction {
 
 enum ResourceType {
   ARTICLE
+  REPORTER_RUN
+  REPORTER_DRAFT
   RECIPE
   COMMENT
   EVENT

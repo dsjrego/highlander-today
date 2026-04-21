@@ -27,7 +27,8 @@ function getClient(): PrismaClient {
       !(global.prisma as any).organization ||
       !(global.prisma as any).location ||
       !(global.prisma as any).place ||
-      !(global.prisma as any).recipe
+      !(global.prisma as any).recipe ||
+      !(global.prisma as any).reporterRun
     ) {
       console.warn('[db] Stale PrismaClient detected — recreating');
       global.prisma = createPrismaClient();
