@@ -459,7 +459,7 @@ export default function RoadmapPage() {
                               onClick={() => addToBallot(idea.id)}
                               disabled={ballotFull}
                               className="px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90 transition disabled:opacity-50"
-                              style={{ backgroundcolor: 'var(--brand-primary)' }}
+                              style={{ backgroundColor: 'var(--brand-primary)' }}
                             >
                               Add to Ballot
                             </button>
@@ -493,7 +493,7 @@ export default function RoadmapPage() {
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                   selectedStatus === value ? 'text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
-                style={selectedStatus === value ? { backgroundcolor: 'var(--brand-primary)' } : {}}
+                style={selectedStatus === value ? { backgroundColor: 'var(--brand-primary)' } : {}}
               >
                 {label}
               </button>

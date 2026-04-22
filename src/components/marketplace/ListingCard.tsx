@@ -57,7 +57,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
         <div className="mb-2">
           <span
             className="inline-block px-2 py-1 text-xs font-semibold text-white rounded"
-            style={{ backgroundcolor: 'var(--brand-primary)' }}
+            style={{ backgroundColor: 'var(--brand-primary)' }}
           >
             {category}
           </span>
@@ -94,7 +94,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
         <Link
           href={`/marketplace/${slug}`}
           className="mt-3 w-full py-2 rounded text-center font-medium text-white transition-colors"
-          style={{ backgroundcolor: 'var(--brand-primary)' }}
+          style={{ backgroundColor: 'var(--brand-primary)' }}
         >
           View Listing
         </Link>

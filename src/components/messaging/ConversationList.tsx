@@ -63,7 +63,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
               {/* Avatar Circle */}
               <div
                 className="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-white font-bold"
-                style={{ backgroundcolor: 'var(--brand-primary)' }}
+                style={{ backgroundColor: 'var(--brand-primary)' }}
               >
                 {conversation.participantName.charAt(0).toUpperCase()}
               </div>

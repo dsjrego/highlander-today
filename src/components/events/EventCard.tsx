@@ -45,7 +45,7 @@ export const EventCard: React.FC<EventCardProps> = ({
         <div className="flex items-center gap-2 mb-3">
           <div
             className="text-center px-3 py-2 rounded-lg text-white"
-            style={{ backgroundcolor: 'var(--brand-primary)' }}
+            style={{ backgroundColor: 'var(--brand-primary)' }}
           >
             <div className="text-xs font-semibold">
               {eventDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}

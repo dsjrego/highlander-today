@@ -134,7 +134,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         <div className="mt-1">
                           <div
                             className="text-xs font-semibold text-white rounded px-1 py-0.5 line-clamp-1"
-                            style={{ backgroundcolor: 'var(--brand-primary)' }}
+                            style={{ backgroundColor: 'var(--brand-primary)' }}
                           >
                             {event.title}
                           </div>

@@ -85,7 +85,7 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
           <div className="flex items-center gap-3">
             <div
               className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
-              style={{ backgroundcolor: 'var(--brand-primary)' }}
+              style={{ backgroundColor: 'var(--brand-primary)' }}
             >
               {participantName.charAt(0).toUpperCase()}
             </div>
@@ -122,7 +122,7 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
                 }`}
                 style={
                   message.isCurrentUser
-                    ? { backgroundcolor: 'var(--brand-primary)' }
+                    ? { backgroundColor: 'var(--brand-primary)' }
                     : undefined
                 }
               >
@@ -234,7 +234,7 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
               onClick={handleSendMessage}
               disabled={(!messageContent.trim() && attachments.length === 0) || isSending || isLoading}
               className="flex items-center justify-center w-10 h-10 rounded-lg text-white font-bold disabled:opacity-50 transition-colors"
-              style={{ backgroundcolor: 'var(--brand-primary)' }}
+              style={{ backgroundColor: 'var(--brand-primary)' }}
               title="Send message"
             >
               {isSending ? '...' : '→'}
