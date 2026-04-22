@@ -21,7 +21,7 @@ const defaultSettings = {
   siteDescription: 'Community platform',
   logoUrl: null,
   bannerUrl: null,
-  primarycolor: 'var(--brand-primary)',
+  primaryColor: 'var(--brand-primary)',
   secondaryColor: 'var(--brand-accent)',
   maintenanceMode: false,
   requireEmailVerification: true,
