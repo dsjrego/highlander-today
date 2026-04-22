@@ -130,7 +130,7 @@ export default function CreateStorePage() {
             value={formData.name}
             onChange={handleInputChange}
             placeholder="Cambria Hearth Bakery"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
           />
         </div>
 
@@ -144,7 +144,7 @@ export default function CreateStorePage() {
             onChange={handleInputChange}
             rows={5}
             placeholder="Describe what the store offers, who it serves, and what makes it locally relevant."
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
           />
         </div>
 
@@ -159,7 +159,7 @@ export default function CreateStorePage() {
               value={formData.websiteUrl}
               onChange={handleInputChange}
               placeholder="https://example.com"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             />
           </div>
           <div>
@@ -172,7 +172,7 @@ export default function CreateStorePage() {
               value={formData.contactEmail}
               onChange={handleInputChange}
               placeholder="hello@example.com"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             />
           </div>
         </div>
@@ -187,7 +187,7 @@ export default function CreateStorePage() {
             value={formData.contactPhone}
             onChange={handleInputChange}
             placeholder="(555) 123-4567"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
           />
         </div>
 
@@ -225,7 +225,7 @@ export default function CreateStorePage() {
           <button
             type="submit"
             disabled={isSaving}
-            className="flex-1 bg-[#46A8CC] text-white font-bold py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+            className="flex-1 bg-[var(--brand-primary)] text-white font-bold py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
           >
             {isSaving ? "Submitting..." : "Submit Store for Approval"}
           </button>
@@ -239,7 +239,7 @@ export default function CreateStorePage() {
         </form>
       </FormCard>
 
-      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-gray-700">
+      <div className="mt-6 p-4 bg-[var(--article-card-badge-bg)] border border-blue-200 rounded-xl text-sm text-gray-700">
         <p className="font-semibold mb-2">Approval notes</p>
         <ul className="space-y-1 list-disc list-inside text-xs">
           <li>Stores stay private until they are approved by staff.</li>

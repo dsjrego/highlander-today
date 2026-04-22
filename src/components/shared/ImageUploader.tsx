@@ -98,7 +98,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
           onDragOver={handleDrag}
           onDrop={handleDrop}
           className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
-            dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50'
+            dragActive ? 'border-blue-500 bg-[var(--article-card-badge-bg)]' : 'border-gray-300 bg-gray-50'
           }`}
         >
           <input

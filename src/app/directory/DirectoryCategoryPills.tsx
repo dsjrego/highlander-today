@@ -66,7 +66,7 @@ function DropdownPill({
       <div
         className={`inline-flex items-center overflow-hidden rounded-full border text-[13px] transition ${
           isActive
-            ? 'border-[#b9dbe6] bg-[#edf7fb] text-[#0f5771]'
+            ? 'border-[#b9dbe6] bg-[#edf7fb] text-[var(--brand-primary)]'
             : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
         }`}
       >
@@ -100,7 +100,7 @@ function DropdownPill({
               key={option.value}
               href={buildDirectoryHref(categorySlug, query || null, option.value)}
               className={`block rounded-xl px-2.5 py-1.5 text-[13px] ${
-                selectedType === option.value ? 'bg-[#edf7fb] text-[#0f5771]' : 'text-slate-700 hover:bg-slate-100'
+                selectedType === option.value ? 'bg-[#edf7fb] text-[var(--brand-primary)]' : 'text-slate-700 hover:bg-slate-100'
               }`}
             >
               {option.label}
@@ -140,7 +140,7 @@ export default function DirectoryCategoryPills({
         href={buildDirectoryHref(null, query || null, null)}
         className={`rounded-full border px-3 py-1.5 text-[13px] font-medium transition ${
           !activeCategorySlug
-            ? 'border-[#b9dbe6] bg-[#edf7fb] text-[#0f5771]'
+            ? 'border-[#b9dbe6] bg-[#edf7fb] text-[var(--brand-primary)]'
             : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
         }`}
       >
@@ -150,7 +150,7 @@ export default function DirectoryCategoryPills({
         href={buildDirectoryHref('people', query || null, null)}
         className={`rounded-full border px-3 py-1.5 text-[13px] font-medium transition ${
           activeCategorySlug === 'people'
-            ? 'border-[#b9dbe6] bg-[#edf7fb] text-[#0f5771]'
+            ? 'border-[#b9dbe6] bg-[#edf7fb] text-[var(--brand-primary)]'
             : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
         }`}
       >
@@ -173,7 +173,7 @@ export default function DirectoryCategoryPills({
         href={buildDirectoryHref('government', query || null, null)}
         className={`rounded-full border px-3 py-1.5 text-[13px] font-medium transition ${
           activeCategorySlug === 'government'
-            ? 'border-[#b9dbe6] bg-[#edf7fb] text-[#0f5771]'
+            ? 'border-[#b9dbe6] bg-[#edf7fb] text-[var(--brand-primary)]'
             : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
         }`}
       >

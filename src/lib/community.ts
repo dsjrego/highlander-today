@@ -1,5 +1,6 @@
 import { TenantDomainStatus } from '@prisma/client';
 import { db } from './db';
+import { BRAND_COLORS } from './constants';
 import { normalizeDomain, resolveCommunityIdByDomain } from './tenant';
 
 export interface CommunitySummary {
@@ -206,8 +207,8 @@ export async function createCommunity(data: {
         domain: normalizedDomain,
         description: data.description || null,
         logoUrl: data.logoUrl || null,
-        colorPrimary: data.colorPrimary || '#46A8CC',
-        colorAccent: data.colorAccent || '#A51E30',
+        colorPrimary: data.colorPrimary || BRAND_COLORS.primary,
+        colorAccent: data.colorAccent || BRAND_COLORS.accent,
       },
       select: selectCommunitySummary(),
     });

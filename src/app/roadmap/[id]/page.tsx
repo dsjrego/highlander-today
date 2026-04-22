@@ -117,7 +117,7 @@ export default function RoadmapIdeaDetailPage() {
   return (
     <div>
       <div className="mb-6">
-        <Link href="/roadmap" className="text-sm font-semibold text-[#A51E30] hover:underline">
+        <Link href="/roadmap" className="text-sm font-semibold text-[var(--brand-accent)] hover:underline">
           Back to Roadmap
         </Link>
       </div>
@@ -140,7 +140,7 @@ export default function RoadmapIdeaDetailPage() {
             <Link
               href={`/roadmap/${idea.id}/edit`}
               className="px-4 py-2 text-sm font-semibold rounded-full text-white hover:opacity-90 transition"
-              style={{ backgroundColor: '#A51E30' }}
+              style={{ backgroundColor: 'var(--brand-accent)' }}
             >
               Edit Idea
             </Link>
@@ -187,7 +187,7 @@ export default function RoadmapIdeaDetailPage() {
         ) : null}
 
         {idea.staffNotes ? (
-          <div className="mb-6 bg-blue-50 border border-blue-200 text-blue-900 rounded-xl px-4 py-3 text-sm whitespace-pre-wrap">
+          <div className="mb-6 bg-[var(--article-card-badge-bg)] border border-blue-200 text-blue-900 rounded-xl px-4 py-3 text-sm whitespace-pre-wrap">
             <p className="font-semibold mb-1">Staff Note</p>
             <p>{idea.staffNotes}</p>
           </div>

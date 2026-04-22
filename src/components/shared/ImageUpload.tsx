@@ -296,13 +296,13 @@ export default function ImageUpload({
           onDrop={handleDrop}
           className={`border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${
             dragActive
-              ? 'border-[#46A8CC] bg-blue-50'
+              ? 'border-[var(--brand-primary)] bg-[var(--article-card-badge-bg)]'
               : 'border-gray-300 bg-gray-50 hover:border-gray-400'
           } ${compact ? 'p-4' : 'p-6'}`}
         >
           {isUploading ? (
             <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
-              <svg className="animate-spin h-5 w-5 text-[#46A8CC]" viewBox="0 0 24 24">
+              <svg className="animate-spin h-5 w-5 text-[var(--brand-primary)]" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>

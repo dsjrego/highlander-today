@@ -214,7 +214,7 @@ export default function AdminRoadmapPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-8 pb-3 border-b-2" style={{ borderColor: '#A51E30' }}>
+      <h1 className="text-2xl font-bold mb-8 pb-3 border-b-2" style={{ borderColor: 'var(--brand-accent)' }}>
         Roadmap Moderation
       </h1>
 
@@ -271,7 +271,7 @@ export default function AdminRoadmapPage() {
                           [idea.id]: event.target.value as Exclude<RoadmapIdeaStatus, 'SUBMITTED'>,
                         }))
                       }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                     >
                       {MODERATION_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -293,7 +293,7 @@ export default function AdminRoadmapPage() {
                         }))
                       }
                       rows={4}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                       placeholder="Explain the decision, ask for clarification, or note how this idea was reframed."
                     />
                   </div>
@@ -313,7 +313,7 @@ export default function AdminRoadmapPage() {
                           [idea.id]: event.target.value,
                         }))
                       }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                       placeholder="Paste the destination idea ID"
                     />
                   </div>
@@ -325,7 +325,7 @@ export default function AdminRoadmapPage() {
                     onClick={() => moderateIdea(idea.id)}
                     disabled={actionLoading === idea.id}
                     className="px-5 py-2 text-white font-semibold rounded-lg hover:opacity-90 transition disabled:opacity-50"
-                    style={{ backgroundColor: '#A51E30' }}
+                    style={{ backgroundColor: 'var(--brand-accent)' }}
                   >
                     {actionLoading === idea.id ? 'Saving...' : 'Apply Decision'}
                   </button>
@@ -350,14 +350,14 @@ export default function AdminRoadmapPage() {
               type="search"
               value={weightSearch}
               onChange={(event) => setWeightSearch(event.target.value)}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
               placeholder="Search trusted users by name or email"
             />
             <button
               type="button"
               onClick={() => fetchWeights(weightSearch)}
               className="px-4 py-2 text-white font-semibold rounded-lg hover:opacity-90 transition"
-              style={{ backgroundColor: '#46A8CC' }}
+              style={{ backgroundColor: 'var(--brand-primary)' }}
             >
               Search
             </button>
@@ -408,7 +408,7 @@ export default function AdminRoadmapPage() {
                             [user.id]: Number(event.target.value),
                           }))
                         }
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                       />
                     </div>
                     <div>
@@ -424,7 +424,7 @@ export default function AdminRoadmapPage() {
                             [user.id]: event.target.value,
                           }))
                         }
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                         placeholder="Required for any non-default roadmap-specific weight adjustment."
                       />
                     </div>
@@ -434,7 +434,7 @@ export default function AdminRoadmapPage() {
                         onClick={() => saveWeight(user.id)}
                         disabled={weightActionLoading === user.id}
                         className="px-5 py-2 text-white font-semibold rounded-lg hover:opacity-90 transition disabled:opacity-50"
-                        style={{ backgroundColor: '#A51E30' }}
+                        style={{ backgroundColor: 'var(--brand-accent)' }}
                       >
                         {weightActionLoading === user.id ? 'Saving...' : 'Save Weight'}
                       </button>

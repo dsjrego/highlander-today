@@ -31,7 +31,7 @@ async function main() {
       slug: 'highlander-today',
       domain: primaryDomain,
       colorPrimary: '#46A8CC',
-      colorAccent: '#A51E30',
+      colorAccent: 'var(--brand-accent)',
       description: 'Community news for Patton, Hastings & Carrolltown, PA',
     },
   });

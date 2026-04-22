@@ -231,7 +231,7 @@ function CreateListingPageContent() {
                   name="storeId"
                   value={formData.storeId}
                   onChange={handleInputChange}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                 >
                   {stores.map((store) => (
                     <option key={store.id} value={store.id}>
@@ -249,7 +249,7 @@ function CreateListingPageContent() {
                   name="listingType"
                   value={formData.listingType}
                   onChange={handleInputChange}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                 >
                   {LISTING_TYPE_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -270,7 +270,7 @@ function CreateListingPageContent() {
                 value={formData.title}
                 onChange={handleInputChange}
                 placeholder="What are you offering?"
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
               />
             </div>
 
@@ -283,7 +283,7 @@ function CreateListingPageContent() {
                   name="category"
                   value={formData.category}
                   onChange={handleInputChange}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                 >
                   {CATEGORY_OPTIONS.map((category) => (
                     <option key={category} value={category}>
@@ -305,7 +305,7 @@ function CreateListingPageContent() {
                   value={formData.price}
                   onChange={handleInputChange}
                   placeholder="0.00"
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                 />
               </div>
             </div>
@@ -320,7 +320,7 @@ function CreateListingPageContent() {
                 onChange={handleInputChange}
                 rows={6}
                 placeholder="Describe the item or service clearly, including quality, quantity, delivery expectations, or booking details."
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
               />
             </div>
 

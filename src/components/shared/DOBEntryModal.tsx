@@ -110,7 +110,7 @@ export const DOBEntryModal: React.FC<DOBEntryModalProps> = ({
               type="submit"
               disabled={!dob || !isAgreed || isLoading}
               className="px-4 py-2 text-white rounded-lg font-medium text-sm disabled:opacity-50"
-              style={{ backgroundColor: '#46A8CC' }}
+              style={{ backgroundcolor: 'var(--brand-primary)' }}
             >
               {isLoading ? 'Submitting...' : 'Confirm'}
             </button>

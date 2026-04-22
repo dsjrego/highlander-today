@@ -53,7 +53,7 @@ export const VouchButton: React.FC<VouchButtonProps> = ({
       <button
         onClick={() => setShowModal(true)}
         className="px-4 py-2 rounded-lg font-medium transition-colors text-white"
-        style={{ backgroundColor: '#46A8CC' }}
+        style={{ backgroundcolor: 'var(--brand-primary)' }}
       >
         Vouch for {userName}
       </button>

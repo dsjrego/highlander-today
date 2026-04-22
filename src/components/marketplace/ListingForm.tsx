@@ -238,7 +238,7 @@ export const ListingForm: React.FC<ListingFormProps> = ({
           type="submit"
           disabled={isLoading}
           className="px-6 py-2 text-white rounded-lg font-medium disabled:opacity-50"
-          style={{ backgroundColor: '#46A8CC' }}
+          style={{ backgroundcolor: 'var(--brand-primary)' }}
         >
           {isLoading ? 'Creating...' : 'Create Listing'}
         </button>

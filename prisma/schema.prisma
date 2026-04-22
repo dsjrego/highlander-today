@@ -20,8 +20,8 @@ model Community {
   slug         String   @unique
   domain       String?  @unique
   description  String?
-  colorPrimary String   @default("#46A8CC")
-  colorAccent  String   @default("#A51E30")
+  colorPrimary String   @default("var(--brand-primary)")
+  colorAccent  String   @default("var(--brand-accent)")
   logoUrl      String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

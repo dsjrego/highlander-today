@@ -1,10 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { listTenantThemeManifests } from '@/lib/theme/registry';
 
 type ThemeModeOption = 'default' | 'light' | 'dark';
 type ThemeTenantOption = 'default' | string;
+type ThemeManifestOption = {
+  tenantSlug: string;
+  themeName: string;
+};
 
 const MODE_COOKIE_NAME = 'theme-mode';
 const TENANT_COOKIE_NAME = 'theme-tenant-preview';
@@ -13,13 +16,16 @@ const MODE_OPTIONS: Array<{ label: string; value: ThemeModeOption }> = [
   { label: 'Light', value: 'light' },
   { label: 'Dark', value: 'dark' },
 ];
-const TENANT_OPTIONS: Array<{ label: string; value: ThemeTenantOption }> = [
-  { label: 'Resolved', value: 'default' },
-  ...listTenantThemeManifests().map((manifest) => ({
-    label: manifest.themeName,
-    value: manifest.tenantSlug,
-  })),
-];
+
+function buildTenantOptions(manifests: ThemeManifestOption[]) {
+  return [
+    { label: 'Resolved', value: 'default' as ThemeTenantOption },
+    ...manifests.map((manifest) => ({
+      label: manifest.themeName,
+      value: manifest.tenantSlug as ThemeTenantOption,
+    })),
+  ];
+}
 
 function readThemeModeCookie(): ThemeModeOption {
   if (typeof document === 'undefined') {
@@ -43,6 +49,18 @@ function readThemeTenantCookie(): ThemeTenantOption {
     return 'default';
   }
 
+  return (
+    document.documentElement.dataset.themeTenantPreview as ThemeTenantOption | undefined
+  ) ?? 'default';
+}
+
+function readThemeTenantCookieWithOptions(
+  tenantOptions: Array<{ label: string; value: ThemeTenantOption }>
+) {
+  if (typeof document === 'undefined') {
+    return 'default';
+  }
+
   const match = document.cookie
     .split('; ')
     .find((entry) => entry.startsWith(`${TENANT_COOKIE_NAME}=`));
@@ -52,16 +70,52 @@ function readThemeTenantCookie(): ThemeTenantOption {
     return 'default';
   }
 
-  return TENANT_OPTIONS.some((option) => option.value === value) ? value : 'default';
+  return tenantOptions.some((option) => option.value === value) ? value : 'default';
 }
 
 export default function DevThemeSwitcher() {
   const [activeMode, setActiveMode] = useState<ThemeModeOption>('default');
   const [activeTenant, setActiveTenant] = useState<ThemeTenantOption>('default');
+  const [tenantManifests, setTenantManifests] = useState<ThemeManifestOption[]>([]);
+
+  const tenantOptions = buildTenantOptions(tenantManifests);
 
   useEffect(() => {
     setActiveMode(readThemeModeCookie());
     setActiveTenant(readThemeTenantCookie());
+
+    let ignore = false;
+
+    async function loadTenantManifests() {
+      try {
+        const response = await fetch('/api/dev/theme-manifests', {
+          credentials: 'same-origin',
+          cache: 'no-store',
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = (await response.json()) as { manifests?: ThemeManifestOption[] };
+        const manifests = Array.isArray(data.manifests) ? data.manifests : [];
+
+        if (ignore) {
+          return;
+        }
+
+        setTenantManifests(manifests);
+        setActiveTenant(readThemeTenantCookieWithOptions(buildTenantOptions(manifests)));
+      } catch {
+        // Dev-only helper: silent failure is acceptable.
+      }
+    }
+
+    void loadTenantManifests();
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   if (process.env.NODE_ENV !== 'development') {
@@ -74,7 +128,7 @@ export default function DevThemeSwitcher() {
       <div className="dev-theme-switcher-group">
         <p className="dev-theme-switcher-group-label">Tenant</p>
         <div className="dev-theme-switcher-options">
-          {TENANT_OPTIONS.map((option) => (
+          {tenantOptions.map((option) => (
             <button
               key={option.value}
               type="button"

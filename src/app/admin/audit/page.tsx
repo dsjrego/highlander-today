@@ -199,7 +199,7 @@ export default function AuditPage() {
 
   return (
     <div>
-      <h1 className="text-4xl font-bold mb-2 text-[#46A8CC]">Audit Log</h1>
+      <h1 className="text-4xl font-bold mb-2 text-[var(--brand-primary)]">Audit Log</h1>
       <p className="text-gray-500 mb-6">
         Security events, trust actions, and content activity across the
         platform.
@@ -252,7 +252,7 @@ export default function AuditPage() {
                 setStartDate(e.target.value);
                 setPage(1);
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             />
           </div>
 
@@ -271,7 +271,7 @@ export default function AuditPage() {
                 setEndDate(e.target.value);
                 setPage(1);
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             />
           </div>
 
@@ -291,7 +291,7 @@ export default function AuditPage() {
                 setIpFilter(e.target.value);
                 setPage(1);
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             />
           </div>
 
@@ -305,7 +305,7 @@ export default function AuditPage() {
                   setAnomaliesOnly(e.target.checked);
                   setPage(1);
                 }}
-                className="w-4 h-4 rounded border-gray-300 text-[#A51E30] focus:ring-[#A51E30]"
+                className="w-4 h-4 rounded border-gray-300 text-[var(--brand-accent)] focus:ring-[var(--brand-accent)]"
               />
               <label
                 htmlFor="anomaliesOnly"
@@ -342,7 +342,7 @@ export default function AuditPage() {
       {/* Loading state */}
       {isLoading ? (
         <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-          <div className="inline-block h-8 w-8 border-4 border-[#46A8CC] border-t-transparent rounded-full animate-spin mb-3" />
+          <div className="inline-block h-8 w-8 border-4 border-[var(--brand-primary)] border-t-transparent rounded-full animate-spin mb-3" />
           <p className="text-gray-500">Loading audit log...</p>
         </div>
       ) : entries.length === 0 ? (

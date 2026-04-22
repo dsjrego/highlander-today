@@ -85,7 +85,7 @@ export const Pagination: React.FC<PaginationProps> = ({
                   ? 'text-white'
                   : 'border border-gray-300 hover:bg-gray-50'
               }`}
-              style={isActive ? { backgroundColor: '#46A8CC' } : undefined}
+              style={isActive ? { backgroundcolor: 'var(--brand-primary)' } : undefined}
             >
               {pageNum}
             </button>

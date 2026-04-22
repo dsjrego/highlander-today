@@ -141,6 +141,7 @@ export default async function RootLayout({
       lang="en"
       data-tenant={resolvedTheme.manifest.tenantSlug}
       data-theme-mode={resolvedTheme.mode}
+      data-theme-tenant-preview={previewTenantSlug ?? undefined}
     >
       <body className="app-body">
         <Providers>

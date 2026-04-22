@@ -164,7 +164,7 @@ export default function TrustManagementPage() {
 
   return (
     <div>
-      <h1 className="text-4xl font-bold mb-8 text-[#46A8CC]">Trust Management</h1>
+      <h1 className="text-4xl font-bold mb-8 text-[var(--brand-primary)]">Trust Management</h1>
 
       {/* Messages */}
       {successMsg && (
@@ -178,7 +178,7 @@ export default function TrustManagementPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white p-5 rounded-lg border border-gray-200">
           <p className="text-gray-600 text-xs mb-1">Total Vouches</p>
-          <p className="text-2xl font-bold text-[#46A8CC]">{stats.totalVouches}</p>
+          <p className="text-2xl font-bold text-[var(--brand-primary)]">{stats.totalVouches}</p>
         </div>
         <div className="bg-white p-5 rounded-lg border border-gray-200">
           <p className="text-gray-600 text-xs mb-1">Trusted Users</p>
@@ -212,7 +212,7 @@ export default function TrustManagementPage() {
                 <span className="inline-block w-3 h-3 rounded-full bg-green-500"></span> Trusted
               </span>
               <span className="flex items-center gap-1 text-xs">
-                <span className="inline-block w-3 h-3 rounded-full bg-blue-500"></span> Registered
+                <span className="inline-block w-3 h-3 rounded-full bg-[var(--article-card-badge-bg)]0"></span> Registered
               </span>
               <span className="flex items-center gap-1 text-xs">
                 <span className="inline-block w-3 h-3 rounded-full bg-red-500"></span> Suspended
@@ -249,14 +249,14 @@ export default function TrustManagementPage() {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Search by voucher or recipient name/email..."
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
         />
       </div>
 
       {/* Vouches Table */}
       {isLoading ? (
         <div className="text-center py-12 text-gray-500">
-          <div className="animate-spin inline-block w-8 h-8 border-4 border-[#46A8CC] border-t-transparent rounded-full mb-4"></div>
+          <div className="animate-spin inline-block w-8 h-8 border-4 border-[var(--brand-primary)] border-t-transparent rounded-full mb-4"></div>
           <p>Loading vouches...</p>
         </div>
       ) : vouches.length === 0 ? (

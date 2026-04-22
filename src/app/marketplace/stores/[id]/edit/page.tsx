@@ -217,7 +217,7 @@ export default function EditStorePage() {
               name="name"
               value={formData.name}
               onChange={handleInputChange}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             />
           </div>
 
@@ -230,7 +230,7 @@ export default function EditStorePage() {
               value={formData.description}
               onChange={handleInputChange}
               rows={5}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             />
           </div>
 
@@ -244,7 +244,7 @@ export default function EditStorePage() {
                 name="websiteUrl"
                 value={formData.websiteUrl}
                 onChange={handleInputChange}
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
               />
             </div>
             <div>
@@ -256,7 +256,7 @@ export default function EditStorePage() {
                 name="contactEmail"
                 value={formData.contactEmail}
                 onChange={handleInputChange}
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
               />
             </div>
           </div>
@@ -270,7 +270,7 @@ export default function EditStorePage() {
               name="contactPhone"
               value={formData.contactPhone}
               onChange={handleInputChange}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             />
           </div>
 
@@ -315,7 +315,7 @@ export default function EditStorePage() {
                 type="button"
                 onClick={() => saveStore(true)}
                 disabled={isSaving}
-                className="flex-1 rounded-xl bg-[#8f1d2c] py-3 font-bold text-white transition disabled:opacity-50"
+                className="flex-1 rounded-xl bg-[var(--brand-accent)] py-3 font-bold text-white transition hover:opacity-90 disabled:opacity-50"
               >
                 {isSaving ? "Working..." : "Resubmit for Approval"}
               </button>

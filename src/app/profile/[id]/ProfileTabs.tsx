@@ -44,7 +44,7 @@ export default function ProfileTabs({ tabs, initialActiveTabId }: ProfileTabsPro
                 onClick={() => setActiveTabId(tab.id)}
                 className={`rounded-full px-5 py-2.5 text-sm font-semibold transition ${
                   isActive
-                    ? "bg-[#46A8CC] text-slate-950 shadow-[0_12px_24px_rgba(70,168,204,0.28)]"
+                    ? "bg-[var(--brand-primary)] text-slate-950 shadow-[0_12px_24px_rgba(70,168,204,0.28)]"
                     : "text-slate-200 hover:bg-white/10 hover:text-white"
                 }`}
               >

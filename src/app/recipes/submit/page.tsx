@@ -483,7 +483,7 @@ export default function SubmitRecipePage() {
                     name="featuredImageCaption"
                     value={formData.featuredImageCaption}
                     onChange={handleInputChange}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                     rows={3}
                     maxLength={300}
                   />
@@ -495,7 +495,7 @@ export default function SubmitRecipePage() {
                     value={jsonImport}
                     onChange={(e) => setJsonImport(e.target.value)}
                     spellCheck={false}
-                    className="h-64 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 font-mono text-xs leading-6 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                    className="h-64 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 font-mono text-xs leading-6 text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                     placeholder='{"title":"Sunday Pot Roast","ingredientSections":[...],"steps":[...]}'
                   />
                   <button
@@ -519,7 +519,7 @@ export default function SubmitRecipePage() {
                       name="categoryId"
                       value={formData.categoryId}
                       onChange={handleInputChange}
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                     >
                       <option value="">Select a category...</option>
                       {categoryOptions.map((category) => (
@@ -539,7 +539,7 @@ export default function SubmitRecipePage() {
                       name="title"
                       value={formData.title}
                       onChange={handleInputChange}
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                     />
                   </div>
 
@@ -550,7 +550,7 @@ export default function SubmitRecipePage() {
                       value={formData.excerpt}
                       onChange={handleInputChange}
                       rows={2}
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                     />
                   </div>
 
@@ -561,7 +561,7 @@ export default function SubmitRecipePage() {
                       name="yieldLabel"
                       value={formData.yieldLabel}
                       onChange={handleInputChange}
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                     />
                   </div>
                   <div>
@@ -572,7 +572,7 @@ export default function SubmitRecipePage() {
                       name="servings"
                       value={formData.servings}
                       onChange={handleInputChange}
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                     />
                   </div>
                   <div>
@@ -583,7 +583,7 @@ export default function SubmitRecipePage() {
                       name="prepMinutes"
                       value={formData.prepMinutes}
                       onChange={handleInputChange}
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                     />
                   </div>
                   <div>
@@ -594,7 +594,7 @@ export default function SubmitRecipePage() {
                       name="cookMinutes"
                       value={formData.cookMinutes}
                       onChange={handleInputChange}
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                     />
                   </div>
                   <div>
@@ -605,7 +605,7 @@ export default function SubmitRecipePage() {
                       name="totalMinutes"
                       value={formData.totalMinutes}
                       onChange={handleInputChange}
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                     />
                   </div>
 
@@ -625,7 +625,7 @@ export default function SubmitRecipePage() {
                       name="sourceName"
                       value={formData.sourceName}
                       onChange={handleInputChange}
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                     />
                   </div>
                   <div>
@@ -635,7 +635,7 @@ export default function SubmitRecipePage() {
                       name="sourceUrl"
                       value={formData.sourceUrl}
                       onChange={handleInputChange}
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                     />
                   </div>
                 </div>
@@ -700,7 +700,7 @@ export default function SubmitRecipePage() {
                                 ),
                               }))
                             }
-                            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                             placeholder="Caption"
                           />
                           <input
@@ -714,7 +714,7 @@ export default function SubmitRecipePage() {
                                 ),
                               }))
                             }
-                            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                             placeholder="Alt text"
                           />
                         </div>
@@ -733,7 +733,7 @@ export default function SubmitRecipePage() {
                                 ),
                               }))
                             }
-                            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                             placeholder="YouTube or Vimeo URL"
                           />
                           <input
@@ -747,7 +747,7 @@ export default function SubmitRecipePage() {
                                 ),
                               }))
                             }
-                            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                             placeholder="Video caption"
                           />
                         </div>
@@ -812,7 +812,7 @@ export default function SubmitRecipePage() {
                       onChange={(e) =>
                         updateIngredientSection(sectionIndex, { ...section, title: e.target.value })
                       }
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                       placeholder="Section title, e.g. Roast or Glaze"
                     />
                     {formData.ingredientSections.length > 1 ? (
@@ -844,7 +844,7 @@ export default function SubmitRecipePage() {
                               );
                               updateIngredientSection(sectionIndex, { ...section, items });
                             }}
-                            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                             placeholder="Amt"
                           />
                           <input
@@ -856,7 +856,7 @@ export default function SubmitRecipePage() {
                               );
                               updateIngredientSection(sectionIndex, { ...section, items });
                             }}
-                            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                             placeholder="Unit"
                           />
                           <input
@@ -868,7 +868,7 @@ export default function SubmitRecipePage() {
                               );
                               updateIngredientSection(sectionIndex, { ...section, items });
                             }}
-                            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                             placeholder="Ingredient name"
                           />
                         </div>
@@ -882,7 +882,7 @@ export default function SubmitRecipePage() {
                               );
                               updateIngredientSection(sectionIndex, { ...section, items });
                             }}
-                            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                             placeholder="Prep note, e.g. diced"
                           />
                           <input
@@ -894,7 +894,7 @@ export default function SubmitRecipePage() {
                               );
                               updateIngredientSection(sectionIndex, { ...section, items });
                             }}
-                            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                             placeholder="Substitution note"
                           />
                         </div>
@@ -909,7 +909,7 @@ export default function SubmitRecipePage() {
                                 );
                                 updateIngredientSection(sectionIndex, { ...section, items });
                               }}
-                              className="h-4 w-4 rounded border-slate-300 text-[#46A8CC] focus:ring-[#46A8CC]"
+                              className="h-4 w-4 rounded border-slate-300 text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
                             />
                             Optional ingredient
                           </label>
@@ -973,7 +973,7 @@ export default function SubmitRecipePage() {
                       type="text"
                       value={step.title}
                       onChange={(e) => updateStep(stepIndex, { ...step, title: e.target.value })}
-                      className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                      className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                       placeholder={`Step ${stepIndex + 1} title`}
                     />
                     <input
@@ -981,14 +981,14 @@ export default function SubmitRecipePage() {
                       min={1}
                       value={step.timerMinutes}
                       onChange={(e) => updateStep(stepIndex, { ...step, timerMinutes: e.target.value })}
-                      className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                      className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                       placeholder="Timer min"
                     />
                   </div>
                   <textarea
                     value={step.body}
                     onChange={(e) => updateStep(stepIndex, { ...step, body: e.target.value })}
-                    className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                    className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                     rows={4}
                     placeholder="Describe this step..."
                   />
@@ -1011,14 +1011,14 @@ export default function SubmitRecipePage() {
                         type="url"
                         value={step.videoUrl}
                         onChange={(e) => updateStep(stepIndex, { ...step, videoUrl: e.target.value })}
-                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                         placeholder="Optional YouTube or Vimeo URL"
                       />
                       <input
                         type="text"
                         value={step.mediaCaption}
                         onChange={(e) => updateStep(stepIndex, { ...step, mediaCaption: e.target.value })}
-                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                         placeholder="Optional step media caption"
                       />
                     </div>
@@ -1070,7 +1070,7 @@ export default function SubmitRecipePage() {
                         onChange={(e) =>
                           updateNote(noteIndex, { ...note, kind: e.target.value as RecipeNoteKindValue })
                         }
-                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                       >
                         {NOTE_KIND_OPTIONS.map((option) => (
                           <option key={option.value} value={option.value}>
@@ -1082,14 +1082,14 @@ export default function SubmitRecipePage() {
                         type="text"
                         value={note.title}
                         onChange={(e) => updateNote(noteIndex, { ...note, title: e.target.value })}
-                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                         placeholder="Optional note title"
                       />
                     </div>
                     <textarea
                       value={note.body}
                       onChange={(e) => updateNote(noteIndex, { ...note, body: e.target.value })}
-                      className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                      className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                       rows={3}
                       placeholder="Explain the note..."
                     />

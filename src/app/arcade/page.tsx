@@ -1,7 +1,7 @@
 export default function ArcadePage() {
   return (
     <div className="container mx-auto px-4 py-12">
-      <h1 className="text-2xl font-bold border-b-2 border-[#A51E30] pb-2 mb-6">
+      <h1 className="text-2xl font-bold border-b-2 border-[var(--brand-accent)] pb-2 mb-6">
         Arcade
       </h1>
 

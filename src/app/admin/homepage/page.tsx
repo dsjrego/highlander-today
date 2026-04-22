@@ -338,7 +338,7 @@ export default function HomepageCurationPage() {
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="rounded-full bg-[#A51E30] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#8f1929] disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-full bg-[var(--brand-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSaving ? 'Saving...' : 'Save Homepage Curation'}
             </button>
@@ -533,11 +533,11 @@ export default function HomepageCurationPage() {
                           item={item}
                           actionLabel={box.heroItem ? 'Replace Hero' : 'Set Hero'}
                           onAction={() => setHeroItem(box.boxType, item)}
-                          actionClassName="text-sm font-medium text-[#A51E30] transition hover:text-[#8f1929]"
+                          actionClassName="text-sm font-medium text-[var(--brand-accent)] transition hover:opacity-80"
                           secondaryActionLabel="Add Link"
                           onSecondaryAction={() => addLinkItem(box.boxType, item)}
                           secondaryDisabled={!box.heroItem || box.linkItems.length >= maxLinks}
-                          secondaryActionClassName="text-sm font-medium text-[#46A8CC] transition hover:text-[#2d89ab] disabled:cursor-not-allowed disabled:opacity-50"
+                          secondaryActionClassName="text-sm font-medium text-[var(--brand-primary)] transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
                         />
                       ))}
                     </div>

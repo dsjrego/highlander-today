@@ -20,13 +20,13 @@ export const Masthead: React.FC<MastheadProps> = ({
         <div className="flex items-center justify-between gap-8">
           {/* Logo & Site Name */}
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg" style={{ backgroundColor: '#46A8CC' }}>
+            <div className="w-12 h-12 rounded-lg" style={{ backgroundcolor: 'var(--brand-primary)' }}>
               <div className="w-full h-full flex items-center justify-center text-white font-bold text-lg">
                 HT
               </div>
             </div>
             <div>
-              <h1 className="text-2xl font-bold" style={{ color: '#46A8CC' }}>
+              <h1 className="text-2xl font-bold" style={{ color: 'var(--brand-primary)' }}>
                 Highlander Today
               </h1>
               <p className="text-xs text-gray-500">Community News, Market & Services</p>
@@ -60,7 +60,7 @@ export const Masthead: React.FC<MastheadProps> = ({
                   <Link
                     href="/admin"
                     className="text-sm font-medium hover:text-gray-600"
-                    style={{ color: '#A51E30' }}
+                    style={{ color: 'var(--brand-accent)' }}
                   >
                     Admin
                   </Link>
@@ -86,7 +86,7 @@ export const Masthead: React.FC<MastheadProps> = ({
                 <Link
                   href="/login?mode=sign-up"
                   className="text-sm font-medium px-4 py-2 rounded text-white"
-                  style={{ backgroundColor: '#46A8CC' }}
+                  style={{ backgroundcolor: 'var(--brand-primary)' }}
                 >
                   Sign Up
                 </Link>

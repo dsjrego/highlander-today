@@ -9,6 +9,7 @@ import type {
 } from './types';
 import { REPORTER_DRAFT_TYPE } from './types';
 import { validateReporterDraft } from './draft-validator';
+import { buildDeterministicSourcePacketAnalysis } from './source-packet-analysis';
 
 export function createReporterProviderAdapter(): ReporterProviderAdapter {
   const provider = (process.env.REPORTER_MODEL_PROVIDER || 'anthropic').toLowerCase();
@@ -49,8 +50,34 @@ export async function generateReporterDraftWithValidation(
   packet: ReporterSourcePacket,
   draftType: ReporterDraftTypeValue = REPORTER_DRAFT_TYPE.ARTICLE_DRAFT
 ) {
-  const draft = await generateReporterDraft(packet, draftType);
-  const validation = validateGeneratedReporterDraft(draft, packet);
+  let draft: ReporterGeneratedDraft;
+
+  try {
+    draft = await generateReporterDraft(packet, draftType);
+  } catch (error) {
+    if (draftType === REPORTER_DRAFT_TYPE.SOURCE_PACKET_SUMMARY) {
+      const message =
+        error instanceof Error ? error.message : 'Reporter Agent analysis generation failed.';
+      draft = buildDeterministicSourcePacketAnalysis(packet, {
+        generationNotes: `Deterministic source-packet analysis replaced a failed model response. ${message}`,
+      });
+    } else {
+      throw error;
+    }
+  }
+
+  let validation = validateGeneratedReporterDraft(draft, packet);
+
+  if (draftType === REPORTER_DRAFT_TYPE.SOURCE_PACKET_SUMMARY && validation.hasCriticalIssues) {
+    draft = buildDeterministicSourcePacketAnalysis(packet, {
+      modelProvider: draft.modelProvider,
+      modelName: draft.modelName,
+      generationNotes:
+        draft.generationNotes ||
+        'Deterministic source-packet analysis replaced a weak or invalid model response.',
+    });
+    validation = validateGeneratedReporterDraft(draft, packet);
+  }
 
   return { draft, validation };
 }

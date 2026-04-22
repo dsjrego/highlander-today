@@ -26,7 +26,7 @@ const VARIANT_CLASS_NAMES: Record<CrudActionVariant, string> = {
   inline: 'admin-list-cell-button',
   'inline-link': 'admin-list-cell-button text-[#2563eb]',
   'inline-success': 'admin-list-cell-button text-[#1f7a45]',
-  'inline-danger': 'admin-list-cell-button text-[#8f1d2c]',
+  'inline-danger': 'admin-list-cell-button text-[var(--brand-accent)]',
 };
 
 type SharedCrudActionProps = {

@@ -66,7 +66,7 @@ export const VouchConfirmModal: React.FC<VouchConfirmModalProps> = ({
             onClick={onConfirm}
             disabled={!isAgreed || isLoading}
             className="px-4 py-2 text-white rounded-lg font-medium disabled:opacity-50 transition-colors"
-            style={{ backgroundColor: '#46A8CC' }}
+            style={{ backgroundcolor: 'var(--brand-primary)' }}
           >
             {isLoading ? 'Vouching...' : 'Confirm Vouch'}
           </button>

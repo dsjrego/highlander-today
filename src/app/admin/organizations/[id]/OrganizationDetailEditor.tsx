@@ -1400,7 +1400,7 @@ export default function OrganizationDetailEditor({ organization: initialOrganiza
                     <div key={event.id} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <Link href={`/admin/events/${event.id}`} className="text-sm font-semibold text-slate-950 hover:text-[#A51E30]">
+                          <Link href={`/admin/events/${event.id}`} className="text-sm font-semibold text-slate-950 hover:text-[var(--brand-accent)]">
                             {event.title}
                           </Link>
                           <p className="mt-1 text-xs uppercase tracking-[0.16em] text-slate-500">

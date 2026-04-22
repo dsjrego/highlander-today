@@ -20,8 +20,8 @@ const defaultSettings: SiteSettings = {
   siteDescription: "Community platform",
   logoUrl: null,
   bannerUrl: null,
-  primaryColor: "#46A8CC",
-  secondaryColor: "#A51E30",
+  primaryColor: "var(--brand-primary)",
+  secondaryColor: "var(--brand-accent)",
   maintenanceMode: false,
   requireEmailVerification: true,
   allowUserRegistration: true,
@@ -112,7 +112,7 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <h1 className="mb-8 text-4xl font-bold text-[#46A8CC]">Site Settings</h1>
+      <h1 className="mb-8 text-4xl font-bold text-[var(--brand-primary)]">Site Settings</h1>
 
       {loadError ? (
         <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">
@@ -145,7 +145,7 @@ export default function SettingsPage() {
                 type="text"
                 value={settings.siteName}
                 onChange={(event) => handleSettingChange("siteName", event.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                 disabled={isLoading || saveStatus === "saving"}
               />
             </div>
@@ -158,7 +158,7 @@ export default function SettingsPage() {
                 type="number"
                 value={settings.maxUploadSize}
                 onChange={(event) => handleSettingChange("maxUploadSize", Number(event.target.value) || 0)}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                 disabled={isLoading || saveStatus === "saving"}
               />
             </div>
@@ -171,7 +171,7 @@ export default function SettingsPage() {
                 value={settings.siteDescription}
                 onChange={(event) => handleSettingChange("siteDescription", event.target.value)}
                 rows={3}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                 disabled={isLoading || saveStatus === "saving"}
               />
             </div>
@@ -184,7 +184,7 @@ export default function SettingsPage() {
                 type="text"
                 value={settings.primaryColor}
                 onChange={(event) => handleSettingChange("primaryColor", event.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                 disabled={isLoading || saveStatus === "saving"}
               />
             </div>
@@ -197,7 +197,7 @@ export default function SettingsPage() {
                 type="text"
                 value={settings.secondaryColor}
                 onChange={(event) => handleSettingChange("secondaryColor", event.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                 disabled={isLoading || saveStatus === "saving"}
               />
             </div>
@@ -213,7 +213,7 @@ export default function SettingsPage() {
                 type="checkbox"
                 checked={settings.maintenanceMode}
                 onChange={(event) => handleSettingChange("maintenanceMode", event.target.checked)}
-                className="h-5 w-5 rounded border-gray-300 text-[#46A8CC]"
+                className="h-5 w-5 rounded border-gray-300 text-[var(--brand-primary)]"
                 disabled={isLoading || saveStatus === "saving"}
               />
               <div>
@@ -229,7 +229,7 @@ export default function SettingsPage() {
                 type="checkbox"
                 checked={settings.allowUserRegistration}
                 onChange={(event) => handleSettingChange("allowUserRegistration", event.target.checked)}
-                className="h-5 w-5 rounded border-gray-300 text-[#46A8CC]"
+                className="h-5 w-5 rounded border-gray-300 text-[var(--brand-primary)]"
                 disabled={isLoading || saveStatus === "saving"}
               />
               <div>
@@ -245,7 +245,7 @@ export default function SettingsPage() {
                 type="checkbox"
                 checked={settings.requireEmailVerification}
                 onChange={(event) => handleSettingChange("requireEmailVerification", event.target.checked)}
-                className="h-5 w-5 rounded border-gray-300 text-[#46A8CC]"
+                className="h-5 w-5 rounded border-gray-300 text-[var(--brand-primary)]"
                 disabled={isLoading || saveStatus === "saving"}
               />
               <div>
@@ -263,7 +263,7 @@ export default function SettingsPage() {
             type="button"
             onClick={handleSaveSettings}
             disabled={isLoading || saveStatus === "saving"}
-            className="rounded-lg bg-[#46A8CC] px-6 py-2 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-lg bg-[var(--brand-primary)] px-6 py-2 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
           >
             {saveStatus === "saving" ? "Saving..." : "Save Settings"}
           </button>

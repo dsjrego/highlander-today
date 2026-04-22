@@ -155,7 +155,7 @@ export default function HelpWantedDetailPage() {
   return (
     <div className="space-y-8">
       <div>
-        <Link href="/help-wanted" className="text-sm font-semibold text-[#8f1d2c] hover:underline">
+        <Link href="/help-wanted" className="text-sm font-semibold text-[var(--brand-accent)] hover:underline">
           Back to Help Wanted
         </Link>
       </div>
@@ -189,7 +189,7 @@ export default function HelpWantedDetailPage() {
       ) : null}
 
       <div className="flex items-center gap-2 text-sm text-slate-400">
-        <Link href="/help-wanted" className="transition-colors hover:text-[#8f1d2c]">
+        <Link href="/help-wanted" className="transition-colors hover:text-[var(--brand-accent)]">
           Help Wanted
         </Link>
         <span>/</span>
@@ -198,7 +198,7 @@ export default function HelpWantedDetailPage() {
 
       <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(143,29,44,0.96),rgba(10,32,51,0.94))] px-6 py-8 text-white shadow-[0_35px_80px_rgba(7,17,26,0.22)] md:px-10 md:py-10">
       <div className="mb-4 flex flex-wrap gap-2">
-        <span className="rounded-full bg-[#0f5771] px-3 py-1 text-xs font-semibold text-white">
+        <span className="rounded-full bg-[var(--brand-primary)] px-3 py-1 text-xs font-semibold text-white">
           {POSTING_TYPE_LABELS[post.postingType]}
         </span>
         <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-950">
@@ -301,7 +301,7 @@ export default function HelpWantedDetailPage() {
               This opportunity is not open for new responses.
             </div>
           ) : isOwnPost ? (
-            <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+            <div className="rounded-xl border border-blue-200 bg-[var(--article-card-badge-bg)] px-4 py-3 text-sm text-blue-800">
               This is your post. Responses come through your Messages inbox.
             </div>
           ) : sessionStatus === 'authenticated' ? (
@@ -309,7 +309,7 @@ export default function HelpWantedDetailPage() {
               Trusted membership is required before you can respond through platform messaging.
             </div>
           ) : (
-            <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+            <div className="rounded-xl border border-blue-200 bg-[var(--article-card-badge-bg)] px-4 py-3 text-sm text-blue-800">
               Sign in with a trusted account to respond through the platform.
             </div>
           )}

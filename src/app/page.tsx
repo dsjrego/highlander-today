@@ -35,10 +35,10 @@ function HomepageBoxCard({
 }) {
   if (!box.heroItem) {
     return (
-      <section className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
+      <section className="homepage-feature-card p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--brand-primary)]">
+            <p className="homepage-feature-label text-xs font-semibold uppercase tracking-[0.28em]">
               {box.title}
             </p>
           </div>
@@ -52,19 +52,19 @@ function HomepageBoxCard({
 
   return (
     <section
-      className={`overflow-hidden rounded-[28px] border border-white/10 bg-white/82 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur ${
+      className={`homepage-feature-card ${
         emphasize ? 'xl:col-span-2' : ''
       }`}
     >
-      <div className="flex items-center justify-between gap-3 border-b border-slate-200/70 px-5 py-4 md:px-6">
+      <div className="homepage-box-header flex items-center justify-between gap-3 px-5 py-4 md:px-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--brand-primary)]">
+          <p className="homepage-feature-label text-xs font-semibold uppercase tracking-[0.28em]">
             {box.title}
           </p>
         </div>
         <Link
           href={getBoxBrowseUrl(box)}
-          className="text-sm font-semibold text-[color:var(--brand-accent)] transition hover:opacity-80"
+          className="homepage-box-browse-link text-sm font-semibold transition"
         >
           View all
         </Link>
@@ -73,10 +73,14 @@ function HomepageBoxCard({
       <div className={`grid grid-cols-1 ${emphasize ? 'lg:grid-cols-[1.1fr_0.9fr]' : ''}`}>
         <Link
           href={hero.url}
-          className="group block border-b border-slate-200/70 no-underline transition hover:no-underline lg:border-b-0"
+          className="group block no-underline transition hover:no-underline lg:border-b-0"
         >
           {hero.imageUrl ? (
-            <div className={`relative w-full overflow-hidden ${emphasize ? 'h-72 md:h-[24rem]' : 'h-56'}`}>
+            <div
+              className={`homepage-feature-media-cover relative w-full overflow-hidden ${
+                emphasize ? 'h-72 md:h-[24rem]' : 'h-56'
+              }`}
+            >
               <Image
                 src={hero.imageUrl}
                 alt={hero.title}
@@ -87,15 +91,15 @@ function HomepageBoxCard({
           ) : null}
           <div className="p-5 md:p-6">
             {hero.metadata ? (
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+              <p className="homepage-feature-meta text-[11px] font-semibold uppercase tracking-[0.18em]">
                 {hero.metadata}
               </p>
             ) : null}
-            <h2 className={`mt-2 font-bold leading-tight text-slate-950 ${emphasize ? 'text-3xl' : 'text-2xl'}`}>
+            <h2 className={`homepage-feature-title mt-2 font-bold leading-tight ${emphasize ? 'text-3xl' : 'text-2xl'}`}>
               {hero.title}
             </h2>
             {hero.description ? (
-              <p className="mt-3 text-sm leading-7 text-slate-600 md:text-[15px]">
+              <p className="homepage-feature-description mt-3 text-sm leading-7 md:text-[15px]">
                 {hero.description}
               </p>
             ) : null}
@@ -107,9 +111,9 @@ function HomepageBoxCard({
                   profilePhotoUrl={hero.author.profilePhotoUrl}
                   trustLevel={hero.author.trustLevel}
                   className="h-10 w-10"
-                  initialsClassName="bg-slate-200 text-sm text-slate-700"
+                  initialsClassName="homepage-feature-avatar text-sm"
                 />
-                <p className="text-sm font-semibold text-slate-700">
+                <p className="homepage-feature-author text-sm font-semibold">
                   {hero.author.firstName} {hero.author.lastName}
                 </p>
               </div>
@@ -117,20 +121,20 @@ function HomepageBoxCard({
           </div>
         </Link>
 
-        <div className={`${emphasize ? 'lg:border-l' : ''} border-slate-200/70 p-5 md:p-6`}>
+        <div className={`${emphasize ? 'homepage-feature-divider lg:border-l' : ''} p-5 md:p-6`}>
           {box.linkItems.length > 0 ? (
             <>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+              <p className="homepage-latest-label text-xs font-semibold uppercase tracking-[0.22em]">
                 {linkLabel}
               </p>
-              <ul className="mt-4 space-y-3">
+              <ul className="homepage-latest-list mt-4 space-y-3">
                 {box.linkItems.map((item) => (
-                  <li key={`${item.contentType}-${item.contentId}`} className="border-b border-slate-200/80 pb-3 last:border-b-0 last:pb-0">
+                  <li key={`${item.contentType}-${item.contentId}`} className="homepage-latest-item pb-3 last:pb-0">
                     <Link
                       href={item.url}
                       className="flex items-start gap-3 no-underline transition hover:no-underline"
                     >
-                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                      <div className="homepage-support-thumb relative h-12 w-12 shrink-0 overflow-hidden rounded-xl">
                         {item.imageUrl ? (
                           <Image
                             src={item.imageUrl}
@@ -139,17 +143,17 @@ function HomepageBoxCard({
                             className="object-cover"
                           />
                         ) : (
-                          <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                          <div className="homepage-support-thumb-placeholder flex h-full w-full items-center justify-center text-[10px] font-semibold uppercase tracking-[0.18em]">
                             {item.contentType === 'ARTICLE' ? 'News' : 'Item'}
                           </div>
                         )}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold leading-6 text-slate-900 transition hover:text-[color:var(--brand-accent)]">
+                        <p className="homepage-latest-link text-sm font-semibold leading-6 transition">
                           {item.title}
                         </p>
                         {item.metadata ? (
-                          <p className="mt-0.5 text-xs font-medium text-slate-500">
+                          <p className="homepage-support-meta mt-0.5 text-xs font-medium">
                             • {item.metadata.split(' • ').at(-1)}
                           </p>
                         ) : null}
@@ -182,11 +186,11 @@ export default async function Home() {
     return (
       <div className="space-y-8">
         <InternalPageHeader title="Today in Cambria Heights" />
-        <section className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
+        <section className="homepage-feature-card p-6 md:p-8">
           <h2 className="empty-state-title mb-3">
             Make local feel alive, useful, and worth checking every day.
           </h2>
-          <p className="mb-0 max-w-3xl text-base leading-8 text-slate-600 md:text-lg">
+          <p className="page-intro-copy mb-0 max-w-3xl text-base leading-8 md:text-lg">
             News, events, food, and local commerce can now flow as ordered homepage boxes rather than fixed lanes.
           </p>
         </section>

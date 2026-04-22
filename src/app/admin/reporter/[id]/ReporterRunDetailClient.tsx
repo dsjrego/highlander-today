@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   canAddReporterSource,
   canAssignReporterRun,
@@ -11,6 +11,10 @@ import {
 } from '@/lib/reporter/permissions';
 
 type TabKey = 'details' | 'sources' | 'blockers' | 'analysis' | 'drafts';
+type PreviewDialogState =
+  | { kind: 'draft'; id: string }
+  | { kind: 'analysis'; id: string }
+  | null;
 
 interface ReporterRunDetailClientProps {
   run: any;
@@ -77,12 +81,18 @@ function ReopenIcon() {
   return <span aria-hidden="true" className="text-sm font-semibold leading-none">↺</span>;
 }
 
-function ConvertIcon() {
-  return <span aria-hidden="true" className="text-sm font-semibold leading-none">→</span>;
-}
+function getDraftDisplayLabel(drafts: any[], draftId: string | null) {
+  if (!draftId) {
+    return null;
+  }
 
-function ViewIcon() {
-  return <span aria-hidden="true" className="text-sm font-semibold leading-none">◉</span>;
+  const index = drafts.findIndex((draft: any) => draft.id === draftId);
+
+  if (index === -1) {
+    return null;
+  }
+
+  return `Draft ${drafts.length - index}`;
 }
 
 export default function ReporterRunDetailClient({
@@ -105,6 +115,7 @@ export default function ReporterRunDetailClient({
   const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
   const [isConvertingDraft, setIsConvertingDraft] = useState<string | null>(null);
+  const [previewDialog, setPreviewDialog] = useState<PreviewDialogState>(null);
   const articleDrafts = currentRun.drafts.filter((draft: any) => draft.draftType === 'ARTICLE_DRAFT');
   const analysisDrafts = currentRun.drafts.filter(
     (draft: any) => draft.draftType === 'SOURCE_PACKET_SUMMARY'
@@ -176,6 +187,49 @@ export default function ReporterRunDetailClient({
           : canGenerateDraft
             ? 'Source packet is assembled and this run can move into draft generation.'
             : 'Source packet looks usable, but this role cannot generate drafts.';
+
+  function handleSelectDraft(draftId: string) {
+    setSelectedDraftId(draftId);
+    setPreviewDialog({ kind: 'draft', id: draftId });
+  }
+
+  function handleSelectAnalysis(draftId: string) {
+    setSelectedAnalysisId(draftId);
+    setPreviewDialog({ kind: 'analysis', id: draftId });
+  }
+
+  useEffect(() => {
+    if (!previewDialog) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setPreviewDialog(null);
+      }
+    }
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [previewDialog]);
+
+  const dialogDraft =
+    previewDialog?.kind === 'draft'
+      ? articleDrafts.find((draft: any) => draft.id === previewDialog.id) || selectedDraft
+      : previewDialog?.kind === 'analysis'
+        ? analysisDrafts.find((draft: any) => draft.id === previewDialog.id) || selectedAnalysis
+        : null;
+  const dialogLabel =
+    previewDialog?.kind === 'draft'
+      ? getDraftDisplayLabel(articleDrafts, dialogDraft?.id || null)
+      : previewDialog?.kind === 'analysis'
+        ? getDraftDisplayLabel(analysisDrafts, dialogDraft?.id || null)?.replace('Draft', 'Analysis')
+        : null;
 
   async function patchRun(payload: Record<string, unknown>) {
     setSaving(true);
@@ -1006,9 +1060,18 @@ export default function ReporterRunDetailClient({
                       </tr>
                     ) : (
                       analysisDrafts.map((draft: any, index: number) => (
-                        <tr key={draft.id} className="admin-list-row">
+                        <tr
+                          key={draft.id}
+                          className={`admin-list-row ${
+                            selectedAnalysis?.id === draft.id ? 'bg-sky-50/70' : ''
+                          }`}
+                        >
                           <td className="admin-list-cell">
-                            <span className="font-semibold text-slate-900">
+                            <span
+                              className={`font-semibold ${
+                                selectedAnalysis?.id === draft.id ? 'text-sky-900' : 'text-slate-900'
+                              }`}
+                            >
                               Analysis {analysisDrafts.length - index}
                             </span>
                           </td>
@@ -1055,16 +1118,16 @@ export default function ReporterRunDetailClient({
                             <div className="flex min-w-[44px] items-center justify-end">
                               <button
                                 type="button"
-                                className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border shadow-sm transition ${
+                                className={`inline-flex h-9 shrink-0 items-center justify-center rounded-full border px-3 text-xs font-semibold uppercase tracking-[0.12em] shadow-sm transition ${
                                   selectedAnalysis?.id === draft.id
                                     ? 'border-slate-700 bg-slate-900 text-white'
                                     : 'border-slate-300 bg-slate-50 text-slate-700 hover:border-slate-600 hover:bg-slate-100 hover:text-slate-900'
                                 }`}
-                                onClick={() => setSelectedAnalysisId(draft.id)}
+                                onClick={() => handleSelectAnalysis(draft.id)}
                                 aria-label="View Reporter Agent analysis"
                                 title="View Reporter Agent analysis"
                               >
-                                <ViewIcon />
+                                View
                               </button>
                             </div>
                           </td>
@@ -1076,39 +1139,6 @@ export default function ReporterRunDetailClient({
               </div>
             </section>
 
-            {selectedAnalysis ? (
-              <section className="admin-list rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-900">
-                      {selectedAnalysis.headline || 'Reporter Agent Analysis'}
-                    </h3>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {selectedAnalysis.modelProvider
-                        ? `${selectedAnalysis.modelProvider}${selectedAnalysis.modelName ? ` • ${selectedAnalysis.modelName}` : ''}`
-                        : 'Fallback'}
-                    </p>
-                  </div>
-                  {selectedAnalysis.createdAt ? (
-                    <div className="text-xs text-slate-500">
-                      {new Date(selectedAnalysis.createdAt).toLocaleString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                        hour: 'numeric',
-                        minute: '2-digit',
-                      })}
-                    </div>
-                  ) : null}
-                </div>
-                <div className="whitespace-pre-wrap rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-700">
-                  {selectedAnalysis.body}
-                </div>
-                {selectedAnalysis.generationNotes ? (
-                  <p className="mt-3 text-xs text-slate-500">{selectedAnalysis.generationNotes}</p>
-                ) : null}
-              </section>
-            ) : null}
           </div>
         ) : null}
 
@@ -1135,6 +1165,9 @@ export default function ReporterRunDetailClient({
                   {draftGenerationBlockedReason}
                 </div>
               ) : null}
+              <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                `View` opens the selected reporter draft in a dialog. `Article` opens the linked article editor in `/local-life/submit`.
+              </div>
               <div className="admin-list-table-wrap">
                 <table className="admin-list-table">
                   <thead className="admin-list-head">
@@ -1158,9 +1191,18 @@ export default function ReporterRunDetailClient({
                       </tr>
                     ) : (
                       articleDrafts.map((draft: any, index: number) => (
-                        <tr key={draft.id} className="admin-list-row">
+                        <tr
+                          key={draft.id}
+                          className={`admin-list-row ${
+                            selectedDraft?.id === draft.id ? 'bg-sky-50/70' : ''
+                          }`}
+                        >
                           <td className="admin-list-cell">
-                            <span className="font-semibold text-slate-900">
+                            <span
+                              className={`font-semibold ${
+                                selectedDraft?.id === draft.id ? 'text-sky-900' : 'text-slate-900'
+                              }`}
+                            >
                               Draft {articleDrafts.length - index}
                             </span>
                           </td>
@@ -1206,33 +1248,33 @@ export default function ReporterRunDetailClient({
                             </div>
                           </td>
                           <td className="admin-list-cell">
-                            <div className="flex min-w-[88px] items-center justify-end gap-2">
+                            <div className="flex min-w-[148px] items-center justify-end gap-2">
                               <button
                                 type="button"
-                                className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border shadow-sm transition ${
+                                className={`inline-flex h-9 shrink-0 items-center justify-center rounded-full border px-3 text-xs font-semibold uppercase tracking-[0.12em] shadow-sm transition ${
                                   selectedDraft?.id === draft.id
                                     ? 'border-slate-700 bg-slate-900 text-white'
                                     : 'border-slate-300 bg-slate-50 text-slate-700 hover:border-slate-600 hover:bg-slate-100 hover:text-slate-900'
                                 }`}
-                                onClick={() => setSelectedDraftId(draft.id)}
+                                onClick={() => handleSelectDraft(draft.id)}
                                 aria-label="View reporter draft"
                                 title="View reporter draft"
                               >
-                                <ViewIcon />
+                                View
                               </button>
                               {currentRun.linkedArticle ? (
                                 <Link
                                   href={`/local-life/submit?edit=${currentRun.linkedArticle.id}`}
-                                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-slate-50 text-slate-700 shadow-sm transition hover:border-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                                  className="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-slate-50 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-slate-700 shadow-sm transition hover:border-slate-600 hover:bg-slate-100 hover:text-slate-900"
                                   aria-label="Open linked article"
                                   title="Open linked article"
                                 >
-                                  <ConvertIcon />
+                                  Article
                                 </Link>
                               ) : canConvertDraft ? (
                                 <button
                                   type="button"
-                                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-sky-300 bg-sky-50 text-sky-700 shadow-sm transition hover:border-sky-600 hover:bg-sky-100 hover:text-sky-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                  className="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-sky-300 bg-sky-50 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-sky-700 shadow-sm transition hover:border-sky-600 hover:bg-sky-100 hover:text-sky-800 disabled:cursor-not-allowed disabled:opacity-50"
                                   onClick={() => handleConvertDraft(draft.id)}
                                   disabled={
                                     !canConvertDraft ||
@@ -1242,7 +1284,7 @@ export default function ReporterRunDetailClient({
                                   aria-label="Convert draft to article"
                                   title="Convert to article"
                                 >
-                                  <ConvertIcon />
+                                  Convert
                                 </button>
                               ) : null}
                             </div>
@@ -1254,44 +1296,6 @@ export default function ReporterRunDetailClient({
                 </table>
               </div>
             </section>
-
-            {selectedDraft ? (
-              <section className="admin-list rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-900">
-                      {selectedDraft.headline || 'Untitled draft'}
-                    </h3>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {selectedDraft.draftType} • {selectedDraft.status}
-                      {selectedDraft.modelProvider
-                        ? ` • ${selectedDraft.modelProvider}${selectedDraft.modelName ? ` • ${selectedDraft.modelName}` : ''}`
-                        : ' • Fallback'}
-                    </p>
-                  </div>
-                  {selectedDraft.createdAt ? (
-                    <div className="text-xs text-slate-500">
-                      {new Date(selectedDraft.createdAt).toLocaleString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                        hour: 'numeric',
-                        minute: '2-digit',
-                      })}
-                    </div>
-                  ) : null}
-                </div>
-                {selectedDraft.dek ? (
-                  <p className="mb-4 text-sm font-medium text-slate-700">{selectedDraft.dek}</p>
-                ) : null}
-                <div className="whitespace-pre-wrap rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-700">
-                  {selectedDraft.body}
-                </div>
-                {selectedDraft.generationNotes ? (
-                  <p className="mt-3 text-xs text-slate-500">{selectedDraft.generationNotes}</p>
-                ) : null}
-              </section>
-            ) : null}
 
             {currentRun.validationIssues?.length ? (
               <section className="admin-list rounded-3xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
@@ -1336,6 +1340,80 @@ export default function ReporterRunDetailClient({
           </div>
         ) : null}
       </div>
+
+      {previewDialog && dialogDraft ? (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/70 px-4 py-6"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="reporter-preview-dialog-title"
+          onClick={() => setPreviewDialog(null)}
+        >
+          <div
+            className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  {dialogLabel ? (
+                    <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-800">
+                      {dialogLabel}
+                    </span>
+                  ) : null}
+                  <h2
+                    id="reporter-preview-dialog-title"
+                    className="text-base font-semibold text-slate-900"
+                  >
+                    {dialogDraft.headline ||
+                      (previewDialog.kind === 'analysis'
+                        ? 'Reporter Agent Analysis'
+                        : 'Untitled draft')}
+                  </h2>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">
+                  {previewDialog.kind === 'draft'
+                    ? `${dialogDraft.draftType} • ${dialogDraft.status}`
+                    : 'SOURCE_PACKET_SUMMARY'}
+                  {dialogDraft.modelProvider
+                    ? ` • ${dialogDraft.modelProvider}${dialogDraft.modelName ? ` • ${dialogDraft.modelName}` : ''}`
+                    : ' • Fallback'}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-slate-50 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-slate-700 shadow-sm transition hover:border-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                onClick={() => setPreviewDialog(null)}
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="max-h-[calc(90vh-86px)] overflow-y-auto px-5 py-5">
+              {dialogDraft.createdAt ? (
+                <div className="mb-4 text-xs text-slate-500">
+                  {new Date(dialogDraft.createdAt).toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })}
+                </div>
+              ) : null}
+              {dialogDraft.dek ? (
+                <p className="mb-4 text-sm font-medium text-slate-700">{dialogDraft.dek}</p>
+              ) : null}
+              <div className="whitespace-pre-wrap rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-700">
+                {dialogDraft.body}
+              </div>
+              {dialogDraft.generationNotes ? (
+                <p className="mt-3 text-xs text-slate-500">{dialogDraft.generationNotes}</p>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

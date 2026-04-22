@@ -4,6 +4,11 @@
   "description": "A multi-tenant community news platform",
   "private": true,
   "scripts": {
+    "predev": "node scripts/generate-theme-manifests.js",
+    "prebuild": "node scripts/generate-theme-manifests.js",
+    "prestart": "node scripts/generate-theme-manifests.js",
+    "pretypecheck": "node scripts/generate-theme-manifests.js",
+    "prelint": "node scripts/generate-theme-manifests.js",
     "postinstall": "prisma generate --schema prisma/schema.prisma",
     "dev": "next dev",
     "build": "next build",

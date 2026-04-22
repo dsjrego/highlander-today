@@ -2,11 +2,11 @@
   <defs>
     <linearGradient id="htIconBg" x1="96" y1="64" x2="424" y2="456" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#54C3E6"/>
-      <stop offset="1" stop-color="#A51E30"/>
+      <stop offset="1" stop-color="var(--brand-accent)"/>
     </linearGradient>
     <linearGradient id="htIconInner" x1="128" y1="96" x2="384" y2="416" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#6FAFCC" stop-opacity="0.9"/>
-      <stop offset="1" stop-color="#A51E30" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="var(--brand-accent)" stop-opacity="0.7"/>
     </linearGradient>
   </defs>
   <rect width="512" height="512" rx="120" fill="#07111A"/>

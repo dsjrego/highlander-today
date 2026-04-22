@@ -122,7 +122,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     !day
                       ? 'bg-gray-50 border-gray-100'
                       : event
-                      ? 'border-2 bg-blue-50 hover:bg-blue-100'
+                      ? 'border-2 bg-[var(--article-card-badge-bg)] hover:bg-blue-100'
                       : 'border-gray-200 hover:bg-gray-50'
                   } ${isToday ? 'ring-2 ring-blue-400' : ''}`}
                   onClick={() => day && onDateSelect(`${displayMonth.getFullYear()}-${String(displayMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`)}
@@ -134,7 +134,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         <div className="mt-1">
                           <div
                             className="text-xs font-semibold text-white rounded px-1 py-0.5 line-clamp-1"
-                            style={{ backgroundColor: '#46A8CC' }}
+                            style={{ backgroundcolor: 'var(--brand-primary)' }}
                           >
                             {event.title}
                           </div>

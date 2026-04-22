@@ -1,20 +1,29 @@
-import { highlanderTodayTheme } from './manifests/highlander-today';
-import { riverValleyLocalTheme } from './manifests/river-valley-local';
+import 'server-only';
+
+import { generatedThemeManifests } from './generated-manifests';
 import { TenantThemeManifest } from './types';
 
-const themeRegistry = new Map<string, TenantThemeManifest>([
-  [highlanderTodayTheme.tenantSlug, highlanderTodayTheme],
-  [riverValleyLocalTheme.tenantSlug, riverValleyLocalTheme],
-]);
+const DEFAULT_MANIFEST_SLUG = 'highlander-today';
 
-const themeManifests = [highlanderTodayTheme, riverValleyLocalTheme];
+const themeManifests = [...generatedThemeManifests];
+
+if (themeManifests.length === 0) {
+  throw new Error(
+    'No tenant theme manifests are registered. Run `node scripts/generate-theme-manifests.js`.'
+  );
+}
+
+const themeRegistry = new Map<string, TenantThemeManifest>(
+  themeManifests.map((manifest) => [manifest.tenantSlug, manifest])
+);
+const fallbackManifest = themeRegistry.get(DEFAULT_MANIFEST_SLUG) ?? themeManifests[0];
 
 export function getTenantThemeManifest(tenantSlug?: string | null) {
   if (!tenantSlug) {
-    return highlanderTodayTheme;
+    return fallbackManifest;
   }
 
-  return themeRegistry.get(tenantSlug) ?? highlanderTodayTheme;
+  return themeRegistry.get(tenantSlug) ?? fallbackManifest;
 }
 
 export function hasTenantThemeManifest(tenantSlug?: string | null) {
@@ -26,5 +35,5 @@ export function hasTenantThemeManifest(tenantSlug?: string | null) {
 }
 
 export function listTenantThemeManifests() {
-  return themeManifests;
+  return [...themeManifests];
 }

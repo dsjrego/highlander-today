@@ -88,7 +88,7 @@ export default function SubmitRoadmapIdeaPage() {
 
   if (sessionStatus !== 'authenticated') {
     return (
-      <div className="bg-blue-50 border border-blue-200 text-blue-900 rounded-xl px-5 py-4">
+      <div className="bg-[var(--article-card-badge-bg)] border border-blue-200 text-blue-900 rounded-xl px-5 py-4">
         Sign in with a trusted account to submit a roadmap idea.
       </div>
     );
@@ -136,7 +136,7 @@ export default function SubmitRoadmapIdeaPage() {
         </div>
       ) : null}
 
-      <div className="bg-blue-50 border border-blue-200 text-blue-900 rounded-xl px-4 py-3 mb-6 text-sm">
+      <div className="bg-[var(--article-card-badge-bg)] border border-blue-200 text-blue-900 rounded-xl px-4 py-3 mb-6 text-sm">
         Strong ideas describe the problem first, explain who it helps, and stay within Highlander Today’s local-first mission instead of becoming a general feature wishlist.
       </div>
 
@@ -172,7 +172,7 @@ export default function SubmitRoadmapIdeaPage() {
             name="title"
             value={formData.title}
             onChange={handleInputChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             placeholder="Add a public blocked-users management page"
           />
         </div>
@@ -186,7 +186,7 @@ export default function SubmitRoadmapIdeaPage() {
             value={formData.summary}
             onChange={handleInputChange}
             rows={3}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             placeholder="Describe the problem in a few sentences so staff and other members can understand it quickly."
           />
         </div>
@@ -200,7 +200,7 @@ export default function SubmitRoadmapIdeaPage() {
             value={formData.description}
             onChange={handleInputChange}
             rows={8}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             placeholder="Explain who is affected, what the current friction is, and what a better workflow would look like."
           />
           <p className="mt-2 text-xs text-gray-500">
@@ -220,7 +220,7 @@ export default function SubmitRoadmapIdeaPage() {
             type="submit"
             disabled={isLoading}
             className="px-6 py-2 text-white font-semibold rounded-lg hover:opacity-90 transition disabled:opacity-50"
-            style={{ backgroundColor: '#A51E30' }}
+            style={{ backgroundColor: 'var(--brand-accent)' }}
           >
             {isLoading ? 'Submitting...' : 'Submit Idea'}
           </button>

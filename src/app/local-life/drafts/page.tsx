@@ -157,7 +157,7 @@ export default function MyDraftsPage() {
                 ? 'text-white'
                 : 'bg-white text-gray-600 shadow-sm hover:shadow-md'
             }`}
-            style={filterStatus === key ? { backgroundColor: '#A51E30' } : {}}
+            style={filterStatus === key ? { backgroundColor: 'var(--brand-accent)' } : {}}
           >
             {label} ({counts[key as keyof typeof counts] || 0})
           </button>
@@ -184,7 +184,7 @@ export default function MyDraftsPage() {
             <Link
               href="/local-life/submit"
               className="inline-block px-6 py-3 text-white font-semibold rounded-full hover:opacity-90 transition"
-              style={{ backgroundColor: '#A51E30' }}
+              style={{ backgroundColor: 'var(--brand-accent)' }}
             >
               Write Your First Article
             </Link>
@@ -244,7 +244,7 @@ export default function MyDraftsPage() {
                         <Link
                           href={`/local-life/submit?edit=${article.id}`}
                           className="px-4 py-1.5 text-xs font-semibold rounded-full hover:opacity-90 transition text-center"
-                          style={{ color: '#A51E30', border: '1px solid #A51E30' }}
+                          style={{ color: 'var(--brand-accent)', border: '1px solid var(--brand-accent)' }}
                         >
                           Edit
                         </Link>
@@ -252,7 +252,7 @@ export default function MyDraftsPage() {
                           onClick={() => handleSubmitForReview(article.id)}
                           disabled={isActionInProgress}
                           className="px-4 py-1.5 text-white text-xs font-semibold rounded-full hover:opacity-90 transition disabled:opacity-50"
-                          style={{ backgroundColor: '#A51E30' }}
+                          style={{ backgroundColor: 'var(--brand-accent)' }}
                         >
                           {isActionInProgress ? '...' : 'Submit for Review'}
                         </button>
@@ -270,7 +270,7 @@ export default function MyDraftsPage() {
                         <Link
                           href={`/local-life/submit?edit=${article.id}`}
                           className="px-4 py-1.5 text-xs font-semibold rounded-full hover:opacity-90 transition text-center"
-                          style={{ color: '#A51E30', border: '1px solid #A51E30' }}
+                          style={{ color: 'var(--brand-accent)', border: '1px solid var(--brand-accent)' }}
                         >
                           Edit
                         </Link>
@@ -284,14 +284,14 @@ export default function MyDraftsPage() {
                         <Link
                           href={`/local-life/submit?edit=${article.id}`}
                           className="px-4 py-1.5 text-xs font-semibold rounded-full hover:opacity-90 transition text-center"
-                          style={{ color: '#A51E30', border: '1px solid #A51E30' }}
+                          style={{ color: 'var(--brand-accent)', border: '1px solid var(--brand-accent)' }}
                         >
                           Edit
                         </Link>
                         <Link
                           href={`/local-life/${article.id}`}
                           className="px-4 py-1.5 text-xs font-semibold rounded-full hover:opacity-90 transition text-center"
-                          style={{ color: '#A51E30', border: '1px solid #A51E30' }}
+                          style={{ color: 'var(--brand-accent)', border: '1px solid var(--brand-accent)' }}
                         >
                           View
                         </Link>
@@ -301,7 +301,7 @@ export default function MyDraftsPage() {
                       <Link
                         href={`/local-life/submit?edit=${article.id}`}
                         className="px-4 py-1.5 text-xs font-semibold rounded-full hover:opacity-90 transition text-center"
-                        style={{ color: '#A51E30', border: '1px solid #A51E30' }}
+                        style={{ color: 'var(--brand-accent)', border: '1px solid var(--brand-accent)' }}
                       >
                         Edit
                       </Link>

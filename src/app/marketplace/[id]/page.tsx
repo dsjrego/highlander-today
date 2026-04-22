@@ -186,7 +186,7 @@ export default function ListingDetailPage({ params }: PageProps) {
       <div>
         <Link
           href="/marketplace"
-          className="text-sm font-semibold text-[#8f1d2c] hover:underline"
+          className="text-sm font-semibold text-[var(--brand-accent)] hover:underline"
         >
           Back to Market
         </Link>
@@ -238,7 +238,7 @@ export default function ListingDetailPage({ params }: PageProps) {
                     onClick={() => setSelectedPhoto(photo.imageUrl)}
                     className={`aspect-square rounded-lg overflow-hidden border-2 ${
                       activePhoto === photo.imageUrl
-                        ? "border-[#8f1d2c]"
+                        ? "border-[var(--brand-accent)]"
                         : "border-transparent"
                     }`}
                   >
@@ -274,7 +274,7 @@ export default function ListingDetailPage({ params }: PageProps) {
           <div className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
             <h2 className="text-lg font-bold mb-4">Store Information</h2>
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-14 h-14 rounded-full bg-[#46A8CC] text-white flex items-center justify-center font-bold text-lg overflow-hidden">
+              <div className="w-14 h-14 rounded-full bg-[var(--brand-primary)] text-white flex items-center justify-center font-bold text-lg overflow-hidden">
                 {listing.store.logoUrl ? (
                   <img
                     src={listing.store.logoUrl}
@@ -302,7 +302,7 @@ export default function ListingDetailPage({ params }: PageProps) {
 
             <Link
               href={`/marketplace/stores/${listing.store.id}`}
-              className="mb-4 inline-flex items-center text-sm font-semibold text-[#8f1d2c] hover:underline"
+              className="mb-4 inline-flex items-center text-sm font-semibold text-[var(--brand-accent)] hover:underline"
             >
               View storefront
             </Link>
@@ -331,7 +331,7 @@ export default function ListingDetailPage({ params }: PageProps) {
               Trusted membership is required before you can message sellers.
             </div>
           ) : (
-            <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+            <div className="rounded-xl border border-blue-200 bg-[var(--article-card-badge-bg)] px-4 py-3 text-sm text-blue-800">
               Sign in with a trusted account to message the seller.
             </div>
           )}
@@ -344,7 +344,7 @@ export default function ListingDetailPage({ params }: PageProps) {
             <h2 className="text-2xl font-black tracking-[-0.03em] text-slate-950">More from {listing.store.name}</h2>
             <Link
               href={`/marketplace/stores/${listing.store.id}`}
-              className="text-sm font-semibold text-[#8f1d2c] hover:underline"
+              className="text-sm font-semibold text-[var(--brand-accent)] hover:underline"
             >
               View storefront
             </Link>
@@ -378,7 +378,7 @@ export default function ListingDetailPage({ params }: PageProps) {
                     </span>
                   </div>
                   <h3 className="mb-2 text-lg font-bold text-slate-950">{related.title}</h3>
-                  <p className="mb-1 text-2xl font-bold text-[#8f1d2c]">
+                  <p className="mb-1 text-2xl font-bold text-[var(--brand-accent)]">
                     {formatPrice(related.priceCents)}
                   </p>
                   <p className="text-xs text-slate-500">{formatDate(related.createdAt)}</p>

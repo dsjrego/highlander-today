@@ -218,7 +218,7 @@ export default function RoadmapPage() {
 
   return (
     <div>
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8 pb-3 border-b-2" style={{ borderColor: '#A51E30' }}>
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8 pb-3 border-b-2" style={{ borderColor: 'var(--brand-accent)' }}>
         <div>
           <h1 className="text-2xl font-bold">Community Roadmap</h1>
           <p className="text-sm text-gray-500 mt-1">
@@ -238,7 +238,7 @@ export default function RoadmapPage() {
             <Link
               href="/roadmap/submit"
               className="px-4 py-2 text-white text-sm font-semibold rounded-full hover:opacity-90 transition"
-              style={{ backgroundColor: '#A51E30' }}
+              style={{ backgroundColor: 'var(--brand-accent)' }}
             >
               + Submit Idea
             </Link>
@@ -247,7 +247,7 @@ export default function RoadmapPage() {
       </div>
 
       {sessionStatus !== 'authenticated' ? (
-        <div className="mb-6 bg-blue-50 border border-blue-200 text-blue-900 rounded-xl px-4 py-3 text-sm">
+        <div className="mb-6 bg-[var(--article-card-badge-bg)] border border-blue-200 text-blue-900 rounded-xl px-4 py-3 text-sm">
           You can browse the public roadmap without signing in. Trusted membership is required to submit ideas and save a ranking ballot.
         </div>
       ) : null}
@@ -302,7 +302,7 @@ export default function RoadmapPage() {
                   className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition"
                 >
                   <div className="flex items-center justify-between gap-4 mb-3">
-                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#A51E30] text-white font-bold">
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--brand-accent)] text-white font-bold">
                       #{entry.position}
                     </span>
                     <span className="text-sm text-gray-500">
@@ -336,7 +336,7 @@ export default function RoadmapPage() {
                 onClick={() => saveBallot(ballotIdeaIds)}
                 disabled={isSavingBallot}
                 className="px-4 py-2 text-white text-sm font-semibold rounded-full hover:opacity-90 transition disabled:opacity-50"
-                style={{ backgroundColor: '#A51E30' }}
+                style={{ backgroundColor: 'var(--brand-accent)' }}
               >
                 {isSavingBallot ? 'Saving...' : 'Save Ballot'}
               </button>
@@ -449,7 +449,7 @@ export default function RoadmapPage() {
                               type="button"
                               onClick={() => removeFromBallot(idea.id)}
                               className="px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90 transition"
-                              style={{ backgroundColor: '#A51E30' }}
+                              style={{ backgroundColor: 'var(--brand-accent)' }}
                             >
                               Remove
                             </button>
@@ -459,7 +459,7 @@ export default function RoadmapPage() {
                               onClick={() => addToBallot(idea.id)}
                               disabled={ballotFull}
                               className="px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90 transition disabled:opacity-50"
-                              style={{ backgroundColor: '#46A8CC' }}
+                              style={{ backgroundcolor: 'var(--brand-primary)' }}
                             >
                               Add to Ballot
                             </button>
@@ -481,7 +481,7 @@ export default function RoadmapPage() {
             type="search"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             placeholder="Search roadmap ideas"
           />
           <div className="flex flex-wrap gap-2">
@@ -493,7 +493,7 @@ export default function RoadmapPage() {
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                   selectedStatus === value ? 'text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
-                style={selectedStatus === value ? { backgroundColor: '#46A8CC' } : {}}
+                style={selectedStatus === value ? { backgroundcolor: 'var(--brand-primary)' } : {}}
               >
                 {label}
               </button>
@@ -520,7 +520,7 @@ export default function RoadmapPage() {
             <Link
               href="/roadmap/submit"
               className="inline-block px-6 py-3 text-white font-semibold rounded-full hover:opacity-90 transition"
-              style={{ backgroundColor: '#A51E30' }}
+              style={{ backgroundColor: 'var(--brand-accent)' }}
             >
               Submit an Idea
             </Link>
@@ -533,7 +533,7 @@ export default function RoadmapPage() {
               key={idea.id}
               href={`/roadmap/${idea.id}`}
               className="block bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200 border-l-4"
-              style={{ borderColor: '#A51E30' }}
+              style={{ borderColor: 'var(--brand-accent)' }}
             >
               <div className="flex flex-wrap items-center gap-3 mb-3">
                 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${STATUS_STYLES[idea.status]}`}>

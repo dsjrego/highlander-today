@@ -187,7 +187,7 @@ export default function HelpWantedPage() {
       ) : null}
 
       {sessionStatus !== 'authenticated' ? (
-        <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+        <div className="rounded-2xl border border-blue-200 bg-[var(--article-card-badge-bg)] px-4 py-3 text-sm text-blue-900">
           Public browsing is open. Sign in with a trusted account to post opportunities or respond through platform messaging after moderation.
         </div>
       ) : null}
@@ -217,7 +217,7 @@ export default function HelpWantedPage() {
             type="search"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             placeholder="Search opportunities, locations, schedules, or names"
           />
           <div className="flex flex-wrap gap-2">
@@ -292,7 +292,7 @@ export default function HelpWantedPage() {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-3">
-                    <span className="rounded-full bg-[#0f5771] px-3 py-1 text-xs font-semibold text-white">
+                    <span className="rounded-full bg-[var(--brand-primary)] px-3 py-1 text-xs font-semibold text-white">
                       {POSTING_TYPE_LABELS[post.postingType]}
                     </span>
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${STATUS_STYLES[post.status]}`}>
@@ -308,7 +308,7 @@ export default function HelpWantedPage() {
                   </div>
 
                   <div className="flex items-start justify-between gap-4 mb-2">
-                    <h2 className="text-xl font-bold text-slate-950 transition-colors group-hover:text-[#8f1d2c]">
+                    <h2 className="text-xl font-bold text-slate-950 transition-colors group-hover:text-[var(--brand-accent)]">
                       {post.title}
                     </h2>
                   </div>
@@ -324,7 +324,7 @@ export default function HelpWantedPage() {
                     </span>
                   </div>
 
-                  <p className="mt-4 text-sm font-semibold text-[#8f1d2c] group-hover:underline">
+                  <p className="mt-4 text-sm font-semibold text-[var(--brand-accent)] group-hover:underline">
                     View details and response rules
                   </p>
                 </div>

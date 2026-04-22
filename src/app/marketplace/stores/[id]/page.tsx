@@ -210,7 +210,7 @@ export default function StorefrontPage({ params }: PageProps) {
         <Link
           href="/marketplace"
           className="text-sm font-medium hover:underline"
-          style={{ color: "#A51E30" }}
+          style={{ color: "var(--brand-accent)" }}
         >
           Back to Market
         </Link>
@@ -225,7 +225,7 @@ export default function StorefrontPage({ params }: PageProps) {
             <Link
               href={`/marketplace/create?storeId=${store.id}`}
               className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-white font-semibold"
-              style={{ backgroundColor: "#A51E30" }}
+              style={{ backgroundColor: "var(--brand-accent)" }}
             >
               Create Listing
             </Link>
@@ -234,7 +234,7 @@ export default function StorefrontPage({ params }: PageProps) {
       </div>
 
       <section className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="h-44 md:h-56 bg-gradient-to-r from-[#46A8CC] via-[#74bfd9] to-[#dceff6]">
+        <div className="h-44 md:h-56 bg-[var(--card-bg-accent)]">
           {store.bannerUrl ? (
             <img
               src={store.bannerUrl}
@@ -247,7 +247,7 @@ export default function StorefrontPage({ params }: PageProps) {
         <div className="px-6 pb-6">
           <div className="-mt-12 md:-mt-14 flex flex-col md:flex-row md:items-end md:justify-between gap-5">
             <div className="flex items-end gap-4 min-w-0">
-              <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl border-4 border-white bg-white text-[#46A8CC] shadow-sm flex items-center justify-center text-3xl font-bold overflow-hidden shrink-0">
+              <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl border-4 border-white bg-white text-[var(--brand-primary)] shadow-sm flex items-center justify-center text-3xl font-bold overflow-hidden shrink-0">
                 {store.logoUrl ? (
                   <img
                     src={store.logoUrl}
@@ -314,7 +314,7 @@ export default function StorefrontPage({ params }: PageProps) {
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center justify-center rounded-full border border-gray-300 bg-white px-4 py-2 font-semibold hover:underline"
-                    style={{ color: "#A51E30" }}
+                    style={{ color: "var(--brand-accent)" }}
                   >
                     Visit website
                   </a>
@@ -327,7 +327,7 @@ export default function StorefrontPage({ params }: PageProps) {
                 </Link>
               </div>
 
-              <div className="rounded-2xl border border-gray-200 bg-[#fbfdfe] p-5">
+              <div className="rounded-2xl border border-gray-200 bg-[var(--card-bg-deep)] p-5">
                 <h3 className="text-base font-bold text-gray-900 mb-3">What this store offers</h3>
                 <div className="flex flex-wrap gap-2 mb-4">
                   {Object.entries(LISTING_TYPE_LABELS).map(([key, label]) => (
@@ -345,7 +345,7 @@ export default function StorefrontPage({ params }: PageProps) {
                       <span
                         key={category}
                         className="rounded-full px-3 py-1 text-xs font-semibold text-white"
-                        style={{ backgroundColor: "#A51E30" }}
+                        style={{ backgroundColor: "var(--brand-accent)" }}
                       >
                         {category}
                       </span>
@@ -428,11 +428,11 @@ export default function StorefrontPage({ params }: PageProps) {
                     <div className="flex flex-wrap items-start gap-2 mb-3">
                       <span
                         className="text-xs text-white px-3 py-1 rounded-full font-medium"
-                        style={{ backgroundColor: "#A51E30" }}
+                        style={{ backgroundColor: "var(--brand-accent)" }}
                       >
                         {listing.category}
                       </span>
-                      <span className="text-xs bg-blue-50 text-[#46A8CC] px-3 py-1 rounded-full font-medium">
+                      <span className="text-xs bg-[var(--article-card-badge-bg)] text-[var(--brand-primary)] px-3 py-1 rounded-full font-medium">
                         {LISTING_TYPE_LABELS[listing.listingType]}
                       </span>
                       <span
@@ -442,7 +442,7 @@ export default function StorefrontPage({ params }: PageProps) {
                       </span>
                     </div>
 
-                    <h3 className="font-bold text-lg mb-2 group-hover:text-[#46A8CC] transition-colors">
+                    <h3 className="font-bold text-lg mb-2 group-hover:text-[var(--brand-primary)] transition-colors">
                       {listing.title}
                     </h3>
                     <p className="text-gray-600 text-sm mb-4 line-clamp-3">
@@ -451,7 +451,7 @@ export default function StorefrontPage({ params }: PageProps) {
 
                     <div className="flex items-end justify-between gap-3">
                       <div>
-                        <p className="text-2xl font-bold text-[#A51E30]">
+                        <p className="text-2xl font-bold text-[var(--brand-accent)]">
                           {formatPrice(listing.priceCents)}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
@@ -460,7 +460,7 @@ export default function StorefrontPage({ params }: PageProps) {
                       </div>
                       <div
                         className="text-right text-xs font-semibold"
-                        style={{ color: "#A51E30" }}
+                        style={{ color: "var(--brand-accent)" }}
                       >
                         View listing
                       </div>

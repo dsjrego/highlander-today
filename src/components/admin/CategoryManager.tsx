@@ -94,7 +94,7 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
           onClick={() => onSave(updatedCategories)}
           disabled={isLoading}
           className="px-6 py-2 text-white rounded-lg font-medium disabled:opacity-50"
-          style={{ backgroundColor: '#46A8CC' }}
+          style={{ backgroundcolor: 'var(--brand-primary)' }}
         >
           {isLoading ? 'Saving...' : 'Save Changes'}
         </button>
@@ -134,7 +134,7 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
             onClick={handleAddCategory}
             disabled={!newCategory.name.trim()}
             className="w-full px-4 py-2 text-white rounded-lg font-medium disabled:opacity-50"
-            style={{ backgroundColor: '#46A8CC' }}
+            style={{ backgroundcolor: 'var(--brand-primary)' }}
           >
             Add Category
           </button>
@@ -148,7 +148,7 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
             key={category.id}
             className={`p-4 rounded-lg border transition-all ${
               editingId === category.id
-                ? 'border-blue-500 bg-blue-50'
+                ? 'border-blue-500 bg-[var(--article-card-badge-bg)]'
                 : 'border-gray-200 hover:border-gray-300'
             }`}
           >

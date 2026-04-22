@@ -164,7 +164,7 @@ export default function ProfileInteractionControls({
             controlsDisabled || isOpeningMessage || !blockStatus?.canMessage
           }
           className="flex-1 text-white px-6 py-3 rounded-full font-semibold shadow-sm hover:shadow-md transition-shadow duration-200 disabled:opacity-60"
-          style={{ backgroundColor: '#A51E30' }}
+          style={{ backgroundColor: 'var(--brand-accent)' }}
         >
           {isOpeningMessage
             ? 'Opening...'

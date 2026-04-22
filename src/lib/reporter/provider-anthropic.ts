@@ -50,27 +50,37 @@ function buildAnthropicUserPrompt(input: ReporterDraftGenerationInput, draftType
       'Return JSON only.',
       'The body must use exactly these section headings in this order:',
       'What we know',
+      'Source strength',
       'Missing information',
       'Reporting gaps',
-      'Editorial angle',
+      'Coverage recommendation',
       'Next steps',
       'This is internal newsroom analysis, not a public article or press-brief rewrite.',
       'Each section should contain concise bullet-style lines or short paragraphs.',
       'Make every section specific to this story. Do not use generic placeholder advice.',
       'Do not write vague filler such as "additional sourcing may still be needed", "review the strongest source items", or "identify missing primary-source confirmation".',
+      'Source strength must name the strongest source item and the weakest source item or weakest unsupported claim in this packet.',
       'Missing information must name the exact unanswered questions for this story.',
       'Reporting gaps must explain what is weak, missing, single-sourced, or unverified in this packet.',
-      'Editorial angle must propose 2-3 concrete framing options for Highlander Today coverage.',
+      'Coverage recommendation must explicitly choose one of: draft-ready, brief-ready, or needs more sourcing.',
+      'Coverage recommendation must explain why that label fits this specific packet.',
+      'If only a brief is supportable, say so directly. If the packet is too weak for a draft, say so directly.',
       'Next steps must be concrete reporting actions tied to this story, not generic process advice.',
-      'Do not output a news story lead unless it appears inside Editorial angle as one possible framing idea.',
-      'If the packet only supports a simple event brief, say that explicitly in Editorial angle or Reporting gaps.',
+      'Separate confirmed facts from claims that appear only once or remain unattributed.',
+      'Do not output a public news story lead or framing brainstorm in this analysis.',
       buildSourcePacketPrompt(input),
     ].join('\n\n');
   }
 
   return [
-    'Draft from this source packet.',
+    'Draft a publishable internal article draft from this source packet.',
     'Return JSON only.',
+    'Write a real article draft, not a source summary, bullet list, or transcript digest.',
+    'Use only the facts supported by the packet. Attribute claims when needed.',
+    'Do not paste raw URLs into the body unless the story itself is about the URL or registration link.',
+    'Do not say "This draft was generated from the current source packet only."',
+    'Do not simply enumerate source items.',
+    'The body should read like a local news article with a clear lead and short paragraphs.',
     buildSourcePacketPrompt(input),
   ].join('\n\n');
 }
@@ -83,7 +93,7 @@ function buildAnthropicSystemPrompt(draftType: string) {
     'Write in a grounded, human, local-news voice. Avoid robotic filler, hype, and generic AI phrasing.',
     'Return valid JSON only with keys: headline, dek, body, generationNotes.',
     draftType === REPORTER_DRAFT_TYPE.SOURCE_PACKET_SUMMARY
-      ? 'For source packet summaries, produce internal Reporter Agent analysis with sections for What we know, Missing information, Reporting gaps, Editorial angle, and Next steps. This is internal newsroom guidance, not a public article. Avoid second-person coaching language.'
+      ? 'For source packet summaries, produce internal Reporter Agent analysis with sections for What we know, Source strength, Missing information, Reporting gaps, Coverage recommendation, and Next steps. This is internal newsroom guidance, not a public article. Avoid second-person coaching language.'
       : 'For article drafts, produce a clean article draft with short paragraphs and no markdown.',
   ].join(' ');
 }
@@ -110,6 +120,49 @@ function parseDraftJson(text: string) {
   }
 
   return JSON.parse(trimmed.slice(start, end + 1));
+}
+
+function finalizeProviderDraft(
+  parsed: any,
+  fallback: ReporterProviderDraftResult,
+  draftType: string,
+  provider: string,
+  model: string
+): ReporterProviderDraftResult {
+  const headline =
+    typeof parsed.headline === 'string' && parsed.headline.trim()
+      ? parsed.headline.trim()
+      : fallback.headline;
+  const dek =
+    typeof parsed.dek === 'string' && parsed.dek.trim() ? parsed.dek.trim() : null;
+  const body =
+    typeof parsed.body === 'string' && parsed.body.trim() ? parsed.body.trim() : fallback.body;
+  const generationNotes =
+    typeof parsed.generationNotes === 'string' && parsed.generationNotes.trim()
+      ? parsed.generationNotes.trim()
+      : 'Draft generated through Anthropic Messages API from the current source packet.';
+
+  const usedFallbackBody = body === fallback.body;
+
+  if (usedFallbackBody) {
+    throw new Error(
+      'Anthropic returned an incomplete draft payload; fallback article text was not persisted.'
+    );
+  }
+
+  return {
+    headline,
+    dek,
+    body,
+    draftType: draftType as ReporterProviderDraftResult['draftType'],
+    modelProvider: provider,
+    modelName: model,
+    generationNotes,
+    metadata: {
+      provider,
+      model,
+    },
+  };
 }
 
 export class AnthropicReporterProvider implements ReporterProviderAdapter {
@@ -180,29 +233,7 @@ export class AnthropicReporterProvider implements ReporterProviderAdapter {
         draftType,
       });
 
-      return {
-        headline:
-          typeof parsed.headline === 'string' && parsed.headline.trim()
-            ? parsed.headline.trim()
-            : fallback.headline,
-        dek:
-          typeof parsed.dek === 'string' && parsed.dek.trim() ? parsed.dek.trim() : null,
-        body:
-          typeof parsed.body === 'string' && parsed.body.trim()
-            ? parsed.body.trim()
-            : fallback.body,
-        draftType,
-        modelProvider: this.provider,
-        modelName: this.model,
-        generationNotes:
-          typeof parsed.generationNotes === 'string' && parsed.generationNotes.trim()
-            ? parsed.generationNotes.trim()
-            : 'Draft generated through Anthropic Messages API from the current source packet.',
-        metadata: {
-          provider: this.provider,
-          model: this.model,
-        },
-      };
+      return finalizeProviderDraft(parsed, fallback, draftType, this.provider, this.model);
     } catch (error) {
       console.error('Anthropic reporter draft generation failed:', error);
       throw error instanceof Error

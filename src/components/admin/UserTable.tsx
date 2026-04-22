@@ -60,7 +60,7 @@ export const UserTable: React.FC<UserTableProps> = ({
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'admin':
-        return '#A51E30';
+        return 'var(--brand-accent)';
       case 'editor':
         return '#F59E0B';
       default:

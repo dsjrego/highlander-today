@@ -178,7 +178,7 @@ export default function ManageHelpWantedPage() {
             type="button"
             onClick={() => updatePostStatus(post.id, 'PENDING_REVIEW')}
             disabled={isBusy}
-            className="px-3 py-2 rounded-lg bg-[#A51E30] text-white font-semibold disabled:opacity-60"
+            className="px-3 py-2 rounded-lg bg-[var(--brand-accent)] text-white font-semibold disabled:opacity-60"
           >
             Submit for Review
           </button>
@@ -207,7 +207,7 @@ export default function ManageHelpWantedPage() {
             type="button"
             onClick={() => updatePostStatus(post.id, 'PENDING_REVIEW')}
             disabled={isBusy}
-            className="px-3 py-2 rounded-lg bg-[#A51E30] text-white font-semibold disabled:opacity-60"
+            className="px-3 py-2 rounded-lg bg-[var(--brand-accent)] text-white font-semibold disabled:opacity-60"
           >
             Resubmit
           </button>
@@ -242,7 +242,7 @@ export default function ManageHelpWantedPage() {
           </button>
           <Link
             href={`/help-wanted/${post.id}`}
-            className="px-3 py-2 rounded-lg bg-blue-50 text-[#46A8CC] font-semibold hover:bg-blue-100"
+            className="px-3 py-2 rounded-lg bg-[var(--article-card-badge-bg)] text-[var(--brand-primary)] font-semibold hover:bg-blue-100"
           >
             View
           </Link>
@@ -271,7 +271,7 @@ export default function ManageHelpWantedPage() {
           </button>
           <Link
             href={`/help-wanted/${post.id}`}
-            className="px-3 py-2 rounded-lg bg-blue-50 text-[#46A8CC] font-semibold hover:bg-blue-100"
+            className="px-3 py-2 rounded-lg bg-[var(--article-card-badge-bg)] text-[var(--brand-primary)] font-semibold hover:bg-blue-100"
           >
             View
           </Link>
@@ -292,7 +292,7 @@ export default function ManageHelpWantedPage() {
           </button>
           <Link
             href={`/help-wanted/${post.id}`}
-            className="px-3 py-2 rounded-lg bg-blue-50 text-[#46A8CC] font-semibold hover:bg-blue-100"
+            className="px-3 py-2 rounded-lg bg-[var(--article-card-badge-bg)] text-[var(--brand-primary)] font-semibold hover:bg-blue-100"
           >
             View
           </Link>
@@ -309,7 +309,7 @@ export default function ManageHelpWantedPage() {
 
   if (sessionStatus !== 'authenticated') {
     return (
-      <div className="bg-blue-50 border border-blue-200 text-blue-900 rounded-xl px-5 py-4">
+      <div className="bg-[var(--article-card-badge-bg)] border border-blue-200 text-blue-900 rounded-xl px-5 py-4">
         Sign in with a trusted account to manage Help Wanted posts.
       </div>
     );
@@ -375,7 +375,7 @@ export default function ManageHelpWantedPage() {
         </div>
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 text-blue-900 rounded-xl px-4 py-3 mb-6 text-sm">
+      <div className="bg-[var(--article-card-badge-bg)] border border-blue-200 text-blue-900 rounded-xl px-4 py-3 mb-6 text-sm">
         Use <strong>Filled</strong> when someone has taken the role or completed the task. Use <strong>Closed</strong> when you no longer want responses, even if no one was selected.
       </div>
 
@@ -396,7 +396,7 @@ export default function ManageHelpWantedPage() {
             className={`px-4 py-2 rounded-full text-sm font-medium transition ${
               filterStatus === key ? 'text-white' : 'bg-white text-gray-600 shadow-sm hover:shadow-md'
             }`}
-            style={filterStatus === key ? { backgroundColor: '#A51E30' } : {}}
+            style={filterStatus === key ? { backgroundColor: 'var(--brand-accent)' } : {}}
           >
             {label} ({counts[key as keyof typeof counts] || 0})
           </button>
@@ -415,7 +415,7 @@ export default function ManageHelpWantedPage() {
           <Link
             href="/help-wanted/submit"
             className="inline-block px-6 py-3 text-white font-semibold rounded-full hover:opacity-90 transition"
-            style={{ backgroundColor: '#A51E30' }}
+            style={{ backgroundColor: 'var(--brand-accent)' }}
           >
             Post an Opportunity
           </Link>

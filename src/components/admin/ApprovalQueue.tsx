@@ -44,9 +44,9 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'article':
-        return '#46A8CC';
+        return 'var(--brand-primary)';
       case 'event':
-        return '#A51E30';
+        return 'var(--brand-accent)';
       default:
         return '#6B7280';
     }

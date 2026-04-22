@@ -147,7 +147,7 @@ function ToolbarButton({
       title={title}
       className={`!p-0 w-8 h-8 flex items-center justify-center rounded text-sm transition-colors ${
         isActive
-          ? 'bg-[#A51E30] text-white'
+          ? 'bg-[var(--brand-accent)] text-white'
           : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
       } ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
     >
@@ -287,7 +287,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
   if (!editor) return null;
 
   return (
-    <div className="border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-[#46A8CC] focus-within:border-transparent">
+    <div className="border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-[var(--brand-primary)] focus-within:border-transparent">
       {/* ── Toolbar ────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-1 px-3 py-2 bg-gray-50 border-b border-gray-200">
         {/* Text style */}
@@ -534,11 +534,11 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
           margin: 1rem 0;
         }
         .tiptap img.ProseMirror-selectednode {
-          outline: 2px solid #46A8CC;
+          outline: 2px solid var(--brand-primary);
           outline-offset: 2px;
         }
         .tiptap blockquote {
-          border-left: 3px solid #A51E30;
+          border-left: 3px solid var(--brand-accent);
           padding-left: 1rem;
           margin: 1rem 0;
           color: #4b5563;
@@ -549,7 +549,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
           margin: 1.5rem 0;
         }
         .tiptap a {
-          color: #46A8CC;
+          color: var(--brand-primary);
           text-decoration: underline;
         }
         .tiptap ul, .tiptap ol {

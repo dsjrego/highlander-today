@@ -95,7 +95,7 @@ export default function RecipesPage() {
                   {recipe.excerpt?.trim() ? (
                     <p className="text-sm leading-7 text-slate-600">{recipe.excerpt}</p>
                   ) : null}
-                  <div className="flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#8f1d2c]">
+                  <div className="flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-accent)]">
                     {recipe.totalMinutes ? <span>{formatRecipeTimeLabel(recipe.totalMinutes)}</span> : null}
                     {recipe.servings ? <span>{recipe.servings} servings</span> : null}
                   </div>

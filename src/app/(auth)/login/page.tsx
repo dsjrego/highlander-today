@@ -178,8 +178,8 @@ export default function LoginPage() {
     >
       <div className="mx-auto grid w-full max-w-6xl items-start gap-4 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:gap-6">
         <div className="rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(241,245,249,0.94))] p-5 shadow-[0_24px_55px_rgba(15,23,42,0.16)] backdrop-blur md:p-7">
-          <div className="mb-6 flex min-h-[60px] items-center rounded-[24px] border border-[#8f1d2c]/15 bg-[linear-gradient(145deg,rgba(143,29,44,0.1),rgba(70,168,204,0.08))] px-4 py-2 text-left">
-            <p className="mb-0 text-xs font-semibold uppercase tracking-[0.28em] text-[#8f1d2c]">
+          <div className="mb-6 flex min-h-[60px] items-center rounded-[24px] border border-[color:color-mix(in_srgb,var(--brand-accent)_15%,transparent)] bg-[var(--card-bg-accent)] px-4 py-2 text-left">
+            <p className="mb-0 text-xs font-semibold uppercase tracking-[0.28em] text-[var(--brand-accent)]">
               Social Sign In/Up
             </p>
           </div>
@@ -218,8 +218,8 @@ export default function LoginPage() {
         </div>
 
         <div className="rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(241,245,249,0.94))] p-5 shadow-[0_24px_55px_rgba(15,23,42,0.16)] backdrop-blur md:p-7">
-          <div className="mb-6 flex min-h-[60px] items-center rounded-[24px] border border-[#8f1d2c]/15 bg-[linear-gradient(145deg,rgba(143,29,44,0.1),rgba(70,168,204,0.08))] px-4 py-2 text-left">
-            <p className="mb-0 text-xs font-semibold uppercase tracking-[0.28em] text-[#8f1d2c]">
+          <div className="mb-6 flex min-h-[60px] items-center rounded-[24px] border border-[color:color-mix(in_srgb,var(--brand-accent)_15%,transparent)] bg-[var(--card-bg-accent)] px-4 py-2 text-left">
+            <p className="mb-0 text-xs font-semibold uppercase tracking-[0.28em] text-[var(--brand-accent)]">
               Email Sign In/Up
             </p>
           </div>
@@ -267,7 +267,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                     placeholder="you@example.com"
                   />
                 </div>
@@ -282,7 +282,7 @@ export default function LoginPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-12 text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-12 text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                       placeholder="••••••••"
                     />
                     <PasswordVisibilityButton
@@ -296,7 +296,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={signInLoading}
-                  className="w-full rounded-full bg-[#8f1d2c] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#7d1927] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full rounded-full bg-[var(--brand-accent)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {signInLoading ? "Signing In..." : "Sign In"}
                 </button>
@@ -322,7 +322,7 @@ export default function LoginPage() {
                       value={registerForm.firstName}
                       onChange={handleRegisterChange}
                       required
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                       placeholder="John/Jane"
                     />
                   </div>
@@ -336,7 +336,7 @@ export default function LoginPage() {
                       value={registerForm.lastName}
                       onChange={handleRegisterChange}
                       required
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                       placeholder="Doe"
                     />
                   </div>
@@ -352,7 +352,7 @@ export default function LoginPage() {
                     value={registerForm.email}
                     onChange={handleRegisterChange}
                     required
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                     placeholder="you@example.com"
                   />
                 </div>
@@ -369,7 +369,7 @@ export default function LoginPage() {
                         value={registerForm.password}
                         onChange={handleRegisterChange}
                         required
-                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-12 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-12 text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                         placeholder="••••••••"
                       />
                       <PasswordVisibilityButton
@@ -390,7 +390,7 @@ export default function LoginPage() {
                         value={registerForm.confirmPassword}
                         onChange={handleRegisterChange}
                         required
-                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-12 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-12 text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                         placeholder="••••••••"
                       />
                       <PasswordVisibilityButton
@@ -411,7 +411,7 @@ export default function LoginPage() {
                     name="dateOfBirth"
                     value={registerForm.dateOfBirth}
                     onChange={handleRegisterChange}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[#46A8CC] focus:outline-none focus:ring-2 focus:ring-[#46A8CC]/30"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 transition focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-ring)]"
                   />
                   <p className="mt-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
                     Date of birth is not displayed publicly. It is optional here, but leaving it blank may restrict access to some features and it is required before a user can become trusted.
@@ -421,7 +421,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={registerLoading}
-                  className="w-full rounded-full bg-[#8f1d2c] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#7d1927] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full rounded-full bg-[var(--brand-accent)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {registerLoading ? "Creating Account..." : "Sign Up"}
                 </button>

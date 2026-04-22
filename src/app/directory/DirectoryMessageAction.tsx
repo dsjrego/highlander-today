@@ -91,7 +91,7 @@ function MessageUserDialog({
               onClick={() => void onSubmit()}
               disabled={isLoading || value.trim().length === 0}
               className="rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-              style={{ backgroundColor: '#46A8CC' }}
+              style={{ backgroundColor: 'var(--brand-primary)' }}
             >
               {isLoading ? 'Sending...' : 'Send Message'}
             </button>
@@ -203,7 +203,7 @@ export default function DirectoryMessageAction({
       <button
         type="button"
         onClick={handleOpenMessageDialog}
-        className="inline-flex items-center text-[13px] font-medium text-[#0f5771] transition hover:text-[#0a4156] hover:underline"
+        className="inline-flex items-center text-[13px] font-medium text-[var(--brand-primary)] transition hover:text-[#0a4156] hover:underline"
       >
         Message
       </button>

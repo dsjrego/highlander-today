@@ -6,6 +6,169 @@ import {
 } from './types';
 import { buildFallbackDraft } from './provider-adapter';
 
+const OPENAI_API_URL = 'https://api.openai.com/v1/responses';
+
+function buildSourcePacketPrompt(input: ReporterDraftGenerationInput) {
+  const sources = input.packet.sources
+    .map((source, index) => {
+      const parts = [
+        `Source ${index + 1}`,
+        `type=${source.sourceType}`,
+        `reliability=${source.reliabilityTier}`,
+        source.title ? `title=${source.title}` : null,
+        source.url ? `url=${source.url}` : null,
+        source.publisher ? `publisher=${source.publisher}` : null,
+        source.author ? `author=${source.author}` : null,
+        source.excerpt ? `excerpt=${source.excerpt}` : null,
+        source.note ? `note=${source.note}` : null,
+        source.contentText ? `content=${source.contentText}` : null,
+      ].filter(Boolean);
+
+      return parts.join('\n');
+    })
+    .join('\n\n');
+
+  return [
+    `Topic: ${input.packet.topic}`,
+    input.packet.title ? `Title hint: ${input.packet.title}` : null,
+    input.packet.subjectName ? `Subject: ${input.packet.subjectName}` : null,
+    input.packet.requestSummary ? `Request summary: ${input.packet.requestSummary}` : null,
+    input.packet.editorNotes ? `Editor notes: ${input.packet.editorNotes}` : null,
+    '',
+    'Sources:',
+    sources || 'No sources provided.',
+  ]
+    .filter((value): value is string => Boolean(value))
+    .join('\n');
+}
+
+function buildOpenAIUserPrompt(input: ReporterDraftGenerationInput, draftType: string) {
+  if (draftType === REPORTER_DRAFT_TYPE.SOURCE_PACKET_SUMMARY) {
+    return [
+      'Generate Reporter Agent analysis from this source packet.',
+      'Return JSON only.',
+      'The body must use exactly these section headings in this order:',
+      'What we know',
+      'Source strength',
+      'Missing information',
+      'Reporting gaps',
+      'Coverage recommendation',
+      'Next steps',
+      'This is internal newsroom analysis, not a public article or press-brief rewrite.',
+      'Each section should contain concise bullet-style lines or short paragraphs.',
+      'Make every section specific to this story. Do not use generic placeholder advice.',
+      'Do not write vague filler such as "additional sourcing may still be needed", "review the strongest source items", or "identify missing primary-source confirmation".',
+      'Source strength must name the strongest source item and the weakest source item or weakest unsupported claim in this packet.',
+      'Missing information must name the exact unanswered questions for this story.',
+      'Reporting gaps must explain what is weak, missing, single-sourced, or unverified in this packet.',
+      'Coverage recommendation must explicitly choose one of: draft-ready, brief-ready, or needs more sourcing.',
+      'Coverage recommendation must explain why that label fits this specific packet.',
+      'If only a brief is supportable, say so directly. If the packet is too weak for a draft, say so directly.',
+      'Next steps must be concrete reporting actions tied to this story, not generic process advice.',
+      'Separate confirmed facts from claims that appear only once or remain unattributed.',
+      'Do not output a public news story lead or framing brainstorm in this analysis.',
+      buildSourcePacketPrompt(input),
+    ].join('\n\n');
+  }
+
+  return [
+    'Draft a publishable internal article draft from this source packet.',
+    'Return JSON only.',
+    'Write a real article draft, not a source summary, bullet list, or transcript digest.',
+    'Use only the facts supported by the packet. Attribute claims when needed.',
+    'Do not paste raw URLs into the body unless the story itself is about the URL or registration link.',
+    'Do not say "This draft was generated from the current source packet only."',
+    'Do not simply enumerate source items.',
+    'The body should read like a local news article with a clear lead and short paragraphs.',
+    buildSourcePacketPrompt(input),
+  ].join('\n\n');
+}
+
+function buildOpenAISystemPrompt(draftType: string) {
+  return [
+    'You are an internal newsroom drafting assistant for Highlander Today.',
+    'Use only the provided source packet. Do not invent facts, quotes, chronology, or attribution.',
+    'If information is uncertain, explicitly say so in the draft rather than smoothing over the gap.',
+    'Write in a grounded, human, local-news voice. Avoid robotic filler, hype, and generic AI phrasing.',
+    'Return valid JSON only with keys: headline, dek, body, generationNotes.',
+    draftType === REPORTER_DRAFT_TYPE.SOURCE_PACKET_SUMMARY
+      ? 'For source packet summaries, produce internal Reporter Agent analysis with sections for What we know, Source strength, Missing information, Reporting gaps, Coverage recommendation, and Next steps. This is internal newsroom guidance, not a public article. Avoid second-person coaching language.'
+      : 'For article drafts, produce a clean article draft with short paragraphs and no markdown.',
+  ].join(' ');
+}
+
+function extractTextFromOpenAIResponse(data: any) {
+  if (typeof data?.output_text === 'string' && data.output_text.trim()) {
+    return data.output_text.trim();
+  }
+
+  if (!Array.isArray(data?.output)) {
+    return null;
+  }
+
+  return data.output
+    .flatMap((item: any) => (Array.isArray(item?.content) ? item.content : []))
+    .filter((block: any) => block?.type === 'output_text' && typeof block?.text === 'string')
+    .map((block: any) => block.text)
+    .join('\n')
+    .trim();
+}
+
+function parseDraftJson(text: string) {
+  const trimmed = text.trim();
+  const start = trimmed.indexOf('{');
+  const end = trimmed.lastIndexOf('}');
+
+  if (start === -1 || end === -1 || end <= start) {
+    throw new Error('Model response did not contain a JSON object');
+  }
+
+  return JSON.parse(trimmed.slice(start, end + 1));
+}
+
+function finalizeProviderDraft(
+  parsed: any,
+  fallback: ReporterProviderDraftResult,
+  draftType: string,
+  provider: string,
+  model: string
+): ReporterProviderDraftResult {
+  const headline =
+    typeof parsed.headline === 'string' && parsed.headline.trim()
+      ? parsed.headline.trim()
+      : fallback.headline;
+  const dek =
+    typeof parsed.dek === 'string' && parsed.dek.trim() ? parsed.dek.trim() : null;
+  const body =
+    typeof parsed.body === 'string' && parsed.body.trim() ? parsed.body.trim() : fallback.body;
+  const generationNotes =
+    typeof parsed.generationNotes === 'string' && parsed.generationNotes.trim()
+      ? parsed.generationNotes.trim()
+      : 'Draft generated through OpenAI Responses API from the current source packet.';
+
+  const usedFallbackBody = body === fallback.body;
+
+  if (usedFallbackBody) {
+    throw new Error(
+      'OpenAI returned an incomplete draft payload; fallback article text was not persisted.'
+    );
+  }
+
+  return {
+    headline,
+    dek,
+    body,
+    draftType: draftType as ReporterProviderDraftResult['draftType'],
+    modelProvider: provider,
+    modelName: model,
+    generationNotes,
+    metadata: {
+      provider,
+      model,
+    },
+  };
+}
+
 export class OpenAIReporterProvider implements ReporterProviderAdapter {
   readonly provider = 'openai';
   readonly model: string;
@@ -18,12 +181,73 @@ export class OpenAIReporterProvider implements ReporterProviderAdapter {
     input: ReporterDraftGenerationInput
   ): Promise<ReporterProviderDraftResult> {
     if (!process.env.OPENAI_API_KEY) {
-      return buildFallbackDraft(this.provider, this.model, {
-        ...input,
-        draftType: input.draftType ?? REPORTER_DRAFT_TYPE.ARTICLE_DRAFT,
-      });
+      throw new Error(
+        'OPENAI_API_KEY is not available to the running server process. Restart the dev server after updating .env.'
+      );
     }
 
-    return buildFallbackDraft(this.provider, this.model, input);
+    const draftType = input.draftType ?? REPORTER_DRAFT_TYPE.ARTICLE_DRAFT;
+
+    try {
+      const response = await fetch(OPENAI_API_URL, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: this.model,
+          temperature: 0.4,
+          max_output_tokens: draftType === REPORTER_DRAFT_TYPE.SOURCE_PACKET_SUMMARY ? 1200 : 2200,
+          input: [
+            {
+              role: 'system',
+              content: [
+                {
+                  type: 'input_text',
+                  text: buildOpenAISystemPrompt(draftType),
+                },
+              ],
+            },
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'input_text',
+                  text: buildOpenAIUserPrompt(input, draftType),
+                },
+              ],
+            },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        throw new Error(
+          `OpenAI request failed with status ${response.status}${
+            errorText ? `: ${errorText.slice(0, 300)}` : ''
+          }`
+        );
+      }
+
+      const data = await response.json();
+      const rawText = extractTextFromOpenAIResponse(data);
+
+      if (!rawText) {
+        throw new Error('OpenAI response did not include text content');
+      }
+
+      const parsed = parseDraftJson(rawText);
+      const fallback = buildFallbackDraft(this.provider, this.model, {
+        ...input,
+        draftType,
+      });
+
+      return finalizeProviderDraft(parsed, fallback, draftType, this.provider, this.model);
+    } catch (error) {
+      console.error('OpenAI reporter draft generation failed:', error);
+      throw error instanceof Error ? error : new Error('OpenAI reporter draft generation failed');
+    }
   }
 }

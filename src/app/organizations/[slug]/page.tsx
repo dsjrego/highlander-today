@@ -240,7 +240,7 @@ export default async function OrganizationProfilePage({ params }: PageProps) {
           <InfoCard title="About">
             {descriptionHtml ? (
               <div
-                className="prose prose-sm max-w-none prose-headings:text-slate-950 prose-p:text-slate-700 prose-li:text-slate-700 prose-a:text-[#8f1d2c] prose-blockquote:border-[#8f1d2c]/30 prose-blockquote:text-slate-700 prose-code:text-[#8f1d2c] prose-pre:bg-slate-950 prose-pre:text-slate-100 prose-hr:border-slate-200 prose-img:rounded-xl prose-img:border prose-img:border-slate-200"
+                className="prose prose-sm max-w-none prose-headings:text-slate-950 prose-p:text-slate-700 prose-li:text-slate-700 prose-a:text-[var(--brand-accent)] prose-blockquote:border-[color:color-mix(in_srgb,var(--brand-accent)_30%,transparent)] prose-blockquote:text-slate-700 prose-code:text-[var(--brand-accent)] prose-pre:bg-slate-950 prose-pre:text-slate-100 prose-hr:border-slate-200 prose-img:rounded-xl prose-img:border prose-img:border-slate-200"
                 dangerouslySetInnerHTML={{ __html: descriptionHtml }}
               />
             ) : (
@@ -270,7 +270,7 @@ export default async function OrganizationProfilePage({ params }: PageProps) {
                       {department.contactEmail ? <span>{department.contactEmail}</span> : null}
                       {department.contactPhone ? <span>{department.contactPhone}</span> : null}
                       {department.websiteUrl ? (
-                        <a href={department.websiteUrl} target="_blank" rel="noreferrer" className="font-semibold text-[#0f5771] hover:underline">
+                        <a href={department.websiteUrl} target="_blank" rel="noreferrer" className="font-semibold text-[var(--brand-primary)] hover:underline">
                           Department site
                         </a>
                       ) : null}
@@ -304,7 +304,7 @@ export default async function OrganizationProfilePage({ params }: PageProps) {
                       {contact.email ? <a href={`mailto:${contact.email}`} className="hover:underline">{contact.email}</a> : null}
                       {contact.phone ? <a href={`tel:${contact.phone}`} className="hover:underline">{contact.phone}</a> : null}
                       {contact.websiteUrl ? (
-                        <a href={contact.websiteUrl} target="_blank" rel="noreferrer" className="font-semibold text-[#0f5771] hover:underline">
+                        <a href={contact.websiteUrl} target="_blank" rel="noreferrer" className="font-semibold text-[var(--brand-primary)] hover:underline">
                           Visit
                         </a>
                       ) : null}
@@ -336,7 +336,7 @@ export default async function OrganizationProfilePage({ params }: PageProps) {
                           <p className="mt-1 text-sm leading-6 text-slate-600">{event.description}</p>
                         ) : null}
                       </div>
-                      <span className="rounded-full bg-[#8f1d2c] px-3 py-1 text-xs font-semibold text-white">
+                      <span className="rounded-full bg-[var(--brand-accent)] px-3 py-1 text-xs font-semibold text-white">
                         {new Date(event.startDatetime).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
@@ -360,19 +360,19 @@ export default async function OrganizationProfilePage({ params }: PageProps) {
             <div className="space-y-3 text-sm text-slate-700">
               {organization.websiteUrl ? (
                 <a href={organization.websiteUrl} target="_blank" rel="noreferrer" className="flex items-start gap-3 hover:text-slate-950">
-                  <Globe className="mt-0.5 h-4 w-4 text-[#0f5771]" />
+                  <Globe className="mt-0.5 h-4 w-4 text-[var(--brand-primary)]" />
                   <span className="break-all">{organization.websiteUrl}</span>
                 </a>
               ) : null}
               {organization.contactEmail ? (
                 <a href={`mailto:${organization.contactEmail}`} className="flex items-start gap-3 hover:text-slate-950">
-                  <Mail className="mt-0.5 h-4 w-4 text-[#0f5771]" />
+                  <Mail className="mt-0.5 h-4 w-4 text-[var(--brand-primary)]" />
                   <span className="break-all">{organization.contactEmail}</span>
                 </a>
               ) : null}
               {organization.contactPhone ? (
                 <a href={`tel:${organization.contactPhone}`} className="flex items-start gap-3 hover:text-slate-950">
-                  <Phone className="mt-0.5 h-4 w-4 text-[#0f5771]" />
+                  <Phone className="mt-0.5 h-4 w-4 text-[var(--brand-primary)]" />
                   <span>{organization.contactPhone}</span>
                 </a>
               ) : null}
@@ -404,7 +404,7 @@ export default async function OrganizationProfilePage({ params }: PageProps) {
                       {location.contactEmail ? <a href={`mailto:${location.contactEmail}`} className="hover:underline">{location.contactEmail}</a> : null}
                       {location.contactPhone ? <a href={`tel:${location.contactPhone}`} className="hover:underline">{location.contactPhone}</a> : null}
                       {location.websiteUrl ? (
-                        <a href={location.websiteUrl} target="_blank" rel="noreferrer" className="font-semibold text-[#0f5771] hover:underline">
+                        <a href={location.websiteUrl} target="_blank" rel="noreferrer" className="font-semibold text-[var(--brand-primary)] hover:underline">
                           Visit site
                         </a>
                       ) : null}
@@ -430,7 +430,7 @@ export default async function OrganizationProfilePage({ params }: PageProps) {
                         </p>
                       </div>
                       {membership.isPrimaryContact ? (
-                        <span className="rounded-full bg-[#0f5771] px-3 py-1 text-xs font-semibold text-white">Primary contact</span>
+                        <span className="rounded-full bg-[var(--brand-primary)] px-3 py-1 text-xs font-semibold text-white">Primary contact</span>
                       ) : null}
                     </div>
                   </div>

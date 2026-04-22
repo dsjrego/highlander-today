@@ -73,7 +73,7 @@ export default async function AboutPage() {
           </p>
           <Link
             href="/about/mission"
-            className="mt-6 inline-flex rounded-full bg-[#8f1d2c] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+            className="mt-6 inline-flex rounded-full bg-[var(--brand-accent)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
           >
             Read the Mission
           </Link>

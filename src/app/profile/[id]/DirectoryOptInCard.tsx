@@ -64,7 +64,7 @@ export default function DirectoryOptInCard({ initialValue, targetUserId }: Direc
             checked={isDirectoryListed}
             disabled={isSaving}
             onChange={(event) => handleToggle(event.target.checked)}
-            className="h-4 w-4 rounded border-slate-300 text-[#46A8CC] focus:ring-[#46A8CC]"
+            className="h-4 w-4 rounded border-slate-300 text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
           />
           Include me
         </label>

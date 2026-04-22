@@ -124,7 +124,7 @@ export default function EventDetailPage() {
       )}
 
       <div className="flex items-center gap-2 text-sm text-slate-400">
-        <Link href="/events" className="transition-colors hover:text-[#8f1d2c]">
+        <Link href="/events" className="transition-colors hover:text-[var(--brand-accent)]">
           Events
         </Link>
         <span>/</span>

@@ -383,7 +383,7 @@ export default function SubmitEventPage() {
                   name="title"
                   value={formData.title}
                   onChange={handleInputChange}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                   placeholder="Event title"
                 />
               </div>
@@ -394,7 +394,7 @@ export default function SubmitEventPage() {
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                   rows={4}
                   placeholder="Event description"
                 />
@@ -408,7 +408,7 @@ export default function SubmitEventPage() {
                     name="startDate"
                     value={formData.startDate}
                     onChange={handleInputChange}
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                   />
                 </div>
                 <div>
@@ -418,7 +418,7 @@ export default function SubmitEventPage() {
                     name="startTime"
                     value={formData.startTime}
                     onChange={handleInputChange}
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                   />
                 </div>
               </div>
@@ -451,7 +451,7 @@ export default function SubmitEventPage() {
                         name="recurrenceCadence"
                         value={formData.recurrenceCadence}
                         onChange={handleInputChange}
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                       >
                         <option value="WEEKLY">Weekly</option>
                         <option value="MONTHLY_DATE">Monthly on this date</option>
@@ -467,7 +467,7 @@ export default function SubmitEventPage() {
                         name="repeatCount"
                         value={formData.repeatCount}
                         onChange={handleInputChange}
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                       />
                     </div>
                     <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
@@ -489,7 +489,7 @@ export default function SubmitEventPage() {
                     name="endDate"
                     value={formData.endDate}
                     onChange={handleInputChange}
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                   />
                 </div>
                 <div>
@@ -499,7 +499,7 @@ export default function SubmitEventPage() {
                     name="endTime"
                     value={formData.endTime}
                     onChange={handleInputChange}
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                   />
                 </div>
               </div>
@@ -510,7 +510,7 @@ export default function SubmitEventPage() {
                     type="text"
                     value={organizationQuery}
                     onChange={(event) => setOrganizationQuery(event.target.value)}
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                     placeholder="Search organizations"
                   />
                   <button
@@ -575,14 +575,14 @@ export default function SubmitEventPage() {
                         name="name"
                         value={organizationForm.name}
                         onChange={handleOrganizationFormChange}
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                         placeholder="Organization name"
                       />
                       <select
                         name="directoryGroup"
                         value={organizationForm.directoryGroup}
                         onChange={handleOrganizationFormChange}
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                       >
                         {ORGANIZATION_GROUP_OPTIONS.map((option) => (
                           <option key={option.value} value={option.value}>{option.label}</option>
@@ -592,7 +592,7 @@ export default function SubmitEventPage() {
                         name="organizationType"
                         value={organizationForm.organizationType}
                         onChange={handleOrganizationFormChange}
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                       >
                         {organizationTypeOptions.map((option) => (
                           <option key={option.value} value={option.value}>{option.label}</option>
@@ -603,7 +603,7 @@ export default function SubmitEventPage() {
                         name="websiteUrl"
                         value={organizationForm.websiteUrl}
                         onChange={handleOrganizationFormChange}
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                         placeholder="Website URL (optional)"
                       />
                     </div>
@@ -628,7 +628,7 @@ export default function SubmitEventPage() {
                     type="text"
                     value={locationQuery}
                     onChange={(event) => setLocationQuery(event.target.value)}
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                     placeholder="Search venues or addresses"
                   />
                   <button
@@ -686,7 +686,7 @@ export default function SubmitEventPage() {
                         name="name"
                         value={locationForm.name}
                         onChange={handleLocationFormChange}
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                         placeholder="Venue name (optional)"
                       />
                       <input
@@ -694,7 +694,7 @@ export default function SubmitEventPage() {
                         name="addressLine1"
                         value={locationForm.addressLine1}
                         onChange={handleLocationFormChange}
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                         placeholder="Address line 1"
                       />
                       <input
@@ -702,7 +702,7 @@ export default function SubmitEventPage() {
                         name="addressLine2"
                         value={locationForm.addressLine2}
                         onChange={handleLocationFormChange}
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                         placeholder="Address line 2"
                       />
                       <input
@@ -710,7 +710,7 @@ export default function SubmitEventPage() {
                         name="city"
                         value={locationForm.city}
                         onChange={handleLocationFormChange}
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                         placeholder="City"
                       />
                       <input
@@ -718,7 +718,7 @@ export default function SubmitEventPage() {
                         name="state"
                         value={locationForm.state}
                         onChange={handleLocationFormChange}
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                         placeholder="State"
                       />
                       <input
@@ -726,7 +726,7 @@ export default function SubmitEventPage() {
                         name="postalCode"
                         value={locationForm.postalCode}
                         onChange={handleLocationFormChange}
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                        className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                         placeholder="Postal code"
                       />
                     </div>
@@ -772,7 +772,7 @@ export default function SubmitEventPage() {
                   name="venueLabel"
                   value={formData.venueLabel}
                   onChange={handleInputChange}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                   placeholder="Main Hall, Pavilion, Rear Entrance"
                 />
               </div>
@@ -784,7 +784,7 @@ export default function SubmitEventPage() {
                   name="costText"
                   value={formData.costText}
                   onChange={handleInputChange}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                   placeholder="Free, $10, donation suggested, etc."
                 />
               </div>
@@ -796,7 +796,7 @@ export default function SubmitEventPage() {
                   name="contactInfo"
                   value={formData.contactInfo}
                   onChange={handleInputChange}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                   placeholder="Email, phone number, or organizer contact"
                 />
               </div>

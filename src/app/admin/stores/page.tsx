@@ -245,7 +245,7 @@ export default function AdminStoresPage() {
     <div className="space-y-8">
       <div
         className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 pb-3 border-b-2"
-        style={{ borderColor: "#A51E30" }}
+        style={{ borderColor: "var(--brand-accent)" }}
       >
         <div>
           <h1 className="text-2xl font-bold">Store Management</h1>
@@ -266,7 +266,7 @@ export default function AdminStoresPage() {
             onClick={() => setActiveFilter(filter.value)}
             className={`rounded-xl border px-4 py-4 text-left transition ${
               activeFilter === filter.value
-                ? "border-[#A51E30] bg-[#fdf2f4]"
+                ? "border-[var(--brand-accent)] bg-[var(--status-error-bg)]"
                 : "border-gray-200 bg-white hover:border-gray-300"
             }`}
           >
@@ -288,13 +288,13 @@ export default function AdminStoresPage() {
               }
             }}
             placeholder="Search by store, slug, owner, or contact"
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
           />
           <button
             type="button"
             onClick={() => setSearchQuery(searchInput)}
             className="px-4 py-2 rounded-lg text-white font-semibold"
-            style={{ backgroundColor: "#A51E30" }}
+            style={{ backgroundColor: "var(--brand-accent)" }}
           >
             Search
           </button>
@@ -343,7 +343,7 @@ export default function AdminStoresPage() {
                 <div className="p-5">
                   <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-5">
                     <div className="flex items-start gap-4 min-w-0">
-                      <div className="w-16 h-16 rounded-2xl bg-[#46A8CC] text-white font-bold flex items-center justify-center overflow-hidden shrink-0">
+                      <div className="w-16 h-16 rounded-2xl bg-[var(--brand-primary)] text-white font-bold flex items-center justify-center overflow-hidden shrink-0">
                         {store.logoUrl ? (
                           <img
                             src={store.logoUrl}
@@ -501,7 +501,7 @@ export default function AdminStoresPage() {
                 type="button"
                 onClick={() => updateStoreStatus(statusTarget.id, statusTarget.nextStatus)}
                 disabled={actionLoading === statusTarget.id}
-                className="px-4 py-2 rounded-lg bg-[#A51E30] text-white text-sm font-semibold disabled:opacity-60"
+                className="px-4 py-2 rounded-lg bg-[var(--brand-accent)] text-white text-sm font-semibold disabled:opacity-60"
               >
                 Confirm
               </button>

@@ -176,7 +176,7 @@ export default function ArticlePreview({
       <section className={`p-6 md:p-8 ${isEditorialArticle ? 'editorial-article-surface' : 'rounded-[28px] border border-white/10 bg-white/82 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur'}`}>
         {hasBody ? (
           <div
-            className={`article-card-content prose prose-lg max-w-none prose-headings:text-slate-950 prose-p:text-slate-700 prose-li:text-slate-700 prose-a:text-[#8f1d2c] ${isEditorialArticle ? 'editorial-article-body' : ''}`}
+            className={`article-card-content prose prose-lg max-w-none prose-headings:text-slate-950 prose-p:text-slate-700 prose-li:text-slate-700 prose-a:text-[var(--brand-accent)] ${isEditorialArticle ? 'editorial-article-body' : ''}`}
             dangerouslySetInnerHTML={{ __html: body || '' }}
           />
         ) : (

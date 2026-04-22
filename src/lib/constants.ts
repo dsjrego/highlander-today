@@ -173,8 +173,8 @@ export const FILE_LIMITS = {
  * Brand colors for Highlander Today
  */
 export const BRAND_COLORS = {
-  primary: '#46A8CC',
-  accent: '#A51E30',
+  primary: '#12436b', // was #46A8CC
+  accent: '#8f1d2c', // was #A51E30
 } as const;
 
 /**

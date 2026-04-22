@@ -2,10 +2,10 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { Share2 } from 'lucide-react';
+import { Bookmark, BookmarkCheck, Printer, Share2 } from 'lucide-react';
 import { CommentThread, type ThreadComment } from '@/components/articles/CommentThread';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { getArticleUiImageUrl } from '@/lib/article-images';
@@ -40,13 +40,43 @@ interface ArticleDetailClientProps {
   articleId: string;
 }
 
+const TEXT_SIZES = [16, 18, 20, 22] as const;
+
+function stripHtml(html: string) {
+  return html
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function estimateReadMinutes(html: string) {
+  const words = stripHtml(html).split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.ceil(words / 220));
+}
+
+function countComments(comments: ThreadComment[]): number {
+  return comments.reduce(
+    (total, comment) => total + 1 + countComments(comment.childComments ?? []),
+    0
+  );
+}
+
 export default function ArticleDetailClient({ articleId }: ArticleDetailClientProps) {
   const { data: session } = useSession();
+  const sessionUser = session?.user as
+    | { id?: string; name?: string | null; role?: string; trust_level?: string }
+    | undefined;
 
   const [article, setArticle] = useState<Article | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [shareMessage, setShareMessage] = useState<string | null>(null);
+  const [isSaved, setIsSaved] = useState(false);
+  const [textSizeIndex, setTextSizeIndex] = useState(1);
 
   useEffect(() => {
     async function fetchArticle() {
@@ -73,6 +103,27 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
       fetchArticle();
     }
   }, [articleId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const savedArticles = JSON.parse(window.localStorage.getItem('saved-articles') ?? '[]') as string[];
+    setIsSaved(savedArticles.includes(articleId));
+  }, [articleId]);
+
+  useEffect(() => {
+    if (!shareMessage) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setShareMessage(null);
+    }, 1800);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [shareMessage]);
 
   async function refreshArticle() {
     try {
@@ -125,28 +176,65 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
       }
 
       await navigator.clipboard.writeText(window.location.href);
-      setShareMessage('URL copied to clipboard');
+      setShareMessage('Link copied');
     } catch (error) {
       console.error('Failed to copy article URL:', error);
-      setShareMessage('Unable to copy URL');
+      setShareMessage('Unable to copy');
     }
   }
 
-  useEffect(() => {
-    if (!shareMessage) {
+  function handlePrint() {
+    if (typeof window !== 'undefined') {
+      window.print();
+    }
+  }
+
+  function handleToggleSave() {
+    if (typeof window === 'undefined') {
       return;
     }
 
-    const timeoutId = window.setTimeout(() => {
-      setShareMessage(null);
-    }, 1800);
+    const savedArticles = new Set(
+      JSON.parse(window.localStorage.getItem('saved-articles') ?? '[]') as string[]
+    );
 
-    return () => window.clearTimeout(timeoutId);
-  }, [shareMessage]);
+    if (savedArticles.has(articleId)) {
+      savedArticles.delete(articleId);
+      setIsSaved(false);
+      setShareMessage('Removed from saved');
+    } else {
+      savedArticles.add(articleId);
+      setIsSaved(true);
+      setShareMessage('Saved for later');
+    }
+
+    window.localStorage.setItem('saved-articles', JSON.stringify(Array.from(savedArticles)));
+  }
+
+  function handleCycleTextSize() {
+    setTextSizeIndex((current) => (current + 1) % TEXT_SIZES.length);
+  }
+
+  const publishedDate = article?.publishedAt
+    ? new Date(article.publishedAt).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    : null;
+  const showStatusBanner = article?.status !== 'PUBLISHED';
+  const viewerTrustLevel = sessionUser?.trust_level || '';
+  const canComment = viewerTrustLevel === 'TRUSTED';
+  const imageUrl = getArticleUiImageUrl(article?.featuredImageUrl ?? null);
+  const readMinutes = useMemo(() => (article ? estimateReadMinutes(article.body) : 1), [article]);
+  const totalComments = useMemo(() => countComments(article?.comments ?? []), [article?.comments]);
+  const readingSize = TEXT_SIZES[textSizeIndex];
+  const currentUserName = sessionUser?.name?.trim() || 'You';
+  const currentUserSubtitle = canComment ? 'trusted community member' : 'signed-in community member';
 
   if (isLoading) {
     return (
-      <div className="rounded-[28px] border border-white/10 bg-white/70 px-6 py-20 text-center text-slate-500 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">
+      <div className="mx-auto max-w-[820px] rounded-[28px] border border-white/10 bg-white/70 px-6 py-20 text-center text-slate-500 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">
         Loading article...
       </div>
     );
@@ -154,7 +242,7 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
 
   if (notFound || !article) {
     return (
-      <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] py-20 text-center text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
+      <div className="mx-auto max-w-[820px] rounded-[28px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] py-20 text-center text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
         <p className="mb-4 text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/66">Local Life</p>
         <h1 className="mb-2 text-2xl font-bold text-white">Article Not Found</h1>
         <p className="mb-6 text-white/70">This article may have been removed or is not yet published.</p>
@@ -168,25 +256,8 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
     );
   }
 
-  const publishedDate = article.publishedAt
-    ? new Date(article.publishedAt).toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
-    : null;
-
-  const showStatusBanner = article.status !== 'PUBLISHED';
-  const viewerTrustLevel = session?.user?.trust_level || '';
-  const canComment = viewerTrustLevel === 'TRUSTED';
-  const imageUrl = getArticleUiImageUrl(article.featuredImageUrl);
-  const isEditorialArticle = /editorial-(dropcap|pullquote|recipe-card|note-box)/.test(
-    article.body || ''
-  );
-
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-[820px] space-y-8 px-5">
       {showStatusBanner && (
         <div
           className={`rounded-2xl p-3 text-sm font-medium ${
@@ -203,213 +274,145 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
         </div>
       )}
 
-      <div className="flex items-center gap-2 text-sm text-slate-400">
-        <Link href="/local-life" className="transition-colors hover:text-[#8f1d2c]">
-          Local Life
-        </Link>
-        {article.category && (
-          <>
-            <span>/</span>
-            <Link
-              href={`/local-life?category=${article.category.slug}`}
-              className="transition-colors hover:text-[#8f1d2c]"
-            >
-              {article.category.name}
-            </Link>
-          </>
-        )}
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(300px,1fr)] xl:items-start">
-        <div className="min-w-0 space-y-0.5">
-          {isEditorialArticle ? (
-            <article className="editorial-article-surface overflow-hidden p-6 md:p-8">
-              <div className="editorial-article-shell">
-                <header className="editorial-article-header">
-                  <p className="editorial-article-kicker">{article.category?.name || 'Local Life'}</p>
-                  <h1 className="editorial-article-title">{article.title}</h1>
-                  {article.excerpt?.trim() ? (
-                    <p className="editorial-article-dek">{article.excerpt.trim()}</p>
-                  ) : null}
-                  <div className="editorial-article-meta">
-                    <span>
-                      {article.author.firstName} {article.author.lastName}
-                    </span>
-                    <span>{publishedDate || 'Not published yet'}</span>
-                  </div>
-                </header>
-
-                {imageUrl ? (
-                  <figure className="editorial-article-image article-detail-editorial-hero">
-                    <img src={imageUrl} alt={article.title} />
-                    {article.featuredImageCaption?.trim() ? (
-                      <figcaption className="editorial-article-image-caption">
-                        {article.featuredImageCaption.trim()}
-                      </figcaption>
-                    ) : null}
-                  </figure>
-                ) : null}
-
-                <div
-                  className="article-card-content article-detail-content editorial-article-body mt-8"
-                  dangerouslySetInnerHTML={{ __html: article.body }}
-                />
-
-                <div className="article-card-footer mt-8 border-t border-[color:var(--surface-border)] pt-4">
-                  <span>{article.category?.name || 'Local Life'}</span>
-                  <div className="article-card-footer-actions">
-                    <Link href="/local-life" className="article-card-footer-link">
-                      Back to Local Life
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </article>
-          ) : (
-            <article className="article-card">
-              <div className="article-card-header">
-                <div className="article-detail-main-column article-card-header-shell">
-                  <div className="article-card-header-content">
-                    <h1 className="article-card-header-title">{article.title}</h1>
-                  </div>
-                  <div className="article-card-header-actions">
-                    <span className="article-card-header-badge">Article</span>
-                  </div>
-                </div>
-              </div>
-
-              <figure className="article-card-image article-detail-hero">
-                {imageUrl ? (
-                  <div className="article-detail-hero-media">
-                    <img
-                      src={imageUrl}
-                      alt={article.title}
-                      className="article-card-image-element"
-                    />
-                    <div className="article-detail-hero-overlay">
-                      {article.featuredImageCaption?.trim() ? (
-                        <p className="article-detail-hero-caption">{article.featuredImageCaption.trim()}</p>
-                      ) : null}
-                      <p className="article-detail-hero-eyebrow">{article.category?.name || 'Local Life'}</p>
-                      <p className="article-detail-hero-meta">
-                        {article.author.firstName} {article.author.lastName}
-                        {publishedDate ? ` • ${publishedDate}` : ''}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="article-card-image-placeholder min-h-[18rem] rounded-none border-x-0 border-t-0 px-6 py-10">
-                    <div>
-                      <p className="article-card-image-placeholder-label text-xs font-semibold uppercase tracking-[0.28em]">
-                        {article.category?.name || 'Local Life'}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </figure>
-
-              <div className="article-card-body">
-                <div className="article-detail-main-column">
-                  <div
-                    className="article-card-content article-detail-content"
-                    dangerouslySetInnerHTML={{ __html: article.body }}
-                  />
-                </div>
-              </div>
-
-              <div className="article-card-footer">
-                <div className="article-detail-main-column article-card-footer-shell">
-                  <span>{article.category?.name || 'Local Life'}</span>
-                  <div className="article-card-footer-actions">
-                    <Link href="/local-life" className="article-card-footer-link">
-                      Back to Local Life
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </article>
-          )}
-
-          {article.status === 'PUBLISHED' && (
-            <div className="w-full overflow-hidden rounded-[28px] border border-white/10 bg-white/82 p-0 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
-              <CommentThread
-                comments={article.comments || []}
-                onAddComment={handleAddComment}
-                onDeleteComment={handleDeleteComment}
-                canDeleteComment={(comment) =>
-                  session?.user?.id === comment.author.id ||
-                  ['EDITOR', 'ADMIN', 'SUPER_ADMIN'].includes(session?.user?.role || '')
-                }
-                isAuthenticated={Boolean(session?.user)}
-                canComment={canComment}
-              />
-            </div>
-          )}
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+          <Link href="/local-life" className="transition-colors hover:text-[var(--brand-accent)]">
+            Home
+          </Link>
+          <span>/</span>
+          <Link href="/local-life" className="transition-colors hover:text-[var(--brand-accent)]">
+            Local Life
+          </Link>
+          <span>/</span>
+          <span className="text-slate-700">{article.title}</span>
         </div>
 
-        <aside className="space-y-5 xl:sticky xl:top-6">
-          <div className="article-detail-aside-card rounded-[26px] p-5">
-            <div className="mb-4 flex items-center gap-3">
-              <button
-                type="button"
-                onClick={handleShare}
-                className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/80 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-white"
-              >
-                <Share2 className="h-4 w-4" />
-                Share
-              </button>
-              <span
-                className={`text-xs text-slate-500 transition-opacity duration-500 ${
-                  shareMessage ? 'opacity-100' : 'opacity-0'
-                }`}
-                aria-live="polite"
-              >
-                {shareMessage ?? 'URL copied to clipboard'}
-              </span>
-            </div>
-            <p className="article-detail-aside-label text-xs font-semibold uppercase tracking-[0.28em]">Author</p>
-            <div className="mt-4 flex items-start gap-3">
-              <UserAvatar
-                firstName={article.author.firstName}
-                lastName={article.author.lastName}
-                profilePhotoUrl={article.author.profilePhotoUrl}
-                trustLevel={article.author.trustLevel}
-                className="h-12 w-12"
-                initialsClassName="bg-black/10 text-sm text-current dark:bg-white/12"
-              />
-              <div>
+        <div className="space-y-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--brand-accent)]">
+            {article.category?.name || 'Local Life'}
+            <span className="mx-2 text-slate-400">•</span>
+            Feature
+          </p>
+
+          <div className="space-y-4 border-b border-[var(--surface-border)] pb-4">
+            <h1 className="font-serif text-[clamp(2.75rem,6vw,4rem)] font-black leading-[0.94] tracking-[-0.055em] text-[var(--page-title)]">
+              {article.title}
+            </h1>
+            {article.excerpt?.trim() ? (
+              <p className="max-w-4xl text-[clamp(1.25rem,2vw,1.55rem)] leading-[1.35] text-slate-600">
+                {article.excerpt.trim()}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-[14px] border-y border-[var(--rule-strong)] py-[14px]">
+            <UserAvatar
+              firstName={article.author.firstName}
+              lastName={article.author.lastName}
+              profilePhotoUrl={article.author.profilePhotoUrl}
+              trustLevel={article.author.trustLevel}
+              className="h-10 w-10"
+              initialsClassName="text-sm"
+            />
+            <div className="text-[14px] leading-[1.35]">
+              <div className="font-bold text-[var(--page-title)]">
+                By{' '}
                 <Link
                   href={`/profile/${article.author.id}`}
-                  className="article-detail-aside-link font-semibold"
+                  className="text-[var(--brand-primary)] no-underline transition hover:text-[var(--brand-accent)]"
                 >
                   {article.author.firstName} {article.author.lastName}
                 </Link>
-                {article.author.bio ? (
-                  <p className="article-detail-aside-text mt-2 text-sm">{article.author.bio}</p>
-                ) : (
-                  <p className="article-detail-aside-text-muted mt-2 text-sm">No author bio yet.</p>
-                )}
+              </div>
+              <div className="text-slate-500">
+                Published {publishedDate || 'Not published yet'} · {readMinutes} min read · {totalComments} comments
               </div>
             </div>
+            <div className="flex-1" />
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" onClick={handleToggleSave} className="btn btn-ghost text-sm">
+                {isSaved ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+                {isSaved ? 'Saved' : 'Save'}
+              </button>
+              <button type="button" onClick={handleShare} className="btn btn-ghost text-sm">
+                <Share2 className="h-4 w-4" />
+                Share
+              </button>
+              <button type="button" onClick={handlePrint} className="btn btn-ghost text-sm">
+                <Printer className="h-4 w-4" />
+                Print
+              </button>
+              <button type="button" onClick={handleCycleTextSize} className="btn btn-ghost px-4 text-sm">
+                A+
+              </button>
+            </div>
+            <span className="min-w-[4.5rem] text-right text-xs text-slate-500" aria-live="polite">
+              {shareMessage ?? ''}
+            </span>
           </div>
+        </div>
+      </div>
 
-          {article.tags.length > 0 && (
-            <div className="article-detail-aside-card rounded-[26px] p-5">
-              <p className="article-detail-aside-label text-xs font-semibold uppercase tracking-[0.28em]">Tags</p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {article.tags.map((at) => (
-                  <span
-                    key={at.tag.id}
-                    className="article-detail-tag rounded-full px-3 py-1 text-xs font-medium"
-                  >
-                    #{at.tag.name}
-                  </span>
-                ))}
+      <article className="space-y-6">
+        <figure className="overflow-hidden rounded-[12px] border border-[var(--surface-border)] bg-white shadow-[var(--surface-shadow)]">
+          {imageUrl ? (
+            <img src={imageUrl} alt={article.title} className="block w-full" />
+          ) : (
+            <div className="article-card-image-placeholder min-h-[20rem] rounded-none border-x-0 border-y-0 px-6 py-10">
+              <div>
+                <p className="article-card-image-placeholder-copy">Portrait image placeholder</p>
               </div>
             </div>
           )}
-        </aside>
-      </div>
+          {article.featuredImageCaption?.trim() ? (
+            <figcaption className="border-t border-[var(--surface-border)] px-4 py-3 text-sm leading-6 text-slate-500">
+              {article.featuredImageCaption.trim()}
+            </figcaption>
+          ) : null}
+        </figure>
+
+        <div
+          className={`article-card-content article-reading-content ${!article.body.includes('editorial-') ? 'article-reading-dropcap' : 'editorial-article-body'}`}
+          style={{ ['--article-reading-size' as string]: `${readingSize}px` }}
+          dangerouslySetInnerHTML={{ __html: article.body }}
+        />
+
+        {article.tags.length > 0 ? (
+          <div className="flex flex-wrap gap-2 border-t border-[var(--surface-border)] pt-4">
+            {article.tags.map((at) => (
+              <span
+                key={at.tag.id}
+                className="rounded-full border border-[var(--surface-border)] bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500"
+              >
+                {at.tag.name}
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="flex items-center gap-4 py-1 text-sm text-slate-500">
+          <Link href="/local-life" className="font-semibold text-[var(--brand-primary)] hover:text-[var(--brand-accent)]">
+            Back to Local Life
+          </Link>
+        </div>
+      </article>
+
+      {article.status === 'PUBLISHED' ? (
+        <CommentThread
+          comments={article.comments || []}
+          onAddComment={handleAddComment}
+          onDeleteComment={handleDeleteComment}
+          canDeleteComment={(comment) =>
+            sessionUser?.id === comment.author.id ||
+            ['EDITOR', 'ADMIN', 'SUPER_ADMIN'].includes(sessionUser?.role || '')
+          }
+          isAuthenticated={Boolean(sessionUser)}
+          canComment={canComment}
+          currentUserName={currentUserName}
+          currentUserTrustLevel={sessionUser?.trust_level}
+          currentUserSubtitle={currentUserSubtitle}
+        />
+      ) : null}
     </div>
   );
 }

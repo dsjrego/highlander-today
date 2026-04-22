@@ -242,7 +242,7 @@ export default function EventsPage() {
                           <Link
                             key={event.id}
                             href={`/events/${event.id}`}
-                            className="block truncate rounded-lg bg-[#0f5771] px-2 py-1 text-xs text-white"
+                            className="block truncate rounded-lg bg-[var(--brand-primary)] px-2 py-1 text-xs text-white"
                           >
                             {event.title}
                           </Link>
@@ -282,8 +282,8 @@ export default function EventsPage() {
                     </p>
                   ) : null}
                   <div className="flex items-start justify-between gap-4 mb-2">
-                    <h2 className="text-xl font-bold text-slate-950 transition-colors group-hover:text-[#8f1d2c]">{event.title}</h2>
-                    <span className="flex-shrink-0 rounded-full bg-[#8f1d2c] px-3 py-1 text-xs font-medium text-white">
+                    <h2 className="text-xl font-bold text-slate-950 transition-colors group-hover:text-[var(--brand-accent)]">{event.title}</h2>
+                    <span className="flex-shrink-0 rounded-full bg-[var(--brand-accent)] px-3 py-1 text-xs font-medium text-white">
                       {new Date(event.startDatetime).toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",

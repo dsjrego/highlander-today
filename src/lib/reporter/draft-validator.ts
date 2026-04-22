@@ -22,9 +22,10 @@ const chatbotPatterns = [
 
 const analysisSectionPatterns = [
   /(^|\n)What we know\b/i,
+  /(^|\n)Source strength\b/i,
   /(^|\n)Missing information\b/i,
   /(^|\n)Reporting gaps\b/i,
-  /(^|\n)Editorial angle\b/i,
+  /(^|\n)Coverage recommendation\b/i,
   /(^|\n)Next steps\b/i,
 ];
 
@@ -33,6 +34,14 @@ const genericAnalysisPhrases = [
   /review the strongest source items/i,
   /identify missing primary-source confirmation/i,
   /decide whether the run is ready/i,
+  /more reporting may be required/i,
+  /gather additional context/i,
+];
+
+const coverageRecommendationPatterns = [
+  /\bdraft-ready\b/i,
+  /\bbrief-ready\b/i,
+  /\bneeds more sourcing\b/i,
 ];
 
 export function validateReporterDraft(
@@ -85,6 +94,16 @@ export function validateReporterDraft(
         });
         break;
       }
+    }
+
+    if (!coverageRecommendationPatterns.some((pattern) => pattern.test(draft.body))) {
+      issues.push({
+        code: 'ANALYSIS_RECOMMENDATION_MISSING',
+        severity: REPORTER_VALIDATION_SEVERITY.CRITICAL,
+        message:
+          'Reporter Agent analysis must explicitly classify the packet as draft-ready, brief-ready, or needs more sourcing.',
+        evidenceSpan: null,
+      });
     }
   }
 

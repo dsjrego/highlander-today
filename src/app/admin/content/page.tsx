@@ -243,22 +243,22 @@ export default function ContentApprovalPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-8 pb-3 border-b-2" style={{ borderColor: '#A51E30' }}>
+      <h1 className="text-2xl font-bold mb-8 pb-3 border-b-2" style={{ borderColor: 'var(--brand-accent)' }}>
         Content Approval Queue
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8">
-        <div className="bg-white p-5 rounded-xl shadow-sm border-l-4" style={{ borderColor: '#eab308' }}>
+        <div className="bg-white p-5 rounded-xl shadow-sm border-l-4" style={{ borderColor: 'var(--brand-primary)' }}>
           <p className="text-gray-500 text-sm mb-1">Pending Review</p>
           <p className="text-3xl font-bold text-yellow-600">{stats.pendingReview}</p>
         </div>
-        <div className="bg-white p-5 rounded-xl shadow-sm border-l-4" style={{ borderColor: '#46A8CC' }}>
+        <div className="bg-white p-5 rounded-xl shadow-sm border-l-4" style={{ borderColor: 'var(--brand-primary)' }}>
           <p className="text-gray-500 text-sm mb-1">Pending Articles</p>
-          <p className="text-3xl font-bold" style={{ color: '#46A8CC' }}>{stats.pendingArticles}</p>
+          <p className="text-3xl font-bold" style={{ color: 'var(--brand-primary)' }}>{stats.pendingArticles}</p>
         </div>
-        <div className="bg-white p-5 rounded-xl shadow-sm border-l-4" style={{ borderColor: '#A51E30' }}>
+        <div className="bg-white p-5 rounded-xl shadow-sm border-l-4" style={{ borderColor: 'var(--brand-accent)' }}>
           <p className="text-gray-500 text-sm mb-1">Pending Events</p>
-          <p className="text-3xl font-bold" style={{ color: '#A51E30' }}>{stats.pendingEvents}</p>
+          <p className="text-3xl font-bold" style={{ color: 'var(--brand-accent)' }}>{stats.pendingEvents}</p>
         </div>
         <div className="bg-white p-5 rounded-xl shadow-sm border-l-4" style={{ borderColor: '#0f766e' }}>
           <p className="text-gray-500 text-sm mb-1">Pending Help Wanted</p>
@@ -323,7 +323,7 @@ export default function ContentApprovalPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-2">
                               {article.category && (
-                                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold text-white" style={{ backgroundColor: '#46A8CC' }}>
+                                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold text-white" style={{ backgroundColor: 'var(--brand-primary)' }}>
                                   {article.category.name}
                                 </span>
                               )}
@@ -415,7 +415,7 @@ export default function ContentApprovalPage() {
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-2">
-                              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold text-white" style={{ backgroundColor: '#A51E30' }}>
+                              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold text-white" style={{ backgroundColor: 'var(--brand-accent)' }}>
                                 Event
                               </span>
                               <span className="text-xs text-gray-400">

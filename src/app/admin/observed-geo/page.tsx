@@ -208,7 +208,7 @@ export default function AdminObservedGeoPage() {
                                     setSelectedPlace(null);
                                     setPlaceQuery('');
                                   }}
-                                  className="mt-1 text-xs font-semibold text-[#0f5771] hover:underline"
+                                  className="mt-1 text-xs font-semibold text-[var(--brand-primary)] hover:underline"
                                 >
                                   Clear place
                                 </button>
@@ -274,7 +274,7 @@ export default function AdminObservedGeoPage() {
                             <button
                               type="button"
                               onClick={() => void saveObservedGeo(row.id)}
-                              className="font-semibold text-[#0f5771] hover:underline"
+                              className="font-semibold text-[var(--brand-primary)] hover:underline"
                             >
                               Save
                             </button>
@@ -296,7 +296,7 @@ export default function AdminObservedGeoPage() {
                             <button
                               type="button"
                               onClick={() => beginEdit(row)}
-                              className="font-semibold text-[#0f5771] hover:underline"
+                              className="font-semibold text-[var(--brand-primary)] hover:underline"
                             >
                               Manage
                             </button>
@@ -309,7 +309,7 @@ export default function AdminObservedGeoPage() {
                                   setPendingStatus('IGNORE');
                                   void saveObservedGeo(row.id);
                                 }}
-                                className="font-semibold text-[#8f1d2c] hover:underline"
+                                className="font-semibold text-[var(--brand-accent)] hover:underline"
                               >
                                 Ignore
                               </button>

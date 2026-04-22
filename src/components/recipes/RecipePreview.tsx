@@ -209,7 +209,7 @@ export default function RecipePreview({
             {introHtml?.trim() ? (
               <section className="rounded-[26px] border border-slate-200 bg-white p-6 shadow-[0_12px_28px_rgba(15,23,42,0.06)]">
                 <div
-                  className="prose prose-lg max-w-none prose-headings:text-slate-950 prose-p:text-slate-700 prose-li:text-slate-700 prose-a:text-[#8f1d2c]"
+                  className="prose prose-lg max-w-none prose-headings:text-slate-950 prose-p:text-slate-700 prose-li:text-slate-700 prose-a:text-[var(--brand-accent)]"
                   dangerouslySetInnerHTML={{ __html: introHtml }}
                 />
               </section>
@@ -280,7 +280,7 @@ export default function RecipePreview({
                             {step.body}
                           </p>
                           {step.timerMinutes ? (
-                            <p className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#8f1d2c]">
+                            <p className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--brand-accent)]">
                               Timer: {formatRecipeTimeLabel(step.timerMinutes)}
                             </p>
                           ) : null}
@@ -333,7 +333,7 @@ export default function RecipePreview({
                   ingredientSections.map((section, sectionIndex) => (
                     <div key={`${sectionIndex}-${section.title || 'section'}`} className="space-y-2">
                       {section.title?.trim() ? (
-                        <h3 className="text-base font-bold uppercase tracking-[0.18em] text-[#8f1d2c]">
+                        <h3 className="text-base font-bold uppercase tracking-[0.18em] text-[var(--brand-accent)]">
                           {section.title.trim()}
                         </h3>
                       ) : null}
@@ -399,7 +399,7 @@ export default function RecipePreview({
                         href={sourceUrl}
                         target="_blank"
                         rel="noopener noreferrer nofollow"
-                        className="font-semibold text-[#8f1d2c] underline"
+                        className="font-semibold text-[var(--brand-accent)] underline"
                       >
                         Visit source
                       </a>

@@ -147,7 +147,7 @@ export default function MessageThreadPage({ params }: PageProps) {
   return (
     <div className="max-w-3xl mx-auto h-screen flex flex-col">
       <div className="bg-white border-b border-gray-200 p-4 flex items-center gap-3">
-        <div className="w-10 h-10 bg-[#46A8CC] rounded-full flex items-center justify-center text-white font-bold">
+        <div className="w-10 h-10 bg-[var(--brand-primary)] rounded-full flex items-center justify-center text-white font-bold">
           {participant.displayName.charAt(0)}
         </div>
         <div className="flex-1">
@@ -156,7 +156,7 @@ export default function MessageThreadPage({ params }: PageProps) {
         </div>
         <Link
           href={`/profile/${participant.id}`}
-          className="text-[#46A8CC] hover:underline text-sm font-semibold"
+          className="text-[var(--brand-primary)] hover:underline text-sm font-semibold"
         >
           View Profile
         </Link>
@@ -166,7 +166,7 @@ export default function MessageThreadPage({ params }: PageProps) {
           lastName={participant.lastName}
           trustLevel={participant.trustLevel}
           hasDateOfBirth={participant.hasDateOfBirth}
-          className="rounded-full border border-[#A51E30]/20 bg-[#A51E30] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#8d1929]"
+          className="rounded-full border border-[var(--brand-accent)]/20 bg-[var(--brand-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#8d1929]"
           onSuccess={() =>
             setParticipant((current) =>
               current ? { ...current, trustLevel: "TRUSTED" } : current
@@ -194,7 +194,7 @@ export default function MessageThreadPage({ params }: PageProps) {
                 <div
                   className={`max-w-xs md:max-w-md px-4 py-2 rounded-lg ${
                     isOwn
-                      ? "bg-[#46A8CC] text-white rounded-br-none"
+                      ? "bg-[var(--brand-primary)] text-white rounded-br-none"
                       : "bg-white text-gray-800 border border-gray-200 rounded-bl-none"
                   }`}
                 >
@@ -226,12 +226,12 @@ export default function MessageThreadPage({ params }: PageProps) {
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           placeholder="Type a message..."
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
         />
         <button
           type="submit"
           disabled={isSending || !newMessage.trim()}
-          className="bg-[#46A8CC] text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition font-semibold"
+          className="bg-[var(--brand-primary)] text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition font-semibold"
         >
           Send
         </button>

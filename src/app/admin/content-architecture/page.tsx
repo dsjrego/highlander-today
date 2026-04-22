@@ -174,7 +174,7 @@ export default async function AdminContentArchitecturePage() {
               <article key={area.name} className="rounded-2xl border border-slate-200 bg-white/90 p-5">
                 <div className="flex items-center justify-between gap-3">
                   <h2 className="text-lg font-semibold text-slate-950">{area.name}</h2>
-                  <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#A51E30]">
+                  <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-accent)]">
                     {area.status}
                   </span>
                 </div>

@@ -63,7 +63,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
               {/* Avatar Circle */}
               <div
                 className="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-white font-bold"
-                style={{ backgroundColor: '#46A8CC' }}
+                style={{ backgroundcolor: 'var(--brand-primary)' }}
               >
                 {conversation.participantName.charAt(0).toUpperCase()}
               </div>
@@ -89,7 +89,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
               {conversation.unreadCount > 0 && (
                 <div
                   className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                  style={{ backgroundColor: '#A51E30' }}
+                  style={{ backgroundColor: 'var(--brand-accent)' }}
                 >
                   {conversation.unreadCount > 9 ? '9+' : conversation.unreadCount}
                 </div>

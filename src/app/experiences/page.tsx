@@ -126,7 +126,7 @@ function ExperiencesPageContent() {
             key={sub.slug}
             className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur"
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#8f1d2c]">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--brand-accent)]">
               Experiences
             </p>
             <h2 className="section-display-title mt-3 text-2xl font-black">
@@ -155,7 +155,7 @@ function ExperiencesPageContent() {
 
       {!activeSub ? (
         <div className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#8f1d2c]">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--brand-accent)]">
             Current State
           </p>
           <h2 className="section-display-title mt-3 text-2xl font-black">

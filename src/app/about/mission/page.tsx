@@ -86,7 +86,7 @@ export default async function AboutMissionPage() {
         {isSuperAdmin ? (
           <Link
             href="/about/roadmap"
-            className="mt-6 inline-flex rounded-full bg-[#8f1d2c] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+            className="mt-6 inline-flex rounded-full bg-[var(--brand-accent)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
           >
             See where we&rsquo;re headed
           </Link>

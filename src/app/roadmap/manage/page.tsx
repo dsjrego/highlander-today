@@ -123,7 +123,7 @@ export default function ManageRoadmapIdeasPage() {
 
   if (sessionStatus !== 'authenticated') {
     return (
-      <div className="bg-blue-50 border border-blue-200 text-blue-900 rounded-xl px-5 py-4">
+      <div className="bg-[var(--article-card-badge-bg)] border border-blue-200 text-blue-900 rounded-xl px-5 py-4">
         Sign in with a trusted account to manage roadmap ideas.
       </div>
     );
@@ -202,7 +202,7 @@ export default function ManageRoadmapIdeasPage() {
           <Link
             href="/roadmap/submit"
             className="inline-block px-6 py-3 text-white font-semibold rounded-full hover:opacity-90 transition"
-            style={{ backgroundColor: '#A51E30' }}
+            style={{ backgroundColor: 'var(--brand-accent)' }}
           >
             Submit an Idea
           </Link>
@@ -233,7 +233,7 @@ export default function ManageRoadmapIdeasPage() {
                     {idea.mergedInto ? (
                       <p className="text-sm text-gray-500 mt-3">
                         Merged into{' '}
-                        <Link className="text-[#A51E30] hover:underline" href={`/roadmap/${idea.mergedInto.id}`}>
+                        <Link className="text-[var(--brand-accent)] hover:underline" href={`/roadmap/${idea.mergedInto.id}`}>
                           {idea.mergedInto.title}
                         </Link>
                         .
@@ -261,7 +261,7 @@ export default function ManageRoadmapIdeasPage() {
                         onClick={() => handleDelete(idea.id)}
                         disabled={deletingId === idea.id}
                         className="px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90 transition disabled:opacity-50"
-                        style={{ backgroundColor: '#A51E30' }}
+                        style={{ backgroundColor: 'var(--brand-accent)' }}
                       >
                         {deletingId === idea.id ? 'Deleting...' : 'Delete'}
                       </button>

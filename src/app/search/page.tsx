@@ -103,7 +103,7 @@ function SearchResultCard({ result }: { result: SearchResult }) {
             className="object-cover transition duration-300 group-hover:scale-[1.03]"
           />
         ) : (
-          <div className="flex h-full items-center justify-center bg-gradient-to-br from-[#46A8CC] to-[#2c7f9e] text-xs font-bold uppercase tracking-[0.2em] text-white">
+          <div className="flex h-full items-center justify-center bg-[var(--card-bg-accent)] text-xs font-bold uppercase tracking-[0.2em] text-[var(--brand-primary)]">
             {getResultLabel(result.type)}
           </div>
         )}
@@ -111,13 +111,13 @@ function SearchResultCard({ result }: { result: SearchResult }) {
 
       <div className="min-w-0">
         <div className="mb-2 flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-[#A51E30] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
+          <span className="rounded-full bg-[var(--brand-accent)] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
             {getResultLabel(result.type)}
           </span>
           {result.metadata ? <span className="text-xs text-gray-500">{result.metadata}</span> : null}
         </div>
 
-        <h2 className="mb-2 text-xl font-bold text-gray-900 transition-colors group-hover:text-[#46A8CC]">
+        <h2 className="mb-2 text-xl font-bold text-gray-900 transition-colors group-hover:text-[var(--brand-primary)]">
           {result.title}
         </h2>
 
@@ -166,7 +166,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   return (
     <div>
       <section className="mb-8 rounded-[2rem] bg-gradient-to-r from-[#f4ede3] via-white to-[#d9eef6] p-6 shadow-sm">
-        <h1 className="mb-3 border-b-2 border-[#A51E30] pb-3 text-2xl font-bold">Search</h1>
+        <h1 className="mb-3 border-b-2 border-[var(--brand-accent)] pb-3 text-2xl font-bold">Search</h1>
         <p className="mb-5 max-w-2xl text-sm leading-6 text-gray-600">
           Search across Local Life, community events, and market listings for this community.
         </p>
@@ -177,12 +177,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             name="q"
             defaultValue={query}
             placeholder="Search articles, events, listings..."
-            className="flex-1 rounded-full border border-gray-300 bg-white px-5 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="flex-1 rounded-full border border-gray-300 bg-white px-5 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
           />
           {selectedFilter !== 'all' ? <input type="hidden" name="type" value={selectedFilter} /> : null}
           <button
             type="submit"
-            className="rounded-full bg-[#A51E30] px-8 py-3 font-semibold text-white shadow-sm transition hover:shadow-md"
+            className="rounded-full bg-[var(--brand-accent)] px-8 py-3 font-semibold text-white shadow-sm transition hover:shadow-md"
           >
             Search
           </button>
@@ -201,7 +201,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         <>
           <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-wide text-[#A51E30]">
+              <p className="text-sm font-semibold uppercase tracking-wide text-[var(--brand-accent)]">
                 Search Results
               </p>
               <p className="text-sm text-gray-600">
@@ -225,7 +225,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                     href={buildSearchHref(query, filter)}
                     className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                       isActive
-                        ? 'bg-[#A51E30] text-white shadow-sm'
+                        ? 'bg-[var(--brand-accent)] text-white shadow-sm'
                         : 'bg-white text-gray-600 shadow-sm hover:shadow-md'
                     }`}
                   >
@@ -287,7 +287,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                             href={buildSearchHref(query, selectedFilter, page)}
                             className={`rounded-lg px-4 py-2 text-sm font-medium ${
                               page === searchData.pagination.page
-                                ? 'bg-[#46A8CC] text-white'
+                                ? 'bg-[var(--brand-primary)] text-white'
                                 : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                             }`}
                           >

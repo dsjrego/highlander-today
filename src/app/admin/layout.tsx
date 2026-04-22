@@ -41,7 +41,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] flex min-h-screen w-screen bg-[#f7f8fa]">
       {/* Admin Sidebar */}
       <aside className="admin-sidebar w-64 border-r border-slate-200 bg-[#edf2f5] p-5 text-slate-700">
-        <h2 className="text-2xl font-bold text-[#2c7f9e]">Admin</h2>
+        <h2 className="text-2xl font-bold text-[var(--brand-primary)]">Admin</h2>
 
         <nav className="admin-sidebar-nav">
           {visibleNavItems.map((item, index) => (

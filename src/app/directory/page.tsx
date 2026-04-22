@@ -378,10 +378,10 @@ export default async function DirectoryPage({
             <div className="text-sm text-slate-700">
               <p>Create an account to message people or organizations through Highlander Today.</p>
               <div className="mt-1 flex flex-wrap gap-3 text-[11px] font-semibold uppercase tracking-[0.16em]">
-                <Link href="/login" className="text-[#0f5771] hover:underline">
+                <Link href="/login" className="text-[var(--brand-primary)] hover:underline">
                   Sign In
                 </Link>
-                <Link href="/login?mode=sign-up" className="text-[#0f5771] hover:underline">
+                <Link href="/login?mode=sign-up" className="text-[var(--brand-primary)] hover:underline">
                   Create Account
                 </Link>
               </div>
@@ -390,7 +390,7 @@ export default async function DirectoryPage({
             <div className="text-sm text-slate-700">
               <p>Trusted users can appear in the directory and use directory messaging.</p>
               <div className="mt-1 flex flex-wrap gap-3 text-[11px] font-semibold uppercase tracking-[0.16em]">
-                <Link href={profileHref} className="text-[#0f5771] hover:underline">
+                <Link href={profileHref} className="text-[var(--brand-primary)] hover:underline">
                   Go to Profile
                 </Link>
               </div>
@@ -399,7 +399,7 @@ export default async function DirectoryPage({
             <div className="text-sm text-slate-700">
               <p>
                 You&apos;re eligible to appear in the people directory. Enable directory listing from your{' '}
-                <Link href={profileHref} className="font-semibold text-[#0f5771] underline-offset-2 hover:underline">
+                <Link href={profileHref} className="font-semibold text-[var(--brand-primary)] underline-offset-2 hover:underline">
                   profile settings.
                 </Link>
               </p>
@@ -411,7 +411,7 @@ export default async function DirectoryPage({
             {selectedType ? <input type="hidden" name="type" value={selectedType} /> : null}
             <input type="hidden" name="sort" value={sort} />
             <input type="hidden" name="dir" value={dir} />
-            <div className="flex items-center gap-3 border-b border-slate-200 pb-2 transition focus-within:border-[#46A8CC]">
+            <div className="flex items-center gap-3 border-b border-slate-200 pb-2 transition focus-within:border-[var(--brand-primary)]">
               <svg
                 aria-hidden="true"
                 viewBox="0 0 20 20"
@@ -433,7 +433,7 @@ export default async function DirectoryPage({
               <button
                 type="submit"
                 aria-label="Search directory"
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-[#0f5771]"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-[var(--brand-primary)]"
               >
                 <svg
                   aria-hidden="true"
@@ -514,7 +514,7 @@ export default async function DirectoryPage({
                         {row.href ? (
                           <Link
                             href={row.href}
-                            className="inline-block max-w-full truncate text-[17px] font-medium leading-6 text-[#0f5771] hover:underline"
+                            className="inline-block max-w-full truncate text-[17px] font-medium leading-6 text-[var(--brand-primary)] hover:underline"
                           >
                             {row.name}
                           </Link>

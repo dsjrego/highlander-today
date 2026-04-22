@@ -43,7 +43,7 @@ export default function UserAvatar({
       ) : (
         <div
           className={joinClasses(
-            "flex h-full w-full items-center justify-center rounded-full bg-[#A51E30] font-bold text-white",
+            "flex h-full w-full items-center justify-center rounded-full bg-[var(--brand-accent)] font-bold text-white",
             initialsClassName
           )}
           aria-label={alt ?? `${firstName} ${lastName}`}

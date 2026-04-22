@@ -336,7 +336,7 @@ export default function MarketplacePage() {
       <div className="rounded-[28px] border border-white/10 bg-white/82 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur">
         <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-6">
           <div>
-            <p className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#8f1d2c]">
+            <p className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--brand-accent)]">
               Local Discovery
             </p>
             <h2 className="section-display-title mb-3 text-3xl font-black">
@@ -354,7 +354,7 @@ export default function MarketplacePage() {
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Search by item, service, store, or seller"
-                className="w-full max-w-2xl rounded-2xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                className="w-full max-w-2xl rounded-2xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
               />
             </div>
           </div>
@@ -394,7 +394,7 @@ export default function MarketplacePage() {
                 href={`/marketplace/stores/${store.id}`}
                 className="group overflow-hidden rounded-[26px] border border-white/10 bg-white/82 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_24px_55px_rgba(15,23,42,0.12)]"
               >
-                <div className="h-28 bg-gradient-to-r from-[#46A8CC] via-[#7bc4dd] to-[#dceff6]">
+                <div className="h-28 bg-[var(--card-bg-accent)]">
                   {store.bannerUrl ? (
                     <img
                       src={store.bannerUrl}
@@ -405,7 +405,7 @@ export default function MarketplacePage() {
                 </div>
                 <div className="p-5">
                   <div className="-mt-10 flex items-end gap-4 mb-4">
-                    <div className="w-20 h-20 rounded-2xl border-4 border-white bg-white text-[#46A8CC] shadow-sm flex items-center justify-center text-2xl font-bold overflow-hidden shrink-0">
+                    <div className="w-20 h-20 rounded-2xl border-4 border-white bg-white text-[var(--brand-primary)] shadow-sm flex items-center justify-center text-2xl font-bold overflow-hidden shrink-0">
                       {store.logoUrl ? (
                         <img
                           src={store.logoUrl}
@@ -417,7 +417,7 @@ export default function MarketplacePage() {
                       )}
                     </div>
                     <div className="min-w-0 pb-2">
-                      <h3 className="text-lg font-bold text-slate-950 transition-colors group-hover:text-[#8f1d2c]">
+                      <h3 className="text-lg font-bold text-slate-950 transition-colors group-hover:text-[var(--brand-accent)]">
                         {store.name}
                       </h3>
                       <p className="text-sm text-gray-500">/{store.slug}</p>
@@ -429,14 +429,14 @@ export default function MarketplacePage() {
 
                     return (
                       <div className="flex flex-wrap gap-2 mb-4">
-                        <span className="rounded-full bg-[#f3f8fb] px-3 py-1 text-xs font-semibold text-[#1e6e88]">
+                        <span className="rounded-full bg-[var(--article-card-badge-bg)] px-3 py-1 text-xs font-semibold text-[var(--brand-primary)]">
                           {summary?.activeListings ?? 0} active
                         </span>
                         <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
                           {summary?.publicListings ?? 0} public
                         </span>
                         {summary?.topCategories[0] ? (
-                          <span className="rounded-full bg-[#fff1f3] px-3 py-1 text-xs font-semibold text-[#A51E30]">
+                          <span className="rounded-full bg-[var(--status-error-bg)] px-3 py-1 text-xs font-semibold text-[var(--brand-accent)]">
                             {summary.topCategories[0]}
                           </span>
                         ) : null}
@@ -456,7 +456,7 @@ export default function MarketplacePage() {
                   </div>
 
                   <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-gray-100 text-sm">
-                    <span className="font-semibold text-[#A51E30]">
+                    <span className="font-semibold text-[var(--brand-accent)]">
                       Browse storefront
                     </span>
                     {store.websiteUrl ? (
@@ -505,7 +505,7 @@ export default function MarketplacePage() {
               onChange={(event) =>
                 setSelectedType(event.target.value as "ALL" | keyof typeof LISTING_TYPE_LABELS)
               }
-              className="w-full rounded-xl border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             >
               <option value="ALL">All Types</option>
               {Object.entries(LISTING_TYPE_LABELS).map(([value, label]) => (
@@ -528,7 +528,7 @@ export default function MarketplacePage() {
                 value={minPrice}
                 onChange={(event) => setMinPrice(event.target.value)}
                 placeholder="Min"
-                className="w-full rounded-xl border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                className="w-full rounded-xl border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
               />
               <input
                 type="number"
@@ -537,7 +537,7 @@ export default function MarketplacePage() {
                 value={maxPrice}
                 onChange={(event) => setMaxPrice(event.target.value)}
                 placeholder="Max"
-                className="w-full rounded-xl border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+                className="w-full rounded-xl border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
               />
             </div>
           </div>
@@ -592,10 +592,10 @@ export default function MarketplacePage() {
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex flex-wrap gap-2">
-                      <span className="rounded-full bg-[#8f1d2c] px-3 py-1 text-xs font-medium text-white">
+                      <span className="rounded-full bg-[var(--brand-accent)] px-3 py-1 text-xs font-medium text-white">
                         {listing.category}
                       </span>
-                      <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-[#46A8CC]">
+                      <span className="rounded-full bg-[var(--article-card-badge-bg)] px-3 py-1 text-xs font-medium text-[var(--brand-primary)]">
                         {LISTING_TYPE_LABELS[listing.listingType]}
                       </span>
                       <span
@@ -609,7 +609,7 @@ export default function MarketplacePage() {
                     </span>
                   </div>
 
-                  <h2 className="mb-2 text-lg font-bold text-slate-950 transition-colors group-hover:text-[#8f1d2c]">
+                  <h2 className="mb-2 text-lg font-bold text-slate-950 transition-colors group-hover:text-[var(--brand-accent)]">
                     {listing.title}
                   </h2>
                   <p className="mb-4 line-clamp-3 text-sm leading-7 text-slate-600">
@@ -630,7 +630,7 @@ export default function MarketplacePage() {
 
                   <div className="flex items-end justify-between gap-3">
                     <div>
-                      <p className="text-2xl font-bold text-[#A51E30]">
+                      <p className="text-2xl font-bold text-[var(--brand-accent)]">
                         {formatPrice(listing.priceCents)}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
@@ -641,7 +641,7 @@ export default function MarketplacePage() {
                       <div>
                         {listing.store.owner.firstName} {listing.store.owner.lastName}
                       </div>
-                      <div className="mt-1 font-semibold" style={{ color: "#A51E30" }}>
+                      <div className="mt-1 font-semibold" style={{ color: "var(--brand-accent)" }}>
                         {listing.status === "ACTIVE" ? "View details" : "View status"}
                       </div>
                       <div className="mt-1">Storefront linked on detail page</div>

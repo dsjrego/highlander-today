@@ -141,7 +141,7 @@ export const VouchingGraph: React.FC<VouchingGraphProps> = ({
             highlightedChain.has(link.source) &&
             highlightedChain.has(link.target)
           ) {
-            ctx.strokeStyle = '#46A8CC';
+            ctx.strokeStyle = 'var(--brand-primary)';
             ctx.lineWidth = 3;
           }
 
@@ -168,7 +168,7 @@ export const VouchingGraph: React.FC<VouchingGraphProps> = ({
         }[node.trustLevel] ?? '#6B7280';
 
         if (isHighlighted) {
-          ctx.strokeStyle = '#46A8CC';
+          ctx.strokeStyle = 'var(--brand-primary)';
           ctx.lineWidth = 3;
         }
 

@@ -112,7 +112,7 @@ function CivicModernMockup() {
                 space.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <span className="rounded-full bg-[#8f1d2c] px-5 py-3 text-sm font-semibold text-white">
+                <span className="rounded-full bg-[var(--brand-accent)] px-5 py-3 text-sm font-semibold text-white">
                   Read Local Life
                 </span>
                 <span className="rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700">
@@ -142,7 +142,7 @@ function CivicModernMockup() {
                 key={card.title}
                 className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)]"
               >
-                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#8f1d2c]">
+                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-accent)]">
                   {card.eyebrow}
                 </p>
                 <h2 className="mt-4 text-2xl font-semibold leading-tight text-slate-950">
@@ -186,7 +186,7 @@ function CivicModernMobileMockup() {
               Clean editorial surfaces, less noise, and a more premium sense of space.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <span className="rounded-full bg-[#8f1d2c] px-4 py-2 text-xs font-semibold text-white">
+              <span className="rounded-full bg-[var(--brand-accent)] px-4 py-2 text-xs font-semibold text-white">
                 Read Local Life
               </span>
               <span className="rounded-full border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700">
@@ -197,7 +197,7 @@ function CivicModernMobileMockup() {
 
           {featureCards.slice(0, 2).map((card) => (
             <article key={card.title} className="rounded-[20px] border border-slate-200 bg-white p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8f1d2c]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--brand-accent)]">
                 {card.eyebrow}
               </p>
               <h4 className="mt-3 text-xl font-semibold leading-tight text-slate-950">
@@ -216,8 +216,8 @@ function YouthLocalMockup() {
   return (
     <BrowserFrame chromeTone="bg-[#15191f]">
       <div className="overflow-hidden bg-[#07111a] text-white">
-        <div className="relative border-b border-white/10 bg-[linear-gradient(135deg,#091a28_0%,#0f2941_36%,#8f1d2c_100%)] px-6 py-5">
-          <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_20%_10%,rgba(255,255,255,0.18),transparent_28%),radial-gradient(circle_at_85%_25%,rgba(70,168,204,0.35),transparent_24%),radial-gradient(circle_at_70%_90%,rgba(255,255,255,0.12),transparent_16%)]" />
+        <div className="relative border-b border-white/10 bg-[var(--masthead-bg)] px-6 py-5">
+          <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_20%_10%,rgba(255,255,255,0.18),transparent_28%),radial-gradient(circle_at_85%_25%,color-mix(in_srgb,var(--brand-primary)_35%,transparent),transparent_24%),radial-gradient(circle_at_70%_90%,rgba(255,255,255,0.12),transparent_16%)]" />
           <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-4xl font-black tracking-[-0.04em] text-white md:text-5xl">
@@ -241,9 +241,9 @@ function YouthLocalMockup() {
         </div>
 
         <div className="relative px-6 py-8 md:px-10 md:py-10">
-          <div className="absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_top,rgba(70,168,204,0.22),transparent_58%)]" />
+          <div className="absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_top,color-mix(in_srgb,var(--brand-primary)_22%,transparent),transparent_58%)]" />
           <section className="relative grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-            <div className="rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(143,29,44,0.95),rgba(10,32,51,0.94))] p-8 shadow-[0_35px_80px_rgba(0,0,0,0.35)] md:p-10">
+            <div className="rounded-[32px] border border-white/10 bg-[var(--card-bg-accent)] p-8 shadow-[0_35px_80px_rgba(0,0,0,0.35)] md:p-10">
               <SectionLabel>Concept 2 / Youth Local</SectionLabel>
               <h1 className="mt-4 max-w-3xl text-4xl font-black leading-[0.94] tracking-[-0.05em] text-white md:text-7xl">
                 Make local feel alive, social, and impossible to ignore.
@@ -323,8 +323,8 @@ function YouthLocalMobileMockup() {
   return (
     <PhoneFrame>
       <div className="bg-[#07111a] text-white">
-        <div className="relative overflow-hidden border-b border-white/10 bg-[linear-gradient(135deg,#091a28_0%,#0f2941_36%,#8f1d2c_100%)] px-4 py-5">
-          <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_20%_10%,rgba(255,255,255,0.18),transparent_28%),radial-gradient(circle_at_85%_25%,rgba(70,168,204,0.35),transparent_24%)]" />
+        <div className="relative overflow-hidden border-b border-white/10 bg-[var(--masthead-bg)] px-4 py-5">
+          <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_20%_10%,rgba(255,255,255,0.18),transparent_28%),radial-gradient(circle_at_85%_25%,color-mix(in_srgb,var(--brand-primary)_35%,transparent),transparent_24%)]" />
           <div className="relative">
             <p className="text-3xl font-black tracking-[-0.05em] text-white">Highlander Today</p>
             <p className="mt-2 text-[11px] uppercase tracking-[0.28em] text-cyan-100/80">

@@ -192,7 +192,7 @@ export default function EditHelpWantedPage({ params }: PageProps) {
         </div>
       ) : null}
 
-      <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+      <div className="rounded-xl border border-blue-200 bg-[var(--article-card-badge-bg)] px-4 py-3 text-sm text-blue-900">
         Editing lets you improve clarity before resubmitting or reusing the post. Keep response details on-platform and avoid public phone numbers or email addresses in the text or image.
       </div>
 
@@ -219,7 +219,7 @@ export default function EditHelpWantedPage({ params }: PageProps) {
               name="postingType"
               value={formData.postingType}
               onChange={handleInputChange}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             >
               {POSTING_TYPE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -239,7 +239,7 @@ export default function EditHelpWantedPage({ params }: PageProps) {
             name="title"
             value={formData.title}
             onChange={handleInputChange}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
           />
         </div>
 
@@ -252,7 +252,7 @@ export default function EditHelpWantedPage({ params }: PageProps) {
             value={formData.description}
             onChange={handleInputChange}
             rows={6}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
           />
           <p className="mt-2 text-xs text-slate-500">
             Include the work, timing, local context, compensation, and what a responder should know before opening a message thread.
@@ -268,7 +268,7 @@ export default function EditHelpWantedPage({ params }: PageProps) {
               name="compensationType"
               value={formData.compensationType}
               onChange={handleInputChange}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             >
               {COMPENSATION_TYPE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -287,7 +287,7 @@ export default function EditHelpWantedPage({ params }: PageProps) {
               name="compensationText"
               value={formData.compensationText}
               onChange={handleInputChange}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             />
           </div>
         </div>
@@ -302,7 +302,7 @@ export default function EditHelpWantedPage({ params }: PageProps) {
               name="locationText"
               value={formData.locationText}
               onChange={handleInputChange}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             />
           </div>
 
@@ -315,7 +315,7 @@ export default function EditHelpWantedPage({ params }: PageProps) {
               name="scheduleText"
               value={formData.scheduleText}
               onChange={handleInputChange}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             />
           </div>
         </div>
@@ -329,7 +329,7 @@ export default function EditHelpWantedPage({ params }: PageProps) {
             name="expiresAt"
             value={formData.expiresAt}
             onChange={handleInputChange}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC] md:w-auto"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] md:w-auto"
           />
         </div>
 

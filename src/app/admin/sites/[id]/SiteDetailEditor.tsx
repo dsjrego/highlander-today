@@ -1035,7 +1035,7 @@ export default function SiteDetailEditor({
                             setSelectedPlace(null);
                             setPlaceResults([]);
                           }}
-                          className="mt-2 text-xs font-semibold text-[#0f5771] hover:underline"
+                          className="mt-2 text-xs font-semibold text-[var(--brand-primary)] hover:underline"
                         >
                           Choose a different place
                         </button>

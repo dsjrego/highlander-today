@@ -143,7 +143,7 @@ export default async function AdminEventDetailPage({
         <div>
           <Link
             href="/admin/events"
-            className="text-sm font-medium text-[#2c7f9e] transition hover:text-[#A51E30]"
+            className="text-sm font-medium text-[var(--brand-primary)] transition hover:text-[var(--brand-accent)]"
           >
             Back to events
           </Link>

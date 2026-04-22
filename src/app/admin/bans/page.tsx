@@ -89,7 +89,7 @@ export default function BansPage() {
 
   return (
     <div>
-      <h1 className="text-4xl font-bold mb-8 text-[#46A8CC]">Banned Accounts</h1>
+      <h1 className="text-4xl font-bold mb-8 text-[var(--brand-primary)]">Banned Accounts</h1>
 
       {/* Messages */}
       {successMsg && (
@@ -120,14 +120,14 @@ export default function BansPage() {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Search by email..."
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
         />
       </div>
 
       {/* Bans Table */}
       {isLoading ? (
         <div className="text-center py-12 text-gray-500">
-          <div className="animate-spin inline-block w-8 h-8 border-4 border-[#46A8CC] border-t-transparent rounded-full mb-4"></div>
+          <div className="animate-spin inline-block w-8 h-8 border-4 border-[var(--brand-primary)] border-t-transparent rounded-full mb-4"></div>
           <p>Loading banned accounts...</p>
         </div>
       ) : bans.length === 0 ? (

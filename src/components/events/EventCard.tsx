@@ -45,7 +45,7 @@ export const EventCard: React.FC<EventCardProps> = ({
         <div className="flex items-center gap-2 mb-3">
           <div
             className="text-center px-3 py-2 rounded-lg text-white"
-            style={{ backgroundColor: '#46A8CC' }}
+            style={{ backgroundcolor: 'var(--brand-primary)' }}
           >
             <div className="text-xs font-semibold">
               {eventDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}
@@ -58,7 +58,7 @@ export const EventCard: React.FC<EventCardProps> = ({
           {isFree && (
             <span
               className="text-xs font-bold px-2 py-1 rounded text-white"
-              style={{ backgroundColor: '#A51E30' }}
+              style={{ backgroundColor: 'var(--brand-accent)' }}
             >
               FREE
             </span>
@@ -91,7 +91,7 @@ export const EventCard: React.FC<EventCardProps> = ({
 
         {/* Cost */}
         {cost && !isFree && (
-          <div className="text-sm font-semibold mb-4" style={{ color: '#A51E30' }}>
+          <div className="text-sm font-semibold mb-4" style={{ color: 'var(--brand-accent)' }}>
             {cost}
           </div>
         )}
@@ -101,7 +101,7 @@ export const EventCard: React.FC<EventCardProps> = ({
           <Link
             href={`/events/${slug}`}
             className="text-sm font-medium hover:underline"
-            style={{ color: '#46A8CC' }}
+            style={{ color: 'var(--brand-primary)' }}
           >
             Learn More →
           </Link>

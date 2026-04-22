@@ -394,7 +394,7 @@ ADD COLUMN "lastReadAt" TIMESTAMP NOT NULL DEFAULT NOW();
 
 - **Colors:** Blue `#46A8CC` (banner), Maroon `#A51E30` (nav, headings, pills, CTAs), Dark maroon `#7a1222` (footer)
 - **Banner / live masthead:** `src/app/layout.tsx` now uses a full-width dark blue-to-maroon gradient shell with compact `p-3` spacing, left-aligned wordmark, uppercase `Community platform` eyebrow, inline SVG `HT` shield monogram, nav pills directly beneath the eyebrow, and utility pills in the same top row as the title. The old `text-7xl` stroked banner is no longer live.
-- **Page pattern:** headings `text-2xl font-bold border-b-2 border-[#A51E30]`; cards `rounded-xl shadow-sm bg-white`; accents `border-l-4 border-[#A51E30]`; pills `bg-[#A51E30] text-white text-xs rounded-full`; CTAs `bg-[#A51E30] text-white rounded-full`
+- **Page pattern:** headings `text-2xl font-bold border-b-2 border-[var(--brand-accent)]`; cards `rounded-xl shadow-sm bg-white`; accents `border-l-4 border-[var(--brand-accent)]`; pills `bg-[var(--brand-accent)] text-white text-xs rounded-full`; CTAs `bg-[var(--brand-accent)] text-white rounded-full`
 
 ## Remaining Work
 

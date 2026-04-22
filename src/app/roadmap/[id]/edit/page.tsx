@@ -158,7 +158,7 @@ export default function EditRoadmapIdeaPage() {
             name="title"
             value={formData.title}
             onChange={handleInputChange}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
           />
         </div>
 
@@ -169,7 +169,7 @@ export default function EditRoadmapIdeaPage() {
             value={formData.summary}
             onChange={handleInputChange}
             rows={3}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
           />
         </div>
 
@@ -180,7 +180,7 @@ export default function EditRoadmapIdeaPage() {
             value={formData.description}
             onChange={handleInputChange}
             rows={8}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
           />
         </div>
 

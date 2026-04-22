@@ -37,11 +37,11 @@ export default function CompleteTrustPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-3xl font-bold mb-4 text-center text-[#46A8CC]">
+        <h1 className="text-3xl font-bold mb-4 text-center text-[var(--brand-primary)]">
           Identity Verification
         </h1>
 
-        <div className="bg-blue-50 border-l-4 border-[#46A8CC] p-4 mb-6 rounded">
+        <div className="bg-[var(--article-card-badge-bg)] border-l-4 border-[var(--brand-primary)] p-4 mb-6 rounded">
           <p className="text-sm text-gray-700 mb-2">
             <strong>Identity Lock:</strong> Once you provide your date of birth,
             your account identity will be verified and locked for security
@@ -69,7 +69,7 @@ export default function CompleteTrustPage() {
               value={dob}
               onChange={(e) => setDob(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             />
             <p className="text-xs text-gray-500 mt-2">
               Format: YYYY-MM-DD (e.g., 1990-01-15)
@@ -79,7 +79,7 @@ export default function CompleteTrustPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-[#46A8CC] text-white font-bold py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+            className="w-full bg-[var(--brand-primary)] text-white font-bold py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
           >
             {isLoading ? "Verifying..." : "Complete Verification"}
           </button>

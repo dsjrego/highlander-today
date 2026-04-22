@@ -229,7 +229,7 @@ export default function EditListingPage({ params }: PageProps) {
               name="listingType"
               value={formData.listingType}
               onChange={handleInputChange}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             >
               {LISTING_TYPE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -250,7 +250,7 @@ export default function EditListingPage({ params }: PageProps) {
             value={formData.title}
             onChange={handleInputChange}
             placeholder="What are you offering?"
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
           />
         </div>
 
@@ -263,7 +263,7 @@ export default function EditListingPage({ params }: PageProps) {
               name="category"
               value={formData.category}
               onChange={handleInputChange}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             >
               {CATEGORY_OPTIONS.map((category) => (
                 <option key={category} value={category}>
@@ -285,7 +285,7 @@ export default function EditListingPage({ params }: PageProps) {
               value={formData.price}
               onChange={handleInputChange}
               placeholder="0.00"
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             />
           </div>
         </div>
@@ -300,7 +300,7 @@ export default function EditListingPage({ params }: PageProps) {
             onChange={handleInputChange}
             rows={6}
             placeholder="Describe the item or service clearly, including quality, quantity, delivery expectations, or booking details."
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
           />
         </div>
 

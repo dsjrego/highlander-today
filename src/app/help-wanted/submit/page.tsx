@@ -130,7 +130,7 @@ export default function SubmitHelpWantedPage() {
 
   if (sessionStatus !== 'authenticated') {
     return (
-      <div className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-4 text-blue-900">
+      <div className="rounded-xl border border-blue-200 bg-[var(--article-card-badge-bg)] px-5 py-4 text-blue-900">
         Sign in with a trusted account to post a Help Wanted opportunity.
       </div>
     );
@@ -178,7 +178,7 @@ export default function SubmitHelpWantedPage() {
         </div>
       ) : null}
 
-      <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+      <div className="rounded-xl border border-blue-200 bg-[var(--article-card-badge-bg)] px-4 py-3 text-sm text-blue-900">
         To preserve accountability, responses stay inside Highlander Today messaging. Do not include public phone numbers or email addresses in the post body.
       </div>
 
@@ -215,7 +215,7 @@ export default function SubmitHelpWantedPage() {
                 key={option.value}
                 className={`rounded-xl border p-4 cursor-pointer transition ${
                   formData.postingType === option.value
-                    ? 'border-[#46A8CC] bg-blue-50'
+                    ? 'border-[var(--brand-primary)] bg-[var(--article-card-badge-bg)]'
                     : 'border-slate-200 hover:border-slate-300'
                 }`}
               >
@@ -243,7 +243,7 @@ export default function SubmitHelpWantedPage() {
             name="title"
             value={formData.title}
             onChange={handleInputChange}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             placeholder="Need a weekend cashier, looking for gutter repair, moving help needed..."
           />
         </div>
@@ -256,7 +256,7 @@ export default function SubmitHelpWantedPage() {
             name="description"
             value={formData.description}
             onChange={handleInputChange}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             rows={6}
             placeholder="Explain the work, expectations, timing, and what kind of person or provider you are looking for."
           />
@@ -274,7 +274,7 @@ export default function SubmitHelpWantedPage() {
               name="compensationType"
               value={formData.compensationType}
               onChange={handleInputChange}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
             >
               {COMPENSATION_TYPE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -292,7 +292,7 @@ export default function SubmitHelpWantedPage() {
               name="compensationText"
               value={formData.compensationText}
               onChange={handleInputChange}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
               placeholder="$20/hour, salary based on experience, flat $150, etc."
             />
           </div>
@@ -308,7 +308,7 @@ export default function SubmitHelpWantedPage() {
               name="locationText"
               value={formData.locationText}
               onChange={handleInputChange}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
               placeholder="Cambria Heights, in-home, remote, local storefront, etc."
             />
           </div>
@@ -321,7 +321,7 @@ export default function SubmitHelpWantedPage() {
               name="scheduleText"
               value={formData.scheduleText}
               onChange={handleInputChange}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC]"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
               placeholder="Weekdays, evenings, one-time weekend task, ASAP, etc."
             />
           </div>
@@ -336,7 +336,7 @@ export default function SubmitHelpWantedPage() {
             name="expiresAt"
             value={formData.expiresAt}
             onChange={handleInputChange}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#46A8CC] md:w-auto"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] md:w-auto"
           />
         </div>
 
