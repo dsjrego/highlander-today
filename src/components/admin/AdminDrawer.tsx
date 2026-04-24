@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
 
@@ -16,12 +16,12 @@ export function AdminDrawer({
   const params = useSearchParams();
   const focus = params.get('focus');
 
-  function close() {
+  const close = useCallback(() => {
     const next = new URLSearchParams(params);
     next.delete('focus');
     const query = next.toString();
     router.replace(query ? `${pathname}?${query}` : pathname);
-  }
+  }, [params, pathname, router]);
 
   useEffect(() => {
     if (!focus) {
@@ -36,7 +36,7 @@ export function AdminDrawer({
 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [focus, pathname, params, router]);
+  }, [close, focus]);
 
   if (!focus) {
     return null;

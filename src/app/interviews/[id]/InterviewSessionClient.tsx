@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { REPORTER_SUPPORTED_LANGUAGE_OPTIONS } from '@/lib/reporter/interview';
 
 interface InterviewSessionClientProps {
@@ -54,7 +54,7 @@ export default function InterviewSessionClient({
     nativeLanguage || suggestedLanguage || 'ENGLISH'
   );
 
-  async function loadSession() {
+  const loadSession = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -75,11 +75,11 @@ export default function InterviewSessionClient({
     } finally {
       setLoading(false);
     }
-  }
+  }, [interviewId]);
 
   useEffect(() => {
     void loadSession();
-  }, [interviewId]);
+  }, [loadSession]);
 
   async function handleStart() {
     setStarting(true);

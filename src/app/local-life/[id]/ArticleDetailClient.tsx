@@ -88,6 +88,9 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
   const [textSizeIndex, setTextSizeIndex] = useState(1);
   const [reactionStatus, setReactionStatus] = useState<string | null>(null);
   const [isSavingReaction, setIsSavingReaction] = useState(false);
+  const publishedArticleId = article?.status === 'PUBLISHED' ? article.id : null;
+  const publishedArticleCategorySlug =
+    article?.status === 'PUBLISHED' ? article.category?.slug ?? null : null;
 
   useEffect(() => {
     async function fetchArticle() {
@@ -149,33 +152,32 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
   }, [reactionStatus]);
 
   useEffect(() => {
-    if (!article || article.status !== 'PUBLISHED') {
+    if (!publishedArticleId) {
       return;
     }
 
     trackAnalyticsEvent({
       eventName: 'page_view',
       contentType: 'ARTICLE',
-      contentId: article.id,
+      contentId: publishedArticleId,
       pageType: 'article-detail',
     });
     trackAnalyticsEvent({
       eventName: 'content_open',
       contentType: 'ARTICLE',
-      contentId: article.id,
+      contentId: publishedArticleId,
       pageType: 'article-detail',
       metadata: {
-        categorySlug: article.category?.slug ?? null,
+        categorySlug: publishedArticleCategorySlug,
       },
     });
-  }, [article?.id, article?.status, article?.category?.slug]);
+  }, [publishedArticleCategorySlug, publishedArticleId]);
 
   useEffect(() => {
-    if (!article || article.status !== 'PUBLISHED' || typeof window === 'undefined') {
+    if (!publishedArticleId || typeof window === 'undefined') {
       return;
     }
 
-    const trackedArticleId = article.id;
     const milestones = [25, 50, 75, 100];
     const reached = new Set<number>();
 
@@ -194,7 +196,7 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
           trackAnalyticsEvent({
             eventName: 'scroll_depth_reached',
             contentType: 'ARTICLE',
-            contentId: trackedArticleId,
+            contentId: publishedArticleId,
             pageType: 'article-detail',
             metadata: { percent: milestone },
           });
@@ -208,10 +210,10 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [article?.id, article?.status]);
+  }, [publishedArticleId]);
 
   useEffect(() => {
-    if (!article || article.status !== 'PUBLISHED' || typeof window === 'undefined') {
+    if (!publishedArticleId || typeof window === 'undefined') {
       return;
     }
 
@@ -225,7 +227,7 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
       trackAnalyticsEvent({
         eventName: 'engaged_time_ping',
         contentType: 'ARTICLE',
-        contentId: article.id,
+        contentId: publishedArticleId,
         pageType: 'article-detail',
         metadata: {
           engagedSeconds: pingCount * 15,
@@ -236,7 +238,7 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [article?.id, article?.status]);
+  }, [publishedArticleId]);
 
   async function refreshArticle() {
     try {

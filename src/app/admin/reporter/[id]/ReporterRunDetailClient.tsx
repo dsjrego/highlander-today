@@ -1274,7 +1274,7 @@ export default function ReporterRunDetailClient({
                                 </div>
                                 {flag.evidenceSpan ? (
                                   <div className="mt-1 text-sm text-rose-900">
-                                    Evidence: "{flag.evidenceSpan}"
+                                    Evidence: &quot;{flag.evidenceSpan}&quot;
                                   </div>
                                 ) : null}
                                 {flag.detail ? (
