@@ -33,6 +33,7 @@ export type CategoryGuidance = {
 
 export const CATEGORY_CONTENT_MODELS = [
   'ARTICLE',
+  'MEMORIAM',
   'RECIPE',
   'EVENT',
   'HELP_WANTED',
@@ -45,6 +46,7 @@ export type CategoryContentModel = (typeof CATEGORY_CONTENT_MODELS)[number];
 
 export const CATEGORY_CONTENT_MODEL_LABELS: Record<CategoryContentModel, string> = {
   ARTICLE: 'Article',
+  MEMORIAM: 'Memoriam',
   RECIPE: 'Recipe',
   EVENT: 'Event',
   HELP_WANTED: 'Help Wanted',
@@ -78,9 +80,16 @@ export const ADMIN_CONTENT_MODELS: AdminContentModel[] = [
       'History',
       'Moving To',
       'What To Do guides',
-      'Memoriam if it stays article-based',
     ],
     guidance: 'Use Article when the user-facing need is to read and understand something, not attend it, apply for it, or buy it.',
+  },
+  {
+    name: 'Memoriam',
+    summary:
+      'Reserved for death notices, memorial pages, and other obituary-specific records that need stricter provenance, stewardship, and moderation.',
+    likelyHomes: ['Community -> Memoriam'],
+    guidance:
+      'Use Memoriam for obituary-bound categories even before the full death-notice and memorial workflows are built. Do not treat it as an ordinary article bucket.',
   },
   {
     name: 'Recipe',
@@ -120,6 +129,12 @@ export const ADMIN_CATEGORY_MAPPING_EXAMPLES: AdminCategoryMappingExample[] = [
     subsection: 'Moving To',
     primaryModel: 'Article',
     guidance: 'Orientation guides, newcomer explainers, and area overviews belong here as informational content.',
+  },
+  {
+    section: 'Community',
+    subsection: 'Memoriam',
+    primaryModel: 'Memoriam',
+    guidance: 'Death notices and memorial-bound navigation should reserve the dedicated Memoriam model even before the full obituary workflow ships.',
   },
   {
     section: 'Local Life',
@@ -164,9 +179,10 @@ export const ADMIN_PLANNED_CONTENT_AREAS: PlannedContentArea[] = [
     guidance: 'Media discovery is planned as a structured creator/show/episode system, not a loose article taxonomy.',
   },
   {
-    name: 'Obituary / Memorial-specific models',
+    name: 'Death Notice / Memorial records',
     status: 'Planned direction under review',
-    guidance: 'Memoriam may start article-first, but stronger obituary/memorial-specific structure is likely later. Avoid overcommitting categories too early.',
+    guidance:
+      'The `MEMORIAM` category model now reserves the navigation/model boundary, but the actual death-notice, steward, verification, and memorial record schema is still a later implementation slice.',
   },
 ];
 
@@ -256,9 +272,9 @@ export function getCategoryGuidance(
     if (normalizedSlug === 'memoriam') {
       return {
         sectionLabel: 'Community',
-        modelLabel: 'Article (for now)',
-        summary: 'Memoriam is likely article-first today, with stronger memorial-specific structure possible later.',
-        caution: 'Avoid overcommitting taxonomy before obituary and memorial models are finalized.',
+        modelLabel: 'Memoriam',
+        summary: 'Memoriam categories should use the dedicated Memoriam model rather than being treated as ordinary articles.',
+        caution: 'This reserves the boundary early; the stricter obituary, verification, steward, and memorial workflows still need their own implementation.',
       };
     }
 

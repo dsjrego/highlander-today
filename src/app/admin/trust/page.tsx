@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import ConfirmDialog from "@/components/shared/ConfirmDialog";
 
 interface VouchRecord {
   id: string;
@@ -48,6 +49,7 @@ export default function TrustManagementPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [revokeDialog, setRevokeDialog] = useState<{ userId: string; userName: string } | null>(null);
 
   // Graph state
   const [graphNodes, setGraphNodes] = useState<GraphNode[]>([]);
@@ -120,8 +122,7 @@ export default function TrustManagementPage() {
     fetchUserStats();
   }, [fetchGraph, fetchUserStats]);
 
-  const handleRevoke = async (userId: string, userName: string) => {
-    if (!confirm(`Revoke trust for ${userName}? This will cascade-suspend all users they vouched for.`)) return;
+  const handleRevoke = async (userId: string) => {
     setActionLoading(userId);
     setError(null);
     try {
@@ -133,6 +134,7 @@ export default function TrustManagementPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to revoke trust");
       setSuccessMsg(data.message + (data.cascadeSuspended > 0 ? ` (${data.cascadeSuspended} cascade suspensions)` : ""));
+      setRevokeDialog(null);
       fetchVouches(pagination.page);
       fetchGraph();
       fetchUserStats();
@@ -318,7 +320,7 @@ export default function TrustManagementPage() {
                     <td className="px-5 py-3 text-xs">
                       {vouch.recipientTrustLevel === "TRUSTED" && (
                         <button
-                          onClick={() => handleRevoke(vouch.recipientId, vouch.recipientName)}
+                          onClick={() => setRevokeDialog({ userId: vouch.recipientId, userName: vouch.recipientName })}
                           disabled={actionLoading === vouch.recipientId}
                           className="!px-3 !py-1 text-xs font-medium text-white rounded bg-red-600 hover:bg-red-700 disabled:opacity-50"
                         >
@@ -363,6 +365,19 @@ export default function TrustManagementPage() {
           )}
         </div>
       )}
+
+      {revokeDialog ? (
+        <ConfirmDialog
+          title={`Revoke trust for ${revokeDialog.userName}?`}
+          description="This will revoke the current trusted user and cascade-suspend the users they vouched for."
+          confirmLabel="Revoke trust"
+          isSubmitting={actionLoading === revokeDialog.userId}
+          onCancel={() => setRevokeDialog(null)}
+          onConfirm={async () => {
+            await handleRevoke(revokeDialog.userId);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

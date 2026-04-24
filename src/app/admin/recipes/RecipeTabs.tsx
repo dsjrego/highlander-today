@@ -2,16 +2,21 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { FolderPen, ListChecks } from 'lucide-react';
-import { CrudActionButton } from '@/components/shared/CrudAction';
+import { ListChecks, Pencil } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { CrudActionButton, CrudActionLink } from '@/components/shared/CrudAction';
+import { AdminChip } from '@/components/admin/AdminChip';
+import { AdminDrawer } from '@/components/admin/AdminDrawer';
+import { AdminFilterBar } from '@/components/admin/AdminFilterBar';
+import { AdminViewTabs } from '@/components/admin/AdminViewTabs';
 
 const RECIPE_TABS = ['draft', 'pending', 'approved', 'archived'] as const;
 const RECIPE_PAGE_SIZE = 10;
 const RECIPE_STATUS_OPTIONS = [
-  { value: 'PUBLISHED', label: 'Approved' },
-  { value: 'PENDING_REVIEW', label: 'Pending' },
-  { value: 'DRAFT', label: 'Draft' },
-  { value: 'UNPUBLISHED', label: 'Archived' },
+  { value: 'PUBLISHED', label: 'Approved', tone: 'ok' },
+  { value: 'PENDING_REVIEW', label: 'Pending', tone: 'pend' },
+  { value: 'DRAFT', label: 'Draft', tone: 'neu' },
+  { value: 'UNPUBLISHED', label: 'Archived', tone: 'bad' },
 ] as const;
 
 type RecipeTab = (typeof RECIPE_TABS)[number];
@@ -71,14 +76,19 @@ function getTabLabel(tab: RecipeTab) {
   return tab.charAt(0).toUpperCase() + tab.slice(1);
 }
 
+function getStatusMeta(status: RecipeRecord['status']) {
+  return RECIPE_STATUS_OPTIONS.find((option) => option.value === status) ?? RECIPE_STATUS_OPTIONS[0];
+}
+
 export default function RecipeTabs({ recipes, recipeCategories }: RecipeTabsProps) {
-  const [activeTab, setActiveTab] = useState<RecipeTab>('draft');
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeTab = (searchParams.get('view') as RecipeTab) || 'draft';
+  const focusedRecipeId = searchParams.get('focus');
   const [filterValue, setFilterValue] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [rows, setRows] = useState(recipes);
-  const [editingCategoryRecipeId, setEditingCategoryRecipeId] = useState<string | null>(null);
   const [savingCategoryRecipeId, setSavingCategoryRecipeId] = useState<string | null>(null);
-  const [editingStatusRecipeId, setEditingStatusRecipeId] = useState<string | null>(null);
   const [savingStatusRecipeId, setSavingStatusRecipeId] = useState<string | null>(null);
   const [categoryError, setCategoryError] = useState('');
   const [statusError, setStatusError] = useState('');
@@ -103,6 +113,7 @@ export default function RecipeTabs({ recipes, recipeCategories }: RecipeTabsProp
   const safePage = Math.min(currentPage, pageCount);
   const pageStart = (safePage - 1) * RECIPE_PAGE_SIZE;
   const pageRecipes = filteredRecipes.slice(pageStart, pageStart + RECIPE_PAGE_SIZE);
+  const focusedRecipe = rows.find((recipe) => recipe.id === focusedRecipeId) ?? null;
 
   function handleFilterChange(value: string) {
     setFilterValue(value);
@@ -143,7 +154,6 @@ export default function RecipeTabs({ recipes, recipeCategories }: RecipeTabsProp
             : recipe
         )
       );
-      setEditingCategoryRecipeId(null);
     } catch (error) {
       setCategoryError(error instanceof Error ? error.message : 'Failed to update category');
     } finally {
@@ -181,7 +191,6 @@ export default function RecipeTabs({ recipes, recipeCategories }: RecipeTabsProp
             : recipe
         )
       );
-      setEditingStatusRecipeId(null);
     } catch (error) {
       setStatusError(error instanceof Error ? error.message : 'Failed to update status');
     } finally {
@@ -190,32 +199,22 @@ export default function RecipeTabs({ recipes, recipeCategories }: RecipeTabsProp
   }
 
   return (
-    <div className="space-y-0">
-      <div className="relative top-[2px] flex flex-wrap gap-0 pb-0">
-        {RECIPE_TABS.map((tab) => {
-          const isActive = tab === activeTab;
+    <div className="space-y-4">
+      <AdminViewTabs
+        defaultView="draft"
+        views={RECIPE_TABS.map((tab) => ({
+          key: tab,
+          label: getTabLabel(tab),
+          count: rows.filter((recipe) => recipe.status === getStatusForTab(tab)).length,
+          tone: tab === 'pending' ? 'pend' : tab === 'archived' ? 'bad' : undefined,
+        }))}
+      />
 
-          return (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => {
-                setActiveTab(tab);
-                setCurrentPage(1);
-              }}
-              className={`admin-card-tab ${isActive ? 'admin-card-tab-active' : 'admin-card-tab-inactive'}`}
-            >
-              {tab}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="admin-card-tab-body">
-        <div className="admin-list">
-          <div className="admin-list-toolbar">
+      <div className="admin-list">
+        <AdminFilterBar
+          search={
             <label className="admin-list-filter">
-              <span className="admin-list-filter-label">Filter: Title, Author</span>
+              <span className="admin-list-filter-label">Title or Author</span>
               <input
                 type="text"
                 value={filterValue}
@@ -224,25 +223,35 @@ export default function RecipeTabs({ recipes, recipeCategories }: RecipeTabsProp
                 className="admin-list-filter-input"
               />
             </label>
-          </div>
+          }
+          right={
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+              {filteredRecipes.length} {getTabLabel(activeTab).toLowerCase()} recipe{filteredRecipes.length === 1 ? '' : 's'}
+            </div>
+          }
+        />
 
-          {categoryError ? <div className="admin-list-error">{categoryError}</div> : null}
-          {statusError ? <div className="admin-list-error">{statusError}</div> : null}
+        {categoryError ? <div className="admin-list-error">{categoryError}</div> : null}
+        {statusError ? <div className="admin-list-error">{statusError}</div> : null}
 
-          <div className="admin-list-table-wrap">
-            <table className="admin-list-table">
-              <thead className="admin-list-head">
-                <tr>
-                  <th className="admin-list-header-cell">Title</th>
-                  <th className="admin-list-header-cell">Author</th>
-                  <th className="admin-list-header-cell">Category</th>
-                  <th className="admin-list-header-cell">Status</th>
-                  <th className="admin-list-header-cell">Published</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pageRecipes.length > 0 ? (
-                  pageRecipes.map((recipe) => (
+        <div className="admin-list-table-wrap">
+          <table className="admin-list-table">
+            <thead className="admin-list-head">
+              <tr>
+                <th className="admin-list-header-cell">Title</th>
+                <th className="admin-list-header-cell">Author</th>
+                <th className="admin-list-header-cell">Category</th>
+                <th className="admin-list-header-cell">Status</th>
+                <th className="admin-list-header-cell">Published</th>
+                <th className="admin-list-header-cell">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pageRecipes.length > 0 ? (
+                pageRecipes.map((recipe) => {
+                  const statusMeta = getStatusMeta(recipe.status);
+
+                  return (
                     <tr key={recipe.id} className="admin-list-row">
                       <td className="admin-list-cell">
                         <Link href={`/admin/recipes/${recipe.id}`} className="admin-list-link">
@@ -253,119 +262,151 @@ export default function RecipeTabs({ recipes, recipeCategories }: RecipeTabsProp
                         {recipe.author.firstName} {recipe.author.lastName}
                       </td>
                       <td className="admin-list-cell">
-                        {editingCategoryRecipeId === recipe.id ? (
-                          <select
-                            className="admin-list-cell-select"
-                            defaultValue={recipe.category?.id || ''}
-                            disabled={savingCategoryRecipeId === recipe.id}
-                            onBlur={() => {
-                              if (savingCategoryRecipeId !== recipe.id) {
-                                setEditingCategoryRecipeId(null);
-                              }
-                            }}
-                            onChange={(event) => handleCategoryChange(recipe.id, event.target.value)}
-                            autoFocus
-                          >
-                            <option value="" disabled>
-                              Select category
-                            </option>
-                            {recipeCategories.map((category) => (
-                              <option key={category.id} value={category.id}>
-                                {category.name}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <CrudActionButton
-                            type="button"
-                            variant="inline"
-                            icon={FolderPen}
-                            label={recipe.category?.name || 'Uncategorized'}
-                            onClick={() => setEditingCategoryRecipeId(recipe.id)}
-                          >
-                            {recipe.category?.name || 'Uncategorized'}
-                          </CrudActionButton>
-                        )}
+                        {recipe.category?.name || 'Uncategorized'}
                       </td>
                       <td className="admin-list-cell">
-                        {editingStatusRecipeId === recipe.id ? (
-                          <select
-                            className="admin-list-cell-select"
-                            defaultValue={recipe.status}
-                            disabled={savingStatusRecipeId === recipe.id}
-                            onBlur={() => {
-                              if (savingStatusRecipeId !== recipe.id) {
-                                setEditingStatusRecipeId(null);
-                              }
-                            }}
-                            onChange={(event) =>
-                              handleStatusChange(recipe.id, event.target.value as RecipeRecord['status'])
-                            }
-                            autoFocus
+                        <AdminChip tone={statusMeta.tone}>{statusMeta.label}</AdminChip>
+                      </td>
+                      <td className="admin-list-cell">{formatDate(recipe.publishedAt)}</td>
+                      <td className="admin-list-cell">
+                        <div className="flex flex-wrap gap-3">
+                          <CrudActionLink
+                            href={`/recipes/submit?edit=${recipe.id}`}
+                            variant="inline-link"
+                            icon={Pencil}
+                            label="Edit recipe"
                           >
-                            {RECIPE_STATUS_OPTIONS.map((status) => (
-                              <option key={status.value} value={status.value}>
-                                {status.label}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
+                            Edit
+                          </CrudActionLink>
                           <CrudActionButton
                             type="button"
                             variant="inline"
                             icon={ListChecks}
-                            label={
-                              RECIPE_STATUS_OPTIONS.find((status) => status.value === recipe.status)?.label || 'Status'
-                            }
-                            onClick={() => setEditingStatusRecipeId(recipe.id)}
+                            label="Manage recipe"
+                            onClick={() => {
+                              const next = new URLSearchParams(searchParams.toString());
+                              next.set('focus', recipe.id);
+                              router.replace(`?${next.toString()}`);
+                            }}
                           >
-                            {RECIPE_STATUS_OPTIONS.find((status) => status.value === recipe.status)?.label}
+                            Manage
                           </CrudActionButton>
-                        )}
+                        </div>
                       </td>
-                      <td className="admin-list-cell">{formatDate(recipe.publishedAt)}</td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td className="admin-list-empty" colSpan={5}>
-                      No {activeTab} recipes match the current filter.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td className="admin-list-empty" colSpan={6}>
+                    No {activeTab} recipes match the current filter.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
 
-          <div className="admin-list-pagination">
-            <div className="admin-list-pagination-label">
-              {filteredRecipes.length} {getTabLabel(activeTab).toLowerCase()} recipe
-              {filteredRecipes.length === 1 ? '' : 's'}
-            </div>
-            <div className="admin-list-pagination-actions">
-              <button
-                type="button"
-                onClick={() => setCurrentPage((current) => Math.max(1, current - 1))}
-                disabled={safePage === 1}
-                className="admin-list-pagination-button"
-              >
-                Previous
-              </button>
-              <span className="admin-list-pagination-page">
-                Page {safePage} of {pageCount}
-              </span>
-              <button
-                type="button"
-                onClick={() => setCurrentPage((current) => Math.min(pageCount, current + 1))}
-                disabled={safePage === pageCount}
-                className="admin-list-pagination-button"
-              >
-                Next
-              </button>
-            </div>
+        <div className="admin-list-pagination">
+          <div className="admin-list-pagination-label">
+            {filteredRecipes.length} {getTabLabel(activeTab).toLowerCase()} recipe
+            {filteredRecipes.length === 1 ? '' : 's'}
+          </div>
+          <div className="admin-list-pagination-actions">
+            <button
+              type="button"
+              onClick={() => setCurrentPage((current) => Math.max(1, current - 1))}
+              disabled={safePage === 1}
+              className="admin-list-pagination-button"
+            >
+              Previous
+            </button>
+            <span className="admin-list-pagination-page">
+              Page {safePage} of {pageCount}
+            </span>
+            <button
+              type="button"
+              onClick={() => setCurrentPage((current) => Math.min(pageCount, current + 1))}
+              disabled={safePage === pageCount}
+              className="admin-list-pagination-button"
+            >
+              Next
+            </button>
           </div>
         </div>
       </div>
+
+      <AdminDrawer title={focusedRecipe ? `Manage ${focusedRecipe.title}` : 'Manage Recipe'}>
+        {focusedRecipe ? (
+          <div className="space-y-5">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <AdminChip tone={getStatusMeta(focusedRecipe.status).tone}>
+                  {getStatusMeta(focusedRecipe.status).label}
+                </AdminChip>
+                <AdminChip tone="role">{focusedRecipe.category?.name || 'Uncategorized'}</AdminChip>
+              </div>
+              <div className="mt-3 space-y-1 text-sm text-slate-600">
+                <p>
+                  {focusedRecipe.author.firstName} {focusedRecipe.author.lastName}
+                </p>
+                <p>Published: {formatDate(focusedRecipe.publishedAt)}</p>
+                <p>Last updated: {formatDate(focusedRecipe.updatedAt)}</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Category</p>
+              <select
+                className="admin-list-cell-select min-w-[14rem]"
+                defaultValue={focusedRecipe.category?.id || ''}
+                disabled={savingCategoryRecipeId === focusedRecipe.id}
+                onChange={(event) => handleCategoryChange(focusedRecipe.id, event.target.value)}
+              >
+                <option value="" disabled>
+                  Select category
+                </option>
+                {recipeCategories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Status</p>
+              <select
+                className="admin-list-cell-select min-w-[14rem]"
+                defaultValue={focusedRecipe.status}
+                disabled={savingStatusRecipeId === focusedRecipe.id}
+                onChange={(event) =>
+                  handleStatusChange(focusedRecipe.id, event.target.value as RecipeRecord['status'])
+                }
+              >
+                {RECIPE_STATUS_OPTIONS.map((status) => (
+                  <option key={status.value} value={status.value}>
+                    {status.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <CrudActionLink
+              href={`/recipes/submit?edit=${focusedRecipe.id}`}
+              variant="inline-link"
+              icon={Pencil}
+              label="Edit recipe"
+            >
+              Open editor
+            </CrudActionLink>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+            The selected recipe is not available in the current result set.
+          </div>
+        )}
+      </AdminDrawer>
     </div>
   );
 }

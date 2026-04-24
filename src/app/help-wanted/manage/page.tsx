@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import InternalPageHeader from '@/components/shared/InternalPageHeader';
+import ConfirmDialog from '@/components/shared/ConfirmDialog';
 
 interface HelpWantedPost {
   id: string;
@@ -51,6 +52,7 @@ export default function ManageHelpWantedPage() {
   const [error, setError] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ id: string; title: string } | null>(null);
 
   const isTrusted =
     sessionStatus === 'authenticated' &&
@@ -120,11 +122,7 @@ export default function ManageHelpWantedPage() {
     }
   }
 
-  async function deletePost(postId: string, title: string) {
-    if (!window.confirm(`Delete "${title}"? This permanently removes the post.`)) {
-      return;
-    }
-
+  async function deletePost(postId: string) {
     setActionLoading(postId);
     setError('');
 
@@ -139,6 +137,7 @@ export default function ManageHelpWantedPage() {
       }
 
       setPosts((current) => current.filter((post) => post.id !== postId));
+      setDeleteDialog(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete post');
     } finally {
@@ -190,7 +189,7 @@ export default function ManageHelpWantedPage() {
           </Link>
           <button
             type="button"
-            onClick={() => deletePost(post.id, post.title)}
+            onClick={() => setDeleteDialog({ id: post.id, title: post.title })}
             disabled={isBusy}
             className="px-3 py-2 rounded-lg border border-red-200 text-red-700 font-semibold disabled:opacity-60"
           >
@@ -219,7 +218,7 @@ export default function ManageHelpWantedPage() {
           </Link>
           <button
             type="button"
-            onClick={() => deletePost(post.id, post.title)}
+            onClick={() => setDeleteDialog({ id: post.id, title: post.title })}
             disabled={isBusy}
             className="px-3 py-2 rounded-lg border border-red-200 text-red-700 font-semibold disabled:opacity-60"
           >
@@ -467,6 +466,21 @@ export default function ManageHelpWantedPage() {
           ))}
         </div>
       )}
+
+      {deleteDialog ? (
+        <ConfirmDialog
+          title="Delete post"
+          description={`Delete "${deleteDialog.title}"? This permanently removes the post.`}
+          confirmLabel="Delete post"
+          isSubmitting={actionLoading === deleteDialog.id}
+          onCancel={() => {
+            if (actionLoading !== deleteDialog.id) {
+              setDeleteDialog(null);
+            }
+          }}
+          onConfirm={() => deletePost(deleteDialog.id)}
+        />
+      ) : null}
     </div>
   );
 }

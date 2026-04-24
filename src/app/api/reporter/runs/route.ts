@@ -7,6 +7,11 @@ import { canCreateReporterRun, canViewReporterRun } from '@/lib/reporter/permiss
 import { normalizeReporterRunInput } from '@/lib/reporter/run-normalizer';
 
 const CreateReporterRunSchema = z.object({
+  mode: z.enum(['REQUEST', 'INTERVIEW', 'RESEARCH', 'HYBRID']).optional().nullable(),
+  requestType: z
+    .enum(['ARTICLE_REQUEST', 'STORY_TIP', 'EDITOR_ASSIGNMENT'])
+    .optional()
+    .nullable(),
   topic: z.string().trim().optional().nullable(),
   title: z.string().trim().optional().nullable(),
   subjectName: z.string().trim().optional().nullable(),
@@ -18,6 +23,7 @@ const CreateReporterRunSchema = z.object({
   whenDidItHappen: z.string().trim().optional().nullable(),
   whyItMatters: z.string().trim().optional().nullable(),
   notes: z.string().trim().optional().nullable(),
+  editorNotes: z.string().trim().optional().nullable(),
   supportingLinks: z.array(z.string().trim()).optional().default([]),
   requesterName: z.string().trim().optional().nullable(),
   requesterEmail: z.string().trim().optional().nullable(),
@@ -144,6 +150,8 @@ export async function POST(request: NextRequest) {
         communityId: fallbackCommunity.id,
         createdByUserId: userId || null,
         requesterUserId: userId || null,
+        ...(normalized.mode ? { mode: normalized.mode } : {}),
+        ...(normalized.requestType ? { requestType: normalized.requestType } : {}),
         title: normalized.title,
         topic: normalized.topic,
         subjectName: normalized.subjectName,
@@ -152,6 +160,7 @@ export async function POST(request: NextRequest) {
         requesterEmail: normalized.requesterEmail,
         requesterPhone: normalized.requesterPhone,
         requestSummary: normalized.requestSummary,
+        editorNotes: normalized.editorNotes,
         publicDescription: normalized.publicDescription,
         sources: {
           create: normalized.initialSources.map((source, index) => ({
@@ -179,6 +188,7 @@ export async function POST(request: NextRequest) {
         requesterEmail: true,
         requesterPhone: true,
         requestSummary: true,
+        editorNotes: true,
         publicDescription: true,
         createdAt: true,
         updatedAt: true,

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useId, useRef, useState } from 'react';
+import { useDialogAccessibility } from '@/components/shared/useDialogAccessibility';
 
 interface VouchConfirmModalProps {
   userName: string;
@@ -16,15 +17,35 @@ export const VouchConfirmModal: React.FC<VouchConfirmModalProps> = ({
   isLoading = false
 }) => {
   const [isAgreed, setIsAgreed] = useState(false);
+  const titleId = useId();
+  const descriptionId = useId();
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  useDialogAccessibility({
+    isOpen: true,
+    onClose: onCancel,
+    containerRef: dialogRef,
+    initialFocusRef: cancelButtonRef,
+  });
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={onCancel}>
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        tabIndex={-1}
+        className="bg-white rounded-lg shadow-lg max-w-md w-full p-6"
+        onClick={(event) => event.stopPropagation()}
+      >
         {/* Header */}
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Confirm Vouch</h2>
+        <h2 id={titleId} className="text-xl font-bold text-gray-900 mb-4">Confirm Vouch</h2>
 
         {/* Warning Section */}
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+        <div id={descriptionId} className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
           <p className="text-sm text-red-800 font-semibold mb-2">Accountability Warning</p>
           <p className="text-sm text-red-700 leading-relaxed">
             You are confirming that you personally know <strong>{userName}</strong> and that they are
@@ -56,6 +77,8 @@ export const VouchConfirmModal: React.FC<VouchConfirmModalProps> = ({
         {/* Action Buttons */}
         <div className="flex gap-3 justify-end">
           <button
+            ref={cancelButtonRef}
+            type="button"
             onClick={onCancel}
             disabled={isLoading}
             className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
@@ -63,6 +86,7 @@ export const VouchConfirmModal: React.FC<VouchConfirmModalProps> = ({
             Cancel
           </button>
           <button
+            type="button"
             onClick={onConfirm}
             disabled={!isAgreed || isLoading}
             className="px-4 py-2 text-white rounded-lg font-medium disabled:opacity-50 transition-colors"

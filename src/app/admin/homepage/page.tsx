@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { LayoutTemplate, MoveVertical, PanelsTopLeft, Search } from 'lucide-react';
+import { AdminChip } from '@/components/admin/AdminChip';
+import { AdminPage } from '@/components/admin/AdminPage';
 import type { HomepageBoxData, HomepageBoxType, HomepageContentItem } from '@/lib/homepage';
 
 type HomepageBox = HomepageBoxData;
@@ -90,6 +92,12 @@ function ItemCard({
     </div>
   );
 }
+
+const primaryActionButtonClass =
+  'inline-flex items-center justify-center rounded-full bg-[var(--hl-admin-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50';
+
+const neutralActionButtonClass =
+  'inline-flex items-center justify-center rounded-full border border-[var(--hl-admin-border)] bg-[var(--hl-admin-surface-muted)] px-3 py-1.5 text-sm font-semibold text-[var(--hl-admin-text)] transition hover:border-[var(--hl-admin-border-strong)] hover:bg-[var(--hl-admin-row-hover)] disabled:cursor-not-allowed disabled:opacity-50';
 
 export default function HomepageCurationPage() {
   const [boxes, setBoxes] = useState<HomepageBox[]>([]);
@@ -297,24 +305,48 @@ export default function HomepageCurationPage() {
   );
 
   if (isLoading) {
-    return <p className="text-gray-500">Loading homepage curation...</p>;
+    return (
+      <AdminPage title="Homepage" count={boxes.length}>
+        <div className="admin-section-card">
+          <p className="text-sm text-slate-500">Loading homepage curation...</p>
+        </div>
+      </AdminPage>
+    );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="admin-card">
-        <div className="admin-card-header">
-          <div className="flex items-center gap-0">
-            <div className="admin-card-header-icon" aria-hidden="true">
+    <AdminPage
+      title="Homepage"
+      count={sortedBoxes.length}
+      actions={
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={isSaving}
+          className={primaryActionButtonClass}
+        >
+          {isSaving ? 'Saving...' : 'Save Curation'}
+        </button>
+      }
+    >
+      <div className="admin-section-card">
+        <div className="admin-section-card-head">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--hl-admin-border)] bg-[var(--hl-admin-surface-muted)] text-[var(--hl-admin-link)]">
               <LayoutTemplate className="h-4 w-4" />
             </div>
-            <div className="admin-card-header-label">Homepage Curation</div>
+            <div>
+              <h2 className="admin-section-card-title">Homepage Curation</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Ordered boxes drive the public homepage flow on desktop and mobile.
+              </p>
+            </div>
           </div>
-          <div className="admin-card-header-actions">Ordered boxes</div>
+          <AdminChip tone="role">Ordered Boxes</AdminChip>
         </div>
-        <div className="admin-card-body space-y-3">
+        <div className="space-y-3">
           <p className="text-sm text-slate-600">
-            The homepage now runs as ordered content boxes. Each box gets one hero item and optional supporting links, and the box order controls the public homepage flow on desktop and mobile.
+            Each box gets one hero item and optional supporting links. Set the box order first, then choose the hero and supporting links inside each box.
           </p>
 
           {error ? (
@@ -329,18 +361,19 @@ export default function HomepageCurationPage() {
             </div>
           ) : null}
         </div>
-        <div className="admin-card-footer">
-          <div className="admin-card-footer-label">
-            Set the box order first, then choose the hero item and supporting links inside each box.
-          </div>
-          <div className="admin-card-footer-actions">
+        <div className="mt-4 flex flex-col gap-3 border-t border-[var(--hl-admin-border)] pt-4 md:flex-row md:items-center md:justify-between">
+          <p className="text-sm text-slate-500">
+            Save after reordering boxes or changing hero and supporting-link assignments.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <AdminChip tone="neu">{sortedBoxes.length} boxes</AdminChip>
             <button
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="rounded-full bg-[var(--brand-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className={primaryActionButtonClass}
             >
-              {isSaving ? 'Saving...' : 'Save Homepage Curation'}
+              {isSaving ? 'Saving...' : 'Save Curation'}
             </button>
           </div>
         </div>
@@ -362,27 +395,31 @@ export default function HomepageCurationPage() {
         const maxLinks = box.maxLinks;
 
         return (
-          <section key={box.boxType} className="admin-card">
-            <div className="admin-card-header">
-              <div className="flex items-center gap-0">
-                <div className="admin-card-header-icon" aria-hidden="true">
+          <section key={box.boxType} className="admin-section-card">
+            <div className="admin-section-card-head">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--hl-admin-border)] bg-[var(--hl-admin-surface-muted)] text-[var(--hl-admin-link)]">
                   <PanelsTopLeft className="h-4 w-4" />
                 </div>
-                <div className="admin-card-header-label">{box.title}</div>
+                <div>
+                  <h2 className="admin-section-card-title">{box.title}</h2>
+                  <p className="mt-1 text-sm text-slate-500">{box.description}</p>
+                </div>
               </div>
-              <div className="admin-card-header-actions">{box.boxType}</div>
+              <div className="flex flex-wrap items-center gap-2">
+                <AdminChip tone="role">{box.boxType}</AdminChip>
+                <AdminChip tone={box.isVisible ? 'ok' : 'neu'}>{box.isVisible ? 'Visible' : 'Hidden'}</AdminChip>
+              </div>
             </div>
 
-            <div className="admin-card-body space-y-4">
-              <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-                <div>
-                  <p className="text-sm text-slate-500">{box.description}</p>
-                  <p className="mt-1 text-xs uppercase tracking-[0.14em] text-slate-400">
-                    1 hero + up to {maxLinks} supporting links
-                  </p>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                <div className="flex flex-wrap items-center gap-2">
+                  <AdminChip tone="neu">1 hero + up to {maxLinks} links</AdminChip>
+                  <AdminChip tone="neu">{availableCandidates.length} available</AdminChip>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <label className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">
+                  <label className="inline-flex items-center gap-2 rounded-full border border-[var(--hl-admin-border)] bg-[var(--hl-admin-surface-muted)] px-3 py-1.5 text-sm font-medium text-[var(--hl-admin-text)]">
                     <input
                       type="checkbox"
                       checked={box.isVisible}
@@ -400,7 +437,7 @@ export default function HomepageCurationPage() {
                     type="button"
                     onClick={() => moveBox(box.boxType, 'up')}
                     disabled={boxIndex === 0}
-                    className="rounded-full border border-slate-300 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    className={neutralActionButtonClass}
                   >
                     Move Up
                   </button>
@@ -408,7 +445,7 @@ export default function HomepageCurationPage() {
                     type="button"
                     onClick={() => moveBox(box.boxType, 'down')}
                     disabled={boxIndex === sortedBoxes.length - 1}
-                    className="rounded-full border border-slate-300 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    className={neutralActionButtonClass}
                   >
                     Move Down
                   </button>
@@ -417,12 +454,10 @@ export default function HomepageCurationPage() {
 
               <div className="grid gap-4 xl:grid-cols-2">
                 <div className="space-y-4">
-                  <div className="rounded-xl border border-slate-200 p-4">
+                  <div className="rounded-2xl border border-[var(--hl-admin-border)] bg-[var(--hl-admin-surface)] p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <h3 className="text-base font-bold text-slate-900">Hero Item</h3>
-                      <span className="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">
-                        Required for links
-                      </span>
+                      <AdminChip tone="pend">Required for links</AdminChip>
                     </div>
 
                     {box.heroItem ? (
@@ -433,13 +468,13 @@ export default function HomepageCurationPage() {
                         actionClassName="text-sm font-medium text-red-700 transition hover:text-red-800"
                       />
                     ) : (
-                      <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+                      <div className="rounded-xl border border-dashed border-[var(--hl-admin-border)] bg-[var(--hl-admin-surface)] p-4 text-sm text-slate-500">
                         No hero selected yet.
                       </div>
                     )}
                   </div>
 
-                  <div className="rounded-xl border border-slate-200 p-4">
+                  <div className="rounded-2xl border border-[var(--hl-admin-border)] bg-[var(--hl-admin-surface)] p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <h3 className="text-base font-bold text-slate-900">Supporting Links</h3>
                       <span className="inline-flex items-center gap-1 text-xs font-medium uppercase tracking-[0.08em] text-slate-500">
@@ -449,13 +484,16 @@ export default function HomepageCurationPage() {
                     </div>
 
                     {box.linkItems.length === 0 ? (
-                      <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+                      <div className="rounded-xl border border-dashed border-[var(--hl-admin-border)] bg-[var(--hl-admin-surface)] p-4 text-sm text-slate-500">
                         No supporting links selected.
                       </div>
                     ) : (
                       <div className="space-y-3">
                         {box.linkItems.map((item, index) => (
-                          <div key={getItemKey(item)} className="rounded-xl border border-slate-200 bg-slate-50/65 p-3">
+                          <div
+                            key={getItemKey(item)}
+                            className="rounded-xl border border-[var(--hl-admin-border)] bg-[var(--hl-admin-surface)] p-3"
+                          >
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0 space-y-1">
                                 <p className="font-semibold text-slate-900">{item.title}</p>
@@ -474,7 +512,7 @@ export default function HomepageCurationPage() {
                                 type="button"
                                 onClick={() => moveLinkItem(box.boxType, index, 'up')}
                                 disabled={index === 0}
-                                className="rounded-full border border-slate-300 px-3 py-1 text-sm text-slate-700 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                                className={neutralActionButtonClass}
                               >
                                 Up
                               </button>
@@ -482,7 +520,7 @@ export default function HomepageCurationPage() {
                                 type="button"
                                 onClick={() => moveLinkItem(box.boxType, index, 'down')}
                                 disabled={index === box.linkItems.length - 1}
-                                className="rounded-full border border-slate-300 px-3 py-1 text-sm text-slate-700 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                                className={neutralActionButtonClass}
                               >
                                 Down
                               </button>
@@ -494,12 +532,10 @@ export default function HomepageCurationPage() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-slate-200 p-4">
+                <div className="rounded-2xl border border-[var(--hl-admin-border)] bg-[var(--hl-admin-surface)] p-4">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <h3 className="text-base font-bold text-slate-900">Available Content</h3>
-                    <span className="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">
-                      {availableCandidates.length} available
-                    </span>
+                    <AdminChip tone="neu">{availableCandidates.length} available</AdminChip>
                   </div>
 
                   <label className="admin-list-filter mb-4">
@@ -522,7 +558,7 @@ export default function HomepageCurationPage() {
                   </label>
 
                   {availableCandidates.length === 0 ? (
-                    <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+                    <div className="rounded-xl border border-dashed border-[var(--hl-admin-border)] bg-[var(--hl-admin-surface)] p-4 text-sm text-slate-500">
                       No available content matches the current filter.
                     </div>
                   ) : (
@@ -533,11 +569,11 @@ export default function HomepageCurationPage() {
                           item={item}
                           actionLabel={box.heroItem ? 'Replace Hero' : 'Set Hero'}
                           onAction={() => setHeroItem(box.boxType, item)}
-                          actionClassName="text-sm font-medium text-[var(--brand-accent)] transition hover:opacity-80"
+                          actionClassName="text-sm font-medium text-[var(--hl-admin-accent)] transition hover:opacity-80"
                           secondaryActionLabel="Add Link"
                           onSecondaryAction={() => addLinkItem(box.boxType, item)}
                           secondaryDisabled={!box.heroItem || box.linkItems.length >= maxLinks}
-                          secondaryActionClassName="text-sm font-medium text-[var(--brand-primary)] transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+                          secondaryActionClassName="text-sm font-medium text-[var(--hl-admin-link)] transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
                         />
                       ))}
                     </div>
@@ -548,6 +584,6 @@ export default function HomepageCurationPage() {
           </section>
         );
       })}
-    </div>
+    </AdminPage>
   );
 }

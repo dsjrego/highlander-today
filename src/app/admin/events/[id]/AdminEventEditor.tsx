@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Save, Trash2 } from 'lucide-react';
 import ImageUpload from '@/components/shared/ImageUpload';
 import { CrudActionButton } from '@/components/shared/CrudAction';
+import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import { formatEventDateInput, formatEventTimeInput } from '@/lib/event-datetime';
 import { formatLocationPrimary, formatLocationSecondary } from '@/lib/location-format';
 
@@ -99,6 +100,7 @@ export default function AdminEventEditor({ event, locations }: AdminEventEditorP
   const [success, setSuccess] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const canEditSeriesCadence = Boolean(event.seriesId && seriesEditScope !== 'SINGLE');
   const isFutureSeriesEdit = event.seriesId && seriesEditScope === 'FUTURE';
@@ -179,18 +181,6 @@ export default function AdminEventEditor({ event, locations }: AdminEventEditorP
   }
 
   async function handleDelete() {
-    const scopeLabel =
-      seriesEditScope === 'FUTURE'
-        ? 'this event and all future events in the series'
-        : seriesEditScope === 'SERIES'
-          ? 'every event in this series'
-          : 'this event';
-    const confirmed = window.confirm(`Delete ${scopeLabel}? This cannot be undone.`);
-
-    if (!confirmed) {
-      return;
-    }
-
     setError('');
     setSuccess('');
     setIsDeleting(true);
@@ -210,6 +200,7 @@ export default function AdminEventEditor({ event, locations }: AdminEventEditorP
         throw new Error(data.error || 'Failed to delete event');
       }
 
+      setIsDeleteDialogOpen(false);
       router.push('/admin/events');
       router.refresh();
     } catch (deleteError) {
@@ -466,7 +457,7 @@ export default function AdminEventEditor({ event, locations }: AdminEventEditorP
             variant="danger"
             icon={Trash2}
             label={isDeleting ? 'Deleting event' : 'Delete event'}
-            onClick={handleDelete}
+            onClick={() => setIsDeleteDialogOpen(true)}
             disabled={isDeleting || isSaving}
           >
             {isDeleting ? 'Deleting...' : 'Delete Event'}
@@ -482,6 +473,27 @@ export default function AdminEventEditor({ event, locations }: AdminEventEditorP
           </CrudActionButton>
         </div>
       </form>
+
+      {isDeleteDialogOpen ? (
+        <ConfirmDialog
+          title="Delete event"
+          description={`Delete ${
+            seriesEditScope === 'FUTURE'
+              ? 'this event and all future events in the series'
+              : seriesEditScope === 'SERIES'
+                ? 'every event in this series'
+                : 'this event'
+          }? This cannot be undone.`}
+          confirmLabel="Delete event"
+          isSubmitting={isDeleting}
+          onCancel={() => {
+            if (!isDeleting) {
+              setIsDeleteDialogOpen(false);
+            }
+          }}
+          onConfirm={handleDelete}
+        />
+      ) : null}
     </section>
   );
 }

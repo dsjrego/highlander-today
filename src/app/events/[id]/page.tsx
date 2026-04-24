@@ -5,6 +5,8 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import TrackedLink from '@/components/analytics/TrackedLink';
+import { trackAnalyticsEvent } from '@/lib/analytics/client';
 import { formatLocationPrimary, formatLocationSecondary } from '@/lib/location-format';
 
 interface EventDetail {
@@ -89,6 +91,29 @@ export default function EventDetailPage() {
     if (eventId) fetchEvent();
   }, [eventId]);
 
+  useEffect(() => {
+    if (!event || event.status !== 'PUBLISHED') {
+      return;
+    }
+
+    trackAnalyticsEvent({
+      eventName: 'page_view',
+      contentType: 'EVENT',
+      contentId: event.id,
+      pageType: 'event-detail',
+    });
+    trackAnalyticsEvent({
+      eventName: 'content_open',
+      contentType: 'EVENT',
+      contentId: event.id,
+      pageType: 'event-detail',
+      metadata: {
+        organizationId: event.organization.id,
+        seriesId: event.series?.id ?? null,
+      },
+    });
+  }, [event]);
+
   if (isLoading) {
     return <div className="rounded-[28px] border border-white/10 bg-white/70 px-6 py-20 text-center text-slate-500 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">Loading event...</div>;
   }
@@ -151,12 +176,17 @@ export default function EventDetailPage() {
             </div>
             <div>
               {event.organization.status === 'APPROVED' ? (
-                <Link
+                <TrackedLink
                   href={`/organizations/${event.organization.slug}`}
                   className="text-sm font-semibold text-white transition-colors hover:text-cyan-200"
+                  pageType="event-detail"
+                  eventName="cta_clicked"
+                  contentType="EVENT"
+                  contentId={event.id}
+                  metadata={{ cta: 'organization-profile', organizationId: event.organization.id }}
                 >
                   {event.organization.name}
-                </Link>
+                </TrackedLink>
               ) : (
                 <p className="text-sm font-semibold text-white">{event.organization.name}</p>
               )}
@@ -219,7 +249,7 @@ export default function EventDetailPage() {
           <h3 className="mb-4 text-lg font-bold text-slate-950">Series Sessions</h3>
           <div className="space-y-3">
             {event.series.events.map((entry) => (
-              <Link
+              <TrackedLink
                 key={entry.id}
                 href={`/events/${entry.id}`}
                 className={`block rounded-2xl border px-4 py-3 text-sm transition ${
@@ -227,6 +257,11 @@ export default function EventDetailPage() {
                     ? "border-slate-950 bg-slate-950 text-white"
                     : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
                 }`}
+                pageType="event-detail"
+                eventName="cta_clicked"
+                contentType="EVENT"
+                contentId={event.id}
+                metadata={{ cta: 'series-session', targetEventId: entry.id }}
               >
                 <div className="font-semibold">
                   Session {entry.seriesPosition} of {entry.seriesCount}
@@ -234,7 +269,7 @@ export default function EventDetailPage() {
                 <div className={entry.id === event.id ? "text-white/80" : "text-slate-500"}>
                   {new Date(entry.startDatetime).toLocaleString()}
                 </div>
-              </Link>
+              </TrackedLink>
             ))}
           </div>
         </div>

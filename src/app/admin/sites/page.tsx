@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { Globe } from 'lucide-react';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { AdminPage } from '@/components/admin/AdminPage';
 import SitesTabs from './SitesTabs';
 
 export default async function AdminSitesPage() {
@@ -34,7 +35,7 @@ export default async function AdminSitesPage() {
   });
 
   return (
-    <div className="space-y-4">
+    <AdminPage title="Sites" count={communities.length}>
       <div className="admin-card">
         <div className="admin-card-header">
           <div className="flex items-center gap-0">
@@ -52,6 +53,6 @@ export default async function AdminSitesPage() {
           <div className="admin-card-footer-actions"></div>
         </div>
       </div>
-    </div>
+    </AdminPage>
   );
 }

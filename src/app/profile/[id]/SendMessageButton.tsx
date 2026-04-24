@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 
 interface SendMessageButtonProps {
   profileUserId: string;
+  onConversationStarted?: (conversationId: string) => void;
 }
 
 interface BlockStatusResponse {
@@ -16,6 +17,7 @@ interface BlockStatusResponse {
 
 export default function SendMessageButton({
   profileUserId,
+  onConversationStarted,
 }: SendMessageButtonProps) {
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -112,6 +114,7 @@ export default function SendMessageButton({
         throw new Error(data.error || 'Failed to open conversation');
       }
 
+      onConversationStarted?.(data.conversationId);
       router.push(`/messages/${data.conversationId}`);
     } catch (err) {
       setError(

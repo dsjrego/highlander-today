@@ -2,7 +2,12 @@
 
 import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { Building2, Check, ListChecks, MapPin, Plus, X } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Building2, Check, MapPin, Plus, Settings2, X } from 'lucide-react';
+import { AdminChip } from '@/components/admin/AdminChip';
+import { AdminDrawer } from '@/components/admin/AdminDrawer';
+import { AdminFilterBar } from '@/components/admin/AdminFilterBar';
+import { AdminViewTabs } from '@/components/admin/AdminViewTabs';
 import { CrudActionButton } from '@/components/shared/CrudAction';
 import ImageUpload from '@/components/shared/ImageUpload';
 import { formatLocationPrimary, formatLocationSearchLabel, formatLocationSecondary } from '@/lib/location-format';
@@ -144,13 +149,16 @@ function getOrganizationStatusLabel(status: OrganizationOption['status']) {
 }
 
 export default function EventTabs({ events, organizations, locations }: EventTabsProps) {
-  const [activeTab, setActiveTab] = useState<EventTab | 'create'>('pending');
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const activeTab = (searchParams.get('view') as EventTab) || 'pending';
+  const focus = searchParams.get('focus');
   const [filterValue, setFilterValue] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [rows, setRows] = useState(events);
   const [locationRows, setLocationRows] = useState(locations);
   const [organizationRows, setOrganizationRows] = useState(organizations);
-  const [editingStatusEventId, setEditingStatusEventId] = useState<string | null>(null);
   const [savingStatusEventId, setSavingStatusEventId] = useState<string | null>(null);
   const [statusError, setStatusError] = useState('');
   const [createError, setCreateError] = useState('');
@@ -202,7 +210,7 @@ export default function EventTabs({ events, organizations, locations }: EventTab
   const normalizedFilter = filterValue.trim().toLowerCase();
   const normalizedLocationFilter = locationFilter.trim().toLowerCase();
   const normalizedOrganizationFilter = organizationFilter.trim().toLowerCase();
-  const currentStatus = activeTab === 'create' ? null : getStatusForTab(activeTab);
+  const currentStatus = getStatusForTab(activeTab);
 
   const filteredEvents = rows.filter((event) => {
     if (!currentStatus || event.status !== currentStatus) {
@@ -227,6 +235,7 @@ export default function EventTabs({ events, organizations, locations }: EventTab
   const safePage = Math.min(currentPage, pageCount);
   const pageStart = (safePage - 1) * EVENT_PAGE_SIZE;
   const pageEvents = filteredEvents.slice(pageStart, pageStart + EVENT_PAGE_SIZE);
+  const focusedEvent = focus && focus !== 'new' ? rows.find((event) => event.id === focus) ?? null : null;
 
   const filteredLocations = useMemo(
     () =>
@@ -244,6 +253,21 @@ export default function EventTabs({ events, organizations, locations }: EventTab
 
   const selectedLocation = locationRows.find((location) => location.id === createForm.locationId) || null;
   const selectedOrganization = organizationRows.find((organization) => organization.id === createForm.organizationId) || null;
+
+  function updateSearchParams(updates: Record<string, string | null>) {
+    const next = new URLSearchParams(searchParams.toString());
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === null || value === '') {
+        next.delete(key);
+      } else {
+        next.set(key, value);
+      }
+    });
+
+    const query = next.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  }
 
   useEffect(() => {
     async function fetchOrganizations() {
@@ -529,7 +553,9 @@ export default function EventTabs({ events, organizations, locations }: EventTab
         repeatCount: '3',
       });
       setCreateSuccess(data.createdCount > 1 ? `${data.createdCount} event sessions created.` : 'Event created successfully.');
-      setActiveTab(data.status === 'PUBLISHED' ? 'approved' : data.status === 'UNPUBLISHED' ? 'archived' : 'pending');
+      updateSearchParams({
+        view: data.status === 'PUBLISHED' ? 'approved' : data.status === 'UNPUBLISHED' ? 'archived' : 'pending',
+      });
       setCurrentPage(1);
     } catch (error) {
       setCreateError(error instanceof Error ? error.message : 'Failed to create event');
@@ -567,7 +593,6 @@ export default function EventTabs({ events, organizations, locations }: EventTab
             : event
         )
       );
-      setEditingStatusEventId(null);
     } catch (error) {
       setStatusError(error instanceof Error ? error.message : 'Failed to update status');
     } finally {
@@ -575,44 +600,166 @@ export default function EventTabs({ events, organizations, locations }: EventTab
     }
   }
 
-  return (
-    <div className="space-y-0">
-      <div className="relative top-[2px] flex flex-wrap gap-0 pb-0">
-        {EVENT_TABS.map((tab) => {
-          const isActive = tab === activeTab;
+  const eventStatusMeta = (status: EventRecord['status']) => {
+    const label = EVENT_STATUS_OPTIONS.find((option) => option.value === status)?.label || 'Status';
+    return {
+      label,
+      tone: status === 'PUBLISHED' ? 'ok' : status === 'UNPUBLISHED' ? 'bad' : 'pend',
+    } as const;
+  };
 
-          return (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => {
-                setActiveTab(tab);
-                setCurrentPage(1);
-              }}
-              className={`admin-card-tab ${isActive ? 'admin-card-tab-active' : 'admin-card-tab-inactive'}`}
-            >
-              {tab}
-            </button>
-          );
-        })}
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <AdminViewTabs
+          defaultView="pending"
+          views={EVENT_TABS.map((tab) => ({
+            key: tab,
+            label: getTabLabel(tab),
+            count: rows.filter((event) => event.status === getStatusForTab(tab)).length,
+            tone: tab === 'pending' ? 'pend' : tab === 'archived' ? 'bad' : undefined,
+          }))}
+        />
         <button
           type="button"
-          onClick={() => {
-            setActiveTab('create');
-            setCurrentPage(1);
-          }}
-          className={`admin-card-tab inline-flex items-center gap-2 ${
-            activeTab === 'create' ? 'admin-card-tab-active' : 'admin-card-tab-inactive'
-          }`}
+          className="page-header-action"
+          onClick={() => updateSearchParams({ focus: 'new' })}
         >
-          <Plus className="h-3.5 w-3.5" />
-          Event
+          <Plus className="h-4 w-4" />
+          <span>Event</span>
         </button>
       </div>
 
-      <div className="admin-card-tab-body">
-        {activeTab === 'create' ? (
-          <form onSubmit={handleCreateEvent} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="admin-list">
+        <AdminFilterBar
+          search={
+            <label className="admin-list-filter">
+              <span className="admin-list-filter-label">Title, Submitter, Venue, Location</span>
+              <input
+                type="text"
+                value={filterValue}
+                onChange={(event) => handleFilterChange(event.target.value)}
+                placeholder="Search by title, submitter, venue label, or location"
+                className="admin-list-filter-input"
+              />
+            </label>
+          }
+          right={
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+              {filteredEvents.length} {getTabLabel(activeTab).toLowerCase()} event{filteredEvents.length === 1 ? '' : 's'}
+            </div>
+          }
+        />
+
+        {statusError ? <div className="admin-list-error">{statusError}</div> : null}
+        {createError && focus === 'new' ? <div className="admin-list-error">{createError}</div> : null}
+        {createSuccess && focus === 'new' ? (
+          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-700">
+            {createSuccess}
+          </div>
+        ) : null}
+
+        <div className="admin-list-table-wrap">
+          <table className="admin-list-table">
+            <thead className="admin-list-head">
+              <tr>
+                <th className="admin-list-header-cell">Title</th>
+                <th className="admin-list-header-cell">Submitted By</th>
+                <th className="admin-list-header-cell">Starts</th>
+                <th className="admin-list-header-cell">Location</th>
+                <th className="admin-list-header-cell">Status</th>
+                <th className="admin-list-header-cell">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pageEvents.length > 0 ? (
+                pageEvents.map((event) => (
+                  <tr key={event.id} className="admin-list-row">
+                    <td className="admin-list-cell">
+                      <Link href={`/admin/events/${event.id}`} className="admin-list-link">
+                        {event.title}
+                      </Link>
+                      {event.seriesCount ? (
+                        <div className="mt-1 text-xs text-slate-500">
+                          Session {event.seriesPosition} of {event.seriesCount}
+                          {event.series?.summary ? ` • ${event.series.summary}` : ''}
+                        </div>
+                      ) : null}
+                    </td>
+                    <td className="admin-list-cell">
+                      {event.submittedBy.firstName} {event.submittedBy.lastName}
+                    </td>
+                    <td className="admin-list-cell">{formatDateTime(event.startDatetime)}</td>
+                    <td className="admin-list-cell">
+                      <div>{formatLocationPrimary(event.location, event.venueLabel)}</div>
+                      <div className="text-xs text-slate-500">{formatLocationSecondary(event.location)}</div>
+                    </td>
+                    <td className="admin-list-cell">
+                      <AdminChip tone={eventStatusMeta(event.status).tone}>
+                        {eventStatusMeta(event.status).label}
+                      </AdminChip>
+                    </td>
+                    <td className="admin-list-cell">
+                      <div className="flex flex-wrap gap-3">
+                        <Link href={`/admin/events/${event.id}`} className="admin-list-link">
+                          Open
+                        </Link>
+                        <CrudActionButton
+                          type="button"
+                          variant="inline"
+                          icon={Settings2}
+                          label="Manage event"
+                          onClick={() => updateSearchParams({ focus: event.id })}
+                        >
+                          Manage
+                        </CrudActionButton>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td className="admin-list-empty" colSpan={6}>
+                    No {activeTab} events match the current filter.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="admin-list-pagination">
+          <div className="admin-list-pagination-label">
+            {filteredEvents.length} {getTabLabel(activeTab).toLowerCase()} event
+            {filteredEvents.length === 1 ? '' : 's'}
+          </div>
+          <div className="admin-list-pagination-actions">
+            <button
+              type="button"
+              onClick={() => setCurrentPage((current) => Math.max(1, current - 1))}
+              disabled={safePage === 1}
+              className="admin-list-pagination-button"
+            >
+              Previous
+            </button>
+            <span className="admin-list-pagination-page">
+              Page {safePage} of {pageCount}
+            </span>
+            <button
+              type="button"
+              onClick={() => setCurrentPage((current) => Math.min(pageCount, current + 1))}
+              disabled={safePage === pageCount}
+              className="admin-list-pagination-button"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <AdminDrawer title={focus === 'new' ? 'Create Event' : focusedEvent ? `Manage ${focusedEvent.title}` : 'Manage Event'}>
+        {focus === 'new' ? (
+          <form onSubmit={handleCreateEvent} className="space-y-5">
             <div>
               <h3 className="text-lg font-bold text-slate-950">Add Event</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -1119,139 +1266,61 @@ export default function EventTabs({ events, organizations, locations }: EventTab
                     </CrudActionButton>
 	                </div>
 	              </div>
+	              </div>
 	            </div>
-            </div>
 	          </form>
         ) : (
-          <div className="admin-list">
-            <div className="admin-list-toolbar">
-              <label className="admin-list-filter">
-                <span className="admin-list-filter-label">Filter: Title, Submitter, Venue, Location</span>
-                <input
-                  type="text"
-                  value={filterValue}
-                  onChange={(event) => handleFilterChange(event.target.value)}
-                  placeholder="Search by title, submitter, venue label, or location"
-                  className="admin-list-filter-input"
-                />
-              </label>
-            </div>
-
-            {statusError ? <div className="admin-list-error">{statusError}</div> : null}
-
-            <div className="admin-list-table-wrap">
-              <table className="admin-list-table">
-                <thead className="admin-list-head">
-                  <tr>
-                    <th className="admin-list-header-cell">Title</th>
-                    <th className="admin-list-header-cell">Submitted By</th>
-                    <th className="admin-list-header-cell">Starts</th>
-                    <th className="admin-list-header-cell">Location</th>
-                    <th className="admin-list-header-cell">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pageEvents.length > 0 ? (
-                    pageEvents.map((event) => (
-                      <tr key={event.id} className="admin-list-row">
-                        <td className="admin-list-cell">
-                          <Link href={`/admin/events/${event.id}`} className="admin-list-link">
-                            {event.title}
-                          </Link>
-                          {event.seriesCount ? (
-                            <div className="mt-1 text-xs text-slate-500">
-                              Session {event.seriesPosition} of {event.seriesCount}
-                              {event.series?.summary ? ` • ${event.series.summary}` : ''}
-                            </div>
-                          ) : null}
-                        </td>
-                        <td className="admin-list-cell">
-                          {event.submittedBy.firstName} {event.submittedBy.lastName}
-                        </td>
-                        <td className="admin-list-cell">{formatDateTime(event.startDatetime)}</td>
-                        <td className="admin-list-cell">
-                          <div>{formatLocationPrimary(event.location, event.venueLabel)}</div>
-                          <div className="text-xs text-slate-500">{formatLocationSecondary(event.location)}</div>
-                        </td>
-                        <td className="admin-list-cell">
-                          {editingStatusEventId === event.id ? (
-                            <select
-                              className="admin-list-cell-select"
-                              defaultValue={event.status}
-                              disabled={savingStatusEventId === event.id}
-                              onBlur={() => {
-                                if (savingStatusEventId !== event.id) {
-                                  setEditingStatusEventId(null);
-                                }
-                              }}
-                              onChange={(entry) =>
-                                handleStatusChange(event.id, entry.target.value as EventRecord['status'])
-                              }
-                              autoFocus
-                            >
-                              {EVENT_STATUS_OPTIONS.map((status) => (
-                                <option key={status.value} value={status.value}>
-                                  {status.label}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <CrudActionButton
-                              type="button"
-                              variant="inline"
-                              icon={ListChecks}
-                              label={
-                                EVENT_STATUS_OPTIONS.find((status) => status.value === event.status)?.label || 'Status'
-                              }
-                              onClick={() => setEditingStatusEventId(event.id)}
-                            >
-                              {EVENT_STATUS_OPTIONS.find((status) => status.value === event.status)?.label}
-                            </CrudActionButton>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td className="admin-list-empty" colSpan={5}>
-                        No {activeTab} events match the current filter.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="admin-list-pagination">
-              <div className="admin-list-pagination-label">
-                {filteredEvents.length} {getTabLabel(activeTab).toLowerCase()} event
-                {filteredEvents.length === 1 ? '' : 's'}
+          focusedEvent ? (
+            <div className="space-y-5">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <AdminChip tone={eventStatusMeta(focusedEvent.status).tone}>
+                    {eventStatusMeta(focusedEvent.status).label}
+                  </AdminChip>
+                  {focusedEvent.seriesCount ? (
+                    <AdminChip tone="role">
+                      Session {focusedEvent.seriesPosition} of {focusedEvent.seriesCount}
+                    </AdminChip>
+                  ) : null}
+                </div>
+                <div className="mt-3 space-y-1 text-sm text-slate-600">
+                  <p>
+                    {focusedEvent.submittedBy.firstName} {focusedEvent.submittedBy.lastName}
+                  </p>
+                  <p>{formatDateTime(focusedEvent.startDatetime)}</p>
+                  <p>{formatLocationSearchLabel(focusedEvent.location)}</p>
+                </div>
               </div>
-              <div className="admin-list-pagination-actions">
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage((current) => Math.max(1, current - 1))}
-                  disabled={safePage === 1}
-                  className="admin-list-pagination-button"
+
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Status</p>
+                <select
+                  className="admin-list-cell-select min-w-[14rem]"
+                  value={focusedEvent.status}
+                  disabled={savingStatusEventId === focusedEvent.id}
+                  onChange={(entry) =>
+                    handleStatusChange(focusedEvent.id, entry.target.value as EventRecord['status'])
+                  }
                 >
-                  Previous
-                </button>
-                <span className="admin-list-pagination-page">
-                  Page {safePage} of {pageCount}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage((current) => Math.min(pageCount, current + 1))}
-                  disabled={safePage === pageCount}
-                  className="admin-list-pagination-button"
-                >
-                  Next
-                </button>
+                  {EVENT_STATUS_OPTIONS.map((status) => (
+                    <option key={status.value} value={status.value}>
+                      {status.label}
+                    </option>
+                  ))}
+                </select>
               </div>
+
+              <Link href={`/admin/events/${focusedEvent.id}`} className="admin-list-link">
+                Open full event editor
+              </Link>
             </div>
-          </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+              The selected event is not available in the current result set.
+            </div>
+          )
         )}
-      </div>
+      </AdminDrawer>
     </div>
   );
 }

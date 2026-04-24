@@ -1,8 +1,8 @@
 # Highlander Today
 
-Highlander Today is a multi-tenant local community platform for Cambria Heights, PA. It combines local content, events, a store-based marketplace, Help Wanted postings, private messaging, and a trust-based membership model built around real identity and vouching.
+Highlander Today is a multi-tenant local community platform focused first on Cambria Heights / Cambria County, Pennsylvania. It combines trusted local content, events, marketplace/storefronts, help wanted, private messaging, directory/organization workflows, and a trust-based membership model built around real identity and vouching.
 
-This README is the repo-facing setup and architecture overview. The deeper running project log lives in [PROJECT-STATUS.md](/Users/dennisdestjeor/work/highlander-today/PROJECT-STATUS.md).
+This README is the repo-facing setup and architecture overview. The current implementation ledger, priorities, and session handoff live in [PROJECT-STATUS.md](/Users/dennisdestjeor/work/highlander-today/PROJECT-STATUS.md). If this README and project status disagree, use `PROJECT-STATUS.md`.
 
 Repository:
 
@@ -12,23 +12,26 @@ Repository:
 
 ## Current Product Scope
 
-Active product areas:
+Major live foundations:
 
-- Local Life articles with moderation, comments, drafts, category filtering, and homepage curation
-- Events listing and submission
-- Store-based marketplace with storefronts, admin store approval, trusted-user seller messaging, and listing lifecycle states
-- Help Wanted board for employment, service requests, and gig/task postings
-- Private messaging with blocking enforcement and unread tracking
-- Community roadmap / feature-prioritization with ordered ballots and bounded domain-specific weighting
-- Trust, vouching, suspension, audit logging, and role-based permissions
+- Auth, permissions, trust, suspension, audit/activity logging, and tenant-aware community resolution
+- Profiles, vouching, blocking, private messaging, and account settings on `/profile/[id]`
+- Local Life articles with listing, submit/edit, drafts, detail, moderation, comments, preview, and homepage curation
+- Events with submission, moderation, recurring-series support, organization-backed ownership, and structured locations
+- Store-based marketplace listings and storefronts with admin moderation and buyer/seller messaging
+- Help Wanted posting, moderation, browsing, and manage/edit flows
+- Homepage curation through ordered homepage boxes rather than rigid hardcoded lanes
+- Directory and organizations, including public directory browse, public organization pages, admin organization management, and `/organizations/submit` submit/claim flows
+- Structured recipes with public recipe pages, admin recipe moderation, import support, and homepage recipe curation
+- Reporter foundations, including `/report-a-story`, `/admin/reporter`, bounded draft generation, and convert-to-article workflow
+- Multi-tenant theming and `SUPER_ADMIN` site provisioning through `/admin/sites`
 
-Not currently part of the live product:
+Still intentionally partial or not part of the live product:
 
-- Classifieds
-- Galleries
-- Full ecommerce checkout, payments, shipping, and inventory workflows
-- Delivery jobs MVP
-- Restaurant ordering
+- Most non-event `Experiences` work
+- Full ecommerce checkout, shipping, inventory, and payments
+- Restaurant ordering and delivery-jobs style workflows
+- Organization custom-domain/site rollout beyond the current provisioning foundation
 
 ## Tech Stack
 
@@ -36,11 +39,12 @@ Not currently part of the live product:
 - TypeScript
 - PostgreSQL 16
 - Prisma ORM
-- NextAuth.js v4 with Credentials and Google providers
+- NextAuth.js v4 with JWT sessions
 - Tailwind CSS
 - TipTap editor for rich article editing
 - isomorphic-dompurify for HTML sanitization
 - Sharp for image processing
+- Cloudflare R2 for production uploads
 - Jest + React Testing Library
 - D3.js
 
@@ -52,7 +56,9 @@ Not currently part of the live product:
 - Do not reintroduce a Prisma adapter for auth. The app uses JWT sessions and `PrismaAdapter` breaks the credential-login path in this project.
 - Middleware sets request headers such as `x-user-id`, `x-user-role`, and `x-user-trust-level` for `/api/*`; many active routes rely on those headers.
 - The canonical article route family is `/local-life/*`. Legacy `/articles/*` exists only for backward-compatibility redirects.
-- Categories are dynamic from the database. Do not hardcode category names or slugs.
+- Categories and navigation are database-driven. Do not hardcode category names, slugs, or menu structure.
+- Theme manifests are generated from `src/lib/theme/manifests/` by `scripts/generate-theme-manifests.js`; do not hand-edit the generated registry.
+- The repo still follows a `prisma db push` rollout style rather than a committed Prisma migrations history.
 
 ## Local Development
 
@@ -99,18 +105,11 @@ GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 ```
 
-Optional / future-facing variables include upload storage and encryption settings. See `.env.example`, but prefer the values in `PROJECT-STATUS.md` when there is a mismatch.
+Optional variables include Cloudflare R2 upload settings, MaxMind login geolocation credentials, and reporter model provider keys such as `REPORTER_MODEL_PROVIDER` / `ANTHROPIC_API_KEY`. See `.env.example` and `PROJECT-STATUS.md` when adding those.
 
 ### Initial admin bootstrap
 
-The structural seed creates:
-
-- Community: `Highlander Today`
-- Categories
-- Homepage sections
-- Default site settings
-
-It does not create any user accounts.
+The structural seed creates the initial Highlander Today community baseline, categories/navigation data, and site defaults. It does not create any user accounts.
 
 Create the first Super Admin explicitly:
 
@@ -122,49 +121,103 @@ The script requires a strong password, creates the user if needed, and ensures t
 
 ## Main Routes
 
-Public and user-facing routes:
+High-value public and user-facing routes:
 
 - `/`
 - `/local-life`
 - `/local-life/[id]`
 - `/local-life/submit`
+- `/recipes`
+- `/recipes/[id]`
+- `/recipes/submit`
 - `/events`
+- `/events/[id]`
 - `/events/submit`
 - `/marketplace`
 - `/marketplace/[id]`
-- `/marketplace/stores/[id]`
 - `/marketplace/stores`
 - `/help-wanted`
 - `/help-wanted/[id]`
 - `/help-wanted/submit`
 - `/help-wanted/manage`
-- `/roadmap`
-- `/roadmap/[id]`
-- `/roadmap/submit`
-- `/roadmap/manage`
+- `/directory`
+- `/organizations/[slug]`
+- `/organizations/submit`
+- `/help-us-grow`
+- `/report-a-story`
 - `/messages`
 - `/messages/[conversationId]`
 - `/profile/[id]`
-- `/profile/edit`
 - `/search`
 
-Admin and staff routes:
+High-value admin and staff routes:
 
-- `/admin/content`
+- `/admin`
+- `/admin/articles`
+- `/admin/events`
 - `/admin/homepage`
+- `/admin/categories`
+- `/admin/organizations`
+- `/admin/recipes`
+- `/admin/reporter`
+- `/admin/users`
+- `/admin/settings`
+- `/admin/sites`
+- `/admin/places`
+- `/admin/coverage`
+- `/admin/geography`
+- `/admin/observed-geo`
 - `/admin/stores`
 - `/admin/roadmap`
-- `/admin/users`
 - `/admin/trust`
 - `/admin/bans`
 - `/admin/audit`
 
-Known placeholders / partial admin areas:
+Routes that still exist but should not be treated as the primary implementation surface:
 
-- `/admin` dashboard is still placeholder-level
-- admin categories CRUD is partial
-- settings persistence still needs cleanup
-- `/experiences` and `/arcade` landing pages exist but are not complete product surfaces
+- `/articles/*` legacy compatibility paths instead of canonical article routes
+- `/profile/edit` legacy path; owner account editing now lives on `/profile/[id]`
+- `/experiences` and `/arcade` as partial/non-core surfaces
+
+## Key Repo Landmarks
+
+```text
+prisma/
+  schema.prisma
+  seed.ts
+src/app/
+  admin/
+  api/
+  directory/
+  events/
+  help-wanted/
+  interviews/
+  local-life/
+  marketplace/
+  messages/
+  organizations/
+  profile/
+  recipes/
+  report-a-story/
+  search/
+  layout.tsx
+  page.tsx
+src/components/
+  admin/
+  articles/
+  layout/
+  marketplace/
+  messaging/
+  shared/
+src/lib/
+  db.ts
+  permissions.ts
+  homepage.ts
+  search.ts
+  tenant.ts
+  reporter/
+  theme/
+```
 
 ## File Uploads
 

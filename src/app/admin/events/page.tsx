@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { getCurrentCommunity } from '@/lib/community';
 import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
+import { AdminPage } from '@/components/admin/AdminPage';
 import EventTabs from './EventTabs';
 
 export default async function AdminEventsPage() {
@@ -81,7 +82,7 @@ export default async function AdminEventsPage() {
   });
 
   return (
-    <div className="space-y-4">
+    <AdminPage title="Events" count={events.length}>
       <div className="admin-card">
         <div className="admin-card-header">
           <div className="flex items-center gap-0">
@@ -99,6 +100,6 @@ export default async function AdminEventsPage() {
           <div className="admin-card-footer-actions"></div>
         </div>
       </div>
-    </div>
+    </AdminPage>
   );
 }

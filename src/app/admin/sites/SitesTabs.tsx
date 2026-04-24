@@ -2,12 +2,16 @@
 
 import { FormEvent, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Globe, Plus } from 'lucide-react';
+import { Globe, Plus, Settings2 } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { AdminChip } from '@/components/admin/AdminChip';
+import { AdminDrawer } from '@/components/admin/AdminDrawer';
+import { AdminFilterBar } from '@/components/admin/AdminFilterBar';
+import { AdminViewTabs } from '@/components/admin/AdminViewTabs';
+import { CrudActionButton, CrudActionLink } from '@/components/shared/CrudAction';
 
-const SITE_TABS = ['all'] as const;
 const SITE_PAGE_SIZE = 12;
 
-type SiteTab = (typeof SITE_TABS)[number];
 type DomainStatus = 'PENDING' | 'ACTIVE' | 'DISABLED';
 
 interface SiteRecord {
@@ -56,8 +60,22 @@ function getDomainStatusLabel(status: DomainStatus) {
   }
 }
 
+function getDomainStatusTone(status: DomainStatus): 'ok' | 'pend' | 'bad' {
+  switch (status) {
+    case 'ACTIVE':
+      return 'ok';
+    case 'DISABLED':
+      return 'bad';
+    default:
+      return 'pend';
+  }
+}
+
 export default function SitesTabs({ sites }: SitesTabsProps) {
-  const [activeTab, setActiveTab] = useState<SiteTab | 'create'>('all');
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const focus = searchParams.get('focus');
   const [filterValue, setFilterValue] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [rows, setRows] = useState(sites);
@@ -94,6 +112,22 @@ export default function SitesTabs({ sites }: SitesTabsProps) {
   const safePage = Math.min(currentPage, pageCount);
   const pageStart = (safePage - 1) * SITE_PAGE_SIZE;
   const pageSites = filteredSites.slice(pageStart, pageStart + SITE_PAGE_SIZE);
+  const focusedSite = focus && focus !== 'new' ? rows.find((site) => site.id === focus) ?? null : null;
+
+  function updateSearchParams(updates: Record<string, string | null>) {
+    const next = new URLSearchParams(searchParams.toString());
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === null || value === '') {
+        next.delete(key);
+      } else {
+        next.set(key, value);
+      }
+    });
+
+    const query = next.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  }
 
   function handleCreateInputChange(
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -158,7 +192,7 @@ export default function SitesTabs({ sites }: SitesTabsProps) {
         description: '',
       });
       setCreateSuccess('Site created successfully.');
-      setActiveTab('all');
+      updateSearchParams({ focus: data.site.id });
       setCurrentPage(1);
     } catch (error) {
       setCreateError(error instanceof Error ? error.message : 'Failed to create site');
@@ -168,43 +202,179 @@ export default function SitesTabs({ sites }: SitesTabsProps) {
   }
 
   return (
-    <div className="space-y-0">
-      <div className="relative top-[2px] flex flex-wrap gap-0 pb-0">
-        {SITE_TABS.map((tab) => {
-          const isActive = tab === activeTab;
-
-          return (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => {
-                setActiveTab(tab);
-                setCurrentPage(1);
-              }}
-              className={`admin-card-tab ${isActive ? 'admin-card-tab-active' : 'admin-card-tab-inactive'}`}
-            >
-              All Sites
-            </button>
-          );
-        })}
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <AdminViewTabs
+          defaultView="all"
+          views={[{ key: 'all', label: 'All Sites', count: rows.length }]}
+        />
         <button
           type="button"
-          onClick={() => {
-            setActiveTab('create');
-            setCurrentPage(1);
-          }}
-          className={`admin-card-tab inline-flex items-center gap-2 ${
-            activeTab === 'create' ? 'admin-card-tab-active' : 'admin-card-tab-inactive'
-          }`}
+          className="page-header-action"
+          onClick={() => updateSearchParams({ focus: 'new' })}
         >
-          <Plus className="h-3.5 w-3.5" />
-          Site
+          <Plus className="h-4 w-4" />
+          <span>Site</span>
         </button>
       </div>
 
-      <div className="admin-card-tab-body">
-        {activeTab === 'create' ? (
-          <form onSubmit={handleCreateSite} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="admin-list">
+        <AdminFilterBar
+          search={
+            <label className="admin-list-filter">
+              <span className="admin-list-filter-label">Name, Slug, Domain</span>
+              <input
+                type="text"
+                value={filterValue}
+                onChange={(event) => {
+                  setFilterValue(event.target.value);
+                  setCurrentPage(1);
+                }}
+                placeholder="Search by site name, slug, or domain"
+                className="admin-list-filter-input"
+              />
+            </label>
+          }
+          right={
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+              {filteredSites.length} site{filteredSites.length === 1 ? '' : 's'}
+            </div>
+          }
+        />
+
+        {createError && focus === 'new' ? <div className="admin-list-error">{createError}</div> : null}
+        {createSuccess && focus === 'new' ? (
+          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-700">
+            {createSuccess}
+          </div>
+        ) : null}
+
+        <div className="admin-list-table-wrap">
+          <table className="admin-list-table">
+            <thead className="admin-list-head">
+              <tr>
+                <th className="admin-list-header-cell">Site</th>
+                <th className="admin-list-header-cell">Primary Domain</th>
+                <th className="admin-list-header-cell">Domains</th>
+                <th className="admin-list-header-cell">Created</th>
+                <th className="admin-list-header-cell">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pageSites.length > 0 ? (
+                pageSites.map((site) => {
+                  const primaryDomain = site.domains.find((domain) => domain.isPrimary) ?? null;
+
+                  return (
+                    <tr key={site.id} className="admin-list-row">
+                      <td className="admin-list-cell">
+                        <div className="flex items-start gap-2">
+                          <div className="mt-0.5 text-slate-500" aria-hidden="true">
+                            <Globe className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <Link href={`/admin/sites/${site.id}`} className="admin-list-link">
+                              {site.name}
+                            </Link>
+                            <div className="mt-1 text-xs text-slate-500">{site.slug}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="admin-list-cell">
+                        {primaryDomain ? (
+                          <div className="space-y-2">
+                            <div className="font-medium text-slate-900">{primaryDomain.domain}</div>
+                            <AdminChip tone={getDomainStatusTone(primaryDomain.status)}>
+                              {getDomainStatusLabel(primaryDomain.status)}
+                            </AdminChip>
+                          </div>
+                        ) : (
+                          <span className="text-slate-500">Not set</span>
+                        )}
+                      </td>
+                      <td className="admin-list-cell">
+                        {site.domains.length > 0 ? (
+                          <div className="space-y-2">
+                            {site.domains.map((domain) => (
+                              <div key={domain.id} className="text-xs text-slate-600">
+                                {domain.domain}
+                                {domain.isPrimary ? ' · primary' : ''}
+                                {' · '}
+                                {getDomainStatusLabel(domain.status)}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-slate-500">No tenant-domain records</span>
+                        )}
+                      </td>
+                      <td className="admin-list-cell">{formatDate(site.createdAt)}</td>
+                      <td className="admin-list-cell">
+                        <div className="flex flex-wrap gap-3">
+                          <CrudActionLink
+                            href={`/admin/sites/${site.id}`}
+                            variant="inline-link"
+                            icon={Globe}
+                            label="Open site"
+                          >
+                            Open
+                          </CrudActionLink>
+                          <CrudActionButton
+                            type="button"
+                            variant="inline"
+                            icon={Settings2}
+                            label="Manage site"
+                            onClick={() => updateSearchParams({ focus: site.id })}
+                          >
+                            Manage
+                          </CrudActionButton>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td className="admin-list-empty" colSpan={5}>
+                    No sites match the current filter.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="admin-list-pagination">
+          <div className="admin-list-pagination-label">
+            {filteredSites.length} site{filteredSites.length === 1 ? '' : 's'}
+          </div>
+          <div className="admin-list-pagination-actions">
+            <button
+              type="button"
+              onClick={() => setCurrentPage((current) => Math.max(1, current - 1))}
+              disabled={safePage === 1}
+              className="admin-list-pagination-button"
+            >
+              Previous
+            </button>
+            <span className="admin-list-pagination-page">
+              Page {safePage} of {pageCount}
+            </span>
+            <button
+              type="button"
+              onClick={() => setCurrentPage((current) => Math.min(pageCount, current + 1))}
+              disabled={safePage === pageCount}
+              className="admin-list-pagination-button"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <AdminDrawer title={focus === 'new' ? 'Create Site' : focusedSite ? `Manage ${focusedSite.name}` : 'Manage Site'}>
+        {focus === 'new' ? (
+          <form onSubmit={handleCreateSite} className="space-y-5">
             <div>
               <h3 className="text-lg font-bold text-slate-950">Add Site</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -295,7 +465,7 @@ export default function SitesTabs({ sites }: SitesTabsProps) {
               <button
                 type="button"
                 onClick={() => {
-                  setActiveTab('all');
+                  updateSearchParams({ focus: null });
                   setCreateError('');
                   setCreateSuccess('');
                 }}
@@ -308,125 +478,58 @@ export default function SitesTabs({ sites }: SitesTabsProps) {
               </button>
             </div>
           </form>
+        ) : focusedSite ? (
+          <div className="space-y-5">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <AdminChip tone="role">{focusedSite.slug}</AdminChip>
+                {focusedSite.domains.find((domain) => domain.isPrimary) ? (
+                  <AdminChip tone={getDomainStatusTone(focusedSite.domains.find((domain) => domain.isPrimary)!.status)}>
+                    {getDomainStatusLabel(focusedSite.domains.find((domain) => domain.isPrimary)!.status)}
+                  </AdminChip>
+                ) : null}
+              </div>
+              <div className="mt-3 space-y-1 text-sm text-slate-600">
+                <p>Created: {formatDate(focusedSite.createdAt)}</p>
+                <p>{focusedSite.description || 'No site description yet.'}</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Domains</p>
+              {focusedSite.domains.length > 0 ? (
+                <div className="space-y-2">
+                  {focusedSite.domains.map((domain) => (
+                    <div key={domain.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                      {domain.domain}
+                      {domain.isPrimary ? ' · primary' : ''}
+                      {' · '}
+                      {getDomainStatusLabel(domain.status)}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+                  No tenant-domain records yet.
+                </div>
+              )}
+            </div>
+
+            <CrudActionLink
+              href={`/admin/sites/${focusedSite.id}`}
+              variant="inline-link"
+              icon={Globe}
+              label="Open full site editor"
+            >
+              Open full editor
+            </CrudActionLink>
+          </div>
         ) : (
-          <div className="admin-list">
-            <div className="admin-list-toolbar">
-              <label className="admin-list-filter">
-                <span className="admin-list-filter-label">Filter: Name, Slug, Domain</span>
-                <input
-                  type="text"
-                  value={filterValue}
-                  onChange={(event) => {
-                    setFilterValue(event.target.value);
-                    setCurrentPage(1);
-                  }}
-                  placeholder="Search by site name, slug, or domain"
-                  className="admin-list-filter-input"
-                />
-              </label>
-            </div>
-
-            <div className="admin-list-table-wrap">
-              <table className="admin-list-table">
-                <thead className="admin-list-head">
-                  <tr>
-                    <th className="admin-list-header-cell">Site</th>
-                    <th className="admin-list-header-cell">Primary Domain</th>
-                    <th className="admin-list-header-cell">Domains</th>
-                    <th className="admin-list-header-cell">Created</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pageSites.length > 0 ? (
-                    pageSites.map((site) => {
-                      const primaryDomain = site.domains.find((domain) => domain.isPrimary) ?? null;
-
-                      return (
-                        <tr key={site.id} className="admin-list-row">
-                          <td className="admin-list-cell">
-                            <div className="flex items-start gap-2">
-                              <div className="mt-0.5 text-slate-500" aria-hidden="true">
-                                <Globe className="h-4 w-4" />
-                              </div>
-                              <div>
-                                <Link href={`/admin/sites/${site.id}`} className="admin-list-link">
-                                  {site.name}
-                                </Link>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="admin-list-cell">
-                            {primaryDomain ? (
-                              <div>
-                                <div className="font-medium text-slate-900">{primaryDomain.domain}</div>
-                                <div className="mt-1 text-xs text-slate-500">
-                                  {getDomainStatusLabel(primaryDomain.status)}
-                                </div>
-                              </div>
-                            ) : (
-                              <span className="text-slate-500">Not set</span>
-                            )}
-                          </td>
-                          <td className="admin-list-cell">
-                            {site.domains.length > 0 ? (
-                              <div className="space-y-1">
-                                {site.domains.map((domain) => (
-                                  <div key={domain.id} className="text-xs text-slate-600">
-                                    {domain.domain}
-                                    {domain.isPrimary ? ' · primary' : ''}
-                                    {' · '}
-                                    {getDomainStatusLabel(domain.status)}
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <span className="text-slate-500">No tenant-domain records</span>
-                            )}
-                          </td>
-                          <td className="admin-list-cell">{formatDate(site.createdAt)}</td>
-                        </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td className="admin-list-empty" colSpan={4}>
-                        No sites match the current filter.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="admin-list-pagination">
-              <div className="admin-list-pagination-label">
-                {filteredSites.length} site{filteredSites.length === 1 ? '' : 's'}
-              </div>
-              <div className="admin-list-pagination-actions">
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage((current) => Math.max(1, current - 1))}
-                  disabled={safePage === 1}
-                  className="admin-list-pagination-button"
-                >
-                  Previous
-                </button>
-                <span className="admin-list-pagination-page">
-                  Page {safePage} of {pageCount}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage((current) => Math.min(pageCount, current + 1))}
-                  disabled={safePage === pageCount}
-                  className="admin-list-pagination-button"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+            The selected site is not available in the current result set.
           </div>
         )}
-      </div>
+      </AdminDrawer>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { getCurrentCommunity } from '@/lib/community';
 import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
+import { AdminPage } from '@/components/admin/AdminPage';
 import OrganizationTabs from './OrganizationTabs';
 
 export default async function AdminOrganizationsPage() {
@@ -48,7 +49,7 @@ export default async function AdminOrganizationsPage() {
   });
 
   return (
-    <div className="space-y-4">
+    <AdminPage title="Organizations" count={organizations.length}>
       <div className="admin-card">
         <div className="admin-card-header">
           <div className="flex items-center gap-0">
@@ -66,6 +67,6 @@ export default async function AdminOrganizationsPage() {
           <div className="admin-card-footer-actions"></div>
         </div>
       </div>
-    </div>
+    </AdminPage>
   );
 }

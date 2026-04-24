@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { useDialogAccessibility } from '@/components/shared/useDialogAccessibility';
 
 interface ArticleCreateActionProps {
   href?: string;
@@ -24,6 +25,17 @@ export default function ArticleCreateAction({
 }: ArticleCreateActionProps) {
   const { data: session } = useSession();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const dialogTitleId = useId();
+  const dialogDescriptionId = useId();
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  useDialogAccessibility({
+    isOpen: isDialogOpen,
+    onClose: () => setIsDialogOpen(false),
+    containerRef: dialogRef,
+    initialFocusRef: closeButtonRef,
+  });
 
   if (!session?.user) {
     return null;
@@ -77,21 +89,27 @@ export default function ArticleCreateAction({
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
-          aria-labelledby="trusted-article-dialog-title"
-          aria-describedby="trusted-article-dialog-description"
+          aria-labelledby={dialogTitleId}
+          aria-describedby={dialogDescriptionId}
+          onClick={() => setIsDialogOpen(false)}
         >
-          <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[linear-gradient(165deg,rgba(17,34,52,0.98),rgba(10,24,38,0.98))] p-6 text-white shadow-[0_28px_80px_rgba(2,8,23,0.55)]">
+          <div
+            ref={dialogRef}
+            tabIndex={-1}
+            className="w-full max-w-md rounded-[28px] border border-white/10 bg-[linear-gradient(165deg,rgba(17,34,52,0.98),rgba(10,24,38,0.98))] p-6 text-white shadow-[0_28px_80px_rgba(2,8,23,0.55)]"
+            onClick={(event) => event.stopPropagation()}
+          >
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/72">
               {dialogEyebrow}
             </p>
             <h2
-              id="trusted-article-dialog-title"
+              id={dialogTitleId}
               className="mb-3 text-2xl font-semibold tracking-tight text-white"
             >
               {dialogTitle}
             </h2>
             <p
-              id="trusted-article-dialog-description"
+              id={dialogDescriptionId}
               className="text-sm leading-7 text-cyan-50/78"
             >
               {trustRequiredMessage}
@@ -102,6 +120,7 @@ export default function ArticleCreateAction({
             </div>
             <div className="mt-6 flex justify-end">
               <button
+                ref={closeButtonRef}
                 type="button"
                 onClick={() => setIsDialogOpen(false)}
                 className="rounded-full border border-cyan-300/35 bg-white/[0.06] px-4 py-2 text-sm font-medium text-cyan-100 transition hover:border-cyan-300/60 hover:bg-white/[0.1] hover:text-white"

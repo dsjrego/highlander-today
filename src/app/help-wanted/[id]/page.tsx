@@ -7,7 +7,9 @@ import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import SendMessageButton from '@/app/profile/[id]/SendMessageButton';
+import TrackedLink from '@/components/analytics/TrackedLink';
 import UserAvatar from '@/components/shared/UserAvatar';
+import { trackAnalyticsEvent } from '@/lib/analytics/client';
 
 interface HelpWantedDetail {
   id: string;
@@ -82,6 +84,28 @@ export default function HelpWantedDetailPage() {
       fetchPost();
     }
   }, [postId]);
+
+  useEffect(() => {
+    if (!post || post.status !== 'PUBLISHED') {
+      return;
+    }
+
+    trackAnalyticsEvent({
+      eventName: 'page_view',
+      contentType: 'HELP_WANTED_POST',
+      contentId: post.id,
+      pageType: 'help-wanted-detail',
+    });
+    trackAnalyticsEvent({
+      eventName: 'content_open',
+      contentType: 'HELP_WANTED_POST',
+      contentId: post.id,
+      pageType: 'help-wanted-detail',
+      metadata: {
+        postingType: post.postingType,
+      },
+    });
+  }, [post]);
 
   const currentUser = session?.user as { id?: string; trust_level?: string } | undefined;
   const isTrusted = sessionStatus === 'authenticated' && currentUser?.trust_level === 'TRUSTED';
@@ -179,12 +203,17 @@ export default function HelpWantedDetailPage() {
           >
             Manage My Posts
           </Link>
-          <Link
+          <TrackedLink
             href={`/help-wanted/${post.id}/edit`}
             className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white"
+            pageType="help-wanted-detail"
+            eventName="cta_clicked"
+            contentType="HELP_WANTED_POST"
+            contentId={post.id}
+            metadata={{ cta: 'edit-post' }}
           >
             Edit This Post
-          </Link>
+          </TrackedLink>
         </div>
       ) : null}
 
@@ -291,7 +320,20 @@ export default function HelpWantedDetailPage() {
 
           {canRespond ? (
             <div className="space-y-3">
-              <SendMessageButton profileUserId={post.author.id} />
+              <SendMessageButton
+                profileUserId={post.author.id}
+                onConversationStarted={() => {
+                  trackAnalyticsEvent({
+                    eventName: 'message_started_from_content',
+                    contentType: 'HELP_WANTED_POST',
+                    contentId: post.id,
+                    pageType: 'help-wanted-detail',
+                    metadata: {
+                      recipientUserId: post.author.id,
+                    },
+                  });
+                }}
+              />
               <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
                 Your response opens a private Highlander Today conversation with the poster. Keep job details, follow-up questions, and next steps inside the platform.
               </div>

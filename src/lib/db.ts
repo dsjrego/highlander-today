@@ -1,23 +1,41 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
+
+type AppPrismaClient = PrismaClient & {
+  contentMetricsDaily: Prisma.ContentMetricsDailyDelegate;
+  categoryMetricsDaily: Prisma.CategoryMetricsDailyDelegate;
+  homepageSlotMetricsDaily: Prisma.HomepageSlotMetricsDailyDelegate;
+};
 
 declare global {
-  var prisma: PrismaClient | undefined;
+  var prisma: AppPrismaClient | undefined;
+}
+
+function hasDelegate(client: AppPrismaClient | undefined, delegateName: keyof AppPrismaClient) {
+  return Boolean(client && (client as any)[delegateName]);
+}
+
+export function hasAnalyticsRollupDelegates(client: AppPrismaClient | undefined) {
+  return (
+    hasDelegate(client, 'contentMetricsDaily') &&
+    hasDelegate(client, 'categoryMetricsDaily') &&
+    hasDelegate(client, 'homepageSlotMetricsDaily')
+  );
 }
 
 // In development, Next.js preserves `global` across HMR and even restarts.
 // After running `prisma generate` with new models the cached client becomes
 // stale — it won't have properties like `loginEvent` or `activityLog`.
 // We detect this by checking for a known new model and recreate if missing.
-function createPrismaClient(): PrismaClient {
+function createPrismaClient(): AppPrismaClient {
   return new PrismaClient({
     log:
       process.env.NODE_ENV === 'development'
         ? ['query', 'error', 'warn']
         : ['error'],
-  });
+  }) as AppPrismaClient;
 }
 
-function getClient(): PrismaClient {
+function getClient(): AppPrismaClient {
   if (global.prisma) {
     // Quick staleness check: if the cached client is missing a model we
     // expect to exist, the generated client has been updated but the
@@ -28,7 +46,15 @@ function getClient(): PrismaClient {
       !(global.prisma as any).location ||
       !(global.prisma as any).place ||
       !(global.prisma as any).recipe ||
-      !(global.prisma as any).reporterRun
+      !(global.prisma as any).analyticsEvent ||
+      !(global.prisma as any).contentReaction ||
+      !hasAnalyticsRollupDelegates(global.prisma) ||
+      !(global.prisma as any).reporterRun ||
+      !(global.prisma as any).reporterInterviewRequest ||
+      !(global.prisma as any).reporterInterviewSession ||
+      !(global.prisma as any).reporterInterviewTurn ||
+      !(global.prisma as any).reporterInterviewFact ||
+      !(global.prisma as any).reporterInterviewSafetyFlag
     ) {
       console.warn('[db] Stale PrismaClient detected — recreating');
       global.prisma = createPrismaClient();

@@ -48,6 +48,11 @@ model Community {
   categories             Category[]
   siteSettings           SiteSetting[]
   tenantCoverageAreas    TenantCoverageArea[]
+  analyticsEvents        AnalyticsEvent[]
+  contentReactions       ContentReaction[]
+  contentMetricsDaily    ContentMetricsDaily[]
+  categoryMetricsDaily   CategoryMetricsDaily[]
+  homepageSlotMetricsDaily HomepageSlotMetricsDaily[]
 
   @@map("communities")
 }
@@ -130,6 +135,12 @@ model User {
   reporterSourcesCreated   ReporterSource[]          @relation("reporterSourceCreatedBy")
   reporterDraftsCreated    ReporterDraft[]           @relation("reporterDraftCreatedBy")
   reporterBlockersResolved ReporterBlocker[]         @relation("reporterBlockerResolvedBy")
+  reporterInterviewRequestsCreated ReporterInterviewRequest[] @relation("reporterInterviewRequestCreatedBy")
+  reporterInterviewRequestsAsSubject ReporterInterviewRequest[] @relation("reporterInterviewRequestInterviewee")
+  reporterInterviewSessionsReviewed ReporterInterviewSession[] @relation("reporterInterviewSessionReviewedBy")
+  analyticsEvents             AnalyticsEvent[]
+  contentReactions            ContentReaction[]
+  authoredContentMetricsDaily ContentMetricsDaily[]
 
   @@map("users")
 }
@@ -801,6 +812,68 @@ enum ReporterDraftType {
   SOURCE_PACKET_SUMMARY
 }
 
+enum ReporterInterviewRequestStatus {
+  DRAFT
+  INVITED
+  READY
+  IN_PROGRESS
+  COMPLETED
+  DECLINED
+  NO_SHOW
+  BLOCKED
+  CANCELLED
+}
+
+enum ReporterInterviewType {
+  TIPSTER
+  WITNESS
+  EVENT_ORGANIZER
+  ORG_REPRESENTATIVE
+  PROFILE_SUBJECT
+  GENERAL_SOURCE
+}
+
+enum ReporterInterviewPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum ReporterSupportedLanguage {
+  ENGLISH
+  SPANISH
+  UKRAINIAN
+}
+
+enum ReporterInterviewSessionStatus {
+  NOT_STARTED
+  ACTIVE
+  COMPLETED
+  ABANDONED
+  EXPIRED
+}
+
+enum ReporterInterviewFactType {
+  DIRECT_OBSERVATION
+  ATTRIBUTED_CLAIM
+  DISPUTED_CLAIM
+  CHRONOLOGY_ITEM
+  QUOTED_STATEMENT
+  NAMED_ENTITY
+  FOLLOW_UP_REQUIREMENT
+}
+
+enum ReporterInterviewSafetyFlagType {
+  ACCUSATION_OF_WRONGDOING
+  MINOR_MENTION
+  SELF_HARM_OR_VIOLENCE
+  MEDICAL_CLAIM
+  LEGAL_EXPOSURE
+  DOXXING_RISK
+  ANONYMITY_REQUEST
+}
+
 model ReporterRun {
   id                 String              @id @default(uuid()) @db.Uuid
   communityId        String              @db.Uuid
@@ -833,6 +906,7 @@ model ReporterRun {
   blockers          ReporterBlocker[]
   drafts            ReporterDraft[]
   validationIssues  ReporterValidationIssue[]
+  interviewRequests ReporterInterviewRequest[]
 
   @@index([communityId, status])
   @@index([assignedToUserId, status])
@@ -894,6 +968,7 @@ model ReporterBlocker {
 
   reporterRun ReporterRun @relation(fields: [reporterRunId], references: [id], onDelete: Cascade)
   resolvedBy  User?       @relation("reporterBlockerResolvedBy", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+  interviewSafetyFlags ReporterInterviewSafetyFlag[]
 
   @@index([reporterRunId, isResolved])
   @@index([resolvedByUserId])
@@ -942,6 +1017,140 @@ model ReporterValidationIssue {
   @@index([reporterRunId])
   @@index([reporterDraftId])
   @@map("reporter_validation_issues")
+}
+
+model ReporterInterviewRequest {
+  id                         String                         @id @default(uuid()) @db.Uuid
+  reporterRunId              String                         @db.Uuid
+  status                     ReporterInterviewRequestStatus @default(DRAFT)
+  interviewType              ReporterInterviewType          @default(GENERAL_SOURCE)
+  priority                   ReporterInterviewPriority      @default(NORMAL)
+  intervieweeName            String
+  intervieweeUserId          String?                        @db.Uuid
+  inviteEmail                String?
+  relationshipToStory        String?
+  purpose                    String
+  editorBrief                String?
+  mustLearn                  String?
+  knownContext               String?
+  sensitivityNotes           String?
+  suggestedLanguage          ReporterSupportedLanguage      @default(ENGLISH)
+  nativeLanguage             ReporterSupportedLanguage?
+  interviewLanguage          ReporterSupportedLanguage?
+  requiresTranslationSupport Boolean                        @default(false)
+  scheduledFor               DateTime?
+  invitedAt                  DateTime?
+  startedAt                  DateTime?
+  completedAt                DateTime?
+  createdByUserId            String?                        @db.Uuid
+  createdAt                  DateTime                       @default(now())
+  updatedAt                  DateTime                       @updatedAt
+
+  reporterRun ReporterRun @relation(fields: [reporterRunId], references: [id], onDelete: Cascade)
+  interviewee User? @relation("reporterInterviewRequestInterviewee", fields: [intervieweeUserId], references: [id], onDelete: SetNull)
+  createdBy   User? @relation("reporterInterviewRequestCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  sessions    ReporterInterviewSession[]
+
+  @@index([reporterRunId, status])
+  @@index([intervieweeUserId, status])
+  @@index([createdByUserId])
+  @@index([scheduledFor])
+  @@index([createdAt])
+  @@map("reporter_interview_requests")
+}
+
+model ReporterInterviewSession {
+  id                  String                         @id @default(uuid()) @db.Uuid
+  interviewRequestId  String                         @db.Uuid
+  status              ReporterInterviewSessionStatus @default(NOT_STARTED)
+  questionTemplateKey String?
+  language            ReporterSupportedLanguage      @default(ENGLISH)
+  currentStep         Int                            @default(0)
+  startedAt           DateTime?
+  lastActivityAt      DateTime?
+  completedAt         DateTime?
+  abandonedAt         DateTime?
+  transcriptText      String?
+  englishSummary      String?
+  reviewedAt          DateTime?
+  reviewedByUserId    String?                        @db.Uuid
+  createdAt           DateTime                       @default(now())
+  updatedAt           DateTime                       @updatedAt
+
+  interviewRequest ReporterInterviewRequest @relation(fields: [interviewRequestId], references: [id], onDelete: Cascade)
+  turns            ReporterInterviewTurn[]
+  facts            ReporterInterviewFact[]
+  safetyFlags      ReporterInterviewSafetyFlag[]
+  reviewedBy       User? @relation("reporterInterviewSessionReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([interviewRequestId, status])
+  @@index([lastActivityAt])
+  @@index([reviewedByUserId])
+  @@map("reporter_interview_sessions")
+}
+
+model ReporterInterviewTurn {
+  id                     String                    @id @default(uuid()) @db.Uuid
+  interviewSessionId     String                    @db.Uuid
+  sortOrder              Int
+  questionKey            String
+  questionText           String
+  questionLanguage       ReporterSupportedLanguage @default(ENGLISH)
+  answerText             String?
+  answerLanguage         ReporterSupportedLanguage?
+  answerTranslatedEnglish String?
+  branchDecision         String?
+  askedAt                DateTime                  @default(now())
+  answeredAt             DateTime?
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
+
+  interviewSession ReporterInterviewSession @relation(fields: [interviewSessionId], references: [id], onDelete: Cascade)
+  facts            ReporterInterviewFact[]
+
+  @@unique([interviewSessionId, sortOrder])
+  @@index([interviewSessionId, answeredAt])
+  @@map("reporter_interview_turns")
+}
+
+model ReporterInterviewFact {
+  id                 String                    @id @default(uuid()) @db.Uuid
+  interviewSessionId String                    @db.Uuid
+  interviewTurnId    String?                   @db.Uuid
+  factType           ReporterInterviewFactType
+  summary            String
+  detail             String?
+  sourceLabel        String?
+  sortOrder          Int                       @default(0)
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  interviewSession ReporterInterviewSession @relation(fields: [interviewSessionId], references: [id], onDelete: Cascade)
+  interviewTurn    ReporterInterviewTurn?   @relation(fields: [interviewTurnId], references: [id], onDelete: SetNull)
+
+  @@index([interviewSessionId, factType])
+  @@index([interviewTurnId])
+  @@map("reporter_interview_facts")
+}
+
+model ReporterInterviewSafetyFlag {
+  id                 String                          @id @default(uuid()) @db.Uuid
+  interviewSessionId String                          @db.Uuid
+  flagType           ReporterInterviewSafetyFlagType
+  headline           String
+  detail             String?
+  evidenceSpan       String?
+  blockerId          String?                         @db.Uuid
+  sortOrder          Int                             @default(0)
+  createdAt          DateTime                        @default(now())
+  updatedAt          DateTime                        @updatedAt
+
+  interviewSession ReporterInterviewSession @relation(fields: [interviewSessionId], references: [id], onDelete: Cascade)
+  blocker          ReporterBlocker?         @relation(fields: [blockerId], references: [id], onDelete: SetNull)
+
+  @@index([interviewSessionId, flagType])
+  @@index([blockerId])
+  @@map("reporter_interview_safety_flags")
 }
 
 enum RecipeStatus {
@@ -1141,6 +1350,7 @@ model Category {
 
 enum CategoryContentModel {
   ARTICLE
+  MEMORIAM
   RECIPE
   EVENT
   HELP_WANTED
@@ -1837,6 +2047,7 @@ enum ResourceType {
   ARTICLE
   REPORTER_RUN
   REPORTER_DRAFT
+  REPORTER_INTERVIEW_REQUEST
   RECIPE
   COMMENT
   EVENT
@@ -1848,4 +2059,170 @@ enum ResourceType {
   MESSAGE
   CONVERSATION
   USER_PROFILE
+}
+
+enum AnalyticsEventName {
+  page_view
+  page_exit
+  engaged_time_ping
+  scroll_depth_reached
+  content_impression
+  content_open
+  reaction_added
+  comment_created
+  share_clicked
+  copy_link_clicked
+  message_started_from_content
+  cta_clicked
+  search_result_clicked
+  homepage_slot_clicked
+}
+
+enum AnalyticsContentType {
+  ARTICLE
+  EVENT
+  MARKETPLACE_LISTING
+  STOREFRONT
+  HELP_WANTED_POST
+  ROADMAP_IDEA
+  STATIC_PAGE
+  SUPPORT_PAGE
+  RECIPE
+  ORGANIZATION
+}
+
+enum AnalyticsReferrerType {
+  INTERNAL
+  DIRECT
+  SEARCH
+  EXTERNAL
+  UNKNOWN
+}
+
+enum ContentReactionType {
+  useful
+  important
+  interesting
+  needs_follow_up
+}
+
+model AnalyticsEvent {
+  id                 String                @id @default(uuid()) @db.Uuid
+  communityId        String?               @db.Uuid
+  siteDomain         String?
+  userId             String?               @db.Uuid
+  sessionId          String
+  anonymousVisitorId String?
+  eventName          AnalyticsEventName
+  contentType        AnalyticsContentType?
+  contentId          String?
+  pageType           String
+  pagePath           String
+  referrerType       AnalyticsReferrerType?
+  referrerHost       String?
+  occurredAt         DateTime              @default(now())
+  metadata           Json?
+  createdAt          DateTime              @default(now())
+
+  community Community? @relation(fields: [communityId], references: [id], onDelete: SetNull)
+  user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([communityId, occurredAt])
+  @@index([contentType, contentId, occurredAt])
+  @@index([eventName, occurredAt])
+  @@index([sessionId, occurredAt])
+  @@index([anonymousVisitorId, occurredAt])
+  @@map("analytics_events")
+}
+
+model ContentReaction {
+  id           String              @id @default(uuid()) @db.Uuid
+  communityId  String?             @db.Uuid
+  userId       String              @db.Uuid
+  contentType  AnalyticsContentType
+  contentId    String
+  reactionType ContentReactionType
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  community Community? @relation(fields: [communityId], references: [id], onDelete: SetNull)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, contentType, contentId])
+  @@index([communityId, contentType, createdAt])
+  @@index([contentType, contentId])
+  @@map("content_reactions")
+}
+
+model ContentMetricsDaily {
+  id             String               @id @default(uuid()) @db.Uuid
+  communityId    String               @db.Uuid
+  date           DateTime             @db.Date
+  contentType    AnalyticsContentType
+  contentId      String
+  categoryLabel  String?
+  authorUserId   String?              @db.Uuid
+  pageViews      Int                  @default(0)
+  uniqueVisitors Int                  @default(0)
+  opens          Int                  @default(0)
+  engagedPings   Int                  @default(0)
+  reactions      Int                  @default(0)
+  comments       Int                  @default(0)
+  shares         Int                  @default(0)
+  messageStarts  Int                  @default(0)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  author    User?     @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
+
+  @@unique([communityId, date, contentType, contentId])
+  @@index([communityId, date, contentType])
+  @@index([authorUserId, date])
+  @@map("content_metrics_daily")
+}
+
+model CategoryMetricsDaily {
+  id            String               @id @default(uuid()) @db.Uuid
+  communityId   String               @db.Uuid
+  date          DateTime             @db.Date
+  contentType   AnalyticsContentType
+  categoryLabel String
+  pageViews     Int                  @default(0)
+  uniqueVisitors Int                 @default(0)
+  opens         Int                  @default(0)
+  engagedPings  Int                  @default(0)
+  reactions     Int                  @default(0)
+  comments      Int                  @default(0)
+  shares        Int                  @default(0)
+  messageStarts Int                  @default(0)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, date, contentType, categoryLabel])
+  @@index([communityId, date, contentType])
+  @@map("category_metrics_daily")
+}
+
+model HomepageSlotMetricsDaily {
+  id           String               @id @default(uuid()) @db.Uuid
+  communityId  String               @db.Uuid
+  date         DateTime             @db.Date
+  slotPosition Int
+  boxType      String
+  placement    String
+  contentType  AnalyticsContentType?
+  contentId    String?
+  impressions  Int                  @default(0)
+  clicks       Int                  @default(0)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, date, slotPosition, boxType, placement, contentType, contentId])
+  @@index([communityId, date, boxType])
+  @@map("homepage_slot_metrics_daily")
 }

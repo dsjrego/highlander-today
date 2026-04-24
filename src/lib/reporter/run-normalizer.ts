@@ -94,6 +94,8 @@ export function normalizeReporterRunInput(
   ].filter(Boolean);
 
   return {
+    mode: payload.mode ?? null,
+    requestType: payload.requestType ?? null,
     title: cleanString(payload.title),
     topic,
     subjectName: cleanString(payload.subjectName),
@@ -102,6 +104,7 @@ export function normalizeReporterRunInput(
     requesterEmail: cleanString(payload.requesterEmail),
     requesterPhone: cleanString(payload.requesterPhone),
     requestSummary: requestSummaryParts.length > 0 ? requestSummaryParts.join('\n') : null,
+    editorNotes: cleanString(payload.editorNotes),
     publicDescription: cleanString(payload.whatHappened),
     initialSources: buildInitialSources(payload),
   };

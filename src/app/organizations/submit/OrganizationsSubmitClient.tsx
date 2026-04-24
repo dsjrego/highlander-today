@@ -26,6 +26,7 @@ interface CreateOrganizationFormState {
   name: string;
   directoryGroup: OrganizationDirectoryGroup;
   organizationType: string;
+  isOwnOrganization: boolean;
   description: string;
   websiteUrl: string;
   contactEmail: string;
@@ -36,6 +37,7 @@ const EMPTY_CREATE_FORM: CreateOrganizationFormState = {
   name: '',
   directoryGroup: 'ORGANIZATION',
   organizationType: ORGANIZATION_TYPE_OPTIONS.ORGANIZATION[0].value,
+  isOwnOrganization: true,
   description: '',
   websiteUrl: '',
   contactEmail: '',
@@ -170,6 +172,7 @@ export default function OrganizationsSubmitClient() {
         },
         body: JSON.stringify({
           ...createForm,
+          isOwnOrganization: createForm.isOwnOrganization,
           description: createForm.description.trim(),
           websiteUrl: createForm.websiteUrl.trim(),
           contactEmail: createForm.contactEmail.trim(),
@@ -190,7 +193,11 @@ export default function OrganizationsSubmitClient() {
       }
 
       setCreateForm(EMPTY_CREATE_FORM);
-      setCreateSuccess(`Submitted ${data.organization.name} for review.`);
+      setCreateSuccess(
+        data.membershipCreated
+          ? `Submitted ${data.organization.name} for review and attached your account as the owner.`
+          : `Submitted ${data.organization.name} for review without attaching your account as a member.`
+      );
     } catch (error) {
       setCreateError(error instanceof Error ? error.message : 'Failed to create organization');
     } finally {
@@ -367,6 +374,37 @@ export default function OrganizationsSubmitClient() {
                 className="form-input min-h-[140px] border-slate-300 bg-white text-slate-950"
                 maxLength={4000}
               />
+            </div>
+
+            <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <p className="text-sm font-semibold text-slate-950">Is this your organization?</p>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                If yes, your account will be attached as the owner for this listing. If no, you can still submit it for the directory without becoming a member.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <label className="flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700">
+                  <input
+                    type="radio"
+                    name="isOwnOrganization"
+                    checked={createForm.isOwnOrganization}
+                    onChange={() =>
+                      setCreateForm((current) => ({ ...current, isOwnOrganization: true }))
+                    }
+                  />
+                  <span>Yes, it is mine</span>
+                </label>
+                <label className="flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700">
+                  <input
+                    type="radio"
+                    name="isOwnOrganization"
+                    checked={!createForm.isOwnOrganization}
+                    onChange={() =>
+                      setCreateForm((current) => ({ ...current, isOwnOrganization: false }))
+                    }
+                  />
+                  <span>No, just add it</span>
+                </label>
+              </div>
             </div>
 
             <div>

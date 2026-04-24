@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useId } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { getCategoryHref } from '@/lib/category-config';
@@ -58,6 +58,8 @@ function MobileHamburgerIcon() {
 }
 
 export default function BannerActions() {
+  const userMenuId = useId();
+  const guestMenuId = useId();
   const { data: session, status } = useSession();
   const userId = (session?.user as { id?: string } | undefined)?.id;
   const userRole = session?.user?.role;
@@ -79,6 +81,21 @@ export default function BannerActions() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!dropdownOpen) {
+      return;
+    }
+
+    function handleKeyDown(event: globalThis.KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setDropdownOpen(false);
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [dropdownOpen]);
 
   useEffect(() => {
     async function fetchCategories() {
@@ -173,6 +190,9 @@ export default function BannerActions() {
     });
   }, [categories, session?.user?.role, session?.user?.trust_level]);
 
+  const articleSubmitHref = session?.user ? '/local-life/submit' : '/login?callbackUrl=/local-life/submit';
+  const eventSubmitHref = session?.user ? '/events/submit' : '/login?callbackUrl=/events/submit';
+
   const renderMobileNavigation = () => (
     <div className="masthead-menu-divider border-b py-2 md:hidden">
       <Link
@@ -190,6 +210,8 @@ export default function BannerActions() {
               onClick={() =>
                 setOpenMobileSection((current) => (current === section.slug ? null : section.slug))
               }
+              aria-expanded={openMobileSection === section.slug}
+              aria-controls={`${section.slug}-mobile-submenu`}
               className="masthead-menu-item flex w-full items-center justify-end gap-2 px-4 py-2 text-right text-sm font-semibold transition"
             >
               <svg
@@ -204,7 +226,7 @@ export default function BannerActions() {
               <span>{section.label}</span>
             </button>
             {openMobileSection === section.slug && (
-              <div className="pb-1">
+              <div id={`${section.slug}-mobile-submenu`} className="pb-1">
                 {section.subcategories.map((sub) => (
                   <Link
                     key={sub.slug}
@@ -234,6 +256,38 @@ export default function BannerActions() {
 
   return (
     <div className="flex flex-nowrap items-center justify-end gap-1.5 md:flex-wrap md:gap-2">
+      <Link
+        href={articleSubmitHref}
+        aria-label="Add article"
+        className="masthead-utility-button flex h-[2.125rem] items-center justify-center gap-1.5 px-2.5 text-sm font-medium md:px-3 md:py-2"
+      >
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 5v14m-7-7h14"
+          />
+        </svg>
+        <span className="hidden md:inline">Article</span>
+      </Link>
+
+      <Link
+        href={eventSubmitHref}
+        aria-label="Add event"
+        className="masthead-utility-button flex h-[2.125rem] items-center justify-center gap-1.5 px-2.5 text-sm font-medium md:px-3 md:py-2"
+      >
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M8 3v3m8-3v3M4 9h16M6 5h12a2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2Z"
+          />
+        </svg>
+        <span className="hidden md:inline">Event</span>
+      </Link>
+
       {/* Search link */}
       <Link
         href="/search"
@@ -270,8 +324,12 @@ export default function BannerActions() {
       {session?.user ? (
         <div className="relative" ref={dropdownRef}>
           <button
+            type="button"
             onClick={() => setDropdownOpen(!dropdownOpen)}
             aria-label="Open user menu"
+            aria-haspopup="menu"
+            aria-expanded={dropdownOpen}
+            aria-controls={userMenuId}
             className="masthead-utility-button flex h-[2.125rem] w-[2.125rem] items-center justify-center md:h-auto md:w-auto md:gap-1 md:px-3 md:py-2 md:text-sm md:font-medium"
           >
             <svg className="hidden w-4 h-4 md:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -285,7 +343,12 @@ export default function BannerActions() {
           </button>
 
           {dropdownOpen && (
-            <div className="masthead-menu-panel absolute right-0 z-50 mt-2 w-64 rounded-2xl py-1 shadow-2xl backdrop-blur">
+            <div
+              id={userMenuId}
+              role="menu"
+              aria-label="User menu"
+              className="masthead-menu-panel absolute right-0 z-50 mt-2 w-64 rounded-2xl py-1 shadow-2xl backdrop-blur"
+            >
               <div className="masthead-menu-label border-b px-4 py-2 text-right text-xs font-semibold uppercase tracking-[0.24em] md:hidden">
                 Menu
               </div>
@@ -297,6 +360,7 @@ export default function BannerActions() {
                 href={`/profile/${(session.user as any).id}`}
                 className="masthead-menu-item block px-4 py-2 text-right text-sm"
                 onClick={() => setDropdownOpen(false)}
+                role="menuitem"
               >
                 Profile
               </Link>
@@ -305,16 +369,19 @@ export default function BannerActions() {
                   href="/admin"
                   className="masthead-menu-item block px-4 py-2 text-right text-sm"
                   onClick={() => setDropdownOpen(false)}
+                  role="menuitem"
                 >
                   Admin
                 </Link>
               )}
               <button
+                type="button"
                 onClick={() => {
                   setDropdownOpen(false);
                   signOut({ callbackUrl: '/' });
                 }}
                 className="masthead-menu-item block w-full px-4 py-2 text-right text-sm"
+                role="menuitem"
               >
                 Logout
               </button>
@@ -342,12 +409,20 @@ export default function BannerActions() {
             type="button"
             onClick={() => setDropdownOpen(!dropdownOpen)}
             aria-label="Open menu"
+            aria-haspopup="menu"
+            aria-expanded={dropdownOpen}
+            aria-controls={guestMenuId}
             className="masthead-utility-button flex h-9 w-9 items-center justify-center md:hidden"
           >
             <MobileHamburgerIcon />
           </button>
           {dropdownOpen && (
-            <div className="masthead-menu-panel absolute right-0 z-50 mt-2 w-64 rounded-2xl py-1 shadow-2xl backdrop-blur md:hidden">
+            <div
+              id={guestMenuId}
+              role="menu"
+              aria-label="Site menu"
+              className="masthead-menu-panel absolute right-0 z-50 mt-2 w-64 rounded-2xl py-1 shadow-2xl backdrop-blur md:hidden"
+            >
               <div className="masthead-menu-label border-b px-4 py-2 text-right text-xs font-semibold uppercase tracking-[0.24em]">
                 Menu
               </div>
@@ -356,6 +431,7 @@ export default function BannerActions() {
                 href="/login"
                 className="masthead-menu-item block px-4 py-2 text-right text-sm"
                 onClick={() => setDropdownOpen(false)}
+                role="menuitem"
               >
                 Sign In / Sign Up
               </Link>

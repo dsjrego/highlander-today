@@ -3,8 +3,13 @@
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { FormEvent, useState } from 'react';
-import { Building2, ListChecks, Plus } from 'lucide-react';
-import { CrudActionButton } from '@/components/shared/CrudAction';
+import { Building2, ListChecks, Plus, Settings2 } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { CrudActionButton, CrudActionLink } from '@/components/shared/CrudAction';
+import { AdminChip } from '@/components/admin/AdminChip';
+import { AdminDrawer } from '@/components/admin/AdminDrawer';
+import { AdminFilterBar } from '@/components/admin/AdminFilterBar';
+import { AdminViewTabs } from '@/components/admin/AdminViewTabs';
 import {
   ORGANIZATION_GROUP_OPTIONS,
   ORGANIZATION_TYPE_OPTIONS,
@@ -18,9 +23,9 @@ const TipTapEditor = dynamic(() => import('@/components/articles/TipTapEditor'),
 const ORGANIZATION_TABS = ['pending', 'approved', 'rejected', 'suspended'] as const;
 const ORGANIZATION_PAGE_SIZE = 10;
 const ORGANIZATION_STATUS_OPTIONS = [
-  { value: 'APPROVED', label: 'Approved' },
-  { value: 'REJECTED', label: 'Rejected' },
-  { value: 'SUSPENDED', label: 'Suspended' },
+  { value: 'APPROVED', label: 'Approved', tone: 'ok' },
+  { value: 'REJECTED', label: 'Rejected', tone: 'bad' },
+  { value: 'SUSPENDED', label: 'Suspended', tone: 'bad' },
 ] as const;
 
 type OrganizationTab = (typeof ORGANIZATION_TABS)[number];
@@ -91,12 +96,29 @@ function formatTypeLabel(value: string) {
     .join(' ');
 }
 
+function getStatusMeta(status: OrganizationRecord['status']) {
+  if (status === 'PENDING_APPROVAL') {
+    return { label: 'Pending', tone: 'pend' as const };
+  }
+
+  return (
+    ORGANIZATION_STATUS_OPTIONS.find((option) => option.value === status) ?? {
+      label: 'Status',
+      tone: 'neu' as const,
+    }
+  );
+}
+
 export default function OrganizationTabs({ organizations }: OrganizationTabsProps) {
-  const [activeTab, setActiveTab] = useState<OrganizationTab | 'create'>('pending');
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const activeTab = (searchParams.get('view') as OrganizationTab) || 'pending';
+  const focus = searchParams.get('focus');
+
   const [filterValue, setFilterValue] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [rows, setRows] = useState(organizations);
-  const [editingStatusOrganizationId, setEditingStatusOrganizationId] = useState<string | null>(null);
   const [savingStatusOrganizationId, setSavingStatusOrganizationId] = useState<string | null>(null);
   const [statusError, setStatusError] = useState('');
   const [createError, setCreateError] = useState('');
@@ -112,9 +134,9 @@ export default function OrganizationTabs({ organizations }: OrganizationTabsProp
   });
 
   const normalizedFilter = filterValue.trim().toLowerCase();
-  const currentStatus = activeTab === 'create' ? null : getStatusForTab(activeTab);
+  const currentStatus = getStatusForTab(activeTab);
   const filteredOrganizations = rows.filter((organization) => {
-    if (!currentStatus || organization.status !== currentStatus) {
+    if (organization.status !== currentStatus) {
       return false;
     }
 
@@ -134,6 +156,22 @@ export default function OrganizationTabs({ organizations }: OrganizationTabsProp
   const safePage = Math.min(currentPage, pageCount);
   const pageStart = (safePage - 1) * ORGANIZATION_PAGE_SIZE;
   const pageOrganizations = filteredOrganizations.slice(pageStart, pageStart + ORGANIZATION_PAGE_SIZE);
+  const focusedOrganization = focus && focus !== 'new' ? rows.find((organization) => organization.id === focus) ?? null : null;
+
+  function updateSearchParams(updates: Record<string, string | null>) {
+    const next = new URLSearchParams(searchParams.toString());
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === null || value === '') {
+        next.delete(key);
+      } else {
+        next.set(key, value);
+      }
+    });
+
+    const query = next.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  }
 
   function handleFilterChange(value: string) {
     setFilterValue(value);
@@ -221,7 +259,7 @@ export default function OrganizationTabs({ organizations }: OrganizationTabsProp
             : data.organization.status === 'SUSPENDED'
               ? 'suspended'
               : 'pending';
-      setActiveTab(nextTab);
+      updateSearchParams({ view: nextTab, focus: data.organization.id });
       setCurrentPage(1);
     } catch (error) {
       setCreateError(error instanceof Error ? error.message : 'Failed to create organization');
@@ -262,7 +300,6 @@ export default function OrganizationTabs({ organizations }: OrganizationTabsProp
             : organization
         )
       );
-      setEditingStatusOrganizationId(null);
     } catch (error) {
       setStatusError(error instanceof Error ? error.message : 'Failed to update status');
     } finally {
@@ -273,43 +310,169 @@ export default function OrganizationTabs({ organizations }: OrganizationTabsProp
   const createTypeOptions = ORGANIZATION_TYPE_OPTIONS[createForm.directoryGroup];
 
   return (
-    <div className="space-y-0">
-      <div className="relative top-[2px] flex flex-wrap gap-0 pb-0">
-        {ORGANIZATION_TABS.map((tab) => {
-          const isActive = tab === activeTab;
-
-          return (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => {
-                setActiveTab(tab);
-                setCurrentPage(1);
-              }}
-              className={`admin-card-tab ${isActive ? 'admin-card-tab-active' : 'admin-card-tab-inactive'}`}
-            >
-              {tab}
-            </button>
-          );
-        })}
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <AdminViewTabs
+          defaultView="pending"
+          views={ORGANIZATION_TABS.map((tab) => ({
+            key: tab,
+            label: getTabLabel(tab),
+            count: rows.filter((organization) => organization.status === getStatusForTab(tab)).length,
+            tone: tab === 'pending' ? 'pend' : tab === 'rejected' || tab === 'suspended' ? 'bad' : undefined,
+          }))}
+        />
         <button
           type="button"
-          onClick={() => {
-            setActiveTab('create');
-            setCurrentPage(1);
-          }}
-          className={`admin-card-tab inline-flex items-center gap-2 ${
-            activeTab === 'create' ? 'admin-card-tab-active' : 'admin-card-tab-inactive'
-          }`}
+          className="page-header-action"
+          onClick={() => updateSearchParams({ focus: 'new' })}
         >
-          <Plus className="h-3.5 w-3.5" />
-          Organization
+          <Plus className="h-4 w-4" />
+          <span>Organization</span>
         </button>
       </div>
 
-      <div className="admin-card-tab-body">
-        {activeTab === 'create' ? (
-          <form onSubmit={handleCreateOrganization} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="admin-list">
+        <AdminFilterBar
+          search={
+            <label className="admin-list-filter">
+              <span className="admin-list-filter-label">Name, Type, Group, Submitter</span>
+              <input
+                type="text"
+                value={filterValue}
+                onChange={(event) => handleFilterChange(event.target.value)}
+                placeholder="Search by organization name, type, group, or submitter last name"
+                className="admin-list-filter-input"
+              />
+            </label>
+          }
+          right={
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+              {filteredOrganizations.length} {getTabLabel(activeTab).toLowerCase()} organization{filteredOrganizations.length === 1 ? '' : 's'}
+            </div>
+          }
+        />
+
+        {statusError ? <div className="admin-list-error">{statusError}</div> : null}
+        {createError && focus === 'new' ? <div className="admin-list-error">{createError}</div> : null}
+        {createSuccess && focus === 'new' ? (
+          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-700">
+            {createSuccess}
+          </div>
+        ) : null}
+
+        <div className="admin-list-table-wrap">
+          <table className="admin-list-table">
+            <thead className="admin-list-head">
+              <tr>
+                <th className="admin-list-header-cell">Name</th>
+                <th className="admin-list-header-cell">Group / Type</th>
+                <th className="admin-list-header-cell">Created By</th>
+                <th className="admin-list-header-cell">Structure</th>
+                <th className="admin-list-header-cell">Updated</th>
+                <th className="admin-list-header-cell">Status</th>
+                <th className="admin-list-header-cell">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pageOrganizations.length > 0 ? (
+                pageOrganizations.map((organization) => {
+                  const statusMeta = getStatusMeta(organization.status);
+
+                  return (
+                    <tr key={organization.id} className="admin-list-row">
+                      <td className="admin-list-cell">
+                        <Link href={`/admin/organizations/${organization.id}`} className="admin-list-link">
+                          {organization.name}
+                        </Link>
+                      </td>
+                      <td className="admin-list-cell">
+                        {formatTypeLabel(organization.directoryGroup)} / {formatTypeLabel(organization.organizationType)}
+                      </td>
+                      <td className="admin-list-cell">
+                        {organization.createdBy.firstName} {organization.createdBy.lastName}
+                      </td>
+                      <td className="admin-list-cell">
+                        {organization._count.locations} loc / {organization._count.departments} dept / {organization._count.contacts} contact
+                      </td>
+                      <td className="admin-list-cell">{formatDate(organization.updatedAt)}</td>
+                      <td className="admin-list-cell">
+                        <AdminChip tone={statusMeta.tone}>{statusMeta.label}</AdminChip>
+                      </td>
+                      <td className="admin-list-cell">
+                        <div className="flex flex-wrap gap-3">
+                          <CrudActionLink
+                            href={`/admin/organizations/${organization.id}`}
+                            variant="inline-link"
+                            icon={Building2}
+                            label="Open organization"
+                          >
+                            Open
+                          </CrudActionLink>
+                          <CrudActionButton
+                            type="button"
+                            variant="inline"
+                            icon={Settings2}
+                            label="Manage organization"
+                            onClick={() => updateSearchParams({ focus: organization.id })}
+                          >
+                            Manage
+                          </CrudActionButton>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td className="admin-list-empty" colSpan={7}>
+                    No {activeTab} organizations match the current filter.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="admin-list-pagination">
+          <div className="admin-list-pagination-label">
+            {filteredOrganizations.length} {getTabLabel(activeTab).toLowerCase()} organization
+            {filteredOrganizations.length === 1 ? '' : 's'}
+          </div>
+          <div className="admin-list-pagination-actions">
+            <button
+              type="button"
+              onClick={() => setCurrentPage((current) => Math.max(1, current - 1))}
+              disabled={safePage === 1}
+              className="admin-list-pagination-button"
+            >
+              Previous
+            </button>
+            <span className="admin-list-pagination-page">
+              Page {safePage} of {pageCount}
+            </span>
+            <button
+              type="button"
+              onClick={() => setCurrentPage((current) => Math.min(pageCount, current + 1))}
+              disabled={safePage === pageCount}
+              className="admin-list-pagination-button"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <AdminDrawer
+        title={
+          focus === 'new'
+            ? 'Create Organization'
+            : focusedOrganization
+              ? `Manage ${focusedOrganization.name}`
+              : 'Manage Organization'
+        }
+      >
+        {focus === 'new' ? (
+          <form onSubmit={handleCreateOrganization} className="space-y-5">
             <div>
               <h3 className="text-lg font-bold text-slate-950">Add Organization</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -426,145 +589,74 @@ export default function OrganizationTabs({ organizations }: OrganizationTabsProp
               </CrudActionButton>
             </div>
           </form>
+        ) : focusedOrganization ? (
+          <div className="space-y-5">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <AdminChip tone={getStatusMeta(focusedOrganization.status).tone}>
+                  {getStatusMeta(focusedOrganization.status).label}
+                </AdminChip>
+                <AdminChip tone="role">{formatTypeLabel(focusedOrganization.directoryGroup)}</AdminChip>
+              </div>
+              <div className="mt-3 space-y-1 text-sm text-slate-600">
+                <p>{formatTypeLabel(focusedOrganization.organizationType)}</p>
+                <p>
+                  Created by {focusedOrganization.createdBy.firstName} {focusedOrganization.createdBy.lastName}
+                </p>
+                <p>Updated: {formatDate(focusedOrganization.updatedAt)}</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Status</p>
+              <select
+                className="admin-list-cell-select min-w-[14rem]"
+                value={focusedOrganization.status === 'PENDING_APPROVAL' ? 'PENDING_APPROVAL' : focusedOrganization.status}
+                disabled={savingStatusOrganizationId === focusedOrganization.id}
+                onChange={(event) => {
+                  if (event.target.value === 'PENDING_APPROVAL') {
+                    return;
+                  }
+
+                  handleStatusChange(
+                    focusedOrganization.id,
+                    event.target.value as 'APPROVED' | 'REJECTED' | 'SUSPENDED'
+                  );
+                }}
+              >
+                {focusedOrganization.status === 'PENDING_APPROVAL' ? (
+                  <option value="PENDING_APPROVAL">Pending</option>
+                ) : null}
+                {ORGANIZATION_STATUS_OPTIONS.map((status) => (
+                  <option key={status.value} value={status.value}>
+                    {status.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+              <p>
+                {focusedOrganization._count.locations} locations, {focusedOrganization._count.departments} departments,
+                {` ${focusedOrganization._count.contacts} contacts, ${focusedOrganization._count.memberships} memberships`}
+              </p>
+            </div>
+
+            <CrudActionLink
+              href={`/admin/organizations/${focusedOrganization.id}`}
+              variant="inline-link"
+              icon={ListChecks}
+              label="Open full organization editor"
+            >
+              Open full editor
+            </CrudActionLink>
+          </div>
         ) : (
-        <div className="admin-list">
-          <div className="admin-list-toolbar">
-            <label className="admin-list-filter">
-              <span className="admin-list-filter-label">Filter: Name, Type, Group, Submitter</span>
-              <input
-                type="text"
-                value={filterValue}
-                onChange={(event) => handleFilterChange(event.target.value)}
-                placeholder="Search by organization name, type, group, or submitter last name"
-                className="admin-list-filter-input"
-              />
-            </label>
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+            The selected organization is not available in the current result set.
           </div>
-
-          {statusError ? <div className="admin-list-error">{statusError}</div> : null}
-
-          <div className="admin-list-table-wrap">
-            <table className="admin-list-table">
-              <thead className="admin-list-head">
-                <tr>
-                  <th className="admin-list-header-cell">Name</th>
-                  <th className="admin-list-header-cell">Group / Type</th>
-                  <th className="admin-list-header-cell">Created By</th>
-                  <th className="admin-list-header-cell">Structure</th>
-                  <th className="admin-list-header-cell">Updated</th>
-                  <th className="admin-list-header-cell">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pageOrganizations.length > 0 ? (
-                  pageOrganizations.map((organization) => (
-                    <tr key={organization.id} className="admin-list-row">
-                      <td className="admin-list-cell">
-                        <Link href={`/admin/organizations/${organization.id}`} className="admin-list-link">
-                          {organization.name}
-                        </Link>
-                      </td>
-                      <td className="admin-list-cell">
-                        {formatTypeLabel(organization.directoryGroup)} / {formatTypeLabel(organization.organizationType)}
-                      </td>
-                      <td className="admin-list-cell">
-                        {organization.createdBy.firstName} {organization.createdBy.lastName}
-                      </td>
-                      <td className="admin-list-cell">
-                        {organization._count.locations} loc / {organization._count.departments} dept / {organization._count.contacts} contact
-                      </td>
-                      <td className="admin-list-cell">{formatDate(organization.updatedAt)}</td>
-                      <td className="admin-list-cell">
-                        {editingStatusOrganizationId === organization.id ? (
-                          <select
-                            className="admin-list-cell-select"
-                            defaultValue={organization.status}
-                            disabled={savingStatusOrganizationId === organization.id}
-                            onBlur={() => {
-                              if (savingStatusOrganizationId !== organization.id) {
-                                setEditingStatusOrganizationId(null);
-                              }
-                            }}
-                            onChange={(event) =>
-                              handleStatusChange(
-                                organization.id,
-                                event.target.value as 'APPROVED' | 'REJECTED' | 'SUSPENDED'
-                              )
-                            }
-                            autoFocus
-                          >
-                            {organization.status === 'PENDING_APPROVAL' ? (
-                              <option value="PENDING_APPROVAL" disabled>
-                                Pending
-                              </option>
-                            ) : null}
-                            {ORGANIZATION_STATUS_OPTIONS.map((status) => (
-                              <option key={status.value} value={status.value}>
-                                {status.label}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <CrudActionButton
-                            type="button"
-                            variant="inline"
-                            icon={ListChecks}
-                            label={
-                              organization.status === 'PENDING_APPROVAL'
-                                ? 'Pending'
-                                : ORGANIZATION_STATUS_OPTIONS.find((status) => status.value === organization.status)?.label || 'Status'
-                            }
-                            onClick={() => setEditingStatusOrganizationId(organization.id)}
-                          >
-                            {organization.status === 'PENDING_APPROVAL'
-                              ? 'Pending'
-                              : ORGANIZATION_STATUS_OPTIONS.find((status) => status.value === organization.status)?.label}
-                          </CrudActionButton>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td className="admin-list-empty" colSpan={6}>
-                      No {activeTab} organizations match the current filter.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="admin-list-pagination">
-            <div className="admin-list-pagination-label">
-              {filteredOrganizations.length} {getTabLabel(activeTab).toLowerCase()} organization
-              {filteredOrganizations.length === 1 ? '' : 's'}
-            </div>
-            <div className="admin-list-pagination-actions">
-              <button
-                type="button"
-                onClick={() => setCurrentPage((current) => Math.max(1, current - 1))}
-                disabled={safePage === 1}
-                className="admin-list-pagination-button"
-              >
-                Previous
-              </button>
-              <span className="admin-list-pagination-page">
-                Page {safePage} of {pageCount}
-              </span>
-              <button
-                type="button"
-                onClick={() => setCurrentPage((current) => Math.min(pageCount, current + 1))}
-                disabled={safePage === pageCount}
-                className="admin-list-pagination-button"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        </div>
         )}
-      </div>
+      </AdminDrawer>
     </div>
   );
 }

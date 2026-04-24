@@ -36,11 +36,36 @@ export async function POST(
         sources: {
           orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
         },
+        interviewRequests: {
+          include: {
+            sessions: {
+              where: { status: 'COMPLETED' },
+              select: {
+                id: true,
+                reviewedAt: true,
+              },
+            },
+          },
+        },
       },
     });
 
     if (!run || (currentCommunity && run.communityId !== currentCommunity.id)) {
       return NextResponse.json({ error: 'Reporter run not found' }, { status: 404 });
+    }
+
+    const unreviewedInterviewSessions = run.interviewRequests.flatMap((interview) =>
+      interview.sessions.filter((session) => !session.reviewedAt)
+    );
+
+    if (unreviewedInterviewSessions.length > 0) {
+      return NextResponse.json(
+        {
+          error:
+            'Completed interview output must be reviewed before generating a reporter draft.',
+        },
+        { status: 400 }
+      );
     }
 
     const body = await request.json().catch(() => ({}));

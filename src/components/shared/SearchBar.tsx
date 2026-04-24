@@ -28,8 +28,12 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
   return (
     <form onSubmit={handleSearch} className="w-full">
+      <label htmlFor="site-search-input" className="visually-hidden">
+        Search the site
+      </label>
       <div className="relative">
         <input
+          id="site-search-input"
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -38,6 +42,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         />
         <button
           type="submit"
+          aria-label="Submit search"
           className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

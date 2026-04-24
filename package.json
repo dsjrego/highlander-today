@@ -20,6 +20,7 @@
     "test:integration": "jest --testPathPattern='tests/integration'",
     "test:e2e": "jest --testPathPattern='tests/e2e'",
     "db:generate": "prisma generate --schema prisma/schema.prisma",
+    "analytics:rollup": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/aggregate-analytics.ts",
     "db:migrate": "prisma migrate dev --schema prisma/schema.prisma",
     "db:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
     "db:create-super-admin": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/create-super-admin.ts",

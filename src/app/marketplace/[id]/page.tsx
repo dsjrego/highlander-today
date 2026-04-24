@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import SendMessageButton from "@/app/profile/[id]/SendMessageButton";
+import TrackedLink from "@/components/analytics/TrackedLink";
+import { trackAnalyticsEvent } from "@/lib/analytics/client";
 
 interface ListingDetail {
   id: string;
@@ -136,6 +138,29 @@ export default function ListingDetailPage({ params }: PageProps) {
 
     loadListing();
   }, [params.id]);
+
+  useEffect(() => {
+    if (!listing || listing.status !== "ACTIVE") {
+      return;
+    }
+
+    trackAnalyticsEvent({
+      eventName: "page_view",
+      contentType: "MARKETPLACE_LISTING",
+      contentId: listing.id,
+      pageType: "marketplace-listing-detail",
+    });
+    trackAnalyticsEvent({
+      eventName: "content_open",
+      contentType: "MARKETPLACE_LISTING",
+      contentId: listing.id,
+      pageType: "marketplace-listing-detail",
+      metadata: {
+        listingType: listing.listingType,
+        storeId: listing.store.id,
+      },
+    });
+  }, [listing]);
 
   const sellerName = useMemo(() => {
     if (!listing) return "";
@@ -286,12 +311,17 @@ export default function ListingDetailPage({ params }: PageProps) {
                 )}
               </div>
               <div>
-                <Link
+                <TrackedLink
                   href={`/marketplace/stores/${listing.store.id}`}
                   className="font-semibold text-slate-900 hover:underline"
+                  pageType="marketplace-listing-detail"
+                  eventName="cta_clicked"
+                  contentType="MARKETPLACE_LISTING"
+                  contentId={listing.id}
+                  metadata={{ cta: "storefront", storeId: listing.store.id }}
                 >
                   {listing.store.name}
-                </Link>
+                </TrackedLink>
                 <p className="text-sm text-slate-500">Owned by {sellerName}</p>
               </div>
             </div>
@@ -300,12 +330,17 @@ export default function ListingDetailPage({ params }: PageProps) {
               <p className="mb-4 text-sm text-slate-700">{listing.store.description}</p>
             ) : null}
 
-            <Link
+            <TrackedLink
               href={`/marketplace/stores/${listing.store.id}`}
               className="mb-4 inline-flex items-center text-sm font-semibold text-[var(--brand-accent)] hover:underline"
+              pageType="marketplace-listing-detail"
+              eventName="cta_clicked"
+              contentType="MARKETPLACE_LISTING"
+              contentId={listing.id}
+              metadata={{ cta: "view-storefront", storeId: listing.store.id }}
             >
               View storefront
-            </Link>
+            </TrackedLink>
 
             {(listing.store.contactEmail || listing.store.contactPhone) ? (
               <div className="space-y-1 border-t pt-4 text-sm text-slate-700">
@@ -321,7 +356,21 @@ export default function ListingDetailPage({ params }: PageProps) {
           </div>
 
           {canMessageSeller ? (
-            <SendMessageButton profileUserId={listing.store.owner.id} />
+            <SendMessageButton
+              profileUserId={listing.store.owner.id}
+              onConversationStarted={() => {
+                trackAnalyticsEvent({
+                  eventName: "message_started_from_content",
+                  contentType: "MARKETPLACE_LISTING",
+                  contentId: listing.id,
+                  pageType: "marketplace-listing-detail",
+                  metadata: {
+                    recipientUserId: listing.store.owner.id,
+                    storeId: listing.store.id,
+                  },
+                });
+              }}
+            />
           ) : listing.status === "SOLD" ? (
             <div className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-800">
               This listing is marked sold, so new buyer messages are disabled.
@@ -342,19 +391,29 @@ export default function ListingDetailPage({ params }: PageProps) {
         <section className="border-t border-slate-200 pt-8">
           <div className="flex items-center justify-between gap-4 mb-6">
             <h2 className="text-2xl font-black tracking-[-0.03em] text-slate-950">More from {listing.store.name}</h2>
-            <Link
+            <TrackedLink
               href={`/marketplace/stores/${listing.store.id}`}
               className="text-sm font-semibold text-[var(--brand-accent)] hover:underline"
+              pageType="marketplace-listing-detail"
+              eventName="cta_clicked"
+              contentType="MARKETPLACE_LISTING"
+              contentId={listing.id}
+              metadata={{ cta: "more-from-store", storeId: listing.store.id }}
             >
               View storefront
-            </Link>
+            </TrackedLink>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {relatedListings.map((related) => (
-              <Link
+              <TrackedLink
                 key={related.id}
                 href={`/marketplace/${related.id}`}
                 className="overflow-hidden rounded-[24px] border border-white/10 bg-white/82 shadow-[0_18px_42px_rgba(15,23,42,0.08)] backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_24px_55px_rgba(15,23,42,0.12)]"
+                pageType="marketplace-listing-detail"
+                eventName="cta_clicked"
+                contentType="MARKETPLACE_LISTING"
+                contentId={listing.id}
+                metadata={{ cta: "related-listing", targetListingId: related.id }}
               >
                 <div className="aspect-[4/3] bg-gray-100">
                   {related.photos[0]?.imageUrl ? (
@@ -383,7 +442,7 @@ export default function ListingDetailPage({ params }: PageProps) {
                   </p>
                   <p className="text-xs text-slate-500">{formatDate(related.createdAt)}</p>
                 </div>
-              </Link>
+              </TrackedLink>
             ))}
           </div>
         </section>

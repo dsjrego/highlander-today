@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { headers } from 'next/headers';
 import { db } from '@/lib/db';
 import { getCurrentCommunity } from '@/lib/community';
+import { AdminFilterBar } from '@/components/admin/AdminFilterBar';
+import { AdminPage } from '@/components/admin/AdminPage';
 
 function formatCount(value: number) {
   return new Intl.NumberFormat('en-US').format(value);
@@ -149,161 +151,182 @@ export default async function AdminDashboard() {
   ];
 
   return (
-    <div>
-      <h1 className="mb-8 text-4xl font-bold text-[var(--brand-primary)]">Dashboard</h1>
-
-      <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <AdminPage title="Dashboard">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
         {stats.map((stat) => (
-          <Link
-            key={stat.label}
-            href={stat.href}
-            className="rounded-lg border border-[var(--brand-primary)] bg-white p-6 transition hover:bg-sky-50"
-          >
-            <p className="mb-2 text-sm text-gray-600">{stat.label}</p>
-            <p className="mb-2 text-3xl font-bold text-[var(--brand-primary)]">{stat.value}</p>
-            <p className="text-sm font-semibold text-[var(--brand-primary)]">{stat.change}</p>
+          <Link key={stat.label} href={stat.href} className="admin-stat-card">
+            <p className="admin-stat-card-label">{stat.label}</p>
+            <p className="admin-stat-card-value">{stat.value}</p>
+            <p className="admin-stat-card-note">{stat.change}</p>
           </Link>
         ))}
-        <Link
-          href="/admin/organizations"
-          className="rounded-lg border border-[var(--brand-primary)] bg-white p-6 transition hover:bg-sky-50"
-        >
-          <p className="mb-4 text-sm text-gray-600">Organizations</p>
+        <Link href="/admin/organizations" className="admin-stat-card">
+          <p className="admin-stat-card-label">Organizations</p>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">Total</p>
-              <p className="text-2xl font-bold text-[var(--brand-primary)]">{formatCount(totalOrganizations)}</p>
+              <p className="admin-stat-card-kicker">Total</p>
+              <p className="admin-stat-card-value-sm">{formatCount(totalOrganizations)}</p>
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-700">Pending</p>
-              <p className="text-2xl font-bold text-[var(--brand-primary)]">{formatCount(pendingOrganizations)}</p>
+              <p className="admin-stat-card-kicker admin-stat-card-kicker-pending">Pending</p>
+              <p className="admin-stat-card-value-sm">{formatCount(pendingOrganizations)}</p>
             </div>
           </div>
-          <p className="mt-3 text-sm font-semibold text-[var(--brand-primary)]">Open organization management</p>
+          <p className="admin-stat-card-note">Open organization management</p>
         </Link>
-        <Link
-          href="/admin/recipes"
-          className="rounded-lg border border-[var(--brand-primary)] bg-white p-6 transition hover:bg-sky-50"
-        >
-          <p className="mb-4 text-sm text-gray-600">Recipes</p>
+        <Link href="/admin/recipes" className="admin-stat-card">
+          <p className="admin-stat-card-label">Recipes</p>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-700">Pending</p>
-              <p className="text-2xl font-bold text-[var(--brand-primary)]">{formatCount(pendingRecipes)}</p>
+              <p className="admin-stat-card-kicker admin-stat-card-kicker-pending">Pending</p>
+              <p className="admin-stat-card-value-sm">{formatCount(pendingRecipes)}</p>
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-green-700">Approved</p>
-              <p className="text-2xl font-bold text-[var(--brand-primary)]">{formatCount(publishedRecipes)}</p>
+              <p className="admin-stat-card-kicker admin-stat-card-kicker-ok">Approved</p>
+              <p className="admin-stat-card-value-sm">{formatCount(publishedRecipes)}</p>
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">Archived</p>
-              <p className="text-2xl font-bold text-[var(--brand-primary)]">{formatCount(unpublishedRecipes)}</p>
+              <p className="admin-stat-card-kicker">Archived</p>
+              <p className="admin-stat-card-value-sm">{formatCount(unpublishedRecipes)}</p>
             </div>
           </div>
-          <p className="mt-3 text-sm font-semibold text-[var(--brand-primary)]">
+          <p className="admin-stat-card-note">
             Open recipe management ({formatCount(totalRecipes)} total)
           </p>
         </Link>
-        <Link
-          href="/admin/articles"
-          className="rounded-lg border border-[var(--brand-primary)] bg-white p-6 transition hover:bg-sky-50"
-        >
-          <p className="mb-4 text-sm text-gray-600">Articles</p>
+        <Link href="/admin/articles" className="admin-stat-card">
+          <p className="admin-stat-card-label">Articles</p>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-700">Pending</p>
-              <p className="text-2xl font-bold text-[var(--brand-primary)]">{formatCount(pendingArticles)}</p>
+              <p className="admin-stat-card-kicker admin-stat-card-kicker-pending">Pending</p>
+              <p className="admin-stat-card-value-sm">{formatCount(pendingArticles)}</p>
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-green-700">Approved</p>
-              <p className="text-2xl font-bold text-[var(--brand-primary)]">{formatCount(publishedArticles)}</p>
+              <p className="admin-stat-card-kicker admin-stat-card-kicker-ok">Approved</p>
+              <p className="admin-stat-card-value-sm">{formatCount(publishedArticles)}</p>
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">Archived</p>
-              <p className="text-2xl font-bold text-[var(--brand-primary)]">{formatCount(unpublishedArticles)}</p>
+              <p className="admin-stat-card-kicker">Archived</p>
+              <p className="admin-stat-card-value-sm">{formatCount(unpublishedArticles)}</p>
             </div>
           </div>
-          <p className="mt-3 text-sm font-semibold text-[var(--brand-primary)]">Open article management</p>
+          <p className="admin-stat-card-note">Open article management</p>
         </Link>
       </div>
 
-      <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6">
-        <h2 className="mb-4 text-2xl font-bold">Quick Actions</h2>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="admin-section-card">
+        <div className="admin-section-card-head">
+          <h2 className="admin-section-card-title">Quick Actions</h2>
+        </div>
+        <AdminFilterBar
+          right={
+            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+              Jump into a filtered queue
+            </span>
+          }
+        >
+          <Link href="/admin/content?view=pending" className="admin-facet">Pending Content</Link>
+          <Link href="/admin/users" className="admin-facet">Users</Link>
+          <Link href="/admin/trust" className="admin-facet">Trust</Link>
+          <Link href="/admin/audit" className="admin-facet">Audit Log</Link>
+          <Link href="/admin/stores" className="admin-facet">Stores</Link>
+          <Link href="/admin/homepage" className="admin-facet">Homepage</Link>
+          <Link href="/admin/content-architecture" className="admin-facet">Content Architecture</Link>
+        </AdminFilterBar>
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           <Link
             href="/admin/content"
-            className="rounded-lg border border-gray-300 p-4 transition hover:border-[var(--brand-primary)] hover:bg-[var(--article-card-badge-bg)]"
+            className="admin-dashboard-action"
           >
-            <p className="font-semibold text-[var(--brand-primary)]">Review Pending Content</p>
-            <p className="text-sm text-gray-600">{formatCount(pendingReviewCount)} items awaiting approval</p>
+            <p className="admin-dashboard-action-title">Review Pending Content</p>
+            <p className="admin-dashboard-action-copy">{formatCount(pendingReviewCount)} items awaiting approval</p>
           </Link>
           <Link
             href="/admin/users"
-            className="rounded-lg border border-gray-300 p-4 transition hover:border-[var(--brand-primary)] hover:bg-[var(--article-card-badge-bg)]"
+            className="admin-dashboard-action"
           >
-            <p className="font-semibold text-[var(--brand-primary)]">Manage Users</p>
-            <p className="text-sm text-gray-600">View and manage user accounts</p>
+            <p className="admin-dashboard-action-title">Manage Users</p>
+            <p className="admin-dashboard-action-copy">View and manage user accounts</p>
           </Link>
           <Link
             href="/admin/trust"
-            className="rounded-lg border border-gray-300 p-4 transition hover:border-[var(--brand-primary)] hover:bg-[var(--article-card-badge-bg)]"
+            className="admin-dashboard-action"
           >
-            <p className="font-semibold text-[var(--brand-primary)]">Trust Management</p>
-            <p className="text-sm text-gray-600">Review vouching and trust levels</p>
+            <p className="admin-dashboard-action-title">Trust Management</p>
+            <p className="admin-dashboard-action-copy">Review vouching and trust levels</p>
           </Link>
           <Link
             href="/admin/audit"
-            className="rounded-lg border border-gray-300 p-4 transition hover:border-[var(--brand-primary)] hover:bg-[var(--article-card-badge-bg)]"
+            className="admin-dashboard-action"
           >
-            <p className="font-semibold text-[var(--brand-primary)]">View Audit Log</p>
-            <p className="text-sm text-gray-600">Track system activity</p>
+            <p className="admin-dashboard-action-title">View Audit Log</p>
+            <p className="admin-dashboard-action-copy">Track system activity</p>
           </Link>
           <Link
             href="/admin/stores"
-            className="rounded-lg border border-gray-300 p-4 transition hover:border-[var(--brand-primary)] hover:bg-[var(--article-card-badge-bg)]"
+            className="admin-dashboard-action"
           >
-            <p className="font-semibold text-[var(--brand-primary)]">Manage Stores</p>
-            <p className="text-sm text-gray-600">
+            <p className="admin-dashboard-action-title">Manage Stores</p>
+            <p className="admin-dashboard-action-copy">
               {formatCount(pendingStores)} stores pending approval
             </p>
           </Link>
           <Link
             href="/admin/homepage"
-            className="rounded-lg border border-gray-300 p-4 transition hover:border-[var(--brand-primary)] hover:bg-[var(--article-card-badge-bg)]"
+            className="admin-dashboard-action"
           >
-            <p className="font-semibold text-[var(--brand-primary)]">Homepage Curation</p>
-            <p className="text-sm text-gray-600">Reorder sections, toggle visibility, and pin homepage content</p>
+            <p className="admin-dashboard-action-title">Homepage Curation</p>
+            <p className="admin-dashboard-action-copy">Reorder sections, toggle visibility, and pin homepage content</p>
           </Link>
           <Link
             href="/admin/content-architecture"
-            className="rounded-lg border border-gray-300 p-4 transition hover:border-[var(--brand-primary)] hover:bg-[var(--article-card-badge-bg)]"
+            className="admin-dashboard-action"
           >
-            <p className="font-semibold text-[var(--brand-primary)]">Content Architecture</p>
-            <p className="text-sm text-gray-600">Reference section purpose, model boundaries, and category guidance before editing taxonomy</p>
+            <p className="admin-dashboard-action-title">Content Architecture</p>
+            <p className="admin-dashboard-action-copy">Reference section purpose, model boundaries, and category guidance before editing taxonomy</p>
           </Link>
         </div>
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white p-6">
-        <h2 className="mb-4 text-2xl font-bold">Recent Activity</h2>
-        <div className="space-y-3">
+      <div className="admin-section-card">
+        <div className="admin-section-card-head">
+          <h2 className="admin-section-card-title">Recent Activity</h2>
+        </div>
+        <div className="admin-list">
+          <div className="admin-list-table-wrap">
+            <table className="admin-list-table">
+              <thead className="admin-list-head">
+                <tr>
+                  <th className="admin-list-header-cell">Activity</th>
+                  <th className="admin-list-header-cell">Type</th>
+                  <th className="admin-list-header-cell">When</th>
+                </tr>
+              </thead>
+              <tbody>
           {recentActivity.length ? (
             recentActivity.map((log) => (
-              <div
-                key={log.id}
-                className={`flex items-center justify-between border-l-4 p-3 ${getActivityAccent(log.resourceType)}`}
-              >
-                <span>{describeActivity(log)}</span>
-                <span className="text-xs text-gray-500">{formatRelativeTime(log.createdAt)}</span>
-              </div>
+                  <tr key={log.id} className="admin-list-row">
+                    <td className="admin-list-cell font-medium text-slate-900">{describeActivity(log)}</td>
+                    <td className="admin-list-cell">
+                      <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${getActivityAccent(log.resourceType)}`}>
+                        {log.resourceType.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td className="admin-list-cell">{formatRelativeTime(log.createdAt)}</td>
+                  </tr>
             ))
           ) : (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              No recent activity logged yet.
-            </div>
+                  <tr className="admin-list-row">
+                    <td className="admin-list-empty" colSpan={3}>
+                      No recent activity logged yet.
+                    </td>
+                  </tr>
           )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
+    </AdminPage>
   );
 }

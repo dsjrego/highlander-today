@@ -7,6 +7,7 @@ import { authOptions } from '@/lib/auth';
 import { getCurrentCommunity } from '@/lib/community';
 import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
+import { AdminPage } from '@/components/admin/AdminPage';
 import ReporterRunDetailClient from './ReporterRunDetailClient';
 
 interface PageProps {
@@ -41,6 +42,37 @@ export default async function AdminReporterDetailPage({ params }: PageProps) {
         },
         drafts: { orderBy: [{ createdAt: 'desc' }] },
         validationIssues: { orderBy: [{ createdAt: 'desc' }] },
+        interviewRequests: {
+          orderBy: [{ createdAt: 'desc' }],
+          include: {
+            interviewee: {
+              select: { id: true, firstName: true, lastName: true, email: true },
+            },
+            createdBy: {
+              select: { id: true, firstName: true, lastName: true },
+            },
+            sessions: {
+              orderBy: [{ createdAt: 'desc' }],
+              include: {
+                turns: {
+                  orderBy: [{ sortOrder: 'asc' }],
+                },
+                facts: {
+                  orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+                },
+                safetyFlags: {
+                  orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+                  include: {
+                    blocker: true,
+                  },
+                },
+                reviewedBy: {
+                  select: { id: true, firstName: true, lastName: true },
+                },
+              },
+            },
+          },
+        },
       },
     }),
     currentCommunity?.id
@@ -66,19 +98,26 @@ export default async function AdminReporterDetailPage({ params }: PageProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <AdminPage
+      title={run.title || run.topic}
+      breadcrumb={
+        <Link href="/admin/reporter" className="admin-list-link">
+          Reporter
+        </Link>
+      }
+      actions={
+        <Link href="/admin/reporter" className="page-header-action">
+          Back to Reporter
+        </Link>
+      }
+    >
       <div className="admin-card">
         <div className="admin-card-header">
           <div className="flex items-center gap-3">
             <div className="admin-card-header-icon" aria-hidden="true">
               <FileSearch className="h-4 w-4" />
             </div>
-            <div className="admin-card-header-label">Reporter &gt; {run.title || run.topic}</div>
-          </div>
-          <div className="admin-card-header-actions">
-            <Link href="/admin/reporter" className="page-header-action">
-              Back to Reporter
-            </Link>
+            <div className="admin-card-header-label">Reporter Run</div>
           </div>
         </div>
         <div className="admin-card-body space-y-6">
@@ -87,7 +126,7 @@ export default async function AdminReporterDetailPage({ params }: PageProps) {
               {run.title || run.topic}
             </h1>
             <p className="text-sm text-slate-600">
-              Manage the source packet, blockers, assignment, and early draft state for this reporting run.
+              Manage the source packet, interview queue, blockers, assignment, and draft state for this reporting run.
             </p>
           </div>
           <ReporterRunDetailClient
@@ -97,6 +136,6 @@ export default async function AdminReporterDetailPage({ params }: PageProps) {
           />
         </div>
       </div>
-    </div>
+    </AdminPage>
   );
 }

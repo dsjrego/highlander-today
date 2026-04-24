@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
 import { logActivity } from '@/lib/activity-log';
+import { type ContentReactionType } from '@/lib/analytics/types';
 import { sanitizeArticleHtml } from '@/lib/sanitize';
 import { z } from 'zod';
 
@@ -26,6 +27,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const userId = request.headers.get('x-user-id');
     const article = await db.article.findUnique({
       where: { id: params.id },
       include: {
@@ -86,7 +88,6 @@ export async function GET(
 
     // Access control: non-published articles only visible to author or editors
     if (article.status !== 'PUBLISHED') {
-      const userId = request.headers.get('x-user-id');
       const userRole = request.headers.get('x-user-role') || '';
       const isAuthor = userId === article.authorUserId;
       const hasEditorRole = checkPermission(userRole, 'articles:approve');
@@ -96,7 +97,29 @@ export async function GET(
       }
     }
 
-    return NextResponse.json(article);
+    let currentUserReaction: ContentReactionType | null = null;
+
+    if (userId) {
+      const reaction = await db.contentReaction.findUnique({
+        where: {
+          userId_contentType_contentId: {
+            userId,
+            contentType: 'ARTICLE',
+            contentId: article.id,
+          },
+        },
+        select: {
+          reactionType: true,
+        },
+      });
+
+      currentUserReaction = reaction?.reactionType ?? null;
+    }
+
+    return NextResponse.json({
+      ...article,
+      currentUserReaction,
+    });
   } catch (error) {
     console.error('Error fetching article:', error);
     return NextResponse.json(

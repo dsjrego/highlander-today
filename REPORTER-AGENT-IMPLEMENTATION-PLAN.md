@@ -8,6 +8,8 @@ This plan replaces the idea of a separate standalone reporter microservice with 
 
 The goal is not generic AI content generation. The goal is a constrained reporting system that can help collect information, research public facts, and draft accountable local articles while keeping humans in control.
 
+For the dedicated browser-based interview workflow, queue model, multilingual behavior, and deterministic interview setup described after the initial reporter foundation, use `REPORTER-INTERVIEW-AGENT-PLAN.md` as the canonical follow-on plan.
+
 ## Product Fit
 
 This fits Highlander Today only if it is treated as:
@@ -470,6 +472,8 @@ Build:
 - transcript capture
 - extracted quote/fact separation
 - interview gap detection
+
+Use `REPORTER-INTERVIEW-AGENT-PLAN.md` as the canonical implementation direction for this phase, including interview-request setup, login-gated browser sessions, deterministic branching, and language-preference confirmation.
 
 ### Phase 3: Research Agent
 

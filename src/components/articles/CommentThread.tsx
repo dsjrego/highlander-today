@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useId, useMemo, useRef, useState } from 'react';
 import UserAvatar from '@/components/shared/UserAvatar';
+import { useDialogAccessibility } from '@/components/shared/useDialogAccessibility';
 
 interface CommentAuthor {
   id: string;
@@ -234,6 +235,17 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
   const [error, setError] = useState('');
   const [showTrustInfoDialog, setShowTrustInfoDialog] = useState(false);
   const [sort, setSort] = useState<SortOrder>('recent');
+  const trustDialogTitleId = useId();
+  const trustDialogDescriptionId = useId();
+  const trustDialogRef = useRef<HTMLDivElement | null>(null);
+  const trustDialogCloseRef = useRef<HTMLButtonElement | null>(null);
+
+  useDialogAccessibility({
+    isOpen: showTrustInfoDialog,
+    onClose: () => setShowTrustInfoDialog(false),
+    containerRef: trustDialogRef,
+    initialFocusRef: trustDialogCloseRef,
+  });
 
   const totalComments = useMemo(() => countComments(comments), [comments]);
   const visibleComments = useMemo(() => sortComments(comments, sort), [comments, sort]);
@@ -364,11 +376,14 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/78 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
-          aria-labelledby="trusted-comment-dialog-title"
+          aria-labelledby={trustDialogTitleId}
+          aria-describedby={trustDialogDescriptionId}
           onClick={() => setShowTrustInfoDialog(false)}
         >
           <div
+            ref={trustDialogRef}
             className="relative w-full max-w-lg rounded-[28px] border border-white/10 bg-[linear-gradient(165deg,rgba(17,34,52,0.98),rgba(10,24,38,0.98))] p-4 shadow-[0_28px_80px_rgba(2,8,23,0.55)] md:p-5"
+            tabIndex={-1}
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-4 flex items-start justify-between gap-4">
@@ -376,11 +391,12 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/72">
                   Commenting Access
                 </p>
-                <h2 id="trusted-comment-dialog-title" className="mt-2 text-xl font-semibold tracking-tight text-white">
+                <h2 id={trustDialogTitleId} className="mt-2 text-xl font-semibold tracking-tight text-white">
                   Trusted users only
                 </h2>
               </div>
               <button
+                ref={trustDialogCloseRef}
                 type="button"
                 onClick={() => setShowTrustInfoDialog(false)}
                 className="btn btn-ghost border-white/15 text-white hover:bg-white/10 hover:text-white"
@@ -389,7 +405,10 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
               </button>
             </div>
 
-            <div className="rounded-[22px] border border-white/10 bg-slate-950/30 p-4 text-sm leading-6 text-slate-200">
+            <div
+              id={trustDialogDescriptionId}
+              className="rounded-[22px] border border-white/10 bg-slate-950/30 p-4 text-sm leading-6 text-slate-200"
+            >
               <p className="m-0">
                 Someone in the community must vouch for you as a real member of the community
                 before you can comment.

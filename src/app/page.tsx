@@ -1,6 +1,7 @@
 import Image from 'next/image';
-import Link from 'next/link';
 import { headers } from 'next/headers';
+import HomepageAnalyticsClient from '@/components/analytics/HomepageAnalyticsClient';
+import TrackedLink from '@/components/analytics/TrackedLink';
 import InternalPageHeader from '@/components/shared/InternalPageHeader';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { getHomepageBoxesData, resolveHomepageCommunityId, type HomepageBoxData } from '@/lib/homepage';
@@ -62,18 +63,26 @@ function HomepageBoxCard({
             {box.title}
           </p>
         </div>
-        <Link
+        <TrackedLink
           href={getBoxBrowseUrl(box)}
           className="homepage-box-browse-link text-sm font-semibold transition"
+          pageType="homepage"
+          eventName="cta_clicked"
+          metadata={{ boxType: box.boxType, cta: 'view-all' }}
         >
           View all
-        </Link>
+        </TrackedLink>
       </div>
 
       <div className={`grid grid-cols-1 ${emphasize ? 'lg:grid-cols-[1.1fr_0.9fr]' : ''}`}>
-        <Link
+        <TrackedLink
           href={hero.url}
           className="group block no-underline transition hover:no-underline lg:border-b-0"
+          pageType="homepage"
+          eventName="homepage_slot_clicked"
+          contentType={hero.contentType}
+          contentId={hero.contentId}
+          metadata={{ boxType: box.boxType, placement: 'hero' }}
         >
           {hero.imageUrl ? (
             <div
@@ -119,7 +128,7 @@ function HomepageBoxCard({
               </div>
             ) : null}
           </div>
-        </Link>
+        </TrackedLink>
 
         <div className={`${emphasize ? 'homepage-feature-divider lg:border-l' : ''} p-5 md:p-6`}>
           {box.linkItems.length > 0 ? (
@@ -130,9 +139,17 @@ function HomepageBoxCard({
               <ul className="homepage-latest-list mt-4 space-y-3">
                 {box.linkItems.map((item) => (
                   <li key={`${item.contentType}-${item.contentId}`} className="homepage-latest-item pb-3 last:pb-0">
-                    <Link
+                    <TrackedLink
                       href={item.url}
                       className="flex items-start gap-3 no-underline transition hover:no-underline"
+                      pageType="homepage"
+                      eventName="homepage_slot_clicked"
+                      contentType={item.contentType}
+                      contentId={item.contentId}
+                      metadata={{
+                        boxType: box.boxType,
+                        placement: 'supporting-link',
+                      }}
                     >
                       <div className="homepage-support-thumb relative h-12 w-12 shrink-0 overflow-hidden rounded-xl">
                         {item.imageUrl ? (
@@ -158,7 +175,7 @@ function HomepageBoxCard({
                           </p>
                         ) : null}
                       </div>
-                    </Link>
+                    </TrackedLink>
                   </li>
                 ))}
               </ul>
@@ -201,6 +218,17 @@ export default async function Home() {
 
   return (
     <div className="space-y-8">
+      <HomepageAnalyticsClient
+        boxSummaries={visibleBoxes.map((box) => ({
+          boxType: box.boxType,
+          heroContentType: box.heroItem?.contentType ?? null,
+          heroContentId: box.heroItem?.contentId ?? null,
+          linkItems: box.linkItems.map((item) => ({
+            contentType: item.contentType,
+            contentId: item.contentId,
+          })),
+        }))}
+      />
       <InternalPageHeader title="Today in Cambria Heights" />
       <div className="grid gap-6 xl:grid-cols-3 xl:items-start">
         {visibleBoxes.map((box, index) => (

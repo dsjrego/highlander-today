@@ -144,6 +144,9 @@ export default async function RootLayout({
       data-theme-tenant-preview={previewTenantSlug ?? undefined}
     >
       <body className="app-body">
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
         <Providers>
           <DevThemeSwitcher />
           <LocationCompletionGate />
@@ -202,7 +205,13 @@ export default async function RootLayout({
           </header>
 
           {/* Main Content */}
-          <main className="relative z-0 w-full px-[2px] pb-10 pt-[2px] md:px-4 md:pt-0">{children}</main>
+          <main
+            id="main-content"
+            tabIndex={-1}
+            className="relative z-0 w-full px-[2px] pb-10 pt-[2px] md:px-4 md:pt-0"
+          >
+            {children}
+          </main>
 
           {/* Footer */}
           <footer className="app-footer mt-12">

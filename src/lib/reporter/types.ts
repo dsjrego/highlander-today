@@ -74,6 +74,63 @@ export const REPORTER_DRAFT_TYPE = {
 export type ReporterDraftTypeValue =
   (typeof REPORTER_DRAFT_TYPE)[keyof typeof REPORTER_DRAFT_TYPE];
 
+export const REPORTER_INTERVIEW_REQUEST_STATUS = {
+  DRAFT: 'DRAFT',
+  INVITED: 'INVITED',
+  READY: 'READY',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  DECLINED: 'DECLINED',
+  NO_SHOW: 'NO_SHOW',
+  BLOCKED: 'BLOCKED',
+  CANCELLED: 'CANCELLED',
+} as const;
+
+export type ReporterInterviewRequestStatusValue =
+  (typeof REPORTER_INTERVIEW_REQUEST_STATUS)[keyof typeof REPORTER_INTERVIEW_REQUEST_STATUS];
+
+export const REPORTER_INTERVIEW_TYPE = {
+  TIPSTER: 'TIPSTER',
+  WITNESS: 'WITNESS',
+  EVENT_ORGANIZER: 'EVENT_ORGANIZER',
+  ORG_REPRESENTATIVE: 'ORG_REPRESENTATIVE',
+  PROFILE_SUBJECT: 'PROFILE_SUBJECT',
+  GENERAL_SOURCE: 'GENERAL_SOURCE',
+} as const;
+
+export type ReporterInterviewTypeValue =
+  (typeof REPORTER_INTERVIEW_TYPE)[keyof typeof REPORTER_INTERVIEW_TYPE];
+
+export const REPORTER_INTERVIEW_PRIORITY = {
+  LOW: 'LOW',
+  NORMAL: 'NORMAL',
+  HIGH: 'HIGH',
+  URGENT: 'URGENT',
+} as const;
+
+export type ReporterInterviewPriorityValue =
+  (typeof REPORTER_INTERVIEW_PRIORITY)[keyof typeof REPORTER_INTERVIEW_PRIORITY];
+
+export const REPORTER_SUPPORTED_LANGUAGE = {
+  ENGLISH: 'ENGLISH',
+  SPANISH: 'SPANISH',
+  UKRAINIAN: 'UKRAINIAN',
+} as const;
+
+export type ReporterSupportedLanguageValue =
+  (typeof REPORTER_SUPPORTED_LANGUAGE)[keyof typeof REPORTER_SUPPORTED_LANGUAGE];
+
+export const REPORTER_INTERVIEW_SESSION_STATUS = {
+  NOT_STARTED: 'NOT_STARTED',
+  ACTIVE: 'ACTIVE',
+  COMPLETED: 'COMPLETED',
+  ABANDONED: 'ABANDONED',
+  EXPIRED: 'EXPIRED',
+} as const;
+
+export type ReporterInterviewSessionStatusValue =
+  (typeof REPORTER_INTERVIEW_SESSION_STATUS)[keyof typeof REPORTER_INTERVIEW_SESSION_STATUS];
+
 export const REPORTER_DRAFT_STATUS = {
   GENERATED: 'GENERATED',
   REVIEWED: 'REVIEWED',
@@ -85,6 +142,8 @@ export type ReporterDraftStatusValue =
   (typeof REPORTER_DRAFT_STATUS)[keyof typeof REPORTER_DRAFT_STATUS];
 
 export interface ReporterRunIntakePayload {
+  mode?: ReporterModeValue | null;
+  requestType?: ReporterRequestTypeValue | null;
   topic?: string | null;
   title?: string | null;
   subjectName?: string | null;
@@ -96,6 +155,7 @@ export interface ReporterRunIntakePayload {
   whenDidItHappen?: string | null;
   whyItMatters?: string | null;
   notes?: string | null;
+  editorNotes?: string | null;
   supportingLinks?: Array<string | null | undefined>;
   requesterName?: string | null;
   requesterEmail?: string | null;
@@ -103,6 +163,8 @@ export interface ReporterRunIntakePayload {
 }
 
 export interface ReporterRunNormalizedInput {
+  mode: ReporterModeValue | null;
+  requestType: ReporterRequestTypeValue | null;
   title: string | null;
   topic: string;
   subjectName: string | null;
@@ -111,6 +173,7 @@ export interface ReporterRunNormalizedInput {
   requesterEmail: string | null;
   requesterPhone: string | null;
   requestSummary: string | null;
+  editorNotes: string | null;
   publicDescription: string | null;
   initialSources: ReporterSourceSeed[];
 }

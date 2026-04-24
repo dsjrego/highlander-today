@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { KeyboardEvent, useState, useRef, useEffect, useMemo, useId } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { getCategoryHref } from '@/lib/category-config';
@@ -51,9 +51,12 @@ function getViewerTrustRank(
 }
 
 function NavDropdown({ section }: { section: NavSection }) {
+  const dropdownId = useId();
   const [open, setOpen] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const itemRefs = useRef<Array<HTMLAnchorElement | null>>([]);
 
   // Close on outside click
   useEffect(() => {
@@ -75,6 +78,58 @@ function NavDropdown({ section }: { section: NavSection }) {
     timeoutRef.current = setTimeout(() => setOpen(false), 200);
   };
 
+  const focusItem = (index: number) => {
+    itemRefs.current[index]?.focus();
+  };
+
+  const handleTriggerKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    switch (event.key) {
+      case 'ArrowDown':
+      case 'Enter':
+      case ' ':
+        event.preventDefault();
+        setOpen(true);
+        window.setTimeout(() => focusItem(0), 0);
+        break;
+      case 'Escape':
+        event.preventDefault();
+        setOpen(false);
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleMenuKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const currentIndex = itemRefs.current.findIndex((item) => item === document.activeElement);
+
+    switch (event.key) {
+      case 'Escape':
+        event.preventDefault();
+        setOpen(false);
+        triggerRef.current?.focus();
+        break;
+      case 'ArrowDown':
+        event.preventDefault();
+        focusItem((currentIndex + 1 + section.subcategories.length) % section.subcategories.length);
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        focusItem((currentIndex - 1 + section.subcategories.length) % section.subcategories.length);
+        break;
+      case 'Home':
+        event.preventDefault();
+        focusItem(0);
+        break;
+      case 'End':
+        event.preventDefault();
+        focusItem(section.subcategories.length - 1);
+        break;
+      default:
+        break;
+    }
+  };
+
   return (
     <div
       ref={containerRef}
@@ -84,12 +139,15 @@ function NavDropdown({ section }: { section: NavSection }) {
     >
       {/* Trigger */}
       <button
+        ref={triggerRef}
         type="button"
         aria-expanded={open}
         aria-haspopup="menu"
+        aria-controls={dropdownId}
         aria-label={`Toggle ${section.label} submenu`}
         className="masthead-nav-pill flex items-center gap-2 px-4 py-2 text-sm font-semibold transition"
         onClick={() => setOpen((current) => !current)}
+        onKeyDown={handleTriggerKeyDown}
       >
         <span>{section.label}</span>
         <svg
@@ -106,15 +164,22 @@ function NavDropdown({ section }: { section: NavSection }) {
       {/* Dropdown panel */}
       {open && (
         <div
+          id={dropdownId}
           className="masthead-dropdown-panel absolute left-0 top-full z-50 mt-2 w-64 rounded-2xl py-2 shadow-2xl backdrop-blur"
           role="menu"
+          aria-label={`${section.label} submenu`}
+          onKeyDown={handleMenuKeyDown}
         >
-          {section.subcategories.map((sub) => (
+          {section.subcategories.map((sub, index) => (
             <Link
               key={sub.slug}
+              ref={(element) => {
+                itemRefs.current[index] = element;
+              }}
               href={sub.href || `${section.href}?category=${sub.slug}`}
               className="masthead-dropdown-link block px-4 py-2.5 text-sm transition-colors"
               onClick={() => setOpen(false)}
+              role="menuitem"
             >
               {sub.label}
             </Link>
@@ -192,7 +257,7 @@ export default function NavigationBar() {
   }, [categories, session?.user?.role, session?.user?.trust_level]);
 
   return (
-    <nav className="hidden md:block">
+    <nav className="hidden md:block" aria-label="Primary">
       <div className="overflow-visible">
         <div className="flex flex-wrap items-center gap-2">
           <Link

@@ -69,6 +69,37 @@ export async function GET(
         validationIssues: {
           orderBy: [{ createdAt: 'desc' }],
         },
+        interviewRequests: {
+          orderBy: [{ createdAt: 'desc' }],
+          include: {
+            interviewee: {
+              select: { id: true, firstName: true, lastName: true, email: true },
+            },
+            createdBy: {
+              select: { id: true, firstName: true, lastName: true },
+            },
+            sessions: {
+              orderBy: [{ createdAt: 'desc' }],
+              include: {
+                turns: {
+                  orderBy: [{ sortOrder: 'asc' }],
+                },
+                facts: {
+                  orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+                },
+                safetyFlags: {
+                  orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+                  include: {
+                    blocker: true,
+                  },
+                },
+                reviewedBy: {
+                  select: { id: true, firstName: true, lastName: true },
+                },
+              },
+            },
+          },
+        },
       },
     });
 

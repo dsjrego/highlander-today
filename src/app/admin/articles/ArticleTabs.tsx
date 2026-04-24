@@ -2,16 +2,21 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { FolderPen, ListChecks, Trash2 } from 'lucide-react';
-import { CrudActionButton } from '@/components/shared/CrudAction';
+import { ListChecks, Pencil, Trash2 } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { CrudActionButton, CrudActionLink } from '@/components/shared/CrudAction';
+import { AdminChip } from '@/components/admin/AdminChip';
+import { AdminDrawer } from '@/components/admin/AdminDrawer';
+import { AdminFilterBar } from '@/components/admin/AdminFilterBar';
+import { AdminViewTabs } from '@/components/admin/AdminViewTabs';
 
 const ARTICLE_TABS = ['draft', 'pending', 'approved', 'archived'] as const;
 const ARTICLE_PAGE_SIZE = 10;
 const ARTICLE_STATUS_OPTIONS = [
-  { value: 'PUBLISHED', label: 'Approved' },
-  { value: 'PENDING_REVIEW', label: 'Pending' },
-  { value: 'DRAFT', label: 'Draft' },
-  { value: 'UNPUBLISHED', label: 'Archived' },
+  { value: 'PUBLISHED', label: 'Approved', tone: 'ok' },
+  { value: 'PENDING_REVIEW', label: 'Pending', tone: 'pend' },
+  { value: 'DRAFT', label: 'Draft', tone: 'neu' },
+  { value: 'UNPUBLISHED', label: 'Archived', tone: 'bad' },
 ] as const;
 
 type ArticleTab = (typeof ARTICLE_TABS)[number];
@@ -71,14 +76,20 @@ function getTabLabel(tab: ArticleTab) {
   return tab.charAt(0).toUpperCase() + tab.slice(1);
 }
 
+function getStatusMeta(status: ArticleRecord['status']) {
+  return ARTICLE_STATUS_OPTIONS.find((option) => option.value === status) ?? ARTICLE_STATUS_OPTIONS[0];
+}
+
 export default function ArticleTabs({ articles, articleCategories }: ArticleTabsProps) {
-  const [activeTab, setActiveTab] = useState<ArticleTab>('draft');
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const activeTab = (searchParams.get('view') as ArticleTab) || 'draft';
+  const focusedArticleId = searchParams.get('focus');
   const [filterValue, setFilterValue] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [rows, setRows] = useState(articles);
-  const [editingCategoryArticleId, setEditingCategoryArticleId] = useState<string | null>(null);
   const [savingCategoryArticleId, setSavingCategoryArticleId] = useState<string | null>(null);
-  const [editingStatusArticleId, setEditingStatusArticleId] = useState<string | null>(null);
   const [savingStatusArticleId, setSavingStatusArticleId] = useState<string | null>(null);
   const [deletingArticleId, setDeletingArticleId] = useState<string | null>(null);
   const [categoryError, setCategoryError] = useState('');
@@ -104,10 +115,8 @@ export default function ArticleTabs({ articles, articleCategories }: ArticleTabs
   const pageCount = Math.max(1, Math.ceil(filteredArticles.length / ARTICLE_PAGE_SIZE));
   const safePage = Math.min(currentPage, pageCount);
   const pageStart = (safePage - 1) * ARTICLE_PAGE_SIZE;
-  const pageArticles = filteredArticles.slice(
-    pageStart,
-    pageStart + ARTICLE_PAGE_SIZE
-  );
+  const pageArticles = filteredArticles.slice(pageStart, pageStart + ARTICLE_PAGE_SIZE);
+  const focusedArticle = rows.find((article) => article.id === focusedArticleId) ?? null;
 
   function handleFilterChange(value: string) {
     setFilterValue(value);
@@ -148,7 +157,6 @@ export default function ArticleTabs({ articles, articleCategories }: ArticleTabs
             : article
         )
       );
-      setEditingCategoryArticleId(null);
     } catch (error) {
       setCategoryError(error instanceof Error ? error.message : 'Failed to update category');
     } finally {
@@ -189,7 +197,6 @@ export default function ArticleTabs({ articles, articleCategories }: ArticleTabs
             : article
         )
       );
-      setEditingStatusArticleId(null);
     } catch (error) {
       setStatusError(error instanceof Error ? error.message : 'Failed to update status');
     } finally {
@@ -221,32 +228,22 @@ export default function ArticleTabs({ articles, articleCategories }: ArticleTabs
   }
 
   return (
-    <div className="space-y-0">
-      <div className="relative top-[2px] flex flex-wrap gap-0 pb-0">
-        {ARTICLE_TABS.map((tab) => {
-          const isActive = tab === activeTab;
+    <div className="space-y-4">
+      <AdminViewTabs
+        defaultView="draft"
+        views={ARTICLE_TABS.map((tab) => ({
+          key: tab,
+          label: getTabLabel(tab),
+          count: rows.filter((article) => article.status === getStatusForTab(tab)).length,
+          tone: tab === 'pending' ? 'pend' : tab === 'archived' ? 'bad' : undefined,
+        }))}
+      />
 
-          return (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => {
-                setActiveTab(tab);
-                setCurrentPage(1);
-              }}
-              className={`admin-card-tab ${isActive ? 'admin-card-tab-active' : 'admin-card-tab-inactive'}`}
-            >
-              {tab}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="admin-card-tab-body">
-        <div className="admin-list">
-          <div className="admin-list-toolbar">
+      <div className="admin-list">
+        <AdminFilterBar
+          search={
             <label className="admin-list-filter">
-              <span className="admin-list-filter-label">Filter: Title, Author</span>
+              <span className="admin-list-filter-label">Title or Author</span>
               <input
                 type="text"
                 value={filterValue}
@@ -255,27 +252,36 @@ export default function ArticleTabs({ articles, articleCategories }: ArticleTabs
                 className="admin-list-filter-input"
               />
             </label>
-          </div>
+          }
+          right={
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+              {filteredArticles.length} {getTabLabel(activeTab).toLowerCase()} article{filteredArticles.length === 1 ? '' : 's'}
+            </div>
+          }
+        />
 
-          {categoryError ? <div className="admin-list-error">{categoryError}</div> : null}
-          {statusError ? <div className="admin-list-error">{statusError}</div> : null}
-          {deleteError ? <div className="admin-list-error">{deleteError}</div> : null}
+        {categoryError ? <div className="admin-list-error">{categoryError}</div> : null}
+        {statusError ? <div className="admin-list-error">{statusError}</div> : null}
+        {deleteError ? <div className="admin-list-error">{deleteError}</div> : null}
 
-          <div className="admin-list-table-wrap">
-            <table className="admin-list-table">
-              <thead className="admin-list-head">
-                <tr>
-                  <th className="admin-list-header-cell">Title</th>
-                  <th className="admin-list-header-cell">Author</th>
-                  <th className="admin-list-header-cell">Category</th>
-                  <th className="admin-list-header-cell">Status</th>
-                  <th className="admin-list-header-cell">Published</th>
-                  <th className="admin-list-header-cell">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pageArticles.length > 0 ? (
-                  pageArticles.map((article) => (
+        <div className="admin-list-table-wrap">
+          <table className="admin-list-table">
+            <thead className="admin-list-head">
+              <tr>
+                <th className="admin-list-header-cell">Title</th>
+                <th className="admin-list-header-cell">Author</th>
+                <th className="admin-list-header-cell">Category</th>
+                <th className="admin-list-header-cell">Status</th>
+                <th className="admin-list-header-cell">Published</th>
+                <th className="admin-list-header-cell">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pageArticles.length > 0 ? (
+                pageArticles.map((article) => {
+                  const statusMeta = getStatusMeta(article.status);
+
+                  return (
                     <tr key={article.id} className="admin-list-row">
                       <td className="admin-list-cell">
                         <Link href={`/admin/articles/${article.id}`} className="admin-list-link">
@@ -286,176 +292,163 @@ export default function ArticleTabs({ articles, articleCategories }: ArticleTabs
                         {article.author.firstName} {article.author.lastName}
                       </td>
                       <td className="admin-list-cell">
-                        {editingCategoryArticleId === article.id ? (
-                          <select
-                            className="admin-list-cell-select"
-                            defaultValue={article.category?.id || ''}
-                            disabled={savingCategoryArticleId === article.id}
-                            onBlur={() => {
-                              if (savingCategoryArticleId !== article.id) {
-                                setEditingCategoryArticleId(null);
-                              }
-                            }}
-                            onChange={(event) => handleCategoryChange(article.id, event.target.value)}
-                            autoFocus
-                          >
-                            <option value="" disabled>
-                              Select category
-                            </option>
-                            {articleCategories.map((category) => (
-                              <option key={category.id} value={category.id}>
-                                {category.name}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <CrudActionButton
-                            type="button"
-                            variant="inline"
-                            icon={FolderPen}
-                            label={article.category?.name || 'Uncategorized'}
-                            onClick={() => setEditingCategoryArticleId(article.id)}
-                          >
-                            {article.category?.name || 'Uncategorized'}
-                          </CrudActionButton>
-                        )}
+                        {article.category?.name || 'Uncategorized'}
                       </td>
                       <td className="admin-list-cell">
-                        {editingStatusArticleId === article.id ? (
-                          <select
-                            className="admin-list-cell-select"
-                            defaultValue={article.status}
-                            disabled={savingStatusArticleId === article.id}
-                            onBlur={() => {
-                              if (savingStatusArticleId !== article.id) {
-                                setEditingStatusArticleId(null);
-                              }
-                            }}
-                            onChange={(event) =>
-                              handleStatusChange(article.id, event.target.value as ArticleRecord['status'])
-                            }
-                            autoFocus
+                        <AdminChip tone={statusMeta.tone}>{statusMeta.label}</AdminChip>
+                      </td>
+                      <td className="admin-list-cell">{formatDate(article.publishedAt)}</td>
+                      <td className="admin-list-cell">
+                        <div className="flex flex-wrap gap-3">
+                          <CrudActionLink
+                            href={`/local-life/submit?edit=${article.id}`}
+                            variant="inline-link"
+                            icon={Pencil}
+                            label="Edit article"
                           >
-                            {ARTICLE_STATUS_OPTIONS.map((status) => (
-                              <option key={status.value} value={status.value}>
-                                {status.label}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
+                            Edit
+                          </CrudActionLink>
                           <CrudActionButton
                             type="button"
                             variant="inline"
                             icon={ListChecks}
-                            label={
-                              ARTICLE_STATUS_OPTIONS.find((status) => status.value === article.status)?.label || 'Status'
-                            }
-                            onClick={() => setEditingStatusArticleId(article.id)}
+                            label="Manage article"
+                            onClick={() => {
+                              const next = new URLSearchParams(searchParams.toString());
+                              next.set('focus', article.id);
+                              router.replace(`${pathname}?${next.toString()}`);
+                            }}
                           >
-                            {ARTICLE_STATUS_OPTIONS.find((status) => status.value === article.status)?.label}
+                            Manage
                           </CrudActionButton>
-                        )}
-                      </td>
-                      <td className="admin-list-cell">{formatDate(article.publishedAt)}</td>
-                      <td className="admin-list-cell">
-                        {(() => {
-                          const deletePopoverId = `article-delete-popover-${article.id}`;
-
-                          return (
-                            <>
-                              <CrudActionButton
-                                type="button"
-                                variant="inline-danger"
-                                icon={Trash2}
-                                label="Delete article"
-                                popoverTarget={deletePopoverId}
-                                aria-haspopup="dialog"
-                                disabled={deletingArticleId === article.id}
-                              >
-                                {deletingArticleId === article.id ? 'Deleting...' : 'Delete'}
-                              </CrudActionButton>
-                              <div
-                                id={deletePopoverId}
-                                popover="auto"
-                                className="backdrop:fixed backdrop:inset-0 backdrop:bg-slate-950/70 backdrop:backdrop-blur-sm fixed inset-0 m-auto h-fit w-full max-w-md rounded-[28px] border border-white/10 bg-[linear-gradient(165deg,rgba(17,34,52,0.98),rgba(10,24,38,0.98))] p-6 text-white shadow-[0_28px_80px_rgba(2,8,23,0.55)]"
-                              >
-                                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/72">
-                                  Delete Article
-                                </p>
-                                <h3 className="mb-3 text-2xl font-semibold tracking-tight text-white">
-                                  Delete &ldquo;{article.title}&rdquo;?
-                                </h3>
-                                <p className="text-sm leading-7 text-cyan-50/78">
-                                  This permanently removes the article by {article.author.firstName} {article.author.lastName}.
-                                  This cannot be undone.
-                                </p>
-                                <div className="mt-6 flex justify-end gap-3">
-                                  <button
-                                    type="button"
-                                    popoverTarget={deletePopoverId}
-                                    popoverTargetAction="hide"
-                                    className="rounded-full border border-cyan-300/35 bg-white/[0.06] px-4 py-2 text-sm font-medium text-cyan-100 transition hover:border-cyan-300/60 hover:bg-white/[0.1] hover:text-white"
-                                  >
-                                    Cancel
-                                  </button>
-                                  <CrudActionButton
-                                    type="button"
-                                    variant="danger"
-                                    icon={Trash2}
-                                    label={deletingArticleId === article.id ? 'Deleting article' : 'Confirm delete article'}
-                                    onClick={() => handleDeleteArticle(article)}
-                                    disabled={deletingArticleId === article.id}
-                                  >
-                                    {deletingArticleId === article.id ? 'Deleting...' : 'Delete Article'}
-                                  </CrudActionButton>
-                                </div>
-                              </div>
-                            </>
-                          );
-                        })()}
+                        </div>
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td className="admin-list-empty" colSpan={6}>
-                      No {activeTab} articles match the current filter.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td className="admin-list-empty" colSpan={6}>
+                    No {activeTab} articles match the current filter.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
 
-          <div className="admin-list-pagination">
-            <div className="admin-list-pagination-label">
-              {filteredArticles.length} {getTabLabel(activeTab).toLowerCase()} article
-              {filteredArticles.length === 1 ? '' : 's'}
-            </div>
-            <div className="admin-list-pagination-actions">
-              <button
-                type="button"
-                onClick={() => setCurrentPage((current) => Math.max(1, current - 1))}
-                disabled={safePage === 1}
-                className="admin-list-pagination-button"
-              >
-                Previous
-              </button>
-              <span className="admin-list-pagination-page">
-                Page {safePage} of {pageCount}
-              </span>
-              <button
-                type="button"
-                onClick={() => setCurrentPage((current) => Math.min(pageCount, current + 1))}
-                disabled={safePage === pageCount}
-                className="admin-list-pagination-button"
-              >
-                Next
-              </button>
-            </div>
+        <div className="admin-list-pagination">
+          <div className="admin-list-pagination-label">
+            {filteredArticles.length} {getTabLabel(activeTab).toLowerCase()} article
+            {filteredArticles.length === 1 ? '' : 's'}
+          </div>
+          <div className="admin-list-pagination-actions">
+            <button
+              type="button"
+              onClick={() => setCurrentPage((current) => Math.max(1, current - 1))}
+              disabled={safePage === 1}
+              className="admin-list-pagination-button"
+            >
+              Previous
+            </button>
+            <span className="admin-list-pagination-page">
+              Page {safePage} of {pageCount}
+            </span>
+            <button
+              type="button"
+              onClick={() => setCurrentPage((current) => Math.min(pageCount, current + 1))}
+              disabled={safePage === pageCount}
+              className="admin-list-pagination-button"
+            >
+              Next
+            </button>
           </div>
         </div>
       </div>
+
+      <AdminDrawer title={focusedArticle ? `Manage ${focusedArticle.title}` : 'Manage Article'}>
+        {focusedArticle ? (
+          <div className="space-y-5">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <AdminChip tone={getStatusMeta(focusedArticle.status).tone}>
+                  {getStatusMeta(focusedArticle.status).label}
+                </AdminChip>
+                <AdminChip tone="role">{focusedArticle.category?.name || 'Uncategorized'}</AdminChip>
+              </div>
+              <div className="mt-3 space-y-1 text-sm text-slate-600">
+                <p>
+                  {focusedArticle.author.firstName} {focusedArticle.author.lastName}
+                </p>
+                <p>Published: {formatDate(focusedArticle.publishedAt)}</p>
+                <p>Last updated: {formatDate(focusedArticle.updatedAt)}</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Category</p>
+              <select
+                className="admin-list-cell-select min-w-[14rem]"
+                defaultValue={focusedArticle.category?.id || ''}
+                disabled={savingCategoryArticleId === focusedArticle.id}
+                onChange={(event) => handleCategoryChange(focusedArticle.id, event.target.value)}
+              >
+                <option value="" disabled>
+                  Select category
+                </option>
+                {articleCategories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Status</p>
+              <select
+                className="admin-list-cell-select min-w-[14rem]"
+                defaultValue={focusedArticle.status}
+                disabled={savingStatusArticleId === focusedArticle.id}
+                onChange={(event) =>
+                  handleStatusChange(focusedArticle.id, event.target.value as ArticleRecord['status'])
+                }
+              >
+                {ARTICLE_STATUS_OPTIONS.map((status) => (
+                  <option key={status.value} value={status.value}>
+                    {status.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <CrudActionLink
+                href={`/local-life/submit?edit=${focusedArticle.id}`}
+                variant="inline-link"
+                icon={Pencil}
+                label="Edit article"
+              >
+                Open editor
+              </CrudActionLink>
+              <CrudActionButton
+                type="button"
+                variant="inline-danger"
+                icon={Trash2}
+                label={deletingArticleId === focusedArticle.id ? 'Deleting article' : 'Delete article'}
+                onClick={() => handleDeleteArticle(focusedArticle)}
+                disabled={deletingArticleId === focusedArticle.id}
+              >
+                {deletingArticleId === focusedArticle.id ? 'Deleting...' : 'Delete article'}
+              </CrudActionButton>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+            The selected article is not available in the current result set.
+          </div>
+        )}
+      </AdminDrawer>
     </div>
   );
 }

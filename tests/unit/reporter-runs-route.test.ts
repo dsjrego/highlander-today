@@ -44,8 +44,8 @@ describe('reporter runs route', () => {
     (prismaMock.reporterRun.create as any).mockImplementation(async (args: any) => ({
       id: 'run-1',
       status: 'NEW',
-      mode: 'REQUEST',
-      requestType: 'ARTICLE_REQUEST',
+      mode: args.data.mode ?? 'REQUEST',
+      requestType: args.data.requestType ?? 'ARTICLE_REQUEST',
       topic: args.data.topic,
       title: args.data.title,
       subjectName: args.data.subjectName,
@@ -53,6 +53,7 @@ describe('reporter runs route', () => {
       requesterEmail: args.data.requesterEmail,
       requesterPhone: args.data.requesterPhone,
       requestSummary: args.data.requestSummary,
+      editorNotes: args.data.editorNotes,
       publicDescription: args.data.publicDescription,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -71,8 +72,11 @@ describe('reporter runs route', () => {
 
     const response = await POST(
       buildRequest('POST', {
+        mode: 'RESEARCH',
+        requestType: 'EDITOR_ASSIGNMENT',
         topic: ' Budget vote ',
         whatHappened: ' Council approved the budget. ',
+        editorNotes: ' Internal assignment seeded by editor. ',
         requesterEmail: ' tipster@example.com ',
       })
     );
@@ -80,14 +84,20 @@ describe('reporter runs route', () => {
     expect(response.status).toBe(201);
     await expect(response.json()).resolves.toMatchObject({
       id: 'run-1',
+      mode: 'RESEARCH',
+      requestType: 'EDITOR_ASSIGNMENT',
       topic: 'Budget vote',
+      editorNotes: 'Internal assignment seeded by editor.',
       requesterEmail: 'tipster@example.com',
     });
     expect(prismaMock.reporterRun.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           communityId: 'community-1',
+          mode: 'RESEARCH',
+          requestType: 'EDITOR_ASSIGNMENT',
           topic: 'Budget vote',
+          editorNotes: 'Internal assignment seeded by editor.',
           requesterEmail: 'tipster@example.com',
           sources: {
             create: expect.arrayContaining([

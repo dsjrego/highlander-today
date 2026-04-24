@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { createPortal } from 'react-dom';
+import { useDialogAccessibility } from '@/components/shared/useDialogAccessibility';
 import { hasTrustedAccess } from '@/lib/trust-access';
 
 type MessageDialogState = {
@@ -34,19 +35,39 @@ function MessageUserDialog({
   onCancel: () => void;
   onSubmit: () => Promise<void>;
 }) {
+  const titleId = useId();
+  const descriptionId = useId();
+  const errorId = useId();
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  useDialogAccessibility({
+    isOpen: true,
+    onClose: onCancel,
+    containerRef: dialogRef,
+    initialFocusRef: closeButtonRef,
+  });
+
   const dialog = (
-    <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/50 p-4">
+    <div
+      className="fixed inset-0 z-[140] flex items-center justify-center bg-black/50 p-4"
+      onClick={onCancel}
+    >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="directory-message-dialog-title"
+        aria-labelledby={titleId}
+        aria-describedby={error ? `${descriptionId} ${errorId}` : descriptionId}
         className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg"
+        tabIndex={-1}
+        onClick={(event) => event.stopPropagation()}
       >
-        <h2 id="directory-message-dialog-title" className="mb-4 text-xl font-bold text-gray-900">
+        <h2 id={titleId} className="mb-4 text-xl font-bold text-gray-900">
           {canSend ? 'Message User' : 'Messaging Unavailable'}
         </h2>
 
-        <p className="mb-4 text-sm text-gray-600">
+        <p id={descriptionId} className="mb-4 text-sm text-gray-600">
           {canSend ? (
             <>
               Send a direct message to <strong>{userName}</strong>.
@@ -74,10 +95,15 @@ function MessageUserDialog({
           </div>
         ) : null}
 
-        {error ? <div className="mb-4 text-sm font-semibold text-red-700">{error}</div> : null}
+        {error ? (
+          <div id={errorId} className="mb-4 text-sm font-semibold text-red-700" aria-live="polite">
+            {error}
+          </div>
+        ) : null}
 
         <div className="mt-6 flex justify-end gap-3 border-t border-gray-200 pt-6">
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onCancel}
             disabled={isLoading}

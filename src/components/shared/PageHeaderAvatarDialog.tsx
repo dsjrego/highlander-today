@@ -2,8 +2,9 @@
 
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import UserAvatar from "@/components/shared/UserAvatar";
+import { useDialogAccessibility } from "@/components/shared/useDialogAccessibility";
 
 interface PageHeaderAvatarDialogProps {
   firstName: string;
@@ -26,7 +27,16 @@ export default function PageHeaderAvatarDialog({
 }: PageHeaderAvatarDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dialogTitleId = useId();
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const fullName = `${firstName} ${lastName}`.trim();
+
+  useDialogAccessibility({
+    isOpen,
+    onClose: () => setIsOpen(false),
+    containerRef: dialogRef,
+    initialFocusRef: closeButtonRef,
+  });
 
   const avatar = (
     <UserAvatar
@@ -66,7 +76,9 @@ export default function PageHeaderAvatarDialog({
           onClick={() => setIsOpen(false)}
         >
           <div
+            ref={dialogRef}
             className="relative w-full max-w-3xl rounded-[32px] border border-white/10 bg-[linear-gradient(165deg,rgba(17,34,52,0.98),rgba(10,24,38,0.98))] p-4 shadow-[0_28px_80px_rgba(2,8,23,0.55)] md:p-6"
+            tabIndex={-1}
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-4 flex items-start justify-between gap-4">
@@ -79,6 +91,7 @@ export default function PageHeaderAvatarDialog({
                 </h2>
               </div>
               <button
+                ref={closeButtonRef}
                 type="button"
                 onClick={() => setIsOpen(false)}
                 className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/10"

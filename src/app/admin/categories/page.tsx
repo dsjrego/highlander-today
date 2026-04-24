@@ -1,8 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { ArrowDown, ArrowUp, BookOpenText, Plus, Save, Trash2 } from 'lucide-react';
+import { AdminPage } from '@/components/admin/AdminPage';
+import { AdminViewTabs } from '@/components/admin/AdminViewTabs';
 import { CrudActionButton } from '@/components/shared/CrudAction';
+import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import FormCard, { FormCardActions } from '@/components/shared/FormCard';
 import {
   CATEGORY_CONTENT_MODELS,
@@ -70,7 +75,7 @@ type CategoryEditorRowProps = {
   toggleExpanded: (categoryId: string) => void;
   moveCategory: (categoryId: string, direction: 'up' | 'down') => void;
   handleSaveCategory: (categoryId: string) => void;
-  handleDeleteCategory: (category: CategoryRecord) => void;
+  requestDeleteCategory: (category: CategoryRecord) => void;
 };
 
 function slugify(value: string) {
@@ -101,7 +106,7 @@ function CategoryEditorRow({
   toggleExpanded,
   moveCategory,
   handleSaveCategory,
-  handleDeleteCategory,
+  requestDeleteCategory,
 }: CategoryEditorRowProps) {
   const siblingCategories = sortCategories(
     categories.filter((candidate) => candidate.parentCategoryId === draft.parentCategoryId)
@@ -113,6 +118,11 @@ function CategoryEditorRow({
     <tr className="admin-list-row">
       <td className="admin-list-cell">
         <div className="flex min-w-[14rem] items-center gap-2" style={{ paddingLeft: `${depth * 1.25}rem` }}>
+          {depth > 0 ? (
+            <span className="admin-category-branch-marker" aria-hidden="true">
+              ↳
+            </span>
+          ) : null}
           {hasChildren ? (
             <button
               type="button"
@@ -124,7 +134,7 @@ function CategoryEditorRow({
               {isExpanded ? '▾' : '▸'}
             </button>
           ) : (
-            <span className="inline-block w-4 text-slate-300">{depth > 0 ? '•' : ''}</span>
+            <span className="inline-block w-4 text-slate-300" aria-hidden="true" />
           )}
           <input
             type="text"
@@ -133,7 +143,7 @@ function CategoryEditorRow({
               const name = event.target.value;
               updateDraft(category.id, { name, slug: slugify(name) });
             }}
-            className="w-full rounded border border-slate-200 bg-white px-2 py-1 text-slate-950"
+            className="admin-list-cell-input"
           />
         </div>
       </td>
@@ -142,7 +152,7 @@ function CategoryEditorRow({
           type="text"
           value={draft.slug}
           onChange={(event) => updateDraft(category.id, { slug: slugify(event.target.value) })}
-          className="w-full min-w-[10rem] rounded border border-slate-200 bg-white px-2 py-1 text-slate-950"
+          className="admin-list-cell-input min-w-[10rem]"
         />
       </td>
       <td className="admin-list-cell">
@@ -213,15 +223,6 @@ function CategoryEditorRow({
         </label>
       </td>
       <td className="admin-list-cell">
-        <div className="text-xs text-slate-500">
-          {category._count.articles} articles
-          <br />
-          {category._count.recipes} recipes
-          <br />
-          {category._count.childCategories} children
-        </div>
-      </td>
-      <td className="admin-list-cell">
         <div className="flex items-center gap-2">
           <CrudActionButton
             type="button"
@@ -258,7 +259,7 @@ function CategoryEditorRow({
             variant="inline-danger"
             icon={Trash2}
             label={isDeleting === category.id ? 'Deleting category' : 'Delete category'}
-            onClick={() => handleDeleteCategory(category)}
+            onClick={() => requestDeleteCategory(category)}
             disabled={isDeleting === category.id}
           >
             {isDeleting === category.id ? 'Deleting...' : 'Delete'}
@@ -269,12 +270,10 @@ function CategoryEditorRow({
   );
 }
 
-const CATEGORY_TABS = ['Navigation', 'Add Area'] as const;
-
 export default function CategoryManagerPage() {
+  const searchParams = useSearchParams();
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
   const [editable, setEditable] = useState<EditableCategory>({});
-  const [activeTab, setActiveTab] = useState<(typeof CATEGORY_TABS)[number]>('Navigation');
   const [newCategory, setNewCategory] = useState({
     name: '',
     slug: '',
@@ -287,10 +286,12 @@ export default function CategoryManagerPage() {
   const [isReordering, setIsReordering] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [deleteDialogCategory, setDeleteDialogCategory] = useState<CategoryRecord | null>(null);
   const [includeArchived, setIncludeArchived] = useState(false);
   const [expandedCategoryIds, setExpandedCategoryIds] = useState<Record<string, boolean>>({});
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const activeView = searchParams.get('view') ?? 'navigation';
 
   const loadCategories = useCallback(async () => {
     setIsLoading(true);
@@ -568,12 +569,6 @@ export default function CategoryManagerPage() {
   }
 
   async function handleDeleteCategory(category: CategoryRecord) {
-    const confirmed = window.confirm(
-      `Delete menu item "${category.name}" (${category.slug})? Child menu items will be removed with it, and article references will be cleared.`
-    );
-
-    if (!confirmed) return;
-
     setIsDeleting(category.id);
     setError('');
     setSuccess('');
@@ -590,6 +585,7 @@ export default function CategoryManagerPage() {
       }
 
       setSuccess(`Deleted menu item "${category.name}"`);
+      setDeleteDialogCategory(null);
       await loadCategories();
     } catch {
       setError('Failed to delete menu item');
@@ -599,17 +595,30 @@ export default function CategoryManagerPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="admin-card">
-        <div className="admin-card-header">
-          <div className="flex items-center gap-0">
-            <div className="admin-card-header-icon" aria-hidden="true">
+    <AdminPage
+      title="Navigation"
+      count={categories.length}
+      actions={
+        <Link href="/admin/content-architecture" className="admin-facet">
+          Content Architecture
+        </Link>
+      }
+    >
+      <div className="admin-section-card">
+        <div className="admin-section-card-head">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--hl-admin-border)] bg-[var(--hl-admin-surface-muted)] text-[var(--hl-admin-link)]">
               <BookOpenText className="h-4 w-4" />
             </div>
-            <div className="admin-card-header-label">Navigation Menu</div>
+            <div>
+              <h2 className="admin-section-card-title">Site Navigation</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Manage the top-level navbar structure, submenu nesting, model assignments, and trust gating.
+              </p>
+            </div>
           </div>
         </div>
-        <div className="admin-card-body">
+        <div className="space-y-4">
           {error || success ? (
             <div className="space-y-4">
               {error ? (
@@ -621,29 +630,25 @@ export default function CategoryManagerPage() {
             </div>
           ) : null}
 
-          <div className="space-y-0">
-            <div className="relative top-[2px] flex flex-wrap gap-0 pb-0">
-              {CATEGORY_TABS.map((tab) => {
-                const isActive = tab === activeTab;
+          <AdminViewTabs
+            defaultView="navigation"
+            views={[
+              { key: 'navigation', label: 'Navigation', count: categories.length },
+              { key: 'create', label: 'Add Area' },
+            ]}
+          />
 
-                return (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setActiveTab(tab)}
-                    className={`admin-card-tab ${isActive ? 'admin-card-tab-active' : 'admin-card-tab-inactive'}`}
-                  >
-                    {tab}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="admin-card-tab-body">
-              {activeTab === 'Navigation' ? (
+          <div className="admin-section-card rounded-[1.25rem] border border-[var(--hl-admin-border)] bg-[var(--hl-admin-surface-muted)] p-4 shadow-none">
+            {activeView === 'navigation' ? (
                 <FormCard>
                   <div className="space-y-5">
-                    <div className="border-b border-slate-200/80 pb-4">
+                    <div className="flex flex-col gap-3 border-b border-slate-200/80 pb-4 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">Navigation Tree</p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          Reorder items within a level, change parent relationships, and archive areas without deleting the whole tree.
+                        </p>
+                      </div>
                       <label className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-slate-700">
                         <input
                           type="checkbox"
@@ -672,7 +677,6 @@ export default function CategoryManagerPage() {
                                 <th className="admin-list-header-cell">Min Trust</th>
                                 <th className="admin-list-header-cell">Order</th>
                                 <th className="admin-list-header-cell">Status</th>
-                                <th className="admin-list-header-cell">Usage</th>
                                 <th className="admin-list-header-cell">Actions</th>
                               </tr>
                             </thead>
@@ -697,13 +701,13 @@ export default function CategoryManagerPage() {
                                       toggleExpanded={toggleExpanded}
                                       moveCategory={moveCategory}
                                       handleSaveCategory={handleSaveCategory}
-                                      handleDeleteCategory={handleDeleteCategory}
+                                      requestDeleteCategory={setDeleteDialogCategory}
                                     />
                                   ) : null
                                 )
                               ) : (
                                 <tr className="admin-list-row">
-                                  <td className="admin-list-empty" colSpan={9}>
+                                  <td className="admin-list-empty" colSpan={8}>
                                     No categories found.
                                   </td>
                                 </tr>
@@ -715,7 +719,7 @@ export default function CategoryManagerPage() {
                     )}
                   </div>
                 </FormCard>
-              ) : (
+            ) : (
                 <FormCard>
                   <form onSubmit={handleCreateCategory} className="space-y-4">
                     <div>
@@ -836,15 +840,25 @@ export default function CategoryManagerPage() {
                     </FormCardActions>
                   </form>
                 </FormCard>
-              )}
-            </div>
+            )}
           </div>
         </div>
-        <div className="admin-card-footer">
-          <div className="admin-card-footer-label"></div>
-          <div className="admin-card-footer-actions"></div>
-        </div>
       </div>
-    </div>
+
+      {deleteDialogCategory ? (
+        <ConfirmDialog
+          title="Delete menu item"
+          description={`Delete menu item "${deleteDialogCategory.name}" (${deleteDialogCategory.slug})? Child menu items will be removed with it, and article references will be cleared.`}
+          confirmLabel="Delete menu item"
+          isSubmitting={isDeleting === deleteDialogCategory.id}
+          onCancel={() => {
+            if (isDeleting !== deleteDialogCategory.id) {
+              setDeleteDialogCategory(null);
+            }
+          }}
+          onConfirm={() => handleDeleteCategory(deleteDialogCategory)}
+        />
+      ) : null}
+    </AdminPage>
   );
 }

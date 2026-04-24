@@ -6,6 +6,8 @@ Translate `REPORTER-AGENT-PHASE-1-SPEC.md` into a concrete implementation checkl
 
 This document is intentionally operational. It maps the Phase 1 reporter foundation to the files, schema seams, permission hooks, API conventions, and UI patterns already present in the repo.
 
+For the later browser-based interview queue and session system, use `REPORTER-INTERVIEW-AGENT-PLAN.md` rather than extending this Phase 1 checklist past its intended scope.
+
 ## Current-Code Constraints
 
 The current repo already establishes several important boundaries:
@@ -682,3 +684,5 @@ Phase 1 should be implemented as:
 - article handoff
 
 That will give later Interview Agent and Research Agent work a stable, product-native base rather than forcing those later phases to retrofit themselves onto ad hoc article-generation code.
+
+When the Interview Agent work begins, treat `REPORTER-INTERVIEW-AGENT-PLAN.md` as the next canonical planning document.

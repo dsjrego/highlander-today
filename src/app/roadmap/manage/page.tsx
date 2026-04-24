@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import InternalPageHeader from '@/components/shared/InternalPageHeader';
+import ConfirmDialog from '@/components/shared/ConfirmDialog';
 
 type RoadmapIdeaStatus =
   | 'SUBMITTED'
@@ -58,6 +59,7 @@ export default function ManageRoadmapIdeasPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteDialogIdeaId, setDeleteDialogIdeaId] = useState<string | null>(null);
 
   const isTrusted =
     sessionStatus === 'authenticated' &&
@@ -93,11 +95,6 @@ export default function ManageRoadmapIdeasPage() {
   }, [isTrusted]);
 
   async function handleDelete(ideaId: string) {
-    const confirmed = window.confirm('Delete this roadmap idea?');
-    if (!confirmed) {
-      return;
-    }
-
     setDeletingId(ideaId);
     try {
       const res = await fetch(`/api/roadmap/${ideaId}`, {
@@ -110,6 +107,7 @@ export default function ManageRoadmapIdeasPage() {
       }
 
       setIdeas((current) => current.filter((idea) => idea.id !== ideaId));
+      setDeleteDialogIdeaId(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete roadmap idea');
     } finally {
@@ -258,7 +256,7 @@ export default function ManageRoadmapIdeasPage() {
                     {canDelete ? (
                       <button
                         type="button"
-                        onClick={() => handleDelete(idea.id)}
+                        onClick={() => setDeleteDialogIdeaId(idea.id)}
                         disabled={deletingId === idea.id}
                         className="px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90 transition disabled:opacity-50"
                         style={{ backgroundColor: 'var(--brand-accent)' }}
@@ -273,6 +271,21 @@ export default function ManageRoadmapIdeasPage() {
           })}
         </div>
       )}
+
+      {deleteDialogIdeaId ? (
+        <ConfirmDialog
+          title="Delete roadmap idea"
+          description="Delete this roadmap idea? This action cannot be undone."
+          confirmLabel="Delete idea"
+          isSubmitting={deletingId === deleteDialogIdeaId}
+          onCancel={() => {
+            if (deletingId !== deleteDialogIdeaId) {
+              setDeleteDialogIdeaId(null);
+            }
+          }}
+          onConfirm={() => handleDelete(deleteDialogIdeaId)}
+        />
+      ) : null}
     </div>
   );
 }

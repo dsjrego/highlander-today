@@ -66,6 +66,7 @@ describe('reporter draft route', () => {
           createdAt: new Date(),
         },
       ],
+      interviewRequests: [],
     });
     (prismaMock.$transaction as any).mockImplementation(async (callback: any) =>
       callback(prismaMock)
@@ -152,5 +153,39 @@ describe('reporter draft route', () => {
     );
 
     expect(response.status).toBe(403);
+  });
+
+  it('rejects draft generation when completed interview output is unreviewed', async () => {
+    (prismaMock.reporterRun.findUnique as any).mockResolvedValue({
+      id: 'run-1',
+      communityId: 'community-1',
+      mode: 'REQUEST',
+      requestType: 'ARTICLE_REQUEST',
+      topic: 'Bridge closure',
+      title: 'Bridge closure',
+      subjectName: null,
+      requestedArticleType: null,
+      requestSummary: 'Bridge closed after inspection.',
+      editorNotes: null,
+      sources: [],
+      interviewRequests: [
+        {
+          sessions: [
+            {
+              id: 'session-1',
+              reviewedAt: null,
+            },
+          ],
+        },
+      ],
+    });
+
+    const response = await POST(buildRequest(), { params: { id: 'run-1' } });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error:
+        'Completed interview output must be reviewed before generating a reporter draft.',
+    });
   });
 });

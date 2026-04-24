@@ -3,8 +3,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import InternalPageHeader from "@/components/shared/InternalPageHeader";
+import { useDialogAccessibility } from "@/components/shared/useDialogAccessibility";
 
 interface Store {
   id: string;
@@ -34,6 +35,12 @@ interface Listing {
     imageUrl: string;
   }>;
 }
+
+type DeleteDialogState = {
+  storeId: string;
+  listingId: string;
+  title: string;
+} | null;
 
 const STATUS_STYLES: Record<Store["status"], string> = {
   PENDING_APPROVAL: "bg-yellow-100 text-yellow-800",
@@ -67,12 +74,81 @@ function formatDate(value: string) {
   });
 }
 
+function DeleteListingDialog({
+  listingTitle,
+  isDeleting,
+  onCancel,
+  onConfirm,
+}: {
+  listingTitle: string;
+  isDeleting: boolean;
+  onCancel: () => void;
+  onConfirm: () => Promise<void>;
+}) {
+  const titleId = useId();
+  const descriptionId = useId();
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  useDialogAccessibility({
+    isOpen: true,
+    onClose: onCancel,
+    containerRef: dialogRef,
+    initialFocusRef: cancelButtonRef,
+  });
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={isDeleting ? undefined : onCancel}
+    >
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        tabIndex={-1}
+        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <h2 id={titleId} className="mb-3 text-xl font-bold text-gray-900">
+          Delete listing
+        </h2>
+        <p id={descriptionId} className="text-sm leading-6 text-gray-600">
+          Delete <strong>{listingTitle}</strong>? This permanently removes the listing.
+        </p>
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            ref={cancelButtonRef}
+            type="button"
+            onClick={onCancel}
+            disabled={isDeleting}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-60"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => void onConfirm()}
+            disabled={isDeleting}
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+          >
+            {isDeleting ? "Deleting..." : "Delete listing"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MyStoresPage() {
   const [stores, setStores] = useState<Store[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [statusUpdates, setStatusUpdates] = useState<Record<string, boolean>>({});
   const [deletingListings, setDeletingListings] = useState<Record<string, boolean>>({});
+  const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState>(null);
 
   useEffect(() => {
     async function fetchStores() {
@@ -145,15 +221,7 @@ export default function MyStoresPage() {
     }
   }
 
-  async function deleteListing(storeId: string, listingId: string, title: string) {
-    const confirmed = window.confirm(
-      `Delete "${title}"? This removes the listing permanently.`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
+  async function deleteListing(storeId: string, listingId: string) {
     setError("");
     setDeletingListings((prev) => ({ ...prev, [listingId]: true }));
 
@@ -183,6 +251,7 @@ export default function MyStoresPage() {
               }
         )
       );
+      setDeleteDialog(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete listing");
     } finally {
@@ -261,7 +330,13 @@ export default function MyStoresPage() {
         </Link>
         <button
           type="button"
-          onClick={() => deleteListing(storeId, listing.id, listing.title)}
+          onClick={() =>
+            setDeleteDialog({
+              storeId,
+              listingId: listing.id,
+              title: listing.title,
+            })
+          }
           disabled={isDeleting || isUpdating}
           className="px-3 py-2 rounded-lg bg-red-50 text-red-700 font-semibold disabled:opacity-60"
         >
@@ -471,6 +546,19 @@ export default function MyStoresPage() {
           ))}
         </div>
       )}
+
+      {deleteDialog ? (
+        <DeleteListingDialog
+          listingTitle={deleteDialog.title}
+          isDeleting={Boolean(deletingListings[deleteDialog.listingId])}
+          onCancel={() => {
+            if (!deletingListings[deleteDialog.listingId]) {
+              setDeleteDialog(null);
+            }
+          }}
+          onConfirm={() => deleteListing(deleteDialog.storeId, deleteDialog.listingId)}
+        />
+      ) : null}
     </div>
   );
 }

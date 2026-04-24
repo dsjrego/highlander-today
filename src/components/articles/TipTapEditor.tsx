@@ -8,6 +8,7 @@ import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
 import TextAlign from '@tiptap/extension-text-align';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useDialogAccessibility } from '@/components/shared/useDialogAccessibility';
 
 interface TipTapEditorProps {
   content: string;
@@ -131,12 +132,14 @@ function ToolbarButton({
   isActive = false,
   disabled = false,
   title,
+  ariaLabel,
   children,
 }: {
   onClick: () => void;
   isActive?: boolean;
   disabled?: boolean;
   title: string;
+  ariaLabel?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -145,6 +148,8 @@ function ToolbarButton({
       onClick={onClick}
       disabled={disabled}
       title={title}
+      aria-label={ariaLabel ?? title}
+      aria-pressed={isActive}
       className={`!p-0 w-8 h-8 flex items-center justify-center rounded text-sm transition-colors ${
         isActive
           ? 'bg-[var(--brand-accent)] text-white'
@@ -223,9 +228,18 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
 
   // ── Image upload + insertion ────────────────────────────────────
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const importDialogRef = useRef<HTMLDivElement>(null);
+  const importDialogCloseRef = useRef<HTMLButtonElement>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isImportHtmlOpen, setIsImportHtmlOpen] = useState(false);
   const [htmlImportValue, setHtmlImportValue] = useState('');
+
+  useDialogAccessibility({
+    isOpen: isImportHtmlOpen,
+    onClose: () => setIsImportHtmlOpen(false),
+    containerRef: importDialogRef,
+    initialFocusRef: importDialogCloseRef,
+  });
 
   const handleImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -295,6 +309,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
           onClick={() => editor.chain().focus().toggleBold().run()}
           isActive={editor.isActive('bold')}
           title="Bold (Ctrl+B)"
+          ariaLabel="Bold"
         >
           <strong>B</strong>
         </ToolbarButton>
@@ -302,6 +317,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
           onClick={() => editor.chain().focus().toggleItalic().run()}
           isActive={editor.isActive('italic')}
           title="Italic (Ctrl+I)"
+          ariaLabel="Italic"
         >
           <em>I</em>
         </ToolbarButton>
@@ -309,6 +325,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
           onClick={() => editor.chain().focus().toggleUnderline().run()}
           isActive={editor.isActive('underline')}
           title="Underline (Ctrl+U)"
+          ariaLabel="Underline"
         >
           <span className="underline">U</span>
         </ToolbarButton>
@@ -316,6 +333,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
           onClick={() => editor.chain().focus().toggleStrike().run()}
           isActive={editor.isActive('strike')}
           title="Strikethrough"
+          ariaLabel="Strikethrough"
         >
           <s>S</s>
         </ToolbarButton>
@@ -327,6 +345,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           isActive={editor.isActive('heading', { level: 2 })}
           title="Heading 2"
+          ariaLabel="Heading level 2"
         >
           H2
         </ToolbarButton>
@@ -334,6 +353,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
           onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
           isActive={editor.isActive('heading', { level: 3 })}
           title="Heading 3"
+          ariaLabel="Heading level 3"
         >
           H3
         </ToolbarButton>
@@ -345,6 +365,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           isActive={editor.isActive('bulletList')}
           title="Bullet List"
+          ariaLabel="Bullet list"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1.5" fill="currentColor"/><circle cx="4" cy="12" r="1.5" fill="currentColor"/><circle cx="4" cy="18" r="1.5" fill="currentColor"/></svg>
         </ToolbarButton>
@@ -352,6 +373,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           isActive={editor.isActive('orderedList')}
           title="Numbered List"
+          ariaLabel="Numbered list"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="10" y1="6" x2="20" y2="6"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="10" y1="18" x2="20" y2="18"/><text x="2" y="8" fontSize="8" fill="currentColor" stroke="none" fontFamily="serif">1</text><text x="2" y="14" fontSize="8" fill="currentColor" stroke="none" fontFamily="serif">2</text><text x="2" y="20" fontSize="8" fill="currentColor" stroke="none" fontFamily="serif">3</text></svg>
         </ToolbarButton>
@@ -363,12 +385,14 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           isActive={editor.isActive('blockquote')}
           title="Blockquote"
+          ariaLabel="Blockquote"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3z"/></svg>
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().setHorizontalRule().run()}
           title="Horizontal Rule"
+          ariaLabel="Insert horizontal rule"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"/></svg>
         </ToolbarButton>
@@ -380,6 +404,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
           onClick={setLink}
           isActive={editor.isActive('link')}
           title="Insert Link"
+          ariaLabel={editor.isActive('link') ? 'Edit link' : 'Insert link'}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
         </ToolbarButton>
@@ -387,6 +412,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
           onClick={addImage}
           disabled={isUploadingImage}
           title={isUploadingImage ? 'Uploading...' : 'Upload Image'}
+          ariaLabel={isUploadingImage ? 'Uploading image' : 'Upload image'}
         >
           {isUploadingImage ? (
             <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
@@ -397,6 +423,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
         <ToolbarButton
           onClick={openImportHtml}
           title="Import HTML"
+          ariaLabel="Import HTML"
         >
           <span className="text-[10px] font-semibold tracking-[0.08em]">HTML</span>
         </ToolbarButton>
@@ -408,6 +435,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
           onClick={() => editor.chain().focus().undo().run()}
           disabled={!editor.can().undo()}
           title="Undo (Ctrl+Z)"
+          ariaLabel="Undo"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
         </ToolbarButton>
@@ -415,6 +443,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
           onClick={() => editor.chain().focus().redo().run()}
           disabled={!editor.can().redo()}
           title="Redo (Ctrl+Shift+Z)"
+          ariaLabel="Redo"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         </ToolbarButton>
@@ -427,6 +456,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
             onClick={() => editor.chain().focus().toggleBold().run()}
             isActive={editor.isActive('bold')}
             title="Bold"
+            ariaLabel="Bold"
           >
             <strong>B</strong>
           </ToolbarButton>
@@ -434,6 +464,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
             onClick={() => editor.chain().focus().toggleItalic().run()}
             isActive={editor.isActive('italic')}
             title="Italic"
+            ariaLabel="Italic"
           >
             <em>I</em>
           </ToolbarButton>
@@ -441,6 +472,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
             onClick={setLink}
             isActive={editor.isActive('link')}
             title="Link"
+            ariaLabel={editor.isActive('link') ? 'Edit link' : 'Insert link'}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
           </ToolbarButton>
@@ -465,8 +497,14 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
           role="dialog"
           aria-modal="true"
           aria-labelledby="import-html-title"
+          onClick={() => setIsImportHtmlOpen(false)}
         >
-          <div className="w-full max-w-3xl rounded-[28px] border border-white/10 bg-white p-6 shadow-[0_28px_80px_rgba(2,8,23,0.35)]">
+          <div
+            ref={importDialogRef}
+            tabIndex={-1}
+            className="w-full max-w-3xl rounded-[28px] border border-white/10 bg-white p-6 shadow-[0_28px_80px_rgba(2,8,23,0.35)]"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 id="import-html-title" className="text-xl font-semibold tracking-tight text-slate-950">
@@ -479,6 +517,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
                 </p>
               </div>
               <button
+                ref={importDialogCloseRef}
                 type="button"
                 onClick={() => setIsImportHtmlOpen(false)}
                 className="rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-950"

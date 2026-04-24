@@ -1,6 +1,7 @@
 'use client';
 
-import { Fragment, useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import {
   Eye,
   MessageSquare,
@@ -11,8 +12,16 @@ import {
   ShieldX,
   Trash2,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { CrudActionButton, CrudActionLink } from '@/components/shared/CrudAction';
+import PromptDialog from '@/components/shared/PromptDialog';
+import { useDialogAccessibility } from '@/components/shared/useDialogAccessibility';
+import { AdminBulkBar } from '@/components/admin/AdminBulkBar';
+import { AdminChip } from '@/components/admin/AdminChip';
+import { AdminDrawer } from '@/components/admin/AdminDrawer';
+import { AdminFilterBar, AdminFacet } from '@/components/admin/AdminFilterBar';
+import { AdminPage } from '@/components/admin/AdminPage';
+import { AdminViewTabs } from '@/components/admin/AdminViewTabs';
 
 interface User {
   id: string;
@@ -36,9 +45,33 @@ interface Pagination {
   totalPages: number;
 }
 
+interface UserStats {
+  totalUsers: number;
+  trustedCount: number;
+  registeredCount: number;
+  suspendedCount: number;
+}
+
+const EMPTY_STATS: UserStats = {
+  totalUsers: 0,
+  trustedCount: 0,
+  registeredCount: 0,
+  suspendedCount: 0,
+};
+
 const ROLES = ['READER', 'CONTRIBUTOR', 'STAFF_WRITER', 'EDITOR', 'ADMIN', 'SUPER_ADMIN'];
 
 type MessageDialogState = {
+  userId: string;
+  userName: string;
+} | null;
+
+type DeleteDialogState = {
+  userId: string;
+  userName: string;
+} | null;
+
+type BanDialogState = {
   userId: string;
   userName: string;
 } | null;
@@ -64,6 +97,32 @@ function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
+function trustTone(trustLevel: User['trustLevel']): 'ok' | 'pend' | 'bad' | 'neu' {
+  switch (trustLevel) {
+    case 'TRUSTED':
+      return 'ok';
+    case 'REGISTERED':
+      return 'pend';
+    case 'SUSPENDED':
+      return 'bad';
+    default:
+      return 'neu';
+  }
+}
+
+function viewToTrustFilter(view: string) {
+  switch (view) {
+    case 'trusted':
+      return 'TRUSTED';
+    case 'registered':
+      return 'REGISTERED';
+    case 'suspended':
+      return 'SUSPENDED';
+    default:
+      return 'all';
+  }
+}
+
 function MessageUserDialog({
   userName,
   value,
@@ -81,19 +140,36 @@ function MessageUserDialog({
   onCancel: () => void;
   onSubmit: () => Promise<void>;
 }) {
+  const titleId = useId();
+  const descriptionId = useId();
+  const errorId = useId();
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  useDialogAccessibility({
+    isOpen: true,
+    onClose: onCancel,
+    containerRef: dialogRef,
+    initialFocusRef: cancelButtonRef,
+  });
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4" onClick={onCancel}>
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="admin-message-dialog-title"
+        aria-labelledby={titleId}
+        aria-describedby={error ? `${descriptionId} ${errorId}` : descriptionId}
         className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg"
+        tabIndex={-1}
+        onClick={(event) => event.stopPropagation()}
       >
-        <h2 id="admin-message-dialog-title" className="mb-4 text-xl font-bold text-gray-900">
+        <h2 id={titleId} className="mb-4 text-xl font-bold text-gray-900">
           Message User
         </h2>
 
-        <p className="mb-4 text-sm text-gray-600">
+        <p id={descriptionId} className="mb-4 text-sm text-gray-600">
           Send a direct message to <strong>{userName}</strong>.
         </p>
 
@@ -113,10 +189,11 @@ function MessageUserDialog({
           />
         </div>
 
-        {error ? <div className="mb-4 text-sm font-semibold text-red-700">{error}</div> : null}
+        {error ? <div id={errorId} className="mb-4 text-sm font-semibold text-red-700">{error}</div> : null}
 
         <div className="mt-6 flex justify-end gap-3 border-t border-gray-200 pt-6">
           <button
+            ref={cancelButtonRef}
             type="button"
             onClick={onCancel}
             disabled={isLoading}
@@ -141,6 +218,11 @@ function MessageUserDialog({
 
 export default function UsersPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const activeView = searchParams.get('view') ?? 'all';
+  const focusedUserId = searchParams.get('focus');
+
   const [users, setUsers] = useState<User[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
@@ -148,20 +230,46 @@ export default function UsersPage() {
     total: 0,
     totalPages: 0,
   });
+  const [stats, setStats] = useState<UserStats>(EMPTY_STATS);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterTrust, setFilterTrust] = useState('all');
+  const [filterTrust, setFilterTrust] = useState(viewToTrustFilter(activeView));
   const [filterRole, setFilterRole] = useState('all');
   const [filterDirectory, setFilterDirectory] = useState('all');
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [editingRole, setEditingRole] = useState<string | null>(null);
-  const [expandedUser, setExpandedUser] = useState<string | null>(null);
+  const [roleDrafts, setRoleDrafts] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [messageDialog, setMessageDialog] = useState<MessageDialogState>(null);
   const [messageBody, setMessageBody] = useState('');
   const [messageError, setMessageError] = useState<string | null>(null);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState>(null);
+  const [banDialog, setBanDialog] = useState<BanDialogState>(null);
+
+  const updateSearchParams = useCallback(
+    (updates: Record<string, string | null>) => {
+      const next = new URLSearchParams(searchParams.toString());
+
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value === null || value === '') {
+          next.delete(key);
+        } else {
+          next.set(key, value);
+        }
+      });
+
+      const query = next.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname);
+    },
+    [pathname, router, searchParams]
+  );
+
+  useEffect(() => {
+    const nextTrust = viewToTrustFilter(activeView);
+    setFilterTrust((current) => (current === nextTrust ? current : nextTrust));
+  }, [activeView]);
 
   const fetchUsers = useCallback(
     async (page = 1) => {
@@ -197,6 +305,7 @@ export default function UsersPage() {
         const data = await response.json();
         setUsers(data.users);
         setPagination(data.pagination);
+        setStats(data.stats ?? EMPTY_STATS);
       } catch (fetchError: unknown) {
         setError(getErrorMessage(fetchError, 'Failed to fetch users'));
       } finally {
@@ -210,6 +319,14 @@ export default function UsersPage() {
     const debounce = setTimeout(() => fetchUsers(1), 300);
     return () => clearTimeout(debounce);
   }, [fetchUsers]);
+
+  useEffect(() => {
+    setSelectedUserIds((current) => {
+      const visibleIds = new Set(users.map((user) => user.id));
+      const next = new Set(Array.from(current).filter((id) => visibleIds.has(id)));
+      return next.size === current.size ? current : next;
+    });
+  }, [users]);
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     setActionLoading(userId);
@@ -228,7 +345,7 @@ export default function UsersPage() {
       }
 
       setSuccessMsg(`Role updated to ${formatRoleLabel(newRole)}`);
-      setEditingRole(null);
+      setRoleDrafts((current) => ({ ...current, [userId]: newRole }));
       fetchUsers(pagination.page);
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (updateError: unknown) {
@@ -254,7 +371,6 @@ export default function UsersPage() {
       }
 
       setSuccessMsg(data.message || 'Vouch successful');
-      setExpandedUser(null);
       fetchUsers(pagination.page);
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (vouchError: unknown) {
@@ -303,7 +419,6 @@ export default function UsersPage() {
       }
 
       setSuccessMsg(data.message || `User ${action} successful`);
-      setExpandedUser(null);
       fetchUsers(pagination.page);
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (trustError: unknown) {
@@ -313,12 +428,9 @@ export default function UsersPage() {
     }
   };
 
-  const handleDeleteUser = async (userId: string, userName: string) => {
-    const confirmation = prompt(
-      `PERMANENTLY DELETE "${userName}"?\n\nThis will delete all their articles, comments, events, marketplace listings, vouch records, messages, and audit logs.\n\nType "DELETE" to confirm:`
-    );
-
-    if (confirmation !== 'DELETE') {
+  const handleDeleteUser = async (userId: string, confirmation: string) => {
+    if (confirmation.trim() !== 'DELETE') {
+      setError('Type DELETE exactly to confirm permanent deletion.');
       return;
     }
 
@@ -336,7 +448,8 @@ export default function UsersPage() {
       }
 
       setSuccessMsg(data.message || 'User deleted');
-      setExpandedUser(null);
+      setDeleteDialog(null);
+      updateSearchParams({ focus: null });
       fetchUsers(pagination.page);
       setTimeout(() => setSuccessMsg(null), 5000);
     } catch (deleteError: unknown) {
@@ -403,26 +516,44 @@ export default function UsersPage() {
     }
   };
 
+  const handleBulkCopyEmails = async () => {
+    const selectedUsers = users.filter((user) => selectedUserIds.has(user.id));
+    if (selectedUsers.length === 0) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(selectedUsers.map((user) => user.email).join(', '));
+      setSuccessMsg(`Copied ${selectedUsers.length} email${selectedUsers.length === 1 ? '' : 's'}.`);
+      setTimeout(() => setSuccessMsg(null), 3000);
+    } catch (clipboardError: unknown) {
+      setError(getErrorMessage(clipboardError, 'Failed to copy selected emails'));
+    }
+  };
+
   const safePage = Math.max(1, Math.min(pagination.page, Math.max(pagination.totalPages, 1)));
+  const allVisibleSelected = users.length > 0 && users.every((user) => selectedUserIds.has(user.id));
+  const focusedUser = users.find((user) => user.id === focusedUserId) ?? null;
+  const focusedRoleDraft = focusedUser ? roleDrafts[focusedUser.id] ?? focusedUser.role : 'READER';
 
   return (
-    <div className="space-y-4">
-      <div className="admin-card">
-        <div className="admin-card-header">
-          <div className="flex items-center gap-0">
-            <div className="admin-card-header-icon" aria-hidden="true">
-              <ShieldCheck className="h-4 w-4" />
-            </div>
-            <div className="admin-card-header-label">Users</div>
-          </div>
-          <div className="admin-card-header-actions"></div>
-        </div>
+    <AdminPage title="Users" count={stats.totalUsers}>
+      <div className="admin-section-card">
+        <AdminViewTabs
+          defaultView="all"
+          views={[
+            { key: 'all', label: 'All Users', count: stats.totalUsers },
+            { key: 'trusted', label: 'Trusted', count: stats.trustedCount },
+            { key: 'registered', label: 'Registered', count: stats.registeredCount, tone: 'pend' },
+            { key: 'suspended', label: 'Suspended', count: stats.suspendedCount, tone: 'bad' },
+          ]}
+        />
 
-        <div className="admin-card-body">
-          <div className="admin-list">
-            <div className="admin-list-toolbar">
+        <div className="mt-4 admin-list">
+          <AdminFilterBar
+            search={
               <label className="admin-list-filter">
-                <span className="admin-list-filter-label">Filter: Name or Email</span>
+                <span className="admin-list-filter-label">Name or Email</span>
                 <input
                   type="text"
                   value={searchTerm}
@@ -431,23 +562,9 @@ export default function UsersPage() {
                   className="admin-list-filter-input"
                 />
               </label>
-
+            }
+            right={
               <div className="flex flex-wrap items-end gap-3">
-                <label className="admin-list-filter min-w-[10rem]">
-                  <span className="admin-list-filter-label">Trust</span>
-                  <select
-                    value={filterTrust}
-                    onChange={(event) => setFilterTrust(event.target.value)}
-                    className="admin-list-cell-select min-w-[10rem]"
-                  >
-                    <option value="all">All trust levels</option>
-                    <option value="TRUSTED">Trusted</option>
-                    <option value="REGISTERED">Registered</option>
-                    <option value="SUSPENDED">Suspended</option>
-                    <option value="ANONYMOUS">Anonymous</option>
-                  </select>
-                </label>
-
                 <label className="admin-list-filter min-w-[10rem]">
                   <span className="admin-list-filter-label">Role</span>
                   <select
@@ -463,263 +580,359 @@ export default function UsersPage() {
                     ))}
                   </select>
                 </label>
-
-                <label className="admin-list-filter min-w-[10rem]">
-                  <span className="admin-list-filter-label">Directory</span>
-                  <select
-                    value={filterDirectory}
-                    onChange={(event) => setFilterDirectory(event.target.value)}
-                    className="admin-list-cell-select min-w-[10rem]"
-                  >
-                    <option value="all">All directory states</option>
-                    <option value="unlisted">No directory</option>
-                    <option value="listed">In directory</option>
-                  </select>
-                </label>
               </div>
-            </div>
+            }
+          >
+            <AdminFacet
+              active={filterDirectory === 'listed'}
+              onClick={() => setFilterDirectory((current) => (current === 'listed' ? 'all' : 'listed'))}
+              onClear={() => setFilterDirectory('all')}
+            >
+              In directory
+            </AdminFacet>
+            <AdminFacet
+              active={filterDirectory === 'unlisted'}
+              onClick={() => setFilterDirectory((current) => (current === 'unlisted' ? 'all' : 'unlisted'))}
+              onClear={() => setFilterDirectory('all')}
+            >
+              No directory
+            </AdminFacet>
+          </AdminFilterBar>
 
-            {successMsg ? <div className="text-xs font-semibold text-green-700">{successMsg}</div> : null}
-            {error ? <div className="admin-list-error">{error}</div> : null}
+          {successMsg ? <div className="text-xs font-semibold text-green-700">{successMsg}</div> : null}
+          {error ? <div className="admin-list-error">{error}</div> : null}
 
-            <div className="admin-list-table-wrap">
-              <table className="admin-list-table">
-                <thead className="admin-list-head">
-                  <tr>
-                    <th className="admin-list-header-cell">User</th>
-                    <th className="admin-list-header-cell">Email</th>
-                    <th className="admin-list-header-cell">Trust</th>
-                    <th className="admin-list-header-cell">Role</th>
-                    <th className="admin-list-header-cell">Last Seen</th>
-                    <th className="admin-list-header-cell">Vouched By</th>
-                    <th className="admin-list-header-cell">Actions</th>
+          <AdminBulkBar count={selectedUserIds.size} onClear={() => setSelectedUserIds(new Set())}>
+            <button
+              type="button"
+              className="admin-list-pagination-button"
+              onClick={() => void handleBulkCopyEmails()}
+            >
+              Copy emails
+            </button>
+          </AdminBulkBar>
+
+          <div className="admin-list-table-wrap">
+            <table className="admin-list-table">
+              <thead className="admin-list-head">
+                <tr>
+                  <th className="admin-list-header-cell">
+                    <input
+                      type="checkbox"
+                      aria-label={allVisibleSelected ? 'Deselect all visible users' : 'Select all visible users'}
+                      checked={allVisibleSelected}
+                      onChange={(event) => {
+                        if (event.target.checked) {
+                          setSelectedUserIds(new Set(users.map((user) => user.id)));
+                        } else {
+                          setSelectedUserIds(new Set());
+                        }
+                      }}
+                    />
+                  </th>
+                  <th className="admin-list-header-cell">User</th>
+                  <th className="admin-list-header-cell">Email</th>
+                  <th className="admin-list-header-cell">Trust</th>
+                  <th className="admin-list-header-cell">Role</th>
+                  <th className="admin-list-header-cell">Last Seen</th>
+                  <th className="admin-list-header-cell">Vouched By</th>
+                  <th className="admin-list-header-cell">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  <tr className="admin-list-row">
+                    <td className="admin-list-empty" colSpan={8}>
+                      Loading users...
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {isLoading ? (
-                    <tr>
-                      <td className="admin-list-empty" colSpan={7}>
-                        Loading users...
+                ) : users.length > 0 ? (
+                  users.map((user) => (
+                    <tr key={user.id} className="admin-list-row">
+                      <td className="admin-list-cell">
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${formatUserName(user.firstName, user.lastName)}`}
+                          checked={selectedUserIds.has(user.id)}
+                          onChange={(event) => {
+                            setSelectedUserIds((current) => {
+                              const next = new Set(current);
+                              if (event.target.checked) {
+                                next.add(user.id);
+                              } else {
+                                next.delete(user.id);
+                              }
+                              return next;
+                            });
+                          }}
+                        />
+                      </td>
+                      <td className="admin-list-cell">
+                        <Link href={`/profile/${user.id}`} className="admin-list-link">
+                          {formatUserName(user.firstName, user.lastName)}
+                        </Link>
+                        <div className="mt-1 flex flex-wrap gap-2">
+                          {user.isIdentityLocked ? <AdminChip tone="role">Identity locked</AdminChip> : null}
+                          <span className="text-xs text-slate-500">
+                            {user.postCount} contribution{user.postCount === 1 ? '' : 's'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="admin-list-cell">{user.email}</td>
+                      <td className="admin-list-cell">
+                        <AdminChip tone={trustTone(user.trustLevel)} dot>
+                          {user.trustLevel}
+                        </AdminChip>
+                      </td>
+                      <td className="admin-list-cell">
+                        <AdminChip tone="role">{formatRoleLabel(user.role)}</AdminChip>
+                      </td>
+                      <td className="admin-list-cell">{formatDateTime(user.lastSeenAt)}</td>
+                      <td className="admin-list-cell">
+                        {user.vouchedBy.length > 0 ? (
+                          <div className="font-medium text-slate-900">{user.vouchedBy.join(', ')}</div>
+                        ) : (
+                          <div className="text-slate-400">No vouchers yet</div>
+                        )}
+                      </td>
+                      <td className="admin-list-cell">
+                        <div className="flex flex-wrap gap-3">
+                          <CrudActionLink href={`/profile/${user.id}`} variant="inline-link" icon={Eye} label="View profile">
+                            View
+                          </CrudActionLink>
+                          <CrudActionButton
+                            type="button"
+                            variant="inline-link"
+                            icon={MessageSquare}
+                            label="Message user"
+                            onClick={() =>
+                              handleOpenMessageDialog(user.id, formatUserName(user.firstName, user.lastName))
+                            }
+                          >
+                            Message
+                          </CrudActionButton>
+                          <CrudActionButton
+                            type="button"
+                            variant="inline"
+                            icon={Settings2}
+                            label="Manage user"
+                            onClick={() => updateSearchParams({ focus: user.id })}
+                          >
+                            Manage
+                          </CrudActionButton>
+                        </div>
                       </td>
                     </tr>
-                  ) : users.length > 0 ? (
-                    users.map((user) => {
-                      const isExpanded = expandedUser === user.id;
-                      const isActing = actionLoading === user.id;
+                  ))
+                ) : (
+                  <tr className="admin-list-row">
+                    <td className="admin-list-empty" colSpan={8}>
+                      No users found matching the current filters.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
 
-                      return (
-                        <Fragment key={user.id}>
-                          <tr className="admin-list-row">
-                            <td className="admin-list-cell">
-                              <a href={`/profile/${user.id}`} className="admin-list-link">
-                                {formatUserName(user.firstName, user.lastName)}
-                              </a>
-                            </td>
-                            <td className="admin-list-cell">{user.email}</td>
-                            <td className="admin-list-cell">
-                              <span className="inline-flex rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700">
-                                {user.trustLevel}
-                              </span>
-                            </td>
-                            <td className="admin-list-cell">
-                              {editingRole === user.id ? (
-                                <select
-                                  defaultValue={user.role}
-                                  onChange={(event) => handleRoleChange(user.id, event.target.value)}
-                                  onBlur={() => setEditingRole(null)}
-                                  autoFocus
-                                  disabled={isActing}
-                                  className="admin-list-cell-select"
-                                >
-                                  {ROLES.map((role) => (
-                                    <option key={role} value={role}>
-                                      {formatRoleLabel(role)}
-                                    </option>
-                                  ))}
-                                </select>
-                              ) : (
-                                <CrudActionButton
-                                  type="button"
-                                  variant="inline"
-                                  icon={Settings2}
-                                  label="Change role"
-                                  className="gap-1"
-                                  onClick={() => setEditingRole(user.id)}
-                                >
-                                  {formatRoleLabel(user.role)}
-                                  <span className="text-[#2563eb]" aria-hidden="true">
-                                    ▾
-                                  </span>
-                                </CrudActionButton>
-                              )}
-                            </td>
-                            <td className="admin-list-cell">{formatDateTime(user.lastSeenAt)}</td>
-                            <td className="admin-list-cell">
-                              {user.vouchedBy.length > 0 ? (
-                                <div className="font-medium text-slate-900">{user.vouchedBy.join(', ')}</div>
-                              ) : (
-                                <div className="text-slate-400">No vouchers yet</div>
-                              )}
-                            </td>
-                            <td className="admin-list-cell">
-                              <CrudActionButton
-                                type="button"
-                                variant="inline"
-                                icon={Settings2}
-                                label={isExpanded ? 'Close user actions' : 'Manage user'}
-                                onClick={() => setExpandedUser(isExpanded ? null : user.id)}
-                              >
-                                {isExpanded ? 'Close' : 'Manage'}
-                              </CrudActionButton>
-                            </td>
-                          </tr>
-
-                          {isExpanded ? (
-                            <tr className="admin-list-row bg-slate-50">
-                              <td className="admin-list-cell" colSpan={7}>
-                                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                                  <CrudActionLink href={`/profile/${user.id}`} variant="inline-link" icon={Eye} label="View profile">
-                                    View profile
-                                  </CrudActionLink>
-
-                                  <CrudActionButton
-                                    type="button"
-                                    variant="inline-link"
-                                    icon={MessageSquare}
-                                    label="Message user"
-                                    onClick={() =>
-                                      handleOpenMessageDialog(user.id, formatUserName(user.firstName, user.lastName))
-                                    }
-                                  >
-                                    Message
-                                  </CrudActionButton>
-
-                                  {user.trustLevel === 'REGISTERED' ? (
-                                    <CrudActionButton
-                                      type="button"
-                                      variant="inline-success"
-                                      icon={ShieldCheck}
-                                      label={isActing ? 'Working' : 'Vouch user'}
-                                      onClick={() => handleVouch(user.id)}
-                                      disabled={isActing}
-                                    >
-                                      {isActing ? 'Working...' : 'Vouch user'}
-                                    </CrudActionButton>
-                                  ) : null}
-
-                                  {user.trustLevel === 'TRUSTED' ? (
-                                    <CrudActionButton
-                                      type="button"
-                                      variant="inline-danger"
-                                      icon={ShieldMinus}
-                                      label={isActing ? 'Working' : 'Revoke trust'}
-                                      onClick={() => handleTrustAction(user.id, 'revoke')}
-                                      disabled={isActing}
-                                    >
-                                      {isActing ? 'Working...' : 'Revoke trust'}
-                                    </CrudActionButton>
-                                  ) : null}
-
-                                  {user.trustLevel === 'SUSPENDED' ? (
-                                    <CrudActionButton
-                                      type="button"
-                                      variant="inline-success"
-                                      icon={ShieldPlus}
-                                      label={isActing ? 'Working' : 'Reinstate user'}
-                                      onClick={() => handleTrustAction(user.id, 'reinstate')}
-                                      disabled={isActing}
-                                    >
-                                      {isActing ? 'Working...' : 'Reinstate'}
-                                    </CrudActionButton>
-                                  ) : null}
-
-                                  {user.trustLevel !== 'SUSPENDED' ? (
-                                    <CrudActionButton
-                                      type="button"
-                                      variant="inline-danger"
-                                      icon={ShieldX}
-                                      label={isActing ? 'Working' : 'Ban user'}
-                                      onClick={() => {
-                                        const reason = prompt('Ban reason:');
-                                        if (reason) {
-                                          handleTrustAction(user.id, 'ban', reason);
-                                        }
-                                      }}
-                                      disabled={isActing}
-                                    >
-                                      {isActing ? 'Working...' : 'Ban user'}
-                                    </CrudActionButton>
-                                  ) : null}
-
-                                  <CrudActionButton
-                                    type="button"
-                                    variant="inline-danger"
-                                    icon={Trash2}
-                                    label={isActing ? 'Working' : 'Delete user'}
-                                    onClick={() =>
-                                      handleDeleteUser(user.id, formatUserName(user.firstName, user.lastName))
-                                    }
-                                    disabled={isActing}
-                                  >
-                                    {isActing ? 'Working...' : 'Delete user'}
-                                  </CrudActionButton>
-                                </div>
-                              </td>
-                            </tr>
-                          ) : null}
-                        </Fragment>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td className="admin-list-empty" colSpan={7}>
-                        No users found matching the current filters.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+          <div className="admin-list-pagination">
+            <div className="admin-list-pagination-label">
+              {pagination.total > 0
+                ? `Showing ${(safePage - 1) * pagination.limit + 1}-${Math.min(
+                    safePage * pagination.limit,
+                    pagination.total
+                  )} of ${pagination.total} users`
+                : '0 users'}
             </div>
-
-            <div className="admin-list-pagination">
-              <div className="admin-list-pagination-label">
-                {pagination.total > 0
-                  ? `Showing ${(safePage - 1) * pagination.limit + 1}-${Math.min(
-                      safePage * pagination.limit,
-                      pagination.total
-                    )} of ${pagination.total} users`
-                  : '0 users'}
-              </div>
-              <div className="admin-list-pagination-actions">
-                <button
-                  type="button"
-                  onClick={() => fetchUsers(safePage - 1)}
-                  disabled={safePage <= 1 || isLoading}
-                  className="admin-list-pagination-button"
-                >
-                  Previous
-                </button>
-                <span className="admin-list-pagination-page">
-                  Page {safePage} of {Math.max(pagination.totalPages, 1)}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => fetchUsers(safePage + 1)}
-                  disabled={safePage >= pagination.totalPages || isLoading || pagination.totalPages === 0}
-                  className="admin-list-pagination-button"
-                >
-                  Next
-                </button>
-              </div>
+            <div className="admin-list-pagination-actions">
+              <button
+                type="button"
+                onClick={() => fetchUsers(safePage - 1)}
+                disabled={safePage <= 1 || isLoading}
+                className="admin-list-pagination-button"
+              >
+                Previous
+              </button>
+              <span className="admin-list-pagination-page">
+                Page {safePage} of {Math.max(pagination.totalPages, 1)}
+              </span>
+              <button
+                type="button"
+                onClick={() => fetchUsers(safePage + 1)}
+                disabled={safePage >= pagination.totalPages || isLoading || pagination.totalPages === 0}
+                className="admin-list-pagination-button"
+              >
+                Next
+              </button>
             </div>
           </div>
         </div>
-
-        <div className="admin-card-footer">
-          <div className="admin-card-footer-label"></div>
-          <div className="admin-card-footer-actions"></div>
-        </div>
       </div>
+
+      <AdminDrawer title={focusedUser ? `Manage ${formatUserName(focusedUser.firstName, focusedUser.lastName)}` : 'Manage User'}>
+        {focusedUser ? (
+          <div className="space-y-5">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <AdminChip tone={trustTone(focusedUser.trustLevel)} dot>
+                  {focusedUser.trustLevel}
+                </AdminChip>
+                <AdminChip tone="role">{formatRoleLabel(focusedUser.role)}</AdminChip>
+                {focusedUser.isIdentityLocked ? <AdminChip tone="role">Identity locked</AdminChip> : null}
+              </div>
+              <div className="mt-3 space-y-1 text-sm text-slate-600">
+                <p>{focusedUser.email}</p>
+                <p>Last seen: {formatDateTime(focusedUser.lastSeenAt)}</p>
+                <p>
+                  {focusedUser.postCount} contribution{focusedUser.postCount === 1 ? '' : 's'} ·{' '}
+                  {focusedUser.vouchesReceived} voucher{focusedUser.vouchesReceived === 1 ? '' : 's'} received
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Role</p>
+              <div className="flex items-center gap-2">
+                <select
+                  value={focusedRoleDraft}
+                  onChange={(event) =>
+                    setRoleDrafts((current) => ({ ...current, [focusedUser.id]: event.target.value }))
+                  }
+                  className="admin-list-cell-select min-w-[14rem]"
+                  disabled={actionLoading === focusedUser.id}
+                >
+                  {ROLES.map((role) => (
+                    <option key={role} value={role}>
+                      {formatRoleLabel(role)}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="admin-list-pagination-button"
+                  onClick={() => handleRoleChange(focusedUser.id, focusedRoleDraft)}
+                  disabled={actionLoading === focusedUser.id || focusedRoleDraft === focusedUser.role}
+                >
+                  Save role
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Actions</p>
+              <div className="flex flex-wrap gap-3">
+                <CrudActionLink href={`/profile/${focusedUser.id}`} variant="inline-link" icon={Eye} label="View profile">
+                  View profile
+                </CrudActionLink>
+                <CrudActionButton
+                  type="button"
+                  variant="inline-link"
+                  icon={MessageSquare}
+                  label="Message user"
+                  onClick={() =>
+                    handleOpenMessageDialog(
+                      focusedUser.id,
+                      formatUserName(focusedUser.firstName, focusedUser.lastName)
+                    )
+                  }
+                >
+                  Message
+                </CrudActionButton>
+
+                {focusedUser.trustLevel === 'REGISTERED' ? (
+                  <CrudActionButton
+                    type="button"
+                    variant="inline-success"
+                    icon={ShieldCheck}
+                    label={actionLoading === focusedUser.id ? 'Working' : 'Vouch user'}
+                    onClick={() => handleVouch(focusedUser.id)}
+                    disabled={actionLoading === focusedUser.id}
+                  >
+                    {actionLoading === focusedUser.id ? 'Working...' : 'Vouch user'}
+                  </CrudActionButton>
+                ) : null}
+
+                {focusedUser.trustLevel === 'TRUSTED' ? (
+                  <CrudActionButton
+                    type="button"
+                    variant="inline-danger"
+                    icon={ShieldMinus}
+                    label={actionLoading === focusedUser.id ? 'Working' : 'Revoke trust'}
+                    onClick={() => handleTrustAction(focusedUser.id, 'revoke')}
+                    disabled={actionLoading === focusedUser.id}
+                  >
+                    {actionLoading === focusedUser.id ? 'Working...' : 'Revoke trust'}
+                  </CrudActionButton>
+                ) : null}
+
+                {focusedUser.trustLevel === 'SUSPENDED' ? (
+                  <CrudActionButton
+                    type="button"
+                    variant="inline-success"
+                    icon={ShieldPlus}
+                    label={actionLoading === focusedUser.id ? 'Working' : 'Reinstate user'}
+                    onClick={() => handleTrustAction(focusedUser.id, 'reinstate')}
+                    disabled={actionLoading === focusedUser.id}
+                  >
+                    {actionLoading === focusedUser.id ? 'Working...' : 'Reinstate'}
+                  </CrudActionButton>
+                ) : null}
+
+                {focusedUser.trustLevel !== 'SUSPENDED' ? (
+                  <CrudActionButton
+                    type="button"
+                    variant="inline-danger"
+                    icon={ShieldX}
+                    label={actionLoading === focusedUser.id ? 'Working' : 'Ban user'}
+                    onClick={() =>
+                      setBanDialog({
+                        userId: focusedUser.id,
+                        userName: formatUserName(focusedUser.firstName, focusedUser.lastName),
+                      })
+                    }
+                    disabled={actionLoading === focusedUser.id}
+                  >
+                    {actionLoading === focusedUser.id ? 'Working...' : 'Ban user'}
+                  </CrudActionButton>
+                ) : null}
+
+                <CrudActionButton
+                  type="button"
+                  variant="inline-danger"
+                  icon={Trash2}
+                  label={actionLoading === focusedUser.id ? 'Working' : 'Delete user'}
+                  onClick={() =>
+                    setDeleteDialog({
+                      userId: focusedUser.id,
+                      userName: formatUserName(focusedUser.firstName, focusedUser.lastName),
+                    })
+                  }
+                  disabled={actionLoading === focusedUser.id}
+                >
+                  {actionLoading === focusedUser.id ? 'Working...' : 'Delete user'}
+                </CrudActionButton>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Vouchers</p>
+              {focusedUser.vouchedBy.length > 0 ? (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                  {focusedUser.vouchedBy.join(', ')}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+                  No vouchers recorded yet.
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+            The selected user is not available in the current page of results.
+          </div>
+        )}
+      </AdminDrawer>
 
       {messageDialog ? (
         <MessageUserDialog
@@ -732,6 +945,42 @@ export default function UsersPage() {
           onSubmit={handleSendMessage}
         />
       ) : null}
-    </div>
+
+      {banDialog ? (
+        <PromptDialog
+          title={`Ban ${banDialog.userName}?`}
+          description="Provide a ban reason. This will suspend the user through the trust system."
+          label="Ban reason"
+          placeholder="Reason for banning this user"
+          confirmLabel="Ban user"
+          isSubmitting={actionLoading === banDialog.userId}
+          onCancel={() => setBanDialog(null)}
+          onConfirm={async (value) => {
+            if (!value.trim()) {
+              setError('Ban reason is required.');
+              return;
+            }
+
+            await handleTrustAction(banDialog.userId, 'ban', value.trim());
+            setBanDialog(null);
+          }}
+        />
+      ) : null}
+
+      {deleteDialog ? (
+        <PromptDialog
+          title={`Delete ${deleteDialog.userName}?`}
+          description="This permanently deletes the user and their related content, messages, vouch records, and audit history. Type DELETE to continue."
+          label="Type DELETE to confirm"
+          placeholder="DELETE"
+          confirmLabel="Delete user"
+          isSubmitting={actionLoading === deleteDialog.userId}
+          onCancel={() => setDeleteDialog(null)}
+          onConfirm={async (value) => {
+            await handleDeleteUser(deleteDialog.userId, value);
+          }}
+        />
+      ) : null}
+    </AdminPage>
   );
 }

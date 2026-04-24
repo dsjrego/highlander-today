@@ -171,8 +171,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           Search across Local Life, community events, and market listings for this community.
         </p>
 
-        <form action="/search" method="get" className="flex flex-col gap-3 md:flex-row">
+        <form action="/search" method="get" className="flex flex-col gap-3 md:flex-row" aria-label="Site search">
+          <label htmlFor="search-page-query" className="visually-hidden">
+            Search articles, events, and listings
+          </label>
           <input
+            id="search-page-query"
             type="text"
             name="q"
             defaultValue={query}
@@ -223,6 +227,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                   <Link
                     key={filter}
                     href={buildSearchHref(query, filter)}
+                    aria-current={isActive ? 'page' : undefined}
                     className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                       isActive
                         ? 'bg-[var(--brand-accent)] text-white shadow-sm'
@@ -249,7 +254,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               </div>
 
               {searchData.pagination.totalPages > 1 ? (
-                <nav className="mt-8 flex flex-wrap items-center justify-center gap-2">
+                <nav className="mt-8 flex flex-wrap items-center justify-center gap-2" aria-label="Search results pages">
                   <Link
                     href={buildSearchHref(query, selectedFilter, searchData.pagination.page - 1)}
                     aria-disabled={searchData.pagination.page === 1}

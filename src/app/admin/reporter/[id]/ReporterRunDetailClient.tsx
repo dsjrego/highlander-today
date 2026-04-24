@@ -1,7 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { AdminViewTabs } from '@/components/admin/AdminViewTabs';
+import { useDialogAccessibility } from '@/components/shared/useDialogAccessibility';
+import {
+  REPORTER_INTERVIEW_PRIORITY_OPTIONS,
+  REPORTER_INTERVIEW_REQUEST_STATUS_OPTIONS,
+  REPORTER_INTERVIEW_TYPE_OPTIONS,
+  REPORTER_SUPPORTED_LANGUAGE_OPTIONS,
+  getReporterInterviewAccessState,
+} from '@/lib/reporter/interview';
 import {
   canAddReporterSource,
   canAssignReporterRun,
@@ -10,7 +20,7 @@ import {
   canGenerateReporterDraft,
 } from '@/lib/reporter/permissions';
 
-type TabKey = 'details' | 'sources' | 'blockers' | 'analysis' | 'drafts';
+type TabKey = 'details' | 'interviews' | 'sources' | 'blockers' | 'analysis' | 'drafts';
 type PreviewDialogState =
   | { kind: 'draft'; id: string }
   | { kind: 'analysis'; id: string }
@@ -24,6 +34,7 @@ interface ReporterRunDetailClientProps {
 
 const TABS: Array<{ key: TabKey; label: string }> = [
   { key: 'details', label: 'Details' },
+  { key: 'interviews', label: 'Interviews' },
   { key: 'sources', label: 'Sources' },
   { key: 'blockers', label: 'Blockers' },
   { key: 'analysis', label: 'Analysis' },
@@ -53,6 +64,26 @@ const BLOCKER_CODE_OPTIONS = [
   'EDITORIAL_REVIEW',
   'OTHER',
 ] as const;
+
+const EMPTY_INTERVIEW_FORM = {
+  status: 'DRAFT',
+  interviewType: 'GENERAL_SOURCE',
+  priority: 'NORMAL',
+  intervieweeName: '',
+  intervieweeUserId: '',
+  inviteEmail: '',
+  relationshipToStory: '',
+  purpose: '',
+  editorBrief: '',
+  mustLearn: '',
+  knownContext: '',
+  sensitivityNotes: '',
+  suggestedLanguage: 'ENGLISH',
+  nativeLanguage: '',
+  interviewLanguage: '',
+  requiresTranslationSupport: false,
+  scheduledFor: '',
+};
 
 function normalizeOptionalUrl(value: string) {
   const trimmed = value.trim();
@@ -95,19 +126,63 @@ function getDraftDisplayLabel(drafts: any[], draftId: string | null) {
   return `Draft ${drafts.length - index}`;
 }
 
+function getInterviewStatusGuidance(interview: any) {
+  if (!interview.intervieweeUserId && !interview.inviteEmail) {
+    return 'Add an account or invite email before sending the session link.';
+  }
+  if (interview.status === 'DRAFT') {
+    return 'Setup is still internal only. Send invite when details are ready.';
+  }
+  if (interview.status === 'INVITED') {
+    return 'Invite is ready to share. The interviewee can open the browser session.';
+  }
+  if (interview.status === 'READY') {
+    return 'Linked account is ready. Share the session link directly.';
+  }
+  if (interview.status === 'IN_PROGRESS') {
+    return 'Interview is actively underway in the browser flow.';
+  }
+  if (interview.status === 'COMPLETED') {
+    return 'Interview finished. Review transcript, facts, and any safety flags below.';
+  }
+  if (interview.status === 'BLOCKED') {
+    return 'Interview output is blocked pending editorial review or follow-up.';
+  }
+  if (interview.status === 'DECLINED' || interview.status === 'NO_SHOW') {
+    return 'Reopen when you want to reissue the session link.';
+  }
+  if (interview.status === 'CANCELLED') {
+    return 'Cancelled requests stay closed until you reopen them.';
+  }
+  return 'Review setup details before sharing the interview link.';
+}
+
 export default function ReporterRunDetailClient({
   run,
   assignees,
   userRole,
 }: ReporterRunDetailClientProps) {
-  const [activeTab, setActiveTab] = useState<TabKey>('details');
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const previewDialogTitleId = useId();
+  const previewDialogRef = useRef<HTMLDivElement | null>(null);
+  const previewDialogCloseRef = useRef<HTMLButtonElement | null>(null);
+  const activeTab = (searchParams.get('view') as TabKey) || 'details';
   const [currentRun, setCurrentRun] = useState(run);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [saving, setSaving] = useState(false);
   const [sourceForm, setSourceForm] = useState(EMPTY_SOURCE_FORM);
   const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
   const [savingSource, setSavingSource] = useState(false);
   const [deletingSourceId, setDeletingSourceId] = useState<string | null>(null);
+  const [interviewForm, setInterviewForm] = useState(EMPTY_INTERVIEW_FORM);
+  const [editingInterviewId, setEditingInterviewId] = useState<string | null>(null);
+  const [savingInterview, setSavingInterview] = useState(false);
+  const [interviewActionId, setInterviewActionId] = useState<string | null>(null);
+  const [copiedInterviewId, setCopiedInterviewId] = useState<string | null>(null);
+  const [reviewingSessionId, setReviewingSessionId] = useState<string | null>(null);
   const [blockerForm, setBlockerForm] = useState({
     code: 'SOURCE_GAP',
     message: '',
@@ -136,6 +211,18 @@ export default function ReporterRunDetailClient({
   const canManageSources = canAddReporterSource(userRole);
   const canGenerateDraft = canGenerateReporterDraft(userRole);
   const canConvertDraft = canConvertReporterToArticle(userRole);
+  const interviews = currentRun.interviewRequests || [];
+  const completedInterviewSessions = interviews.flatMap((interview: any) =>
+    (interview.sessions || [])
+      .filter((session: any) => session.status === 'COMPLETED')
+      .map((session: any) => ({
+        interview,
+        session,
+      }))
+  );
+  const unreviewedCompletedInterviewSessions = completedInterviewSessions.filter(
+    ({ session }: any) => !session.reviewedAt
+  );
   const isConvertedRun =
     currentRun.status === 'CONVERTED_TO_ARTICLE' || Boolean(currentRun.linkedArticle);
   const selectedDraft =
@@ -146,6 +233,8 @@ export default function ReporterRunDetailClient({
     ? 'Draft generation is unavailable until the run has source material.'
     : openBlockers.length > 0
       ? 'Draft generation is unavailable until all open blockers are resolved.'
+      : unreviewedCompletedInterviewSessions.length > 0
+        ? 'Draft generation is unavailable until completed interview output has been reviewed.'
       : currentRun.status === 'ARCHIVED'
           ? 'This run is archived. Reopen it before generating another draft.'
           : 'Draft generation is unavailable for the current run state.';
@@ -153,6 +242,7 @@ export default function ReporterRunDetailClient({
     canGenerateDraft &&
     hasSources &&
     openBlockers.length === 0 &&
+    unreviewedCompletedInterviewSessions.length === 0 &&
     currentRun.status !== 'ARCHIVED';
   const readinessTone = isConvertedRun
     ? 'border-sky-200 bg-sky-50 text-sky-900'
@@ -160,6 +250,8 @@ export default function ReporterRunDetailClient({
       ? 'border-amber-200 bg-amber-50 text-amber-900'
       : openBlockers.length > 0
         ? 'border-red-200 bg-red-50 text-red-900'
+        : unreviewedCompletedInterviewSessions.length > 0
+          ? 'border-amber-200 bg-amber-50 text-amber-900'
         : unresolvedValidationIssues.length > 0
           ? 'border-amber-200 bg-amber-50 text-amber-900'
           : 'border-emerald-200 bg-emerald-50 text-emerald-900';
@@ -169,6 +261,8 @@ export default function ReporterRunDetailClient({
       ? 'Needs source packet'
       : openBlockers.length > 0
         ? 'Blocked'
+        : unreviewedCompletedInterviewSessions.length > 0
+          ? 'Interview review required'
         : unresolvedValidationIssues.length > 0
           ? 'Validation issues to review'
           : canGenerateDraft
@@ -182,11 +276,28 @@ export default function ReporterRunDetailClient({
       ? 'Add at least one source before drafting.'
       : openBlockers.length > 0
         ? `${openBlockers.length} open blocker${openBlockers.length === 1 ? '' : 's'} must be resolved before drafting.`
+        : unreviewedCompletedInterviewSessions.length > 0
+          ? `${unreviewedCompletedInterviewSessions.length} completed interview session${unreviewedCompletedInterviewSessions.length === 1 ? '' : 's'} still need editorial review.`
         : unresolvedValidationIssues.length > 0
           ? `${unresolvedValidationIssues.length} validation issue${unresolvedValidationIssues.length === 1 ? '' : 's'} remain on the current run.`
           : canGenerateDraft
             ? 'Source packet is assembled and this run can move into draft generation.'
             : 'Source packet looks usable, but this role cannot generate drafts.';
+
+  function updateSearchParams(updates: Record<string, string | null>) {
+    const next = new URLSearchParams(searchParams.toString());
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === null || value === '') {
+        next.delete(key);
+      } else {
+        next.set(key, value);
+      }
+    });
+
+    const queryString = next.toString();
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname);
+  }
 
   function handleSelectDraft(draftId: string) {
     setSelectedDraftId(draftId);
@@ -231,6 +342,13 @@ export default function ReporterRunDetailClient({
         ? getDraftDisplayLabel(analysisDrafts, dialogDraft?.id || null)?.replace('Draft', 'Analysis')
         : null;
 
+  useDialogAccessibility({
+    isOpen: Boolean(previewDialog && dialogDraft),
+    onClose: () => setPreviewDialog(null),
+    containerRef: previewDialogRef,
+    initialFocusRef: previewDialogCloseRef,
+  });
+
   async function patchRun(payload: Record<string, unknown>) {
     setSaving(true);
     setError('');
@@ -271,6 +389,190 @@ export default function ReporterRunDetailClient({
     setSourceForm(EMPTY_SOURCE_FORM);
     setEditingSourceId(null);
     setDeletingSourceId(null);
+  }
+
+  function populateInterviewForm(interview: any) {
+    setInterviewForm({
+      status: interview.status || 'DRAFT',
+      interviewType: interview.interviewType || 'GENERAL_SOURCE',
+      priority: interview.priority || 'NORMAL',
+      intervieweeName: interview.intervieweeName || '',
+      intervieweeUserId: interview.intervieweeUserId || '',
+      inviteEmail: interview.inviteEmail || '',
+      relationshipToStory: interview.relationshipToStory || '',
+      purpose: interview.purpose || '',
+      editorBrief: interview.editorBrief || '',
+      mustLearn: interview.mustLearn || '',
+      knownContext: interview.knownContext || '',
+      sensitivityNotes: interview.sensitivityNotes || '',
+      suggestedLanguage: interview.suggestedLanguage || 'ENGLISH',
+      nativeLanguage: interview.nativeLanguage || '',
+      interviewLanguage: interview.interviewLanguage || '',
+      requiresTranslationSupport: Boolean(interview.requiresTranslationSupport),
+      scheduledFor: interview.scheduledFor
+        ? new Date(interview.scheduledFor).toISOString().slice(0, 16)
+        : '',
+    });
+    setEditingInterviewId(interview.id);
+  }
+
+  function resetInterviewForm() {
+    setInterviewForm(EMPTY_INTERVIEW_FORM);
+    setEditingInterviewId(null);
+  }
+
+  async function handleSaveInterview(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError('');
+    setSavingInterview(true);
+    setNotice('');
+    try {
+      const payload = {
+        ...interviewForm,
+        intervieweeUserId: interviewForm.intervieweeUserId || null,
+        inviteEmail: interviewForm.inviteEmail || null,
+        relationshipToStory: interviewForm.relationshipToStory || null,
+        editorBrief: interviewForm.editorBrief || null,
+        mustLearn: interviewForm.mustLearn || null,
+        knownContext: interviewForm.knownContext || null,
+        sensitivityNotes: interviewForm.sensitivityNotes || null,
+        nativeLanguage: interviewForm.nativeLanguage || null,
+        interviewLanguage: interviewForm.interviewLanguage || null,
+        scheduledFor: interviewForm.scheduledFor
+          ? new Date(interviewForm.scheduledFor).toISOString()
+          : null,
+      };
+      const isEditing = Boolean(editingInterviewId);
+      const response = await fetch(
+        isEditing
+          ? `/api/reporter/interviews/${editingInterviewId}`
+          : `/api/reporter/runs/${currentRun.id}/interviews`,
+        {
+          method: isEditing ? 'PATCH' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }
+      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(
+          data.error || `Failed to ${isEditing ? 'update' : 'create'} interview request`
+        );
+      }
+      setCurrentRun((prev: any) => ({
+        ...prev,
+        interviewRequests: isEditing
+          ? prev.interviewRequests.map((interview: any) =>
+              interview.id === data.id ? data : interview
+            )
+          : [data, ...(prev.interviewRequests || [])],
+      }));
+      resetInterviewForm();
+      updateSearchParams({ view: 'interviews' });
+    } catch (interviewError) {
+      setError(
+        interviewError instanceof Error
+          ? interviewError.message
+          : `Failed to ${editingInterviewId ? 'update' : 'create'} interview request`
+      );
+    } finally {
+      setSavingInterview(false);
+    }
+  }
+
+  async function handleInterviewAction(interviewId: string, action: 'invite' | 'reopen') {
+    setError('');
+    setNotice('');
+    setInterviewActionId(interviewId);
+    try {
+      const response = await fetch(`/api/reporter/interviews/${interviewId}/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(
+          data.error || `Failed to ${action === 'invite' ? 'send invite' : 'reopen interview'}`
+        );
+      }
+      setCurrentRun((prev: any) => ({
+        ...prev,
+        interviewRequests: prev.interviewRequests.map((interview: any) =>
+          interview.id === data.id ? data : interview
+        ),
+      }));
+      if (data.inviteDeliveryMessage) {
+        setNotice(data.inviteDeliveryMessage);
+      } else {
+        setNotice(
+          action === 'invite'
+            ? 'Interview invite state updated.'
+            : 'Interview request reopened.'
+        );
+      }
+    } catch (actionError) {
+      setError(
+        actionError instanceof Error
+          ? actionError.message
+          : `Failed to ${action === 'invite' ? 'send invite' : 'reopen interview'}`
+      );
+    } finally {
+      setInterviewActionId(null);
+    }
+  }
+
+  async function handleCopyInterviewLink(interviewId: string) {
+    setError('');
+    setNotice('');
+    try {
+      const url = `${window.location.origin}/interviews/${interviewId}`;
+      await navigator.clipboard.writeText(url);
+      setCopiedInterviewId(interviewId);
+      setNotice('Interview link copied.');
+      window.setTimeout(() => {
+        setCopiedInterviewId((current) => (current === interviewId ? null : current));
+      }, 2000);
+    } catch (copyError) {
+      setError(
+        copyError instanceof Error
+          ? copyError.message
+          : 'Failed to copy interview link'
+      );
+    }
+  }
+
+  async function handleReviewInterviewSession(sessionId: string) {
+    setError('');
+    setNotice('');
+    setReviewingSessionId(sessionId);
+    try {
+      const response = await fetch(`/api/reporter/interview-sessions/${sessionId}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to mark interview session reviewed');
+      }
+      setCurrentRun((prev: any) => ({
+        ...prev,
+        interviewRequests: prev.interviewRequests.map((interview: any) => ({
+          ...interview,
+          sessions: (interview.sessions || []).map((session: any) =>
+            session.id === data.id ? data : session
+          ),
+        })),
+      }));
+      setNotice('Interview session marked reviewed.');
+    } catch (reviewError) {
+      setError(
+        reviewError instanceof Error
+          ? reviewError.message
+          : 'Failed to mark interview session reviewed'
+      );
+    } finally {
+      setReviewingSessionId(null);
+    }
   }
 
   async function handleAddSource(event: React.FormEvent<HTMLFormElement>) {
@@ -440,7 +742,7 @@ export default function ReporterRunDetailClient({
         drafts: [data.draft, ...(prev.drafts || [])],
       }));
       setSelectedAnalysisId(data.draft.id);
-      setActiveTab('analysis');
+      updateSearchParams({ view: 'analysis' });
     } catch (analysisError) {
       setError(
         analysisError instanceof Error
@@ -475,24 +777,22 @@ export default function ReporterRunDetailClient({
   }
 
   return (
-    <div className="space-y-0">
-      <div className="relative top-[2px] flex flex-wrap gap-0 pb-0">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setActiveTab(tab.key)}
-            className={`admin-card-tab ${
-              tab.key === activeTab ? 'admin-card-tab-active' : 'admin-card-tab-inactive'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+    <div className="space-y-4">
+      <AdminViewTabs
+        defaultView="details"
+        views={TABS.map((tab) => ({
+          key: tab.key,
+          label: tab.label,
+        }))}
+      />
 
-      <div className="admin-card-tab-body space-y-4">
+      <div className="space-y-4">
         {error ? <div className="admin-list-error">{error}</div> : null}
+        {notice ? (
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+            {notice}
+          </div>
+        ) : null}
 
         <section className="grid gap-3 lg:grid-cols-5">
           <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -509,6 +809,14 @@ export default function ReporterRunDetailClient({
               {currentRun.assignedTo
                 ? `${currentRun.assignedTo.firstName} ${currentRun.assignedTo.lastName}`
                 : 'Unassigned'}
+            </div>
+          </div>
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+              Interviews
+            </div>
+            <div className="mt-2 text-sm font-semibold text-slate-900">
+              {interviews.length}
             </div>
           </div>
           <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -664,6 +972,645 @@ export default function ReporterRunDetailClient({
                 ) : null}
               </div>
             </section>
+          </div>
+        ) : null}
+
+        {activeTab === 'interviews' ? (
+          <div className="space-y-4">
+            <section className="admin-list rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">Interview Requests</h3>
+                  <p className="text-xs text-slate-500">
+                    Queue setup-driven interviews against this run before any browser session exists.
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    `Invite` moves the request into a shareable state. `Copy Link` gives staff the exact browser-session URL to send once the request is openable.
+                  </p>
+                </div>
+                {!canEditRun ? (
+                  <div className="text-xs text-slate-500">
+                    This role can review interview setup but cannot change it.
+                  </div>
+                ) : null}
+              </div>
+              <div className="admin-list-table-wrap">
+                <table className="admin-list-table">
+                  <thead className="admin-list-head">
+                    <tr>
+                      <th className="admin-list-header-cell">Interviewee</th>
+                      <th className="admin-list-header-cell">Type</th>
+                      <th className="admin-list-header-cell">Priority</th>
+                      <th className="admin-list-header-cell">Status</th>
+                      <th className="admin-list-header-cell">Language</th>
+                      <th className="admin-list-header-cell">Schedule</th>
+                      <th className="admin-list-header-cell">Session</th>
+                      <th className="admin-list-header-cell">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {interviews.length === 0 ? (
+                      <tr className="admin-list-row">
+                        <td className="admin-list-empty" colSpan={8}>
+                          No interview requests yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      interviews.map((interview: any) => {
+                        const latestSession = interview.sessions?.[0] || null;
+                        const interviewAccessState = getReporterInterviewAccessState(interview.status);
+                        const hasInviteTarget = Boolean(interview.intervieweeUserId || interview.inviteEmail);
+                        return (
+                          <tr key={interview.id} className="admin-list-row">
+                            <td className="admin-list-cell">
+                              <div
+                                className="max-w-[220px] truncate text-sm font-medium text-slate-900 md:max-w-[280px]"
+                                title={interview.intervieweeName}
+                              >
+                                {interview.intervieweeName}
+                              </div>
+                              <div className="text-xs text-slate-500">
+                                {interview.relationshipToStory || interview.inviteEmail || 'No relationship note'}
+                              </div>
+                            </td>
+                            <td className="admin-list-cell">{interview.interviewType}</td>
+                            <td className="admin-list-cell">{interview.priority}</td>
+                            <td className="admin-list-cell">
+                              <div>{interview.status}</div>
+                              <div className="text-xs text-slate-500">
+                                {interviewAccessState.canOpenSession ? 'Openable' : 'Draft only'}
+                              </div>
+                              <div
+                                className="mt-1 max-w-[220px] text-xs leading-5 text-slate-500"
+                                title={getInterviewStatusGuidance(interview)}
+                              >
+                                {getInterviewStatusGuidance(interview)}
+                              </div>
+                            </td>
+                            <td className="admin-list-cell">
+                              {interview.interviewLanguage || interview.suggestedLanguage}
+                            </td>
+                            <td className="admin-list-cell">
+                              {interview.scheduledFor
+                                ? new Date(interview.scheduledFor).toLocaleString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                    hour: 'numeric',
+                                    minute: '2-digit',
+                                  })
+                                : 'Unscheduled'}
+                            </td>
+                            <td className="admin-list-cell">
+                              {latestSession ? (
+                                <div className="space-y-1">
+                                  <div>
+                                    {latestSession.status}
+                                    {latestSession.language ? ` • ${latestSession.language}` : ''}
+                                  </div>
+                                  {latestSession.status === 'COMPLETED' ? (
+                                    <div className="text-xs text-slate-500">
+                                      {(latestSession.turns || []).length} turns • {(latestSession.facts || []).length} facts
+                                      {(latestSession.safetyFlags || []).length
+                                        ? ` • ${(latestSession.safetyFlags || []).length} safety flag${(latestSession.safetyFlags || []).length === 1 ? '' : 's'}`
+                                        : ''}
+                                    </div>
+                                  ) : null}
+                                </div>
+                              ) : (
+                                'No session'
+                              )}
+                            </td>
+                            <td className="admin-list-cell">
+                              {canEditRun ? (
+                                <div className="flex min-w-[44px] items-center justify-end gap-2">
+                                  {interviewAccessState.canOpenSession ? (
+                                    <Link
+                                      href={`/interviews/${interview.id}`}
+                                      className="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-sky-300 bg-sky-50 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-sky-700 shadow-sm transition hover:border-sky-600 hover:bg-sky-100 hover:text-sky-800"
+                                      title="Open interview session"
+                                    >
+                                      Open
+                                    </Link>
+                                  ) : null}
+                                  {interviewAccessState.canOpenSession ? (
+                                    <button
+                                      type="button"
+                                      className={`inline-flex h-9 shrink-0 items-center justify-center rounded-full border px-3 text-xs font-semibold uppercase tracking-[0.12em] shadow-sm transition ${
+                                        copiedInterviewId === interview.id
+                                          ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                                          : 'border-slate-300 bg-slate-50 text-slate-700 hover:border-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                                      }`}
+                                      onClick={() => handleCopyInterviewLink(interview.id)}
+                                      title="Copy interview session link"
+                                    >
+                                      {copiedInterviewId === interview.id ? 'Copied' : 'Copy Link'}
+                                    </button>
+                                  ) : null}
+                                  {!interviewAccessState.canOpenSession && hasInviteTarget ? (
+                                    <button
+                                      type="button"
+                                      className="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-emerald-300 bg-emerald-50 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-700 shadow-sm transition hover:border-emerald-600 hover:bg-emerald-100 hover:text-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                      onClick={() => handleInterviewAction(interview.id, 'invite')}
+                                      disabled={interviewActionId === interview.id}
+                                    >
+                                      Invite
+                                    </button>
+                                  ) : null}
+                                  {(interview.status === 'COMPLETED' ||
+                                    interview.status === 'BLOCKED' ||
+                                    interview.status === 'NO_SHOW' ||
+                                    interview.status === 'DECLINED') &&
+                                  hasInviteTarget ? (
+                                    <button
+                                      type="button"
+                                      className="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-amber-300 bg-amber-50 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-amber-700 shadow-sm transition hover:border-amber-600 hover:bg-amber-100 hover:text-amber-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                      onClick={() => handleInterviewAction(interview.id, 'reopen')}
+                                      disabled={interviewActionId === interview.id}
+                                    >
+                                      Reopen
+                                    </button>
+                                  ) : null}
+                                  <button
+                                    type="button"
+                                    className="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-slate-50 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-slate-700 shadow-sm transition hover:border-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                                    onClick={() => populateInterviewForm(interview)}
+                                  >
+                                    Edit
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-slate-500">View only</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {completedInterviewSessions.length > 0 ? (
+              <section className="admin-list rounded-3xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-emerald-950">Completed Interview Output</h3>
+                  <p className="text-xs text-emerald-900/80">
+                    Completed browser interviews now return transcript-backed source material into this reporter run.
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  {completedInterviewSessions.map(({ interview, session }: any) => (
+                    <div
+                      key={session.id}
+                      className="rounded-[24px] border border-emerald-200 bg-white px-4 py-4"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-semibold text-slate-950">
+                            {interview.intervieweeName}
+                          </div>
+                          <div className="text-xs text-slate-500">
+                            {interview.interviewType} • {session.language} • {(session.turns || []).length} turns • {(session.facts || []).length} facts
+                          </div>
+                          <div className="mt-1 text-xs text-slate-500">
+                            {session.reviewedAt
+                              ? `Reviewed by ${session.reviewedBy ? `${session.reviewedBy.firstName} ${session.reviewedBy.lastName}` : 'staff'}`
+                              : 'Editorial review still required'}
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          <div className="text-xs text-slate-500">
+                            {session.completedAt
+                              ? new Date(session.completedAt).toLocaleString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                })
+                              : 'Completed'}
+                          </div>
+                          {canEditRun ? (
+                            <button
+                              type="button"
+                              className={`inline-flex h-8 shrink-0 items-center justify-center rounded-full border px-3 text-[11px] font-semibold uppercase tracking-[0.12em] shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                                session.reviewedAt
+                                  ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                                  : 'border-slate-300 bg-slate-50 text-slate-700 hover:border-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                              }`}
+                              onClick={() => handleReviewInterviewSession(session.id)}
+                              disabled={Boolean(session.reviewedAt) || reviewingSessionId === session.id}
+                            >
+                              {session.reviewedAt
+                                ? 'Reviewed'
+                                : reviewingSessionId === session.id
+                                  ? 'Reviewing...'
+                                  : 'Mark Reviewed'}
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      {session.englishSummary ? (
+                        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700">
+                          {session.englishSummary}
+                        </div>
+                      ) : null}
+
+                      {session.facts?.length ? (
+                        <div className="mt-4">
+                          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                            Facts And Follow-Ups
+                          </div>
+                          <div className="space-y-2">
+                            {session.facts.map((fact: any) => (
+                              <div
+                                key={fact.id}
+                                className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3"
+                              >
+                                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                                  {fact.factType}
+                                  {fact.sourceLabel ? ` • ${fact.sourceLabel}` : ''}
+                                </div>
+                                <div className="mt-1 text-sm font-medium text-slate-900">
+                                  {fact.summary}
+                                </div>
+                                {fact.detail ? (
+                                  <div className="mt-1 text-sm leading-6 text-slate-600">
+                                    {fact.detail}
+                                  </div>
+                                ) : null}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {session.safetyFlags?.length ? (
+                        <div className="mt-4">
+                          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-rose-700">
+                            Safety Review Flags
+                          </div>
+                          <div className="space-y-2">
+                            {session.safetyFlags.map((flag: any) => (
+                              <div
+                                key={flag.id}
+                                className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-3"
+                              >
+                                {(() => {
+                                  const linkedBlocker = currentRun.blockers.find(
+                                    (blocker: any) => blocker.id === flag.blockerId
+                                  );
+
+                                  return (
+                                    <>
+                                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-rose-700">
+                                  {flag.flagType}
+                                </div>
+                                <div className="mt-1 text-sm font-medium text-rose-950">
+                                  {flag.headline}
+                                </div>
+                                {flag.evidenceSpan ? (
+                                  <div className="mt-1 text-sm text-rose-900">
+                                    Evidence: "{flag.evidenceSpan}"
+                                  </div>
+                                ) : null}
+                                {flag.detail ? (
+                                  <div className="mt-1 text-sm leading-6 text-rose-900/90">
+                                    {flag.detail}
+                                  </div>
+                                ) : null}
+                                <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+                                  <div className="text-xs text-rose-700">
+                                    {flag.blockerId
+                                      ? linkedBlocker?.isResolved
+                                        ? 'Linked blocker resolved'
+                                        : 'Linked blocker created on reporter run'
+                                      : 'No linked blocker'}
+                                  </div>
+                                  {flag.blockerId && linkedBlocker && canEditRun ? (
+                                    <button
+                                      type="button"
+                                      className={`inline-flex h-8 shrink-0 items-center justify-center rounded-full border px-3 text-[11px] font-semibold uppercase tracking-[0.12em] shadow-sm transition ${
+                                        linkedBlocker.isResolved
+                                          ? 'border-amber-300 bg-amber-50 text-amber-700 hover:border-amber-500 hover:bg-amber-100 hover:text-amber-800'
+                                          : 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:border-emerald-600 hover:bg-emerald-100 hover:text-emerald-800'
+                                      }`}
+                                      onClick={() =>
+                                        handleResolveBlocker(
+                                          linkedBlocker.id,
+                                          !linkedBlocker.isResolved
+                                        )
+                                      }
+                                    >
+                                      {linkedBlocker.isResolved ? 'Reopen blocker' : 'Resolve blocker'}
+                                    </button>
+                                  ) : null}
+                                </div>
+                                    </>
+                                  );
+                                })()}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {session.transcriptText ? (
+                        <details className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                          <summary className="cursor-pointer text-sm font-semibold text-slate-900">
+                            Transcript
+                          </summary>
+                          <div className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                            {session.transcriptText}
+                          </div>
+                        </details>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {canEditRun ? (
+              <section className="admin-list rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-900">
+                      {editingInterviewId ? 'Edit Interview Request' : 'Add Interview Request'}
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Capture who should be interviewed, why they matter, and what the newsroom needs to learn.
+                    </p>
+                  </div>
+                  {editingInterviewId ? (
+                    <button
+                      type="button"
+                      className="admin-list-cell-button"
+                      onClick={resetInterviewForm}
+                    >
+                      Cancel Edit
+                    </button>
+                  ) : null}
+                </div>
+                <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSaveInterview}>
+                  <label className="admin-list-filter">
+                    <span className="admin-list-filter-label">Interviewee</span>
+                    <input
+                      className="admin-list-filter-input"
+                      value={interviewForm.intervieweeName}
+                      onChange={(event) =>
+                        setInterviewForm((prev) => ({
+                          ...prev,
+                          intervieweeName: event.target.value,
+                        }))
+                      }
+                      required
+                    />
+                  </label>
+                  <label className="admin-list-filter">
+                    <span className="admin-list-filter-label">Invite Email</span>
+                    <input
+                      className="admin-list-filter-input"
+                      type="email"
+                      value={interviewForm.inviteEmail}
+                      onChange={(event) =>
+                        setInterviewForm((prev) => ({
+                          ...prev,
+                          inviteEmail: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="admin-list-filter">
+                    <span className="admin-list-filter-label">Interview Type</span>
+                    <select
+                      className="admin-list-cell-select"
+                      value={interviewForm.interviewType}
+                      onChange={(event) =>
+                        setInterviewForm((prev) => ({
+                          ...prev,
+                          interviewType: event.target.value,
+                        }))
+                      }
+                    >
+                      {REPORTER_INTERVIEW_TYPE_OPTIONS.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="admin-list-filter">
+                    <span className="admin-list-filter-label">Priority</span>
+                    <select
+                      className="admin-list-cell-select"
+                      value={interviewForm.priority}
+                      onChange={(event) =>
+                        setInterviewForm((prev) => ({
+                          ...prev,
+                          priority: event.target.value,
+                        }))
+                      }
+                    >
+                      {REPORTER_INTERVIEW_PRIORITY_OPTIONS.map((priority) => (
+                        <option key={priority} value={priority}>
+                          {priority}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="admin-list-filter">
+                    <span className="admin-list-filter-label">Status</span>
+                    <select
+                      className="admin-list-cell-select"
+                      value={interviewForm.status}
+                      onChange={(event) =>
+                        setInterviewForm((prev) => ({ ...prev, status: event.target.value }))
+                      }
+                    >
+                      {REPORTER_INTERVIEW_REQUEST_STATUS_OPTIONS.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="admin-list-filter">
+                    <span className="admin-list-filter-label">Relationship To Story</span>
+                    <input
+                      className="admin-list-filter-input"
+                      value={interviewForm.relationshipToStory}
+                      onChange={(event) =>
+                        setInterviewForm((prev) => ({
+                          ...prev,
+                          relationshipToStory: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="admin-list-filter">
+                    <span className="admin-list-filter-label">Suggested Language</span>
+                    <select
+                      className="admin-list-cell-select"
+                      value={interviewForm.suggestedLanguage}
+                      onChange={(event) =>
+                        setInterviewForm((prev) => ({
+                          ...prev,
+                          suggestedLanguage: event.target.value,
+                        }))
+                      }
+                    >
+                      {REPORTER_SUPPORTED_LANGUAGE_OPTIONS.map((language) => (
+                        <option key={language} value={language}>
+                          {language}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="admin-list-filter">
+                    <span className="admin-list-filter-label">Native Language</span>
+                    <select
+                      className="admin-list-cell-select"
+                      value={interviewForm.nativeLanguage}
+                      onChange={(event) =>
+                        setInterviewForm((prev) => ({
+                          ...prev,
+                          nativeLanguage: event.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">Unspecified</option>
+                      {REPORTER_SUPPORTED_LANGUAGE_OPTIONS.map((language) => (
+                        <option key={language} value={language}>
+                          {language}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="admin-list-filter">
+                    <span className="admin-list-filter-label">Interview Language</span>
+                    <select
+                      className="admin-list-cell-select"
+                      value={interviewForm.interviewLanguage}
+                      onChange={(event) =>
+                        setInterviewForm((prev) => ({
+                          ...prev,
+                          interviewLanguage: event.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">Confirm in session</option>
+                      {REPORTER_SUPPORTED_LANGUAGE_OPTIONS.map((language) => (
+                        <option key={language} value={language}>
+                          {language}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="admin-list-filter">
+                    <span className="admin-list-filter-label">Scheduled For</span>
+                    <input
+                      className="admin-list-filter-input"
+                      type="datetime-local"
+                      value={interviewForm.scheduledFor}
+                      onChange={(event) =>
+                        setInterviewForm((prev) => ({
+                          ...prev,
+                          scheduledFor: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="admin-list-filter md:col-span-2">
+                    <span className="admin-list-filter-label">Purpose</span>
+                    <textarea
+                      className="admin-list-filter-input min-h-[100px]"
+                      value={interviewForm.purpose}
+                      onChange={(event) =>
+                        setInterviewForm((prev) => ({ ...prev, purpose: event.target.value }))
+                      }
+                      required
+                    />
+                  </label>
+                  <label className="admin-list-filter md:col-span-2">
+                    <span className="admin-list-filter-label">Must Learn</span>
+                    <textarea
+                      className="admin-list-filter-input min-h-[100px]"
+                      value={interviewForm.mustLearn}
+                      onChange={(event) =>
+                        setInterviewForm((prev) => ({ ...prev, mustLearn: event.target.value }))
+                      }
+                    />
+                  </label>
+                  <label className="admin-list-filter md:col-span-2">
+                    <span className="admin-list-filter-label">Editor Brief</span>
+                    <textarea
+                      className="admin-list-filter-input min-h-[100px]"
+                      value={interviewForm.editorBrief}
+                      onChange={(event) =>
+                        setInterviewForm((prev) => ({ ...prev, editorBrief: event.target.value }))
+                      }
+                    />
+                  </label>
+                  <label className="admin-list-filter md:col-span-2">
+                    <span className="admin-list-filter-label">Known Context</span>
+                    <textarea
+                      className="admin-list-filter-input min-h-[100px]"
+                      value={interviewForm.knownContext}
+                      onChange={(event) =>
+                        setInterviewForm((prev) => ({ ...prev, knownContext: event.target.value }))
+                      }
+                    />
+                  </label>
+                  <label className="admin-list-filter md:col-span-2">
+                    <span className="admin-list-filter-label">Sensitivity Notes</span>
+                    <textarea
+                      className="admin-list-filter-input min-h-[100px]"
+                      value={interviewForm.sensitivityNotes}
+                      onChange={(event) =>
+                        setInterviewForm((prev) => ({
+                          ...prev,
+                          sensitivityNotes: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="admin-list-filter md:col-span-2">
+                    <span className="flex items-center gap-3 text-sm font-medium text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={interviewForm.requiresTranslationSupport}
+                        onChange={(event) =>
+                          setInterviewForm((prev) => ({
+                            ...prev,
+                            requiresTranslationSupport: event.target.checked,
+                          }))
+                        }
+                      />
+                      Translation support likely needed
+                    </span>
+                  </label>
+                  <div className="md:col-span-2 flex justify-end">
+                    <button
+                      type="submit"
+                      className="page-header-action"
+                      disabled={savingInterview}
+                    >
+                      {savingInterview
+                        ? editingInterviewId
+                          ? 'Saving...'
+                          : 'Adding...'
+                        : editingInterviewId
+                          ? 'Save Interview Request'
+                          : 'Add Interview Request'}
+                    </button>
+                  </div>
+                </form>
+              </section>
+            ) : null}
           </div>
         ) : null}
 
@@ -1346,11 +2293,13 @@ export default function ReporterRunDetailClient({
           className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/70 px-4 py-6"
           role="dialog"
           aria-modal="true"
-          aria-labelledby="reporter-preview-dialog-title"
+          aria-labelledby={previewDialogTitleId}
           onClick={() => setPreviewDialog(null)}
         >
           <div
+            ref={previewDialogRef}
             className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl"
+            tabIndex={-1}
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
@@ -1362,7 +2311,7 @@ export default function ReporterRunDetailClient({
                     </span>
                   ) : null}
                   <h2
-                    id="reporter-preview-dialog-title"
+                    id={previewDialogTitleId}
                     className="text-base font-semibold text-slate-900"
                   >
                     {dialogDraft.headline ||
@@ -1381,6 +2330,7 @@ export default function ReporterRunDetailClient({
                 </p>
               </div>
               <button
+                ref={previewDialogCloseRef}
                 type="button"
                 className="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-slate-50 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-slate-700 shadow-sm transition hover:border-slate-600 hover:bg-slate-100 hover:text-slate-900"
                 onClick={() => setPreviewDialog(null)}

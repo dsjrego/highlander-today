@@ -14,6 +14,7 @@ const CreateOrganizationSchema = z.object({
   name: z.string().trim().min(3).max(160),
   directoryGroup: z.enum(['BUSINESS', 'GOVERNMENT', 'ORGANIZATION']),
   organizationType: z.string().trim().min(2).max(80),
+  isOwnOrganization: z.boolean().optional().default(true),
   description: z.string().trim().max(4000).optional().or(z.literal('')),
   websiteUrl: z.string().trim().url().optional().or(z.literal('')),
   contactEmail: z.string().trim().email().optional().or(z.literal('')),
@@ -160,15 +161,19 @@ export async function POST(request: NextRequest) {
         organizationType: validated.organizationType,
         isPublicMemberRoster: false,
         status: 'PENDING_APPROVAL',
-        memberships: {
-          create: {
-            userId,
-            role: 'OWNER',
-            status: 'ACTIVE',
-            isPublic: false,
-            isPrimaryContact: true,
-          },
-        },
+        ...(validated.isOwnOrganization
+          ? {
+              memberships: {
+                create: {
+                  userId,
+                  role: 'OWNER',
+                  status: 'ACTIVE',
+                  isPublic: false,
+                  isPrimaryContact: true,
+                },
+              },
+            }
+          : {}),
       },
       select: {
         id: true,
@@ -180,7 +185,13 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ organization }, { status: 201 });
+    return NextResponse.json(
+      {
+        organization,
+        membershipCreated: validated.isOwnOrganization,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

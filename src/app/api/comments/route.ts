@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
 import { logActivity } from '@/lib/activity-log';
+import { createAnalyticsEvent } from '@/lib/analytics/server';
 import { z } from 'zod';
 
 const CreateCommentSchema = z.object({
@@ -96,7 +97,7 @@ export async function POST(request: NextRequest) {
 
     const article = await db.article.findUnique({
       where: { id: validated.articleId },
-      select: { id: true, status: true },
+      select: { id: true, status: true, communityId: true },
     });
 
     if (!article || article.status !== 'PUBLISHED') {
@@ -149,6 +150,21 @@ export async function POST(request: NextRequest) {
       resourceId: comment.id,
       ipAddress,
       metadata: { articleId: comment.articleId, parentCommentId: comment.parentCommentId },
+    }).catch(() => {});
+
+    createAnalyticsEvent({
+      communityId: article.communityId,
+      siteDomain: request.headers.get('x-community-domain') || request.headers.get('host'),
+      userId,
+      eventName: 'comment_created',
+      contentType: 'ARTICLE',
+      contentId: comment.articleId,
+      pageType: 'article-detail',
+      pagePath: `/local-life/${comment.articleId}`,
+      metadata: {
+        commentId: comment.id,
+        parentCommentId: comment.parentCommentId,
+      },
     }).catch(() => {});
 
     return NextResponse.json(comment, { status: 201 });
