@@ -46,6 +46,12 @@ model Community {
   domains                TenantDomain[]
   reporterRuns           ReporterRun[]
   categories             Category[]
+  memorialPeople         MemorialPerson[]
+  memorialPages          MemorialPage[]
+  memorialSubmissions    MemorialSubmission[]
+  memorialMemories       MemorialMemory[]
+  memorialPhotos         MemorialPhoto[]
+  memorialAuditLogs      MemorialAuditLog[]
   siteSettings           SiteSetting[]
   tenantCoverageAreas    TenantCoverageArea[]
   analyticsEvents        AnalyticsEvent[]
@@ -138,6 +144,19 @@ model User {
   reporterInterviewRequestsCreated ReporterInterviewRequest[] @relation("reporterInterviewRequestCreatedBy")
   reporterInterviewRequestsAsSubject ReporterInterviewRequest[] @relation("reporterInterviewRequestInterviewee")
   reporterInterviewSessionsReviewed ReporterInterviewSession[] @relation("reporterInterviewSessionReviewedBy")
+  memorialPageCreations  MemorialPage[]            @relation("memorialPageCreatedBy")
+  memorialPageApprovals  MemorialPage[]            @relation("memorialPageApprovedBy")
+  memorialSubmissionsCreated MemorialSubmission[]  @relation("memorialSubmissionCreatedBy")
+  memorialSubmissionsAssigned MemorialSubmission[] @relation("memorialSubmissionAssignedTo")
+  memorialSubmissionsReviewed MemorialSubmission[] @relation("memorialSubmissionReviewedBy")
+  memorialContributorUsers MemorialContributor[]   @relation("memorialContributorUser")
+  memorialContributorInvites MemorialContributor[] @relation("memorialContributorInvitedBy")
+  memorialVerificationsCreated MemorialVerification[] @relation("memorialVerificationCreatedBy")
+  memorialMemoriesCreated MemorialMemory[]         @relation("memorialMemoryCreatedBy")
+  memorialMemoriesReviewed MemorialMemory[]        @relation("memorialMemoryReviewedBy")
+  memorialPhotosCreated   MemorialPhoto[]          @relation("memorialPhotoCreatedBy")
+  memorialPhotosReviewed  MemorialPhoto[]          @relation("memorialPhotoReviewedBy")
+  memorialAuditLogsActor  MemorialAuditLog[]       @relation("memorialAuditActor")
   analyticsEvents             AnalyticsEvent[]
   contentReactions            ContentReaction[]
   authoredContentMetricsDaily ContentMetricsDaily[]
@@ -1302,6 +1321,321 @@ model RecipeMedia {
   @@map("recipe_media")
 }
 
+enum MemorialPageType {
+  DEATH_NOTICE
+  MEMORIAL_PAGE
+}
+
+enum MemorialPageStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  FROZEN
+  UNPUBLISHED
+  REJECTED
+}
+
+enum MemorialSubmissionType {
+  DEATH_NOTICE
+  MEMORIAL_PAGE
+  PRIVATE_REQUEST
+}
+
+enum MemorialSubmissionStatus {
+  DRAFT
+  PENDING_REVIEW
+  NEEDS_CLARIFICATION
+  APPROVED
+  REJECTED
+  CONVERTED_TO_PAGE
+}
+
+enum MemorialContributorRole {
+  SUBMITTER
+  STEWARD
+  CO_STEWARD
+  FAMILY
+  INSTITUTIONAL_REPRESENTATIVE
+}
+
+enum MemorialContributorStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+  REMOVED
+}
+
+enum MemorialVerificationRole {
+  FAMILY
+  FUNERAL_HOME
+  CLERGY
+  CEMETERY
+  ORGANIZATION
+  TRUSTED_CONFIRMATION
+  STAFF
+}
+
+enum MemorialVerificationStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+enum MemorialMemoryStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  HIDDEN
+}
+
+enum MemorialPhotoStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  HIDDEN
+}
+
+model MemorialPerson {
+  id               String    @id @default(uuid()) @db.Uuid
+  communityId      String    @db.Uuid
+  fullName         String
+  slug             String
+  preferredName    String?
+  age              Int?
+  birthDate        DateTime?
+  deathDate        DateTime?
+  townName         String?
+  birthTownName    String?
+  deathTownName    String?
+  isIdentityLocked Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  community     Community              @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  page          MemorialPage?
+  submissions   MemorialSubmission[]
+  verifications MemorialVerification[]
+
+  @@unique([communityId, slug])
+  @@index([communityId, deathDate])
+  @@map("memorial_people")
+}
+
+model MemorialPage {
+  id               String             @id @default(uuid()) @db.Uuid
+  communityId      String             @db.Uuid
+  memorialPersonId String             @unique @db.Uuid
+  categoryId       String?            @db.Uuid
+  pageType         MemorialPageType
+  status           MemorialPageStatus @default(DRAFT)
+  title            String
+  slug             String
+  shortSummary     String?
+  biography        String?
+  lifeStory        String?
+  serviceDetails   String?
+  familyDetails    String?
+  provenanceNote   String?
+  createdByUserId  String?            @db.Uuid
+  approvedByUserId String?            @db.Uuid
+  approvedAt       DateTime?
+  publishedAt      DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  community      Community              @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  memorialPerson MemorialPerson         @relation(fields: [memorialPersonId], references: [id], onDelete: Cascade)
+  category       Category?              @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdBy      User?                  @relation("memorialPageCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  approvedBy     User?                  @relation("memorialPageApprovedBy", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  contributors   MemorialContributor[]
+  verifications  MemorialVerification[]
+  submissions    MemorialSubmission[]
+  memories       MemorialMemory[]
+  photos         MemorialPhoto[]
+  auditLogs      MemorialAuditLog[]
+
+  @@unique([communityId, slug])
+  @@index([communityId, status])
+  @@index([categoryId])
+  @@index([createdByUserId])
+  @@index([approvedByUserId])
+  @@map("memorial_pages")
+}
+
+model MemorialSubmission {
+  id                    String                   @id @default(uuid()) @db.Uuid
+  communityId           String                   @db.Uuid
+  memorialPersonId      String?                  @db.Uuid
+  memorialPageId        String?                  @db.Uuid
+  submittedByUserId     String?                  @db.Uuid
+  assignedToUserId      String?                  @db.Uuid
+  reviewedByUserId      String?                  @db.Uuid
+  submissionType        MemorialSubmissionType
+  status                MemorialSubmissionStatus @default(DRAFT)
+  relationshipToDeceased String?
+  requesterName         String?
+  requesterEmail        String?
+  requesterPhone        String?
+  summary               String?
+  reviewNotes           String?
+  reviewedAt            DateTime?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  community     Community         @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  memorialPerson MemorialPerson?  @relation(fields: [memorialPersonId], references: [id], onDelete: SetNull)
+  memorialPage  MemorialPage?     @relation(fields: [memorialPageId], references: [id], onDelete: SetNull)
+  submittedBy   User?             @relation("memorialSubmissionCreatedBy", fields: [submittedByUserId], references: [id], onDelete: SetNull)
+  assignedTo    User?             @relation("memorialSubmissionAssignedTo", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  reviewedBy    User?             @relation("memorialSubmissionReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  verifications MemorialVerification[]
+  auditLogs     MemorialAuditLog[]
+
+  @@index([communityId, status])
+  @@index([memorialPersonId])
+  @@index([memorialPageId])
+  @@index([submittedByUserId])
+  @@index([assignedToUserId])
+  @@index([reviewedByUserId])
+  @@map("memorial_submissions")
+}
+
+model MemorialContributor {
+  id                    String                   @id @default(uuid()) @db.Uuid
+  memorialPageId        String                   @db.Uuid
+  userId                String?                  @db.Uuid
+  invitedByUserId       String?                  @db.Uuid
+  role                  MemorialContributorRole
+  status                MemorialContributorStatus @default(PENDING)
+  displayName           String?
+  relationshipToDeceased String?
+  invitedAt             DateTime?
+  approvedAt            DateTime?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  memorialPage MemorialPage @relation(fields: [memorialPageId], references: [id], onDelete: Cascade)
+  user         User?        @relation("memorialContributorUser", fields: [userId], references: [id], onDelete: SetNull)
+  invitedBy    User?        @relation("memorialContributorInvitedBy", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([memorialPageId, status])
+  @@index([userId])
+  @@index([invitedByUserId])
+  @@map("memorial_contributors")
+}
+
+model MemorialVerification {
+  id                   String                     @id @default(uuid()) @db.Uuid
+  memorialPersonId     String?                    @db.Uuid
+  memorialPageId       String?                    @db.Uuid
+  memorialSubmissionId String?                    @db.Uuid
+  createdByUserId      String?                    @db.Uuid
+  verificationRole     MemorialVerificationRole
+  status               MemorialVerificationStatus @default(PENDING)
+  verifierName         String
+  verifierOrganization String?
+  verifierContact      String?
+  note                 String?
+  verifiedAt           DateTime?
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+
+  memorialPerson     MemorialPerson?     @relation(fields: [memorialPersonId], references: [id], onDelete: SetNull)
+  memorialPage       MemorialPage?       @relation(fields: [memorialPageId], references: [id], onDelete: SetNull)
+  memorialSubmission MemorialSubmission? @relation(fields: [memorialSubmissionId], references: [id], onDelete: SetNull)
+  createdBy          User?               @relation("memorialVerificationCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([memorialPersonId])
+  @@index([memorialPageId])
+  @@index([memorialSubmissionId])
+  @@index([createdByUserId])
+  @@map("memorial_verifications")
+}
+
+model MemorialMemory {
+  id                    String               @id @default(uuid()) @db.Uuid
+  communityId           String               @db.Uuid
+  memorialPageId        String               @db.Uuid
+  createdByUserId       String?              @db.Uuid
+  reviewedByUserId      String?              @db.Uuid
+  displayName           String?
+  relationshipToDeceased String?
+  body                  String
+  status                MemorialMemoryStatus @default(PENDING)
+  reviewedAt            DateTime?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  community    Community      @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  memorialPage MemorialPage   @relation(fields: [memorialPageId], references: [id], onDelete: Cascade)
+  createdBy    User?          @relation("memorialMemoryCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  reviewedBy   User?          @relation("memorialMemoryReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  auditLogs    MemorialAuditLog[]
+
+  @@index([communityId, status])
+  @@index([memorialPageId, status])
+  @@index([createdByUserId])
+  @@index([reviewedByUserId])
+  @@map("memorial_memories")
+}
+
+model MemorialPhoto {
+  id               String             @id @default(uuid()) @db.Uuid
+  communityId      String             @db.Uuid
+  memorialPageId   String             @db.Uuid
+  createdByUserId  String?            @db.Uuid
+  reviewedByUserId String?            @db.Uuid
+  imageUrl         String
+  caption          String?
+  altText          String?
+  status           MemorialPhotoStatus @default(PENDING)
+  reviewedAt       DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  community    Community    @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  memorialPage MemorialPage @relation(fields: [memorialPageId], references: [id], onDelete: Cascade)
+  createdBy    User?        @relation("memorialPhotoCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  reviewedBy   User?        @relation("memorialPhotoReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  auditLogs    MemorialAuditLog[]
+
+  @@index([communityId, status])
+  @@index([memorialPageId, status])
+  @@index([createdByUserId])
+  @@index([reviewedByUserId])
+  @@map("memorial_photos")
+}
+
+model MemorialAuditLog {
+  id                   String   @id @default(uuid()) @db.Uuid
+  communityId          String   @db.Uuid
+  memorialPageId       String?  @db.Uuid
+  memorialSubmissionId String?  @db.Uuid
+  memorialMemoryId     String?  @db.Uuid
+  memorialPhotoId      String?  @db.Uuid
+  actorUserId          String?  @db.Uuid
+  action               String
+  note                 String?
+  metadata             Json?
+  createdAt            DateTime @default(now())
+
+  community          Community           @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  memorialPage       MemorialPage?       @relation(fields: [memorialPageId], references: [id], onDelete: SetNull)
+  memorialSubmission MemorialSubmission? @relation(fields: [memorialSubmissionId], references: [id], onDelete: SetNull)
+  memorialMemory     MemorialMemory?     @relation(fields: [memorialMemoryId], references: [id], onDelete: SetNull)
+  memorialPhoto      MemorialPhoto?      @relation(fields: [memorialPhotoId], references: [id], onDelete: SetNull)
+  actor              User?               @relation("memorialAuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([communityId, createdAt])
+  @@index([memorialPageId])
+  @@index([memorialSubmissionId])
+  @@index([memorialMemoryId])
+  @@index([memorialPhotoId])
+  @@index([actorUserId])
+  @@map("memorial_audit_logs")
+}
+
 model Tag {
   id   String @id @default(uuid()) @db.Uuid
   name String @unique
@@ -1342,6 +1676,7 @@ model Category {
   childCategories Category[] @relation("categoryHierarchy")
   articles        Article[]
   recipes         Recipe[]
+  memorialPages   MemorialPage[]
 
   @@index([communityId])
   @@index([parentCategoryId])

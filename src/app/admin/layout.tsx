@@ -18,6 +18,7 @@ const adminNavSections = [
     items: [
       { href: '/admin/content', label: 'Content Approvals' },
       { href: '/admin/articles', label: 'Articles' },
+      { href: '/admin/memoriam', label: 'Memoriam' },
       { href: '/admin/reporter', label: 'Reporter' },
       { href: '/admin/recipes', label: 'Recipes' },
       { href: '/admin/events', label: 'Events' },

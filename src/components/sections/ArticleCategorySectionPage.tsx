@@ -54,6 +54,22 @@ interface Recipe {
   category: { id: string; name: string; slug: string } | null;
 }
 
+interface MemorialPage {
+  id: string;
+  title: string;
+  slug: string;
+  shortSummary: string | null;
+  serviceDetails: string | null;
+  pageType: 'DEATH_NOTICE' | 'MEMORIAL_PAGE';
+  publishedAt: string | null;
+  memorialPerson: {
+    fullName: string;
+    deathDate: string | null;
+    townName: string | null;
+  };
+  category: { id: string; name: string; slug: string } | null;
+}
+
 interface Pagination {
   page: number;
   limit: number;
@@ -74,11 +90,13 @@ export default function ArticleCategorySectionPage({
 
   const [articles, setArticles] = useState<Article[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [memorialPages, setMemorialPages] = useState<MemorialPage[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const activePill = categoryPills.find((pill) => pill.slug === activeCategory) ?? null;
   const isRecipeCategory = activePill?.contentModel === 'RECIPE';
+  const isMemoriamCategory = activePill?.contentModel === 'MEMORIAM';
 
   useEffect(() => {
     async function fetchContent() {
@@ -86,9 +104,11 @@ export default function ArticleCategorySectionPage({
       try {
         const url = isRecipeCategory
           ? `/api/recipes?page=${pageParam}&limit=12&category=${encodeURIComponent(activeCategory || '')}`
-          : activeCategory
-            ? `/api/articles?page=${pageParam}&limit=12&category=${encodeURIComponent(activeCategory)}`
-            : `/api/articles?page=${pageParam}&limit=12&parentCategory=${encodeURIComponent(sectionSlug)}`;
+          : isMemoriamCategory
+            ? `/api/memoriam/pages?page=${pageParam}&limit=12&category=${encodeURIComponent(activeCategory || '')}`
+            : activeCategory
+              ? `/api/articles?page=${pageParam}&limit=12&category=${encodeURIComponent(activeCategory)}`
+              : `/api/articles?page=${pageParam}&limit=12&parentCategory=${encodeURIComponent(sectionSlug)}`;
 
         const res = await fetch(url);
         if (!res.ok) {
@@ -98,6 +118,7 @@ export default function ArticleCategorySectionPage({
         const data = await res.json();
         setArticles(data.articles || []);
         setRecipes(data.recipes || []);
+        setMemorialPages(data.memorialPages || []);
         setPagination(data.pagination);
       } catch (error) {
         console.error(`Failed to fetch ${sectionSlug} content:`, error);
@@ -107,12 +128,16 @@ export default function ArticleCategorySectionPage({
     }
 
     fetchContent();
-  }, [activeCategory, isRecipeCategory, pageParam, sectionSlug]);
+  }, [activeCategory, isMemoriamCategory, isRecipeCategory, pageParam, sectionSlug]);
 
   const createHref = isRecipeCategory
     ? activeCategory
       ? `/recipes/submit?category=${encodeURIComponent(activeCategory)}`
       : '/recipes/submit'
+    : isMemoriamCategory
+      ? activeCategory
+        ? `/memoriam/submit?category=${encodeURIComponent(activeCategory)}`
+        : '/memoriam/submit'
     : activeCategory
       ? `/local-life/submit?parent=${encodeURIComponent(sectionSlug)}&category=${encodeURIComponent(activeCategory)}`
       : `/local-life/submit?parent=${encodeURIComponent(sectionSlug)}`;
@@ -124,10 +149,12 @@ export default function ArticleCategorySectionPage({
         actions={
           <ArticleCreateAction
             href={createHref}
-            label={isRecipeCategory ? 'Recipe' : 'Article'}
+            label={isRecipeCategory ? 'Recipe' : isMemoriamCategory ? 'Memoriam' : 'Article'}
             trustRequiredMessage={
               isRecipeCategory
                 ? 'You must be a trusted user to write and submit recipes for Local Life.'
+                : isMemoriamCategory
+                  ? 'You must be a trusted user to start a Memoriam submission.'
                 : undefined
             }
           />
@@ -152,22 +179,22 @@ export default function ArticleCategorySectionPage({
 
       {isLoading ? (
         <div className="rounded-[28px] border border-white/10 bg-white/70 px-6 py-12 text-center text-slate-500 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">
-          Loading {isRecipeCategory ? 'recipes' : 'articles'}...
+          Loading {isRecipeCategory ? 'recipes' : isMemoriamCategory ? 'memoriam records' : 'articles'}...
         </div>
-      ) : (isRecipeCategory ? recipes.length === 0 : articles.length === 0) ? (
+      ) : (isRecipeCategory ? recipes.length === 0 : isMemoriamCategory ? memorialPages.length === 0 : articles.length === 0) ? (
         <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(160deg,rgba(17,34,52,0.97),rgba(8,20,33,0.97))] px-12 pb-8 pt-12 text-center text-white shadow-[0_24px_55px_rgba(7,17,26,0.18)]">
           <p className="mb-4 text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/66">
             {sectionName}
           </p>
           <h2 className="empty-state-title mb-2">
             {activePill
-              ? `No ${activePill.name} ${isRecipeCategory ? 'recipes' : 'articles'} yet`
-              : `No ${sectionName.toLowerCase()} ${isRecipeCategory ? 'recipes' : 'articles'} yet`}
+              ? `No ${activePill.name} ${isRecipeCategory ? 'recipes' : isMemoriamCategory ? 'records' : 'articles'} yet`
+              : `No ${sectionName.toLowerCase()} ${isRecipeCategory ? 'recipes' : isMemoriamCategory ? 'records' : 'articles'} yet`}
           </h2>
           <p className="empty-state-copy mx-auto mb-6 max-w-md">
             {session?.user
-              ? `There are no published ${isRecipeCategory ? 'recipes' : 'articles'} in ${activePill?.name ?? sectionName} yet. Be the first to contribute.`
-              : `Published ${isRecipeCategory ? 'recipes' : 'articles'} for ${activePill?.name ?? sectionName} will appear here.`}
+              ? `There are no published ${isRecipeCategory ? 'recipes' : isMemoriamCategory ? 'memoriam records' : 'articles'} in ${activePill?.name ?? sectionName} yet.`
+              : `Published ${isRecipeCategory ? 'recipes' : isMemoriamCategory ? 'memoriam records' : 'articles'} for ${activePill?.name ?? sectionName} will appear here.`}
           </p>
         </div>
       ) : (
@@ -241,6 +268,69 @@ export default function ArticleCategorySectionPage({
                 </div>
               </article>
               ))
+              : isMemoriamCategory
+                ? memorialPages.map((page) => (
+                <article key={page.id} className="article-card">
+                  <div className="article-card-image h-52">
+                    <div className="article-card-image-placeholder h-full min-h-0 rounded-none border-x-0 border-t-0 px-5 text-center">
+                      <div>
+                        <p className="article-card-image-placeholder-label text-[11px] font-semibold uppercase tracking-[0.24em]">
+                          {page.pageType === 'DEATH_NOTICE' ? 'Death Notice' : 'Memorial Page'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4">
+                    {page.category ? (
+                      <div className="mb-2">
+                        <span className="article-card-category-badge inline-block rounded-full px-3 py-1 text-xs font-semibold">
+                          {page.category.name}
+                        </span>
+                      </div>
+                    ) : null}
+
+                    <h3 className="mb-2">
+                      <Link
+                        href={`/memoriam/${page.slug}`}
+                        className="article-card-title line-clamp-2 text-lg transition-colors"
+                      >
+                        {page.title}
+                      </Link>
+                    </h3>
+
+                    <p className="mb-3 text-sm font-medium text-slate-600">
+                      {page.memorialPerson.fullName}
+                      {page.memorialPerson.townName ? ` • ${page.memorialPerson.townName}` : ''}
+                    </p>
+
+                    {page.shortSummary ? (
+                      <p className="article-card-excerpt mb-3 text-sm leading-7">{page.shortSummary}</p>
+                    ) : page.serviceDetails ? (
+                      <p className="article-card-excerpt mb-3 text-sm leading-7">{page.serviceDetails}</p>
+                    ) : null}
+
+                    <div className="article-card-footer border-t pt-3 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="article-card-author font-medium">
+                          {page.pageType === 'DEATH_NOTICE' ? 'Death Notice' : 'Memorial Page'}
+                        </span>
+                        <span>&middot;</span>
+                        <time className="article-card-date" dateTime={page.publishedAt || undefined}>
+                          {new Date(page.publishedAt || page.memorialPerson.deathDate || Date.now()).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </time>
+                      </div>
+                      <Link href={`/memoriam/${page.slug}`} className="article-card-read-link font-semibold">
+                        View &rarr;
+                      </Link>
+                    </div>
+                  </div>
+                </article>
+                ))
               : articles.map((article) => (
               <article key={article.id} className="article-card">
                 <div className="article-card-image h-52">
