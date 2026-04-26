@@ -5,6 +5,7 @@ import TrackedLink from '@/components/analytics/TrackedLink';
 import InternalPageHeader from '@/components/shared/InternalPageHeader';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { getHomepageBoxesData, resolveHomepageCommunityId, type HomepageBoxData } from '@/lib/homepage';
+import RecentlyRemembered from '@/components/memoriam/RecentlyRemembered';
 
 function getBoxBrowseUrl(box: HomepageBoxData) {
   switch (box.boxType) {
@@ -16,6 +17,8 @@ function getBoxBrowseUrl(box: HomepageBoxData) {
       return '/events';
     case 'MARKETPLACE':
       return '/marketplace';
+    case 'MEMORIAM':
+      return '/memoriam';
   }
 }
 
@@ -34,6 +37,10 @@ function HomepageBoxCard({
   box: HomepageBoxData;
   emphasize?: boolean;
 }) {
+  if (box.boxType === 'MEMORIAM') {
+    return <RecentlyRemembered />;
+  }
+
   if (!box.heroItem) {
     return (
       <section className="homepage-feature-card p-6">

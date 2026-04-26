@@ -1436,6 +1436,9 @@ model MemorialPage {
   serviceDetails   String?
   familyDetails    String?
   provenanceNote   String?
+  heroImageUrl     String?
+  videoEmbeds      String[]
+  serviceStreamUrl String?
   createdByUserId  String?            @db.Uuid
   approvedByUserId String?            @db.Uuid
   approvedAt       DateTime?
@@ -2255,6 +2258,7 @@ enum HomepageBoxType {
   MARKETPLACE
   HELP_WANTED
   GARDENING
+  MEMORIAM
 }
 
 enum HomepageBoxItemRole {

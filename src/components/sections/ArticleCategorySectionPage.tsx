@@ -8,6 +8,7 @@ import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import ArticleCreateAction from '@/components/articles/ArticleCreateAction';
 import InternalPageHeader from '@/components/shared/InternalPageHeader';
+import MemoriamCard from '@/components/memoriam/MemoriamCard';
 import { getArticleUiImageUrl } from '@/lib/article-images';
 import type { SectionCategoryPill } from '@/lib/category-sections';
 
@@ -62,8 +63,11 @@ interface MemorialPage {
   serviceDetails: string | null;
   pageType: 'DEATH_NOTICE' | 'MEMORIAL_PAGE';
   publishedAt: string | null;
+  heroImageUrl: string | null;
   memorialPerson: {
     fullName: string;
+    preferredName: string | null;
+    birthDate: string | null;
     deathDate: string | null;
     townName: string | null;
   };
@@ -269,68 +273,17 @@ export default function ArticleCategorySectionPage({
               </article>
               ))
               : isMemoriamCategory
-                ? memorialPages.map((page) => (
-                <article key={page.id} className="article-card">
-                  <div className="article-card-image h-52">
-                    <div className="article-card-image-placeholder h-full min-h-0 rounded-none border-x-0 border-t-0 px-5 text-center">
-                      <div>
-                        <p className="article-card-image-placeholder-label text-[11px] font-semibold uppercase tracking-[0.24em]">
-                          {page.pageType === 'DEATH_NOTICE' ? 'Death Notice' : 'Memorial Page'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-4">
-                    {page.category ? (
-                      <div className="mb-2">
-                        <span className="article-card-category-badge inline-block rounded-full px-3 py-1 text-xs font-semibold">
-                          {page.category.name}
-                        </span>
-                      </div>
-                    ) : null}
-
-                    <h3 className="mb-2">
-                      <Link
-                        href={`/memoriam/${page.slug}`}
-                        className="article-card-title line-clamp-2 text-lg transition-colors"
-                      >
-                        {page.title}
-                      </Link>
-                    </h3>
-
-                    <p className="mb-3 text-sm font-medium text-slate-600">
-                      {page.memorialPerson.fullName}
-                      {page.memorialPerson.townName ? ` • ${page.memorialPerson.townName}` : ''}
-                    </p>
-
-                    {page.shortSummary ? (
-                      <p className="article-card-excerpt mb-3 text-sm leading-7">{page.shortSummary}</p>
-                    ) : page.serviceDetails ? (
-                      <p className="article-card-excerpt mb-3 text-sm leading-7">{page.serviceDetails}</p>
-                    ) : null}
-
-                    <div className="article-card-footer border-t pt-3 text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="article-card-author font-medium">
-                          {page.pageType === 'DEATH_NOTICE' ? 'Death Notice' : 'Memorial Page'}
-                        </span>
-                        <span>&middot;</span>
-                        <time className="article-card-date" dateTime={page.publishedAt || undefined}>
-                          {new Date(page.publishedAt || page.memorialPerson.deathDate || Date.now()).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })}
-                        </time>
-                      </div>
-                      <Link href={`/memoriam/${page.slug}`} className="article-card-read-link font-semibold">
-                        View &rarr;
-                      </Link>
-                    </div>
-                  </div>
-                </article>
-                ))
+                ? (
+                <div className="memoriam-feed" style={{ gridColumn: '1 / -1' }}>
+                  {memorialPages.map((page, i) => (
+                    <MemoriamCard
+                      key={page.id}
+                      page={page}
+                      size={i === 0 ? 'xl' : i === 3 || i === 4 ? 'lg' : 'default'}
+                    />
+                  ))}
+                </div>
+                )
               : articles.map((article) => (
               <article key={article.id} className="article-card">
                 <div className="article-card-image h-52">

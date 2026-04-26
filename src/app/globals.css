@@ -84,6 +84,12 @@
     --font-editorial-body: 'Source Sans 3', Georgia, serif;
     --radius-card: 6px;
     --radius-pill: 9999px;
+    --ink: #0d1b2a;
+    --ink-soft: #2b3a4a;
+    --ink-faint: rgba(13, 27, 42, 0.42);
+    --rule: #d8dcd6;
+    --memoriam-display: 'Playfair Display', Georgia, serif;
+    --memoriam-body: 'Source Sans 3', Georgia, serif;
   }
 
   html,
@@ -2731,6 +2737,416 @@
     .page-header-action-label {
       display: inline;
     }
+  }
+
+  /* ───────── Memoriam (public) ───────── */
+
+  .memoriam-page {
+    background: var(--app-bg);
+  }
+
+  .memoriam-band {
+    border-bottom: 1px solid var(--rule);
+    padding: 4rem 3.5rem 2.25rem;
+    background: var(--paper-2);
+  }
+  .memoriam-band-grid {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 2rem;
+  }
+  .memoriam-band-eyebrow {
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--app-text-muted);
+    margin-bottom: 1.125rem;
+  }
+  .memoriam-band-title {
+    font-family: var(--memoriam-display);
+    font-weight: 600;
+    font-size: clamp(3rem, 2rem + 4vw, 6rem);
+    line-height: 0.92;
+    letter-spacing: -0.04em;
+    color: var(--ink);
+    margin: 0;
+  }
+  .memoriam-band-title em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--brand-primary);
+  }
+  .memoriam-band-sub {
+    font-family: var(--memoriam-body);
+    font-size: 1.0625rem;
+    color: var(--app-text-muted);
+    max-width: 22rem;
+    line-height: 1.55;
+    margin: 0;
+    text-align: right;
+  }
+
+  .memoriam-controls {
+    padding: 1.125rem 3.5rem;
+    background: var(--ink);
+    color: rgba(255, 255, 255, 0.86);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+  }
+  .memoriam-controls input {
+    background: transparent;
+    border: 0;
+    color: #fff;
+    outline: none;
+    width: 20rem;
+    font-size: 0.8125rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 0.25rem 0;
+  }
+  .memoriam-controls input::placeholder { color: rgba(255, 255, 255, 0.5); }
+  .memoriam-pillbar { display: flex; gap: 0.25rem; }
+  .memoriam-pill {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    padding: 0.3125rem 0.75rem;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: transparent;
+    letter-spacing: 0.06em;
+    text-decoration: none;
+  }
+  .memoriam-pill.is-active {
+    background: #fff;
+    color: var(--ink);
+    border-color: #fff;
+  }
+  .memoriam-results {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.6875rem;
+  }
+
+  .memoriam-feed {
+    padding: 3rem 3.5rem 5rem;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 2rem 1.75rem;
+  }
+  .memoriam-card {
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    grid-column: span 4;
+  }
+  .memoriam-card.size-lg { grid-column: span 6; }
+  .memoriam-card.size-xl { grid-column: span 8; }
+  .memoriam-card-img {
+    aspect-ratio: 4 / 5;
+    background: repeating-linear-gradient(135deg, #e8e6e0 0 8px, #e0ddd5 8px 16px);
+    overflow: hidden;
+    margin-bottom: 1rem;
+    transition: transform 240ms ease;
+  }
+  .memoriam-card.size-lg .memoriam-card-img { aspect-ratio: 5 / 4; }
+  .memoriam-card.size-xl .memoriam-card-img { aspect-ratio: 16 / 10; }
+  .memoriam-card-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .memoriam-card:hover .memoriam-card-img { transform: translateY(-4px); }
+
+  .memoriam-card-tag {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-sans);
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--brand-primary);
+    margin-bottom: 0.5rem;
+  }
+  .memoriam-card-tag.is-notice { color: var(--brand-accent); }
+  .memoriam-card-tag::before {
+    content: "";
+    width: 1.375rem;
+    height: 1px;
+    background: currentColor;
+  }
+  .memoriam-card-title {
+    font-family: var(--memoriam-display);
+    font-weight: 500;
+    font-size: 1.75rem;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.375rem;
+    color: var(--ink);
+  }
+  .memoriam-card.size-lg .memoriam-card-title { font-size: 2.125rem; }
+  .memoriam-card.size-xl .memoriam-card-title { font-size: 2.75rem; line-height: 1; }
+  .memoriam-card-meta {
+    font-family: var(--memoriam-body);
+    font-style: italic;
+    font-size: 0.875rem;
+    color: var(--app-text-muted);
+    margin: 0 0 0.625rem;
+  }
+  .memoriam-card-lede {
+    font-family: var(--memoriam-body);
+    font-size: 1rem;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 50ch;
+    text-wrap: pretty;
+  }
+  .memoriam-card.size-xl .memoriam-card-lede { font-size: 1.125rem; max-width: 62ch; }
+
+  .memoriam-detail-hero {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 34rem;
+  }
+  .memoriam-detail-hero-img {
+    background: repeating-linear-gradient(135deg, #e8e6e0 0 8px, #e0ddd5 8px 16px);
+  }
+  .memoriam-detail-hero-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .memoriam-detail-hero-text {
+    padding: 4rem 3.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    background: var(--ink);
+    color: #fff;
+  }
+  .memoriam-detail-eyebrow {
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.65);
+    margin-bottom: 1.5rem;
+  }
+  .memoriam-detail-title {
+    font-family: var(--memoriam-display);
+    font-weight: 500;
+    font-size: clamp(3rem, 2rem + 3vw, 5rem);
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    margin: 0 0 1.125rem;
+    color: #fff;
+  }
+  .memoriam-detail-dates {
+    font-family: var(--memoriam-body);
+    font-size: 1.125rem;
+    color: rgba(255, 255, 255, 0.78);
+    font-style: italic;
+    margin-bottom: 1.75rem;
+  }
+  .memoriam-tag-strip {
+    display: flex;
+    gap: 1.5rem;
+    padding-top: 1.375rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.6);
+  }
+  .memoriam-tag-strip strong { color: #fff; font-weight: 600; }
+
+  .memoriam-detail-body {
+    padding: 4rem 0 5rem;
+    max-width: 67.5rem;
+    margin: 0 auto;
+  }
+  .memoriam-prose {
+    column-count: 2;
+    column-gap: 3rem;
+    padding: 0 3.5rem;
+  }
+  .memoriam-prose p {
+    font-family: var(--memoriam-body);
+    font-size: 1.0625rem;
+    line-height: 1.65;
+    color: var(--ink-soft);
+    margin: 0 0 1.125rem;
+    break-inside: avoid;
+    text-wrap: pretty;
+  }
+  .memoriam-prose p:first-child::first-letter {
+    font-family: var(--memoriam-display);
+    font-weight: 500;
+    float: left;
+    font-size: 4rem;
+    line-height: 0.9;
+    padding: 0.25rem 0.625rem 0 0;
+    color: var(--brand-primary);
+  }
+
+  .memoriam-essay {
+    margin: 4rem 3.5rem;
+    padding: 3.5rem 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .memoriam-essay-title {
+    font-family: var(--memoriam-display);
+    font-weight: 500;
+    font-size: 0.875rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--app-text-muted);
+    margin: 0 0 2rem;
+  }
+  .memoriam-essay-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1.125rem;
+  }
+  .memoriam-essay-fig { margin: 0; }
+  .memoriam-essay-fig.span-2 { grid-column: span 2; }
+  .memoriam-essay-fig.span-3 { grid-column: span 3; }
+  .memoriam-essay-fig.span-4 { grid-column: span 4; }
+  .memoriam-essay-fig.tall .memoriam-essay-img { aspect-ratio: 3 / 4; }
+  .memoriam-essay-fig.span-3 .memoriam-essay-img { aspect-ratio: 4 / 3; }
+  .memoriam-essay-img {
+    background: repeating-linear-gradient(135deg, #e8e6e0 0 8px, #e0ddd5 8px 16px);
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+  }
+  .memoriam-essay-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .memoriam-essay-fig figcaption {
+    font-family: var(--memoriam-body);
+    font-size: 0.8125rem;
+    color: var(--app-text-muted);
+    font-style: italic;
+    margin-top: 0.5rem;
+    line-height: 1.4;
+  }
+
+  .memoriam-memories {
+    padding: 0 3.5rem;
+  }
+  .memoriam-memories-title {
+    font-family: var(--memoriam-display);
+    font-weight: 500;
+    font-size: 0.875rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--app-text-muted);
+    margin: 0 0 1.5rem;
+  }
+  .memoriam-memory {
+    display: grid;
+    grid-template-columns: 3.75rem 1fr;
+    gap: 1.5rem;
+    padding: 1.75rem 0;
+    border-bottom: 1px solid var(--rule);
+    align-items: start;
+  }
+  .memoriam-memory:last-child { border-bottom: none; }
+  .memoriam-memory-num {
+    font-family: var(--memoriam-display);
+    font-weight: 500;
+    font-size: 2.25rem;
+    color: var(--brand-primary);
+    line-height: 1;
+    font-style: italic;
+  }
+  .memoriam-memory-body {
+    font-family: var(--memoriam-body);
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    margin: 0 0 0.75rem;
+    text-wrap: pretty;
+  }
+  .memoriam-memory-attr {
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    color: var(--app-text-muted);
+    letter-spacing: 0.06em;
+  }
+  .memoriam-memory-attr strong { color: var(--ink); font-weight: 600; }
+
+  .memoriam-memory-add {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    font-family: var(--memoriam-body);
+    font-size: 0.9375rem;
+    color: var(--app-text-muted);
+  }
+  .memoriam-memory-add a {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--brand-primary);
+    text-decoration: none;
+    border: 1px solid currentColor;
+    padding: 0.5rem 0.875rem;
+    border-radius: var(--radius-pill);
+    white-space: nowrap;
+  }
+
+  .memoriam-provenance {
+    margin: 4rem 3.5rem 0;
+    padding: 1.5rem 0;
+    border-top: 1px solid var(--rule);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    color: var(--app-text-muted);
+  }
+  .memoriam-provenance-label {
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 0.375rem;
+  }
+  .memoriam-provenance-value { color: var(--ink); font-weight: 500; }
+
+  @media (max-width: 1024px) {
+    .memoriam-band, .memoriam-controls, .memoriam-feed,
+    .memoriam-essay, .memoriam-memories, .memoriam-provenance,
+    .memoriam-detail-hero-text { padding-left: 1.5rem; padding-right: 1.5rem; }
+    .memoriam-essay { margin-left: 1.5rem; margin-right: 1.5rem; }
+    .memoriam-detail-hero { grid-template-columns: 1fr; }
+    .memoriam-prose { column-count: 1; padding: 0 1.5rem; }
+    .memoriam-feed { grid-template-columns: repeat(6, 1fr); }
+    .memoriam-card, .memoriam-card.size-lg, .memoriam-card.size-xl { grid-column: span 6; }
+    .memoriam-essay-grid { grid-template-columns: repeat(3, 1fr); }
+    .memoriam-essay-fig.span-3, .memoriam-essay-fig.span-4 { grid-column: span 3; }
+  }
+  @media (max-width: 640px) {
+    .memoriam-band-grid { grid-template-columns: 1fr; }
+    .memoriam-band-sub { text-align: left; max-width: none; }
+    .memoriam-controls { flex-wrap: wrap; }
+    .memoriam-controls input { width: 100%; }
+    .memoriam-feed { grid-template-columns: 1fr; }
+    .memoriam-card, .memoriam-card.size-lg, .memoriam-card.size-xl { grid-column: span 1; }
+    .memoriam-essay-grid { grid-template-columns: 1fr; }
+    .memoriam-essay-fig.span-2, .memoriam-essay-fig.span-3, .memoriam-essay-fig.span-4 { grid-column: span 1; }
+    .memoriam-provenance { grid-template-columns: 1fr 1fr; }
   }
 }
 

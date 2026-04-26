@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { AdminChip } from '@/components/admin/AdminChip';
 import { AdminDrawer } from '@/components/admin/AdminDrawer';
@@ -83,6 +84,13 @@ interface MemoryRow {
   };
   createdBy: AssigneeSummary | null;
   reviewedBy: AssigneeSummary | null;
+}
+
+interface PhotoRow {
+  id: string;
+  status: string;
+  caption: string | null;
+  url: string;
 }
 
 interface MemoriamAdminClientProps {
@@ -170,6 +178,274 @@ function formatAssignee(person: AssigneeSummary | null | undefined) {
   }
 
   return `${person.firstName} ${person.lastName}`.trim();
+}
+
+function MemorialPageManageRow({ page }: { page: MemorialPageRow }) {
+  const [expanded, setExpanded] = useState(false);
+  const [stewardOpen, setStewardOpen] = useState(false);
+  const [stewardUserId, setStewardUserId] = useState('');
+  const [stewardRole, setStewardRole] = useState<'STEWARD' | 'CO_STEWARD' | 'FAMILY'>('STEWARD');
+  const [stewardPending, setStewardPending] = useState(false);
+  const [stewardSuccess, setStewardSuccess] = useState('');
+  const [stewardError, setStewardError] = useState('');
+
+  const [photos, setPhotos] = useState<PhotoRow[]>([]);
+  const [photosPending, setPhotosPending] = useState(false);
+  const [photosLoaded, setPhotosLoaded] = useState(false);
+  const [photoActionPending, setPhotoActionPending] = useState<string | null>(null);
+
+  async function loadPhotos() {
+    if (photosLoaded) return;
+    setPhotosPending(true);
+    try {
+      const res = await fetch(`/api/memoriam/pages/${page.id}/photos`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to load photos');
+      setPhotos(Array.isArray(data) ? data : (data.photos ?? []));
+      setPhotosLoaded(true);
+    } catch {
+      // silently ignore; photos section will just be empty
+    } finally {
+      setPhotosPending(false);
+    }
+  }
+
+  function handleExpand() {
+    const next = !expanded;
+    setExpanded(next);
+    if (next) {
+      loadPhotos();
+    }
+  }
+
+  async function handleStewardSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setStewardPending(true);
+    setStewardError('');
+    setStewardSuccess('');
+    try {
+      const res = await fetch(`/api/memoriam/pages/${page.id}/contributors`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: stewardUserId, role: stewardRole }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to assign steward');
+      setStewardSuccess('Steward assigned.');
+      setStewardUserId('');
+      setTimeout(() => {
+        setStewardOpen(false);
+        setStewardSuccess('');
+      }, 1500);
+    } catch (err) {
+      setStewardError(err instanceof Error ? err.message : 'Failed to assign steward');
+    } finally {
+      setStewardPending(false);
+    }
+  }
+
+  async function handlePhotoAction(photoId: string, status: 'APPROVED' | 'REJECTED') {
+    setPhotoActionPending(photoId);
+    try {
+      const res = await fetch(`/api/memoriam/photos/${photoId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to update photo');
+      setPhotos((current) =>
+        current.map((p) => (p.id === photoId ? { ...p, ...data } : p))
+      );
+    } catch {
+      // ignore; photo stays as-is
+    } finally {
+      setPhotoActionPending(null);
+    }
+  }
+
+  return (
+    <>
+      <tr className="admin-list-row">
+        <td className="admin-list-cell">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="text-slate-400 hover:text-slate-700"
+              onClick={handleExpand}
+              aria-label={expanded ? 'Collapse' : 'Expand'}
+            >
+              {expanded ? '▾' : '▸'}
+            </button>
+            <div>
+              <div className="font-medium text-slate-900">{page.title}</div>
+              <div className="text-xs text-slate-500">{page.slug}</div>
+            </div>
+          </div>
+        </td>
+        <td className="admin-list-cell">
+          <div>{page.memorialPerson.fullName}</div>
+          <div className="text-xs text-slate-500">
+            {page.memorialPerson.townName || 'Town unknown'}
+          </div>
+        </td>
+        <td className="admin-list-cell">
+          <div className="flex items-center gap-2">
+            <AdminChip tone={pageTone(page.status)} dot>
+              {page.status}
+            </AdminChip>
+            {page.status === 'PUBLISHED' && (
+              <Link
+                href={`/memoriam/${page.slug}/manage`}
+                className="text-xs text-blue-600 hover:underline"
+              >
+                Manage
+              </Link>
+            )}
+          </div>
+        </td>
+        <td className="admin-list-cell">
+          {page.category?.name || 'Unassigned'}
+        </td>
+        <td className="admin-list-cell text-xs text-slate-600">
+          {page._count.memories} memories
+          <br />
+          <span className={page._count.photos > 0 ? 'font-semibold text-amber-700' : ''}>
+            {page._count.photos} photos
+          </span>
+          <br />
+          {page._count.verifications} verifications
+        </td>
+        <td className="admin-list-cell">{formatDate(page.updatedAt)}</td>
+        <td className="admin-list-cell">
+          <button
+            type="button"
+            className="admin-table-button"
+            onClick={() => {
+              setStewardOpen((v) => !v);
+              setStewardSuccess('');
+              setStewardError('');
+            }}
+          >
+            Assign Steward
+          </button>
+        </td>
+      </tr>
+
+      {stewardOpen && (
+        <tr className="admin-list-row bg-slate-50">
+          <td colSpan={7} className="admin-list-cell">
+            <form
+              className="flex flex-wrap items-end gap-3 py-2"
+              onSubmit={handleStewardSubmit}
+            >
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-slate-600">Assign by user ID</span>
+                <input
+                  type="text"
+                  className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm w-64"
+                  placeholder="User ID or email"
+                  value={stewardUserId}
+                  onChange={(e) => setStewardUserId(e.target.value)}
+                  required
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-slate-600">Role</span>
+                <select
+                  className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+                  value={stewardRole}
+                  onChange={(e) =>
+                    setStewardRole(e.target.value as 'STEWARD' | 'CO_STEWARD' | 'FAMILY')
+                  }
+                >
+                  <option value="STEWARD">Steward</option>
+                  <option value="CO_STEWARD">Co-Steward</option>
+                  <option value="FAMILY">Family</option>
+                </select>
+              </label>
+              <button
+                type="submit"
+                className="admin-primary-button"
+                disabled={stewardPending}
+              >
+                {stewardPending ? 'Assigning…' : 'Assign'}
+              </button>
+              {stewardSuccess && (
+                <span className="text-sm text-green-700">{stewardSuccess}</span>
+              )}
+              {stewardError && (
+                <span className="text-sm text-red-700">{stewardError}</span>
+              )}
+            </form>
+          </td>
+        </tr>
+      )}
+
+      {expanded && (
+        <tr className="admin-list-row bg-slate-50">
+          <td colSpan={7} className="admin-list-cell">
+            <div className="py-2">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Photos
+              </div>
+              {photosPending && (
+                <p className="text-xs text-slate-500">Loading photos…</p>
+              )}
+              {!photosPending && photosLoaded && photos.length === 0 && (
+                <p className="text-xs text-slate-500">No photos on this page.</p>
+              )}
+              {photos.length > 0 && (
+                <div className="flex flex-wrap gap-4">
+                  {photos.map((photo) => (
+                    <div
+                      key={photo.id}
+                      className="flex flex-col gap-1 rounded-xl border border-slate-200 bg-white p-2"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={photo.url}
+                        alt={photo.caption || 'Memorial photo'}
+                        width={80}
+                        className="rounded-lg object-cover"
+                        style={{ width: 80, height: 80, objectFit: 'cover' }}
+                      />
+                      {photo.caption && (
+                        <p className="max-w-[80px] truncate text-xs text-slate-600">
+                          {photo.caption}
+                        </p>
+                      )}
+                      <AdminChip tone={photo.status === 'APPROVED' ? 'ok' : photo.status === 'REJECTED' ? 'bad' : 'pend'} dot>
+                        {photo.status}
+                      </AdminChip>
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          className="admin-table-button"
+                          disabled={photoActionPending === photo.id}
+                          onClick={() => handlePhotoAction(photo.id, 'APPROVED')}
+                        >
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-table-button"
+                          disabled={photoActionPending === photo.id}
+                          onClick={() => handlePhotoAction(photo.id, 'REJECTED')}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
+  );
 }
 
 export default function MemoriamAdminClient({
@@ -456,45 +732,19 @@ export default function MemoriamAdminClient({
                     <th className="admin-list-header-cell">Category</th>
                     <th className="admin-list-header-cell">Memory state</th>
                     <th className="admin-list-header-cell">Updated</th>
+                    <th className="admin-list-header-cell">Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {memorialPages.length === 0 ? (
                     <tr className="admin-list-row">
-                      <td className="admin-list-empty" colSpan={6}>
+                      <td className="admin-list-empty" colSpan={7}>
                         No memorial pages have been created yet.
                       </td>
                     </tr>
                   ) : (
                     memorialPages.map((page) => (
-                      <tr key={page.id} className="admin-list-row">
-                        <td className="admin-list-cell">
-                          <div className="font-medium text-slate-900">{page.title}</div>
-                          <div className="text-xs text-slate-500">{page.slug}</div>
-                        </td>
-                        <td className="admin-list-cell">
-                          <div>{page.memorialPerson.fullName}</div>
-                          <div className="text-xs text-slate-500">
-                            {page.memorialPerson.townName || 'Town unknown'}
-                          </div>
-                        </td>
-                        <td className="admin-list-cell">
-                          <AdminChip tone={pageTone(page.status)} dot>
-                            {page.status}
-                          </AdminChip>
-                        </td>
-                        <td className="admin-list-cell">
-                          {page.category?.name || 'Unassigned'}
-                        </td>
-                        <td className="admin-list-cell text-xs text-slate-600">
-                          {page._count.memories} memories
-                          <br />
-                          {page._count.photos} photos
-                          <br />
-                          {page._count.verifications} verifications
-                        </td>
-                        <td className="admin-list-cell">{formatDate(page.updatedAt)}</td>
-                      </tr>
+                      <MemorialPageManageRow key={page.id} page={page} />
                     ))
                   )}
                 </tbody>

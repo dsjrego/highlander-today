@@ -5,7 +5,13 @@ import { FormEvent, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import FormCard, { FormCardActions } from '@/components/shared/FormCard';
 import InternalPageHeader from '@/components/shared/InternalPageHeader';
+import ImageUpload from '@/components/shared/ImageUpload';
 import { hasTrustedAccess } from '@/lib/trust-access';
+
+type PhotoEntry = {
+  imageUrl: string;
+  caption: string;
+};
 
 type MemoriamCategoryOption = {
   id: string;
@@ -31,6 +37,10 @@ type VerificationFormRow = {
   note: string;
 };
 
+// Character limits for the two capped text fields
+const SUMMARY_LIMIT = 1000;
+const SHORT_SUMMARY_LIMIT = 300;
+
 type MemoriamFormState = {
   submissionType: 'DEATH_NOTICE' | 'MEMORIAL_PAGE' | 'PRIVATE_REQUEST';
   categoryId: string;
@@ -40,7 +50,6 @@ type MemoriamFormState = {
   requesterPhone: string;
   fullName: string;
   preferredName: string;
-  age: string;
   townName: string;
   birthTownName: string;
   deathTownName: string;
@@ -53,7 +62,7 @@ type MemoriamFormState = {
   lifeStory: string;
   serviceDetails: string;
   familyDetails: string;
-  provenanceNote: string;
+  sourceNote: string;
 };
 
 const RELATIONSHIP_OPTIONS = [
@@ -95,7 +104,6 @@ const EMPTY_FORM: MemoriamFormState = {
   requesterPhone: '',
   fullName: '',
   preferredName: '',
-  age: '',
   townName: '',
   birthTownName: '',
   deathTownName: '',
@@ -108,8 +116,22 @@ const EMPTY_FORM: MemoriamFormState = {
   lifeStory: '',
   serviceDetails: '',
   familyDetails: '',
-  provenanceNote: '',
+  sourceNote: '',
 };
+
+/** Returns whole years between two date strings, or null if either is missing/invalid. */
+function calculateAge(birthDate: string, deathDate: string): number | null {
+  if (!birthDate || !deathDate) return null;
+  const birth = new Date(`${birthDate}T00:00:00`);
+  const death = new Date(`${deathDate}T00:00:00`);
+  if (isNaN(birth.getTime()) || isNaN(death.getTime())) return null;
+  let age = death.getFullYear() - birth.getFullYear();
+  const monthDiff = death.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && death.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age >= 0 ? age : null;
+}
 
 function formatVerificationLabel(value: VerificationFormRow['verificationRole']) {
   return value
@@ -126,6 +148,9 @@ export default function MemoriamSubmitClient({
   const { data: session, status } = useSession();
   const [form, setForm] = useState<MemoriamFormState>(EMPTY_FORM);
   const [verifications, setVerifications] = useState<VerificationFormRow[]>([EMPTY_VERIFICATION]);
+  const [photos, setPhotos] = useState<PhotoEntry[]>([]);
+  const [videoUrls, setVideoUrls] = useState<string[]>(['']);
+  const [serviceStreamUrl, setServiceStreamUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -144,6 +169,8 @@ export default function MemoriamSubmitClient({
     trustLevel: currentUser?.trust_level,
     role: currentUser?.role,
   });
+
+  const computedAge = calculateAge(form.birthDate, form.deathDate);
 
   function updateForm(
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -194,7 +221,21 @@ export default function MemoriamSubmitClient({
     }
 
     if (!form.summary.trim() || form.summary.trim().length < 10) {
-      setError('Add a short factual summary so staff can review the submission.');
+      setError('Add a short factual overview so staff can review the submission.');
+      return;
+    }
+
+    if (form.summary.length > SUMMARY_LIMIT) {
+      setError(
+        `The factual overview is too long — ${form.summary.length} of ${SUMMARY_LIMIT} characters used. Please shorten it before submitting.`
+      );
+      return;
+    }
+
+    if (form.shortSummary.length > SHORT_SUMMARY_LIMIT) {
+      setError(
+        `The short memorial text is too long — ${form.shortSummary.length} of ${SHORT_SUMMARY_LIMIT} characters used. Please shorten it before submitting.`
+      );
       return;
     }
 
@@ -222,7 +263,7 @@ export default function MemoriamSubmitClient({
           person: {
             fullName: form.fullName,
             preferredName: form.preferredName || undefined,
-            age: form.age ? Number(form.age) : undefined,
+            age: computedAge ?? undefined,
             townName: form.townName || undefined,
             birthTownName: form.birthTownName || undefined,
             deathTownName: form.deathTownName || undefined,
@@ -237,9 +278,15 @@ export default function MemoriamSubmitClient({
             lifeStory: form.lifeStory || undefined,
             serviceDetails: form.serviceDetails || undefined,
             familyDetails: form.familyDetails || undefined,
-            provenanceNote: form.provenanceNote || undefined,
+            provenanceNote: form.sourceNote || undefined,
             categoryId: form.categoryId || undefined,
+            videoEmbeds: videoUrls.filter((u) => u.trim()),
+            serviceStreamUrl: serviceStreamUrl.trim() || undefined,
           },
+          photos: photos.map((p) => ({
+            imageUrl: p.imageUrl,
+            caption: p.caption.trim() || undefined,
+          })),
           verifications: verifications
             .filter((row) => row.verifierName.trim())
             .map((row) => ({
@@ -270,6 +317,9 @@ export default function MemoriamSubmitClient({
         requesterEmail: currentUser?.email || '',
       });
       setVerifications([EMPTY_VERIFICATION]);
+      setPhotos([]);
+      setVideoUrls(['']);
+      setServiceStreamUrl('');
       setSuccess(
         'Memoriam submission received. Staff will review the factual record, verification details, and any memorial text before anything is published.'
       );
@@ -356,7 +406,7 @@ export default function MemoriamSubmitClient({
           </div>
           <div>
             <p className="font-semibold text-slate-900">3. Memorial details can grow later</p>
-            <p>A narrow death notice can be extended into a fuller memorial over time, but the core factual record stays under review.</p>
+            <p>A brief death notice can grow into a fuller memorial page over time. Once the core record is approved by staff, it will be published.</p>
           </div>
         </div>
       </section>
@@ -426,20 +476,8 @@ export default function MemoriamSubmitClient({
             </label>
           </div>
 
+          {/* Dates + auto-computed age */}
           <div className="grid gap-4 md:grid-cols-4">
-            <label className="space-y-2">
-              <span className="text-sm font-semibold text-slate-800">Age</span>
-              <input
-                name="age"
-                type="number"
-                min="0"
-                max="130"
-                value={form.age}
-                onChange={updateForm}
-                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900"
-              />
-            </label>
-
             <label className="space-y-2">
               <span className="text-sm font-semibold text-slate-800">Birth date</span>
               <input
@@ -461,6 +499,17 @@ export default function MemoriamSubmitClient({
                 className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900"
               />
             </label>
+
+            <div className="space-y-2">
+              <span className="text-sm font-semibold text-slate-800">Age at death</span>
+              <div className="flex h-[46px] items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-500">
+                {computedAge !== null ? (
+                  <span className="font-medium text-slate-900">{computedAge}</span>
+                ) : (
+                  <span className="italic">Calculated from dates</span>
+                )}
+              </div>
+            </div>
 
             <label className="space-y-2">
               <span className="text-sm font-semibold text-slate-800">Community connection</span>
@@ -527,30 +576,70 @@ export default function MemoriamSubmitClient({
             </label>
           </div>
 
-          <label className="space-y-2">
-            <span className="text-sm font-semibold text-slate-800">Factual summary</span>
-            <textarea
-              name="summary"
-              value={form.summary}
-              onChange={updateForm}
-              rows={5}
-              className="w-full rounded-[24px] border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900"
-              placeholder="Share the core notice, service information, or the factual summary staff should review first."
-              required
-            />
-          </label>
+          {/* Factual — 1 000-char limit */}
+          <div className="space-y-2">
+            <span className="text-sm font-semibold text-slate-800">Factual</span>
+            <div className="relative">
+              <textarea
+                name="summary"
+                value={form.summary}
+                onChange={updateForm}
+                rows={5}
+                maxLength={SUMMARY_LIMIT}
+                className="w-full rounded-[24px] border border-slate-300 bg-white px-4 py-3 pb-7 text-sm text-slate-900 outline-none transition focus:border-slate-900"
+                placeholder="Share the core notice, service information, or the factual overview staff should review first."
+                required
+              />
+              <span
+                className={`absolute bottom-3 right-4 text-xs ${
+                  form.summary.length >= SUMMARY_LIMIT
+                    ? 'font-semibold text-red-600'
+                    : form.summary.length >= SUMMARY_LIMIT * 0.9
+                    ? 'text-amber-600'
+                    : 'text-slate-400'
+                }`}
+              >
+                {form.summary.length} / {SUMMARY_LIMIT}
+              </span>
+            </div>
+            {form.summary.length >= SUMMARY_LIMIT && (
+              <p className="text-xs text-red-600">
+                Character limit reached. Please shorten the text before submitting.
+              </p>
+            )}
+          </div>
 
-          <label className="space-y-2">
-            <span className="text-sm font-semibold text-slate-800">Short memorial summary</span>
-            <textarea
-              name="shortSummary"
-              value={form.shortSummary}
-              onChange={updateForm}
-              rows={3}
-              className="w-full rounded-[24px] border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900"
-              placeholder="Optional short summary for the memorial page itself"
-            />
-          </label>
+          {/* Short memorial — 300-char limit */}
+          <div className="space-y-2">
+            <span className="text-sm font-semibold text-slate-800">Short memorial</span>
+            <div className="relative">
+              <textarea
+                name="shortSummary"
+                value={form.shortSummary}
+                onChange={updateForm}
+                rows={3}
+                maxLength={SHORT_SUMMARY_LIMIT}
+                className="w-full rounded-[24px] border border-slate-300 bg-white px-4 py-3 pb-7 text-sm text-slate-900 outline-none transition focus:border-slate-900"
+                placeholder="Optional one or two sentences shown on the memorial page itself"
+              />
+              <span
+                className={`absolute bottom-3 right-4 text-xs ${
+                  form.shortSummary.length >= SHORT_SUMMARY_LIMIT
+                    ? 'font-semibold text-red-600'
+                    : form.shortSummary.length >= SHORT_SUMMARY_LIMIT * 0.9
+                    ? 'text-amber-600'
+                    : 'text-slate-400'
+                }`}
+              >
+                {form.shortSummary.length} / {SHORT_SUMMARY_LIMIT}
+              </span>
+            </div>
+            {form.shortSummary.length >= SHORT_SUMMARY_LIMIT && (
+              <p className="text-xs text-red-600">
+                Character limit reached. Please shorten the text before submitting.
+              </p>
+            )}
+          </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
             <label className="space-y-2">
@@ -604,17 +693,132 @@ export default function MemoriamSubmitClient({
             </label>
           </div>
 
-          <label className="space-y-2">
-            <span className="text-sm font-semibold text-slate-800">Provenance note</span>
+          <div className="space-y-2">
+            <span className="text-sm font-semibold text-slate-800">Where this information comes from</span>
+            <p className="text-xs leading-5 text-slate-500">
+              Tell us how you know this — for example: submitted by the family, shared by the funeral home, or taken from a printed notice. This helps staff verify the record.
+            </p>
             <textarea
-              name="provenanceNote"
-              value={form.provenanceNote}
+              name="sourceNote"
+              value={form.sourceNote}
               onChange={updateForm}
               rows={3}
               className="w-full rounded-[24px] border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900"
-              placeholder="Example: submitted by daughter, based on funeral home notice, reviewed with family"
+              placeholder="e.g. submitted by daughter, based on funeral home notice, reviewed with family"
             />
-          </label>
+          </div>
+
+          {/* Photos */}
+          <section className="space-y-4 rounded-[28px] border border-slate-200 bg-slate-50 p-5">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-950">Photos</h2>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                Upload photos to include with this submission. The first photo will be used as the hero image. Staff reviews all photos before the memorial is published.
+              </p>
+            </div>
+            <ImageUpload
+              context="memoriam"
+              maxFiles={20}
+              value={photos.map((p) => p.imageUrl)}
+              onUpload={(img) =>
+                setPhotos((current) => [...current, { imageUrl: img.url, caption: '' }])
+              }
+              onRemove={(url) =>
+                setPhotos((current) => current.filter((p) => p.imageUrl !== url))
+              }
+              helperText="JPG, PNG, or WebP — up to 5 MB per photo"
+            />
+            {photos.length > 0 && (
+              <div className="space-y-2">
+                {photos.map((photo, index) => (
+                  <div key={photo.imageUrl} className="flex items-center gap-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={photo.imageUrl}
+                      alt=""
+                      className="h-10 w-10 rounded-lg object-cover"
+                    />
+                    <input
+                      type="text"
+                      value={photo.caption}
+                      onChange={(e) =>
+                        setPhotos((current) =>
+                          current.map((p, i) =>
+                            i === index ? { ...p, caption: e.target.value } : p
+                          )
+                        )
+                      }
+                      className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-900"
+                      placeholder={`Caption for photo ${index + 1} (optional)`}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Videos */}
+          <section className="space-y-4 rounded-[28px] border border-slate-200 bg-slate-50 p-5">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-950">Videos</h2>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                Add YouTube or Vimeo tribute videos, or a link to a recorded or live memorial service.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-slate-800">YouTube / Vimeo links</p>
+              {videoUrls.map((url, index) => (
+                <div key={index} className="flex gap-2">
+                  <input
+                    type="url"
+                    value={url}
+                    onChange={(e) =>
+                      setVideoUrls((current) =>
+                        current.map((u, i) => (i === index ? e.target.value : u))
+                      )
+                    }
+                    className="flex-1 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900"
+                    placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
+                  />
+                  {videoUrls.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setVideoUrls((current) => current.filter((_, i) => i !== index))
+                      }
+                      className="rounded-full border border-slate-300 px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-white"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+              {videoUrls.length < 5 && (
+                <button
+                  type="button"
+                  onClick={() => setVideoUrls((current) => [...current, ''])}
+                  className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-white"
+                >
+                  Add another video
+                </button>
+              )}
+            </div>
+
+            <label className="space-y-2">
+              <span className="text-sm font-semibold text-slate-800">Memorial service link</span>
+              <p className="text-xs leading-5 text-slate-500">
+                A link to a funeral home stream, church livestream, or recording — this will appear as a plain link, not an embed.
+              </p>
+              <input
+                type="url"
+                value={serviceStreamUrl}
+                onChange={(e) => setServiceStreamUrl(e.target.value)}
+                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900"
+                placeholder="https://..."
+              />
+            </label>
+          </section>
 
           <section className="space-y-4 rounded-[28px] border border-slate-200 bg-slate-50 p-5">
             <div>

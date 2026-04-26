@@ -71,10 +71,12 @@ export async function GET(request: NextRequest) {
           serviceDetails: true,
           pageType: true,
           publishedAt: true,
+          heroImageUrl: true,
           memorialPerson: {
             select: {
               fullName: true,
               preferredName: true,
+              birthDate: true,
               deathDate: true,
               townName: true,
             },

@@ -56,7 +56,7 @@ function getModel(provider: string) {
     return process.env.REPORTER_MODEL_NAME || 'gpt-5.4-mini';
   }
 
-  return process.env.REPORTER_MODEL_NAME || 'claude-haiku-4-5';
+  return process.env.REPORTER_MODEL_NAME || 'claude-sonnet-4-6';
 }
 
 function hasConfiguredInterviewerProvider() {

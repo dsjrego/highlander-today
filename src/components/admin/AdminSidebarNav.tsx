@@ -165,6 +165,7 @@ export function AdminSidebarNav({
                         }
 
                         event.preventDefault();
+                        event.stopPropagation();
                         onMoveItem?.(draggedHref, item.href, section.title);
                         setDragOverSection(null);
                         onDragEnd?.();

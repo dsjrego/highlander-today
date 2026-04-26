@@ -169,7 +169,7 @@ export class AnthropicReporterProvider implements ReporterProviderAdapter {
   readonly provider = 'anthropic';
   readonly model: string;
 
-  constructor(model = process.env.REPORTER_MODEL_NAME || 'claude-haiku-4-5') {
+  constructor(model = process.env.REPORTER_MODEL_NAME || 'claude-sonnet-4-6') {
     this.model = model;
   }
 

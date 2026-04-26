@@ -1,5 +1,7 @@
 # Obituaries and Memoriam Plan
 
+> **Implementation status as of session 186:** The core Memoriam subsystem is now live. The Prisma data model, public intake form, moderation queue, public browse/detail pages, steward self-service management page, multi-photo support, YouTube/Vimeo video embeds, memorial service stream links, admin steward assignment, admin photo approval, and `MEMORIAM` homepage box type are all implemented. See `MEMORIAM-LAUNCH-READINESS.md` for the operational pre-launch checklist and `MEMORIAM-STRATEGY.md` for the long-term strategic vision.
+
 ## Purpose
 
 This document defines the recommended obituary, death notice, and memorial direction for Highlander Today.
@@ -313,29 +315,34 @@ Recommended actions:
 
 To reduce risk, initial launch should be narrower than the long-term vision.
 
-Phase 1:
+Phase 1 — **Now live:**
 
-- only staff, clergy, funeral homes, and trusted family submitters can publish
-- other trusted users can propose a memorial or submit a private request
-- no open comments
-- only staff-approved or steward-approved memories and photos appear publicly
+- only trusted users can initiate public submissions
+- no open comments — moderated `Share a Memory` flow only
+- staff-approved or steward-approved memories and photos appear publicly
 - obituary and memorial content lives in a separate moderation workflow from Local Life articles
-- homepage shows an understated recent-death-notices block
-- public `Memoriam` index exists as a dignified local browse/search surface
+- homepage `MEMORIAM` box type renders a recent-death-notices block
+- public `/memoriam` index with search and type filtering
+- multi-photo support: photos submitted at intake (staff-reviewed) and steward-uploaded (auto-approved)
+- YouTube / Vimeo video embeds and memorial service stream links
+- steward self-service via `/memoriam/[slug]/manage`: edit text, manage photos/videos, approve memories, invite co-stewards
 
-Phase 2:
+Phase 2 — **Still pending:**
 
-- support co-stewards
-- support family-approved photo galleries and timelines
-- support moderated community memory submissions
-- support richer place associations
-- support gentle historical and archive use cases
+- richer place associations (birth town, death town already collected; deeper geo integration pending)
+- print-friendly memorial output
+- email notification to steward when memories are submitted
+- email-based co-steward invitation (currently requires user ID)
+- steward transfer workflow in admin UI
+- deeper public search (date-range, multi-filter)
+- memoriam ↔ history linkage
 
-Phase 3:
+Phase 3 — **Planned:**
 
 - support a broader structured memorial archive for community history
 - allow memorial records to connect to a larger people/history knowledge base if Highlander Today later builds one
 - evaluate stronger search and archive experiences across `Memoriam` and `History`
+- data portability: individual memorial export (PDF, JSON)
 
 ## Monetization Direction
 
@@ -443,24 +450,28 @@ Promises of long-term remembrance need corresponding technical, operational, and
 
 ## Recommended Initial Build Focus
 
-Must have:
+Must have — **all now live:**
 
-- dedicated `Memoriam` section in the public information architecture
-- death notice workflow
-- memorial submission workflow
-- obituary-specific moderation queue and actions
-- clear provenance display on public pages
-- support for trusted-family or institution-backed publication
-- photo support for memorial pages
-- guided writing support
-- moderated `Share a Memory` submissions instead of open comments
+- [x] dedicated `Memoriam` section in the public information architecture
+- [x] death notice workflow
+- [x] memorial submission workflow
+- [x] obituary-specific moderation queue and actions
+- [x] clear provenance display on public pages
+- [x] support for trusted-family or institution-backed publication
+- [x] photo support for memorial pages (multi-photo, gallery, hero selection)
+- [x] video support (YouTube/Vimeo embeds, memorial service stream link)
+- [x] guided writing support (plain-language form, auto-calculated age, character limits)
+- [x] moderated `Share a Memory` submissions instead of open comments
+- [x] steward self-service (edit text, manage media, approve memories, invite co-stewards)
 
-Nice to have:
+Nice to have — **still pending:**
 
-- print-friendly memorial treatment
-- better service-details formatting
-- basic search by name and town
-- co-steward support
+- [ ] print-friendly memorial treatment
+- [ ] better service-details formatting
+- [ ] email notifications to steward on new memory submissions
+- [ ] email-based co-steward invitation
+- [x] basic search by name and town (live)
+- [x] co-steward support (live via invite)
 
 Later:
 
@@ -468,6 +479,7 @@ Later:
 - broader memorial media packages
 - sponsorship or memorial-support mechanics if justified
 - deeper people/history graph connections
+- data export / portability (PDF, JSON)
 
 ## Summary
 

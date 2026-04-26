@@ -46,9 +46,22 @@ const CreateMemoriamSubmissionSchema = z.object({
       familyDetails: z.string().trim().max(5000).optional().nullable(),
       provenanceNote: z.string().trim().max(500).optional().nullable(),
       categoryId: z.string().uuid().optional().nullable(),
+      videoEmbeds: z.array(z.string().url()).max(10).optional().default([]),
+      serviceStreamUrl: z.string().url().optional().nullable(),
     })
     .optional()
     .nullable(),
+  photos: z
+    .array(
+      z.object({
+        imageUrl: z.string().url(),
+        caption: z.string().trim().max(500).optional().nullable(),
+        altText: z.string().trim().max(255).optional().nullable(),
+      })
+    )
+    .max(20)
+    .optional()
+    .default([]),
   verifications: z
     .array(
       z.object({
@@ -279,6 +292,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      const firstPhotoUrl = validated.photos?.[0]?.imageUrl ?? null;
       const memorialPage = await tx.memorialPage.create({
         data: {
           communityId: community.id,
@@ -294,9 +308,27 @@ export async function POST(request: NextRequest) {
           serviceDetails: validated.pageDraft?.serviceDetails?.trim() || null,
           familyDetails: validated.pageDraft?.familyDetails?.trim() || null,
           provenanceNote: validated.pageDraft?.provenanceNote?.trim() || null,
+          heroImageUrl: firstPhotoUrl,
+          videoEmbeds: validated.pageDraft?.videoEmbeds ?? [],
+          serviceStreamUrl: validated.pageDraft?.serviceStreamUrl?.trim() || null,
           createdByUserId: userId,
         },
       });
+
+      // Create pending photo records for staff review
+      if (validated.photos && validated.photos.length > 0) {
+        await tx.memorialPhoto.createMany({
+          data: validated.photos.map((photo) => ({
+            communityId: community.id,
+            memorialPageId: memorialPage.id,
+            createdByUserId: userId,
+            imageUrl: photo.imageUrl,
+            caption: photo.caption?.trim() || null,
+            altText: photo.altText?.trim() || null,
+            status: 'PENDING',
+          })),
+        });
+      }
 
       const submission = await tx.memorialSubmission.create({
         data: {
@@ -331,6 +363,8 @@ export async function POST(request: NextRequest) {
                 submissionType: validated.submissionType,
                 pageType,
                 verificationCount: validated.verifications.length,
+                photoCount: validated.photos?.length ?? 0,
+                hasVideo: (validated.pageDraft?.videoEmbeds?.length ?? 0) > 0,
               },
             },
           },

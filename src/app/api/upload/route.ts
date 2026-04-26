@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     const random = Math.random().toString(36).substring(2, 8);
     const safeFilename = `${timestamp}-${random}.${ext}`;
 
-    const subfolder = ['article', 'profile', 'event', 'organization', 'marketplace', 'help-wanted'].includes(context)
+    const subfolder = ['article', 'profile', 'event', 'organization', 'marketplace', 'help-wanted', 'memoriam'].includes(context)
       ? context
       : 'general';
     const buffer = Buffer.from(await file.arrayBuffer());
