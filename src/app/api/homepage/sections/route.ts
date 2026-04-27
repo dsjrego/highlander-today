@@ -15,7 +15,7 @@ import {
   type HomepageContentType,
 } from '@/lib/homepage';
 
-const HomepageBoxTypeSchema = z.enum(['ARTICLES', 'RECIPES', 'EVENTS', 'MARKETPLACE']);
+const HomepageBoxTypeSchema = z.enum(['ARTICLES', 'RECIPES', 'EVENTS', 'MARKETPLACE', 'MEMORIAM']);
 const HomepageItemSelectionSchema = z.object({
   contentType: z.enum(['ARTICLE', 'RECIPE', 'EVENT', 'MARKETPLACE_LISTING']),
   contentId: z.string().uuid(),
@@ -39,6 +39,7 @@ const BOX_CONTENT_TYPE: Record<HomepageBoxType, HomepageContentType> = {
   RECIPES: 'RECIPE',
   EVENTS: 'EVENT',
   MARKETPLACE: 'MARKETPLACE_LISTING',
+  MEMORIAM: 'ARTICLE', // unused — MEMORIAM has no pinnable content items
 };
 
 function validateBoxPayload(box: z.infer<typeof HomepageBoxInputSchema>) {

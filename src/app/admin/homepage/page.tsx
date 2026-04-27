@@ -111,6 +111,7 @@ export default function HomepageCurationPage() {
     RECIPES: '',
     EVENTS: '',
     MARKETPLACE: '',
+    MEMORIAM: '',
   });
 
   useEffect(() => {
