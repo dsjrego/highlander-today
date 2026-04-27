@@ -34,6 +34,9 @@ function getBoxCandidates(
       return candidatePools.eventCandidates;
     case 'MARKETPLACE':
       return candidatePools.marketplaceCandidates;
+    case 'MEMORIAM':
+      // MEMORIAM renders its own data via RecentlyRemembered — no pinnable candidates.
+      return [];
   }
 }
 
