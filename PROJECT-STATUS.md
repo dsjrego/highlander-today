@@ -473,7 +473,9 @@ Use these instead of growing this file again:
 - `GARDENING-IMPLEMENTATION-PLAN.md` — concrete build order for tenant growing profiles, structured gardening models, and later merchant interoperability
 - `CAPITAL-PLAN.md` — 12-month and 24-month blended funding targets, source mix, sequencing, and operating rules
 - `GRANT-STRATEGY.md` — grant positioning, target funders, structural prerequisites, and recommended outreach sequence
-- `OBITUARIES-PLAN.md` — obituary/memorial system direction
+- `OBITUARIES-PLAN.md` — obituary/memorial system direction (product spec, content model, roles, moderation rules, launch scope)
+- `MEMORIAM-STRATEGY.md` — long-term strategic vision for Memoriam as community memory infrastructure
+- `MEMORIAM-LAUNCH-READINESS.md` — operational pre-launch checklist: what is built, what must happen before first real submission, what is still pending
 - `MONETIZATION-PLAN.md` — funding/revenue sequencing
 - `USER-SUBSCRIPTIONS-PLAN.md` — dedicated future subscription/plans/entitlements direction separate from existing membership tables
 - `DONATIONS-TRANSPARENCY-PLAN.md` — donations/transparency direction

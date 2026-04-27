@@ -389,7 +389,6 @@ export default function MemoriamSubmitClient({
     <div className="space-y-8">
       <InternalPageHeader
         title="Memoriam Submission"
-        description="Start a death notice or memorial page request for careful staff review."
         mobileAlign="start"
       />
 
