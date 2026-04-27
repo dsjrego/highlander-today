@@ -6,7 +6,7 @@ import { getArticleUiImageUrl } from './article-images';
 import { resolveTenantCommunityId } from './tenant';
 
 export type HomepageContentType = 'ARTICLE' | 'RECIPE' | 'EVENT' | 'MARKETPLACE_LISTING';
-export type HomepageBoxType = 'ARTICLES' | 'EVENTS' | 'RECIPES' | 'MARKETPLACE';
+export type HomepageBoxType = 'ARTICLES' | 'EVENTS' | 'RECIPES' | 'MARKETPLACE' | 'MEMORIAM';
 
 export interface HomepageContentItem {
   contentType: HomepageContentType;
@@ -81,13 +81,27 @@ export const HOMEPAGE_BOX_CONFIG: Record<HomepageBoxType, HomepageBoxConfig> = {
     contentType: 'MARKETPLACE_LISTING',
     defaultSortOrder: 4,
   },
+  MEMORIAM: {
+    title: 'Memoriam',
+    description: 'Recently remembered community members.',
+    contentType: 'ARTICLE', // unused — MEMORIAM renders via RecentlyRemembered component
+    defaultSortOrder: 5,
+  },
 };
 
+// These box types are auto-created for every new community.
 export const DEFAULT_HOMEPAGE_BOX_ORDER = [
   'ARTICLES',
   'EVENTS',
   'RECIPES',
   'MARKETPLACE',
+] as const satisfies readonly HomepageBoxType[];
+
+// All recognised box types — opt-in types like MEMORIAM are included here
+// but are NOT auto-created; admins add them manually via /admin/homepage.
+const ALL_KNOWN_BOX_TYPES = [
+  ...DEFAULT_HOMEPAGE_BOX_ORDER,
+  'MEMORIAM',
 ] as const satisfies readonly HomepageBoxType[];
 
 type HomepageBoxWithItems = Prisma.HomepageBoxGetPayload<{
@@ -111,6 +125,7 @@ export async function resolveHomepageCommunityId(options?: ResolveHomepageCommun
 }
 
 export async function ensureHomepageBoxes(communityId: string): Promise<HomepageBoxWithItems[]> {
+  // Check only the default types to decide what needs auto-creating.
   const existingBoxes = await db.homepageBox.findMany({
     where: {
       communityId,
@@ -147,10 +162,11 @@ export async function ensureHomepageBoxes(communityId: string): Promise<Homepage
 
   await maybeImportLegacyHomepageData(communityId);
 
+  // Fetch all known box types so opt-in boxes like MEMORIAM are included when present.
   return db.homepageBox.findMany({
     where: {
       communityId,
-      boxType: { in: Array.from(DEFAULT_HOMEPAGE_BOX_ORDER) },
+      boxType: { in: Array.from(ALL_KNOWN_BOX_TYPES) },
     },
     include: {
       items: {
@@ -620,6 +636,9 @@ function getCandidatesForBoxType(
       return candidatePools.recipes;
     case 'MARKETPLACE':
       return candidatePools.marketplace;
+    case 'MEMORIAM':
+      // MEMORIAM renders via RecentlyRemembered — no content candidates needed.
+      return [];
   }
 }
 
@@ -635,7 +654,7 @@ export async function getHomepageBoxesData(communityId: string): Promise<Homepag
   const candidatePools = { articles, events, recipes, marketplace };
 
   return boxes
-    .filter((box) => DEFAULT_HOMEPAGE_BOX_ORDER.includes(box.boxType as HomepageBoxType))
+    .filter((box) => (ALL_KNOWN_BOX_TYPES as readonly string[]).includes(box.boxType))
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((box) => {
       const boxType = box.boxType as HomepageBoxType;
