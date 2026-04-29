@@ -267,3 +267,65 @@ export async function PATCH(
     );
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const userId = request.headers.get('x-user-id');
+    const userRole = request.headers.get('x-user-role') || '';
+    const ipAddress = request.headers.get('x-client-ip');
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!canEditReporterRun(userRole)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
+
+    const currentCommunity = await getCurrentCommunity({ headers: request.headers });
+    const existing = await db.reporterInterviewRequest.findUnique({
+      where: { id: params.id },
+      include: {
+        reporterRun: {
+          select: { id: true, communityId: true },
+        },
+      },
+    });
+
+    if (
+      !existing ||
+      (currentCommunity && existing.reporterRun.communityId !== currentCommunity.id)
+    ) {
+      return NextResponse.json({ error: 'Reporter interview not found' }, { status: 404 });
+    }
+
+    await db.reporterInterviewRequest.delete({
+      where: { id: params.id },
+    });
+
+    await logActivity({
+      userId,
+      action: 'DELETE',
+      resourceType: 'REPORTER_INTERVIEW_REQUEST',
+      resourceId: existing.id,
+      ipAddress,
+      metadata: {
+        reporterRunId: existing.reporterRun.id,
+        status: existing.status,
+        interviewType: existing.interviewType,
+        priority: existing.priority,
+      },
+    });
+
+    return NextResponse.json({ success: true, id: existing.id });
+  } catch (error) {
+    console.error('Error deleting reporter interview:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete reporter interview' },
+      { status: 500 }
+    );
+  }
+}

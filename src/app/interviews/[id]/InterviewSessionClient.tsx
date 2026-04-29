@@ -138,12 +138,12 @@ export default function InterviewSessionClient({
       : 'Save Response';
 
   return (
-    <div className="space-y-6">
+    <div className="mt-2 space-y-6 md:mt-3">
       <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(10,32,51,0.96),rgba(18,67,107,0.92))] px-6 py-8 text-white shadow-[0_28px_70px_rgba(7,17,26,0.2)]">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-100/74">
           Interview Session
         </p>
-        <h1 className="mt-3 text-3xl font-black tracking-[-0.05em]">
+        <h1 className="mt-3 text-3xl font-black tracking-[-0.05em] text-amber-200">
           {interviewTitle}
         </h1>
         <p className="mt-4 max-w-3xl text-sm leading-7 text-white/78">
@@ -158,9 +158,7 @@ export default function InterviewSessionClient({
             <span>Interview language {sessionState.session.language}</span>
           ) : null}
           {sessionState ? (
-            <span>
-              {sessionState.answeredCount} of {sessionState.questionCount} answered
-            </span>
+            <span>{sessionState.answeredCount} answered</span>
           ) : null}
         </div>
       </section>
@@ -243,7 +241,7 @@ export default function InterviewSessionClient({
           {sessionState?.currentQuestion ? (
             <div className="rounded-[24px] border border-sky-200 bg-sky-50 px-5 py-5">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-800">
-                Question {sessionState.answeredCount + 1} of {sessionState.questionCount}
+                Question {sessionState.answeredCount + 1}
               </p>
               <h2 className="mt-3 text-xl font-bold text-slate-950">
                 {sessionState.currentQuestion.text}

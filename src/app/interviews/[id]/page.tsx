@@ -44,7 +44,7 @@ export default async function InterviewSessionPage({ params }: PageProps) {
 
   if (!session?.user?.id) {
     return (
-      <div className="space-y-6">
+      <div className="mt-2 space-y-6 md:mt-3">
         <section className="rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(10,32,51,0.96),rgba(18,67,107,0.92))] px-6 py-8 text-white shadow-[0_28px_70px_rgba(7,17,26,0.2)]">
           <div className="flex items-center gap-3">
             <MessageSquareQuote className="h-5 w-5" />
@@ -52,7 +52,7 @@ export default async function InterviewSessionPage({ params }: PageProps) {
               Reporter Interview
             </p>
           </div>
-          <h1 className="mt-3 text-3xl font-black tracking-[-0.05em]">
+          <h1 className="mt-3 text-3xl font-black tracking-[-0.05em] text-amber-200">
             {interview.reporterRun.title || interview.reporterRun.topic}
           </h1>
         </section>
@@ -91,7 +91,7 @@ export default async function InterviewSessionPage({ params }: PageProps) {
 
   if (!hasAccess || !accessState.canOpenSession) {
     return (
-      <section className="rounded-[28px] border border-rose-200 bg-rose-50 p-6">
+      <section className="mt-2 rounded-[28px] border border-rose-200 bg-rose-50 p-6 md:mt-3">
         <div className="flex items-start gap-3">
           <div className="rounded-full border border-rose-200 p-2 text-rose-700">
             <Lock className="h-4 w-4" />

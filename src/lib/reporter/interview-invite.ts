@@ -2,7 +2,6 @@ interface ReporterInterviewInviteEmailInput {
   interviewId: string;
   interviewTitle: string;
   intervieweeName: string;
-  purpose: string;
   language: string;
   senderName: string;
   replyToEmail?: string | null;
@@ -22,7 +21,6 @@ export function buildReporterInterviewInviteEmail(
         Highlander Today would like to invite you to complete a guided browser interview related to
         <strong> ${input.interviewTitle}</strong>.
       </p>
-      <p>${input.purpose}</p>
       <p>
         Preferred language for this interview: <strong>${input.language}</strong>.
         You can confirm or adjust that choice when the session begins.
@@ -46,7 +44,6 @@ export function buildReporterInterviewInviteEmail(
     `Highlander Today Interview Invitation\n\n` +
     `Hello ${input.intervieweeName},\n\n` +
     `Highlander Today would like to invite you to complete a guided browser interview related to ${input.interviewTitle}.\n\n` +
-    `${input.purpose}\n\n` +
     `Preferred language: ${input.language}. You can confirm or adjust that choice when the session begins.\n\n` +
     `Open interview: ${interviewUrl}\n\n` +
     `Sent by ${input.senderName} for Highlander Today.`;

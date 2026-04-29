@@ -141,7 +141,7 @@ export function getInterviewQuestionFramework(params: {
     questions,
     requiredQuestionKeys,
     minimumTurns: Math.max(questions.length, 8),
-    maxTurns: Math.max(questions.length + 3, 10),
+    maxTurns: Math.max(questions.length + 3, 15),
   };
 }
 

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useId, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { AdminViewTabs } from '@/components/admin/AdminViewTabs';
+import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import { useDialogAccessibility } from '@/components/shared/useDialogAccessibility';
 import {
   REPORTER_INTERVIEW_PRIORITY_OPTIONS,
@@ -24,6 +25,12 @@ type TabKey = 'details' | 'interviews' | 'sources' | 'blockers' | 'analysis' | '
 type PreviewDialogState =
   | { kind: 'draft'; id: string }
   | { kind: 'analysis'; id: string }
+  | null;
+type DeleteInterviewDialogState =
+  | {
+      id: string;
+      intervieweeName: string;
+    }
   | null;
 
 interface ReporterRunDetailClientProps {
@@ -181,6 +188,9 @@ export default function ReporterRunDetailClient({
   const [editingInterviewId, setEditingInterviewId] = useState<string | null>(null);
   const [savingInterview, setSavingInterview] = useState(false);
   const [interviewActionId, setInterviewActionId] = useState<string | null>(null);
+  const [deleteInterviewDialog, setDeleteInterviewDialog] =
+    useState<DeleteInterviewDialogState>(null);
+  const [deletingInterviewId, setDeletingInterviewId] = useState<string | null>(null);
   const [copiedInterviewId, setCopiedInterviewId] = useState<string | null>(null);
   const [reviewingSessionId, setReviewingSessionId] = useState<string | null>(null);
   const [blockerForm, setBlockerForm] = useState({
@@ -419,6 +429,41 @@ export default function ReporterRunDetailClient({
   function resetInterviewForm() {
     setInterviewForm(EMPTY_INTERVIEW_FORM);
     setEditingInterviewId(null);
+  }
+
+  async function handleDeleteInterview(interviewId: string) {
+    setError('');
+    setNotice('');
+    setDeletingInterviewId(interviewId);
+    try {
+      const response = await fetch(`/api/reporter/interviews/${interviewId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete interview request');
+      }
+      setCurrentRun((prev: any) => ({
+        ...prev,
+        interviewRequests: (prev.interviewRequests || []).filter(
+          (interview: any) => interview.id !== interviewId
+        ),
+      }));
+      if (editingInterviewId === interviewId) {
+        resetInterviewForm();
+      }
+      setDeleteInterviewDialog(null);
+      setNotice('Interview request deleted.');
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : 'Failed to delete interview request'
+      );
+    } finally {
+      setDeletingInterviewId(null);
+    }
   }
 
   async function handleSaveInterview(event: React.FormEvent<HTMLFormElement>) {
@@ -1137,6 +1182,18 @@ export default function ReporterRunDetailClient({
                                     onClick={() => populateInterviewForm(interview)}
                                   >
                                     Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-red-300 bg-red-50 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-red-700 shadow-sm transition hover:border-red-600 hover:bg-red-100 hover:text-red-800"
+                                    onClick={() =>
+                                      setDeleteInterviewDialog({
+                                        id: interview.id,
+                                        intervieweeName: interview.intervieweeName,
+                                      })
+                                    }
+                                  >
+                                    Delete
                                   </button>
                                 </div>
                               ) : (
@@ -2363,6 +2420,21 @@ export default function ReporterRunDetailClient({
             </div>
           </div>
         </div>
+      ) : null}
+
+      {deleteInterviewDialog ? (
+        <ConfirmDialog
+          title="Delete interview request"
+          description={`Delete the interview request for ${deleteInterviewDialog.intervieweeName}? This also removes any linked browser-session transcript data.`}
+          confirmLabel="Delete interview"
+          isSubmitting={deletingInterviewId === deleteInterviewDialog.id}
+          onCancel={() => {
+            if (!deletingInterviewId) {
+              setDeleteInterviewDialog(null);
+            }
+          }}
+          onConfirm={() => handleDeleteInterview(deleteInterviewDialog.id)}
+        />
       ) : null}
     </div>
   );

@@ -97,7 +97,6 @@ export async function POST(
           interviewId: updated.id,
           interviewTitle: existing.reporterRun.title || existing.reporterRun.topic,
           intervieweeName: updated.intervieweeName,
-          purpose: updated.purpose,
           language: updated.interviewLanguage || updated.suggestedLanguage,
           senderName,
           replyToEmail: actor?.email,
