@@ -1,6 +1,6 @@
 export type OrganizationFormStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED';
 export type OrganizationFormQuestionType = 'TEXT_SHORT' | 'TEXT_LONG' | 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE';
-export type OrganizationFormMinimumTrustLevel = 'REGISTERED' | 'TRUSTED';
+export type OrganizationFormMinimumTrustLevel = 'ANONYMOUS' | 'REGISTERED' | 'TRUSTED';
 
 export const ORGANIZATION_FORM_STATUS_OPTIONS: Array<{ value: OrganizationFormStatus; label: string }> = [
   { value: 'DRAFT', label: 'Draft' },
@@ -13,6 +13,7 @@ export const ORGANIZATION_FORM_MINIMUM_TRUST_OPTIONS: Array<{
   value: OrganizationFormMinimumTrustLevel;
   label: string;
 }> = [
+  { value: 'ANONYMOUS', label: 'Anonymous' },
   { value: 'REGISTERED', label: 'Registered' },
   { value: 'TRUSTED', label: 'Trusted' },
 ];

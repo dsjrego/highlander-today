@@ -200,7 +200,7 @@ interface OrganizationDetailRecord {
         firstName: string;
         lastName: string;
         email: string;
-      };
+      } | null;
       answers: {
         id: string;
         questionId: string;

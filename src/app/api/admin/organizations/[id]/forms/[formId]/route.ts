@@ -11,7 +11,7 @@ const UpdateOrganizationFormSchema = z.object({
   description: z.string().trim().max(4000).optional().or(z.literal('')),
   status: z.enum(['DRAFT', 'PUBLISHED', 'CLOSED', 'ARCHIVED']).optional(),
   isPubliclyListed: z.boolean().optional(),
-  minimumTrustLevel: z.enum(['REGISTERED', 'TRUSTED']).optional(),
+  minimumTrustLevel: z.enum(['ANONYMOUS', 'REGISTERED', 'TRUSTED']).optional(),
   opensAt: z.string().datetime().optional().or(z.literal('')),
   closesAt: z.string().datetime().optional().or(z.literal('')),
 });

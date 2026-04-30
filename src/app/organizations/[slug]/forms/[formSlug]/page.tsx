@@ -93,6 +93,10 @@ function formatDateTime(value: Date | null) {
 }
 
 function hasMinimumFormAccess(minimumTrustLevel: TrustLevelValue, session: CustomSession | null) {
+  if (minimumTrustLevel === 'ANONYMOUS') {
+    return true;
+  }
+
   const trustLevel = session?.user?.trust_level || null;
   const role = session?.user?.role || null;
 
@@ -158,17 +162,16 @@ export default async function OrganizationFormPage({ params }: PageProps) {
   const session = (await getServerSession(authOptions)) as CustomSession | null;
   const isSignedIn = Boolean(session?.user?.id);
   const hasAccess = hasMinimumFormAccess(form.minimumTrustLevel, session);
+  const allowsAnonymousResponses = form.minimumTrustLevel === 'ANONYMOUS';
   const descriptionHtml = form.description ? sanitizeArticleHtml(form.description) : '';
   const callbackUrl = `/organizations/${form.organization.slug}/forms/${form.slug}`;
   const canAcceptResponses = form.status === 'PUBLISHED';
   const hasExistingSubmission =
-    isSignedIn && !!session?.user?.id
-      ? (await db.organizationFormSubmission.findUnique({
+    !allowsAnonymousResponses && isSignedIn && !!session?.user?.id
+      ? (await db.organizationFormSubmission.findFirst({
           where: {
-            formId_userId: {
-              formId: form.id,
-              userId: session.user.id,
-            },
+            formId: form.id,
+            userId: session.user.id,
           },
           select: { id: true },
         }))
@@ -188,7 +191,11 @@ export default async function OrganizationFormPage({ params }: PageProps) {
               {formatOrganizationFormStatusLabel(form.status)}
             </span>
             <span className="rounded-full bg-white/8 px-3 py-1 text-xs font-semibold text-white/80">
-              {form.minimumTrustLevel === 'TRUSTED' ? 'Trusted access' : 'Registered access'}
+              {form.minimumTrustLevel === 'TRUSTED'
+                ? 'Trusted access'
+                : form.minimumTrustLevel === 'REGISTERED'
+                  ? 'Registered access'
+                  : 'Anonymous access'}
             </span>
             <Link href={`/organizations/${form.organization.slug}`} className="rounded-full bg-white/8 px-3 py-1 text-xs font-semibold text-white/80 hover:bg-white/12">
               {form.organization.name}
@@ -218,7 +225,7 @@ export default async function OrganizationFormPage({ params }: PageProps) {
         <section className="rounded-[24px] border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
           This form is not currently accepting responses. It is in `{formatOrganizationFormStatusLabel(form.status)}` status.
         </section>
-      ) : !isSignedIn ? (
+      ) : !isSignedIn && !allowsAnonymousResponses ? (
         <section className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">
           <div className="flex items-start gap-3">
             <div className="rounded-full border border-slate-200 p-2 text-slate-600">
@@ -256,7 +263,7 @@ export default async function OrganizationFormPage({ params }: PageProps) {
         <section className="rounded-[28px] border border-emerald-200 bg-emerald-50 p-6">
           <h2 className="text-xl font-bold text-emerald-950">Already submitted</h2>
           <p className="mt-2 text-sm leading-6 text-emerald-900">
-            You have already submitted this form. This first pass supports one submission per signed-in user.
+            You have already submitted this form. Registered and trusted-access forms currently allow one submission per signed-in user.
           </p>
         </section>
       ) : (
@@ -265,7 +272,9 @@ export default async function OrganizationFormPage({ params }: PageProps) {
             <div>
               <h2 className="text-xl font-bold text-slate-950">Form Questions</h2>
               <p className="mt-1 text-sm text-slate-600">
-                Answer the questions below and submit the form once. Published forms now accept responses here.
+                {allowsAnonymousResponses
+                  ? 'Answer the questions below and submit this form directly.'
+                  : 'Answer the questions below and submit the form once. Published forms now accept responses here.'}
               </p>
             </div>
           </div>
@@ -274,6 +283,7 @@ export default async function OrganizationFormPage({ params }: PageProps) {
             {form.questions.length > 0 ? (
               <OrganizationPublicForm
                 actionUrl={`/api/organizations/${form.organization.slug}/forms/${form.slug}/submission`}
+                allowsAnonymousResponses={allowsAnonymousResponses}
                 questions={form.questions}
               />
             ) : (

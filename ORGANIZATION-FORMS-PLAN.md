@@ -1,7 +1,7 @@
 # Highlander Today — Organization Forms Plan
 
 > **Status:** Product and architecture planning only. Not implemented.
-> **Purpose:** Define an organization-linked form system that lets organizations build structured questionnaires, share them by link, require authenticated member-level access, collect responses, and review collated results without weakening the platform's trust and accountability model.
+> **Purpose:** Define an organization-linked form system that lets organizations build structured questionnaires, share them by link, optionally allow anonymous access when appropriate, collect responses, and review collated results without weakening the platform's trust and accountability model.
 
 ---
 
@@ -24,8 +24,8 @@ The system should support:
 - question types for text entry, radio/select-one, and checkbox/select-many
 - ordered question layout with drag-and-drop management
 - shareable public links
-- response access gated to signed-in users at `REGISTERED` or `TRUSTED` level
-- stored answers tied to the responding user
+- response access configurable at `ANONYMOUS`, `REGISTERED`, or `TRUSTED` level
+- stored answers tied to the responding user when authenticated, or stored as anonymous submissions when the form allows it
 - simple results collation for organization review
 
 This should begin as a structured local-input tool, not as a general-purpose enterprise forms platform.
@@ -87,13 +87,12 @@ The first implementation should support:
 - configurable options for choice questions
 - required vs optional questions
 - shareable canonical links per form
-- response access gated to signed-in users meeting a configured minimum trust level
-- one submission per user
+- response access gated by a configured minimum trust level, including optional anonymous access
+- one submission per signed-in user for registered/trusted forms
 - organization-side results view with answer counts and exported row-style review inside the app
 
 The MVP should not yet include:
 
-- anonymous responses
 - branching/conditional logic
 - matrix/grid questions
 - file uploads
@@ -114,17 +113,18 @@ This feature should preserve the existing Highlander accountability model.
 
 Each form should carry a minimum responder access level:
 
+- `ANONYMOUS`
 - `REGISTERED`
 - `TRUSTED`
 
 Recommended rule:
 
 - the share link can be opened by anyone
-- the form body and submission action should require sign-in
-- anonymous viewers should be redirected into auth and then returned to the form
-- suspended users should never be allowed to submit
+- `ANONYMOUS` forms may be completed without sign-in
+- `REGISTERED` and `TRUSTED` forms should require sign-in
+- suspended signed-in users should never be allowed to submit
 
-This preserves shareability without creating anonymous or unverifiable responses.
+This preserves shareability while allowing organizations to intentionally opt into anonymous collection when that tradeoff is appropriate.
 
 ### Public visibility
 
@@ -136,7 +136,7 @@ Recommended behavior:
 - a published form may also be marked `isPubliclyListed = true` or `false`
 - when `isPubliclyListed = true`, the form appears in a forms list on the public organization page
 - when `isPubliclyListed = false`, the form does not appear on the organization page but remains accessible by direct link
-- direct-link access still requires sign-in and the configured minimum trust level
+- direct-link access should respect the configured minimum trust level, including anonymous forms that do not require sign-in
 
 This supports "quiet" forms that an organization wants to distribute only to people who already have the link.
 
@@ -159,7 +159,7 @@ Default new forms to:
 - `isPubliclyListed = false`
 - `status = DRAFT`
 
-`TRUSTED` should be available when the form is meant for more sensitive or higher-accountability input.
+`TRUSTED` should be available when the form is meant for more sensitive or higher-accountability input. `ANONYMOUS` should be reserved for lower-risk intake where attribution is not required.
 
 ---
 
@@ -251,9 +251,8 @@ Suggested fields:
 
 Recommended unique rule for MVP:
 
-- unique on `[formId, userId]`
-
-This feature should assume one accountable response per user.
+- registered/trusted forms should enforce one accountable response per signed-in user
+- anonymous forms should not rely on `userId` uniqueness for deduplication
 
 ### `OrganizationFormAnswer`
 

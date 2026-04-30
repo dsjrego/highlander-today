@@ -60,7 +60,7 @@ interface OrganizationFormRecord {
       firstName: string;
       lastName: string;
       email: string;
-    };
+    } | null;
     answers: {
       id: string;
       questionId: string;
@@ -132,7 +132,12 @@ function buildFormState(form?: OrganizationFormRecord): OrganizationFormState {
     description: form?.description || '',
     status: form?.status || 'DRAFT',
     isPubliclyListed: form?.isPubliclyListed ?? false,
-    minimumTrustLevel: form?.minimumTrustLevel === 'TRUSTED' ? 'TRUSTED' : 'REGISTERED',
+    minimumTrustLevel:
+      form?.minimumTrustLevel === 'TRUSTED'
+        ? 'TRUSTED'
+        : form?.minimumTrustLevel === 'ANONYMOUS'
+          ? 'ANONYMOUS'
+          : 'REGISTERED',
     opensAt: formatDateTimeForInput(form?.opensAt || null),
     closesAt: formatDateTimeForInput(form?.closesAt || null),
   };
@@ -175,6 +180,10 @@ function stripHtml(value: string | null) {
 function formatUserName(firstName: string, lastName: string) {
   const fullName = [lastName, firstName].filter(Boolean).join(', ');
   return fullName || 'Unnamed user';
+}
+
+function formatSubmissionIdentity(submission: OrganizationFormRecord['submissions'][number]) {
+  return submission.user ? formatUserName(submission.user.firstName, submission.user.lastName) : 'Anonymous response';
 }
 
 function formatResponseValue(question: FormQuestionRecord, answers: OrganizationFormRecord['submissions'][number]['answers']) {
@@ -769,7 +778,7 @@ function OrganizationFormCard({
                           answeredSubmissions.map((submission) => (
                             <div key={`${question.id}-${submission.id}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                               <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-                                <span>{formatUserName(submission.user.firstName, submission.user.lastName)}</span>
+                                <span>{formatSubmissionIdentity(submission)}</span>
                                 <span>{formatDisplayDate(submission.submittedAt)}</span>
                               </div>
                               <p className="mt-2 text-sm text-slate-800">

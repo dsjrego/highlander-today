@@ -19,24 +19,9 @@ export async function POST(
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
 
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const currentCommunity = await getCurrentCommunity({ headers: request.headers });
     if (!currentCommunity) {
       return NextResponse.json({ error: 'Community not found' }, { status: 404 });
-    }
-
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      select: {
-        trustLevel: true,
-      },
-    });
-
-    if (!user || user.trustLevel === 'SUSPENDED') {
-      return NextResponse.json({ error: 'Account not allowed to submit forms' }, { status: 403 });
     }
 
     const form = await db.organizationForm.findFirst({
@@ -77,7 +62,30 @@ export async function POST(
       return NextResponse.json({ error: 'Form not found' }, { status: 404 });
     }
 
-    if (form.minimumTrustLevel === 'TRUSTED' && !hasTrustedAccess({ trustLevel: user.trustLevel, role: userRole })) {
+    const allowsAnonymousResponses = form.minimumTrustLevel === 'ANONYMOUS';
+
+    if (!allowsAnonymousResponses && !userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const user = userId
+      ? await db.user.findUnique({
+          where: { id: userId },
+          select: {
+            trustLevel: true,
+          },
+        })
+      : null;
+
+    if (userId && (!user || user.trustLevel === 'SUSPENDED')) {
+      return NextResponse.json({ error: 'Account not allowed to submit forms' }, { status: 403 });
+    }
+
+    if (form.minimumTrustLevel === 'REGISTERED' && !userId) {
+      return NextResponse.json({ error: 'Sign in is required for this form' }, { status: 401 });
+    }
+
+    if (form.minimumTrustLevel === 'TRUSTED' && !hasTrustedAccess({ trustLevel: user?.trustLevel, role: userRole })) {
       return NextResponse.json({ error: 'Trusted access is required for this form' }, { status: 403 });
     }
 
@@ -90,18 +98,18 @@ export async function POST(
       return NextResponse.json({ error: 'This form is closed' }, { status: 400 });
     }
 
-    const existingSubmission = await db.organizationFormSubmission.findUnique({
-      where: {
-        formId_userId: {
+    if (!allowsAnonymousResponses && userId) {
+      const existingSubmission = await db.organizationFormSubmission.findFirst({
+        where: {
           formId: form.id,
           userId,
         },
-      },
-      select: { id: true },
-    });
+        select: { id: true },
+      });
 
-    if (existingSubmission) {
-      return NextResponse.json({ error: 'You have already submitted this form' }, { status: 409 });
+      if (existingSubmission) {
+        return NextResponse.json({ error: 'You have already submitted this form' }, { status: 409 });
+      }
     }
 
     const body = SubmissionSchema.parse(await request.json());
@@ -163,7 +171,7 @@ export async function POST(
       data: {
         formId: form.id,
         organizationId: form.organizationId,
-        userId,
+        userId: allowsAnonymousResponses ? null : userId,
         communityId: currentCommunity.id,
         answers: {
           create: answerRows,

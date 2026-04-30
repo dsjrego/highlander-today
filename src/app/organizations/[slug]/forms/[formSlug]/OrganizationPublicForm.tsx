@@ -16,10 +16,11 @@ type Question = {
 
 interface OrganizationPublicFormProps {
   actionUrl: string;
+  allowsAnonymousResponses: boolean;
   questions: Question[];
 }
 
-export default function OrganizationPublicForm({ actionUrl, questions }: OrganizationPublicFormProps) {
+export default function OrganizationPublicForm({ actionUrl, allowsAnonymousResponses, questions }: OrganizationPublicFormProps) {
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -74,7 +75,9 @@ export default function OrganizationPublicForm({ actionUrl, questions }: Organiz
       <section className="rounded-[28px] border border-emerald-200 bg-emerald-50 p-6">
         <h2 className="text-xl font-bold text-emerald-950">Submission received</h2>
         <p className="mt-2 text-sm leading-6 text-emerald-900">
-          Your answers have been saved. This first pass allows one submission per user for each form.
+          {allowsAnonymousResponses
+            ? 'Your answers have been saved.'
+            : 'Your answers have been saved. This form allows one submission per signed-in user.'}
         </p>
       </section>
     );
