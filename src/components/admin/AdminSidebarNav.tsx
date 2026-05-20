@@ -89,7 +89,7 @@ export function AdminSidebarNav({
         return (
           <div
             key={section.title}
-            className={`admin-sidebar-section ${dragOverSection === section.title ? 'is-drop-target' : ''}`}
+            className={`admin-sidebar-section ${dragOverSection === section.title ? 'is-drop-target' : ''} ${isSectionCollapsed ? 'is-collapsed' : ''}`}
             onDragOver={(event) => {
               if (!draggable || (!draggedHref && !draggedSectionTitle)) {
                 return;
@@ -130,7 +130,14 @@ export function AdminSidebarNav({
                 aria-expanded={!isSectionCollapsed}
                 aria-controls={`admin-sidebar-section-${section.title}`}
               >
-                <span className="admin-sidebar-section-title">{section.title}</span>
+                <span className="admin-sidebar-section-heading">
+                  <span className="admin-sidebar-section-title">{section.title}</span>
+                  {isSectionCollapsed ? (
+                    <span className="admin-sidebar-section-status">
+                      {section.items.length} hidden
+                    </span>
+                  ) : null}
+                </span>
                 <span className="admin-sidebar-section-toggle-icon" aria-hidden="true">
                   {isSectionCollapsed ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
                 </span>

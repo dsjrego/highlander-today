@@ -2257,6 +2257,27 @@
     text-transform: uppercase;
   }
 
+  .admin-sidebar-section-heading {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+  }
+
+  .admin-sidebar-section-status {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    background: rgba(18, 67, 107, 0.1);
+    color: var(--hl-admin-link-hover);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 0.16rem 0.48rem;
+    text-transform: none;
+  }
+
   .admin-sidebar-section-toggle {
     display: flex;
     align-items: center;
@@ -2282,11 +2303,29 @@
     cursor: grabbing;
   }
 
+  .admin-sidebar-section.is-collapsed .admin-sidebar-section-toggle {
+    border: 1px dashed rgba(18, 67, 107, 0.22);
+    background: linear-gradient(180deg, rgba(18, 67, 107, 0.04), rgba(18, 67, 107, 0.08));
+    padding: 0.55rem 0.7rem;
+  }
+
+  .admin-sidebar-section.is-collapsed .admin-sidebar-section-toggle:hover {
+    background: linear-gradient(180deg, rgba(18, 67, 107, 0.08), rgba(18, 67, 107, 0.12));
+  }
+
+  .admin-sidebar-section.is-collapsed .admin-sidebar-section-title {
+    color: var(--hl-admin-link-hover);
+  }
+
   .admin-sidebar-section-toggle-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     color: var(--hl-admin-text-faint);
+  }
+
+  .admin-sidebar-section.is-collapsed .admin-sidebar-section-toggle-icon {
+    color: var(--hl-admin-link-hover);
   }
 
   .admin-sidebar-section-list {
