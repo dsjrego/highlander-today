@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { db } from '@/lib/db';
+import { getClientIpFromHeaders } from '@/lib/request-security';
+import { consumeRateLimit } from '@/lib/rate-limit';
 
 const RegisterSchema = z.object({
   firstName: z.string().trim().min(1).max(255),
@@ -27,6 +29,22 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = RegisterSchema.parse(body);
     const email = validated.email.toLowerCase();
+    const clientIp = getClientIpFromHeaders(request.headers);
+
+    const ipRateLimit = consumeRateLimit(`register:ip:${clientIp}`, 5, 15 * 60 * 1000);
+    const emailRateLimit = consumeRateLimit(`register:email:${email}`, 3, 60 * 60 * 1000);
+
+    if (!ipRateLimit.allowed || !emailRateLimit.allowed) {
+      return NextResponse.json(
+        { message: 'Too many registration attempts. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(Math.max(ipRateLimit.retryAfterSeconds, emailRateLimit.retryAfterSeconds)),
+          },
+        }
+      );
+    }
 
     const community =
       (await db.community.findUnique({
@@ -68,8 +86,8 @@ export async function POST(request: NextRequest) {
 
     if (bannedEmail && !bannedEmail.unbannedAt) {
       return NextResponse.json(
-        { message: 'This email address is banned from registration.' },
-        { status: 403 }
+        { message: 'Registration is unavailable for this email address.' },
+        { status: 400 }
       );
     }
 
@@ -80,8 +98,8 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       return NextResponse.json(
-        { message: 'An account with that email already exists.' },
-        { status: 409 }
+        { message: 'Registration is unavailable for this email address.' },
+        { status: 400 }
       );
     }
 

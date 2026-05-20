@@ -8,8 +8,8 @@ interface UploadedImage {
   size: number;
 }
 
-const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-const ACCEPT_ATTRIBUTE = '.jpg,.jpeg,.png,.webp,.gif';
+const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const ACCEPT_ATTRIBUTE = '.jpg,.jpeg,.png,.webp';
 
 interface ImageUploadProps {
   /** Called when an image is successfully uploaded */
@@ -66,7 +66,7 @@ export default function ImageUpload({
 
       // Client-side validation
       if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-        setError('Only JPG, PNG, WebP, and GIF images are allowed. HEIC/HEIF files are not supported yet.');
+        setError('Only JPG, PNG, and WebP images are allowed. HEIC/HEIF and GIF files are not supported.');
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
@@ -203,7 +203,7 @@ export default function ImageUpload({
                   : `No ${imageLabel.toLowerCase()} yet`}
             </p>
             <p className="mt-1 text-xs text-slate-500">
-              {helperText || 'JPG, PNG, WebP, or GIF only.'}
+              {helperText || 'JPG, PNG, or WebP only.'}
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-3">
@@ -320,7 +320,7 @@ export default function ImageUpload({
                 {dragActive ? 'Drop image here' : 'Drag & drop or click to upload'}
               </p>
               <p className="text-xs text-gray-400 mt-1">
-                {helperText || `JPG, PNG, WebP, GIF only (no HEIC) up to 5MB${maxFiles > 1 ? ` (${value.length}/${maxFiles})` : ''}`}
+                {helperText || `JPG, PNG, or WebP only (no HEIC) up to 5MB${maxFiles > 1 ? ` (${value.length}/${maxFiles})` : ''}`}
               </p>
             </>
           )}

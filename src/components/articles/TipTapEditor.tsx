@@ -247,7 +247,10 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
       const file = e.target.files[0];
 
       // Client-side checks
-      if (!file.type.startsWith('image/')) return;
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        alert('Only JPG, PNG, and WebP images are allowed.');
+        return;
+      }
       if (file.size > 5 * 1024 * 1024) {
         alert('Image must be under 5MB.');
         return;

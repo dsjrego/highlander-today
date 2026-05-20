@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
-import { isCloudflareR2Configured, uploadFile } from '@/lib/upload';
+import { isCloudflareR2Configured, processImage, uploadFile } from '@/lib/upload';
 
 /**
  * POST /api/upload
@@ -29,10 +29,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: 'Invalid file type. Allowed: JPG, PNG, WebP, GIF.' },
+        { error: 'Invalid file type. Allowed: JPG, PNG, WebP.' },
         { status: 400 }
       );
     }
@@ -46,16 +46,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate unique filename
-    const ext = file.name.split('.').pop() || 'jpg';
+    // Generate unique filename for normalized output
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8);
-    const safeFilename = `${timestamp}-${random}.${ext}`;
+    const safeFilename = `${timestamp}-${random}.webp`;
 
     const subfolder = ['article', 'profile', 'event', 'organization', 'marketplace', 'help-wanted', 'memoriam'].includes(context)
       ? context
       : 'general';
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const inputBuffer = Buffer.from(await file.arrayBuffer());
+    let processedBuffer: Buffer;
+
+    try {
+      processedBuffer = await processImage(inputBuffer);
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid or unsupported image file' },
+        { status: 400 }
+      );
+    }
 
     if (process.env.NODE_ENV === 'production') {
       if (!isCloudflareR2Configured()) {
@@ -66,8 +75,8 @@ export async function POST(request: NextRequest) {
       }
 
       const key = `${subfolder}/${safeFilename}`;
-      const uploaded = await uploadFile(buffer, key, {
-        contentType: file.type,
+      const uploaded = await uploadFile(processedBuffer, key, {
+        contentType: 'image/webp',
         metadata: {
           uploadedBy: userId,
           originalFilename: file.name,
@@ -79,8 +88,8 @@ export async function POST(request: NextRequest) {
           success: true,
           url: uploaded.url,
           filename: safeFilename,
-          size: file.size,
-          type: file.type,
+          size: processedBuffer.length,
+          type: 'image/webp',
         },
         { status: 201 }
       );
@@ -91,7 +100,7 @@ export async function POST(request: NextRequest) {
     const uploadDir = path.join(process.cwd(), 'public', 'uploads', subfolder);
     await mkdir(uploadDir, { recursive: true });
     const filePath = path.join(uploadDir, safeFilename);
-    await writeFile(filePath, buffer);
+    await writeFile(filePath, processedBuffer);
 
     // URL that the browser can fetch (from /public)
     const url = `/uploads/${subfolder}/${safeFilename}`;
@@ -102,8 +111,8 @@ export async function POST(request: NextRequest) {
         success: true,
         url,
         filename: safeFilename,
-        size: file.size,
-        type: file.type,
+        size: processedBuffer.length,
+        type: 'image/webp',
       },
       { status: 201 }
     );

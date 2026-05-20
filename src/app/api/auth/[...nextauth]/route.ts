@@ -5,6 +5,8 @@ import { db } from '@/lib/db';
 import { recordLoginEvent } from '@/lib/login-events';
 import bcrypt from 'bcryptjs';
 import { headers } from 'next/headers';
+import { getClientIpFromHeaders } from '@/lib/request-security';
+import { consumeRateLimit } from '@/lib/rate-limit';
 
 async function getUserCompletionState(userId: string) {
   const user = await db.user.findUnique({
@@ -50,9 +52,23 @@ const handler = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
+        const headersList = headers();
+        const email = credentials.email.trim().toLowerCase();
+        const clientIp = getClientIpFromHeaders(headersList);
+
+        const ipRateLimit = consumeRateLimit(`login:ip:${clientIp}`, 20, 15 * 60 * 1000);
+        const identityRateLimit = consumeRateLimit(
+          `login:identity:${clientIp}:${email}`,
+          5,
+          15 * 60 * 1000
+        );
+
+        if (!ipRateLimit.allowed || !identityRateLimit.allowed) {
+          return null;
+        }
 
         const user = await db.user.findUnique({
-          where: { email: credentials.email },
+          where: { email },
         });
 
         if (!user || !user.passwordHash) return null;
@@ -129,10 +145,7 @@ const handler = NextAuth({
 
           // Record login event for OAuth provider (fire-and-forget)
           const headersList = headers();
-          const forwarded = headersList.get('x-forwarded-for');
-          const ip = forwarded
-            ? forwarded.split(',')[0].trim()
-            : headersList.get('x-real-ip') || '127.0.0.1';
+          const ip = getClientIpFromHeaders(headersList);
           const ua = headersList.get('user-agent') || null;
 
           recordLoginEvent({
@@ -154,10 +167,7 @@ const handler = NextAuth({
       if (account?.provider === 'credentials' && user?.id) {
         // Fire-and-forget: don't block the login flow
         const headersList = headers();
-        const forwarded = headersList.get('x-forwarded-for');
-        const ip = forwarded
-          ? forwarded.split(',')[0].trim()
-          : headersList.get('x-real-ip') || '127.0.0.1';
+        const ip = getClientIpFromHeaders(headersList);
         const ua = headersList.get('user-agent') || null;
 
         recordLoginEvent({

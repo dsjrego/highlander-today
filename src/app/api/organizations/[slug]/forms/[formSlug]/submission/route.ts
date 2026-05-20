@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { getCurrentCommunity } from '@/lib/community';
 import { hasTrustedAccess } from '@/lib/trust-access';
+import { getClientIpFromHeaders } from '@/lib/request-security';
+import { consumeRateLimit } from '@/lib/rate-limit';
 
 const SubmissionSchema = z.object({
   answers: z.record(
@@ -18,6 +20,7 @@ export async function POST(
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
+    const clientIp = getClientIpFromHeaders(request.headers);
 
     const currentCommunity = await getCurrentCommunity({ headers: request.headers });
     if (!currentCommunity) {
@@ -63,6 +66,25 @@ export async function POST(
     }
 
     const allowsAnonymousResponses = form.minimumTrustLevel === 'ANONYMOUS';
+
+    if (allowsAnonymousResponses) {
+      const formRateLimit = consumeRateLimit(`org-form:${form.id}:ip:${clientIp}`, 5, 60 * 60 * 1000);
+      const globalRateLimit = consumeRateLimit(`org-form:anonymous:ip:${clientIp}`, 20, 24 * 60 * 60 * 1000);
+
+      if (!formRateLimit.allowed || !globalRateLimit.allowed) {
+        return NextResponse.json(
+          { error: 'Too many submissions from this address. Please try again later.' },
+          {
+            status: 429,
+            headers: {
+              'Retry-After': String(
+                Math.max(formRateLimit.retryAfterSeconds, globalRateLimit.retryAfterSeconds)
+              ),
+            },
+          }
+        );
+      }
+    }
 
     if (!allowsAnonymousResponses && !userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

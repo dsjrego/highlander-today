@@ -4,6 +4,8 @@
 
 import React, { useState } from 'react';
 
+const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
 interface ImageFile {
   file: File;
   preview: string;
@@ -28,7 +30,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
     Array.from(fileList).forEach((file) => {
       // Check if file is an image
-      if (!file.type.startsWith('image/')) {
+      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
         return;
       }
 
@@ -105,7 +107,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
             type="file"
             id="image-upload"
             multiple
-            accept="image/*"
+            accept=".jpg,.jpeg,.png,.webp"
             onChange={handleChange}
             className="hidden"
           />
@@ -117,7 +119,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
               Drag and drop images here or click to select
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              PNG, JPG, GIF up to 10MB ({images.length}/{maxFiles})
+              PNG, JPG, or WebP up to 10MB ({images.length}/{maxFiles})
             </p>
           </label>
         </div>

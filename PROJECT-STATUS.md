@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-04-30 (session 187)
+> **Last updated:** 2026-05-19 (session 188)
 > **Purpose:** Fast-start context for the next session. Read this file first, then open only the supporting docs relevant to the active slice.
 > **Detailed reference:** `PROJECT-STATUS-REFERENCE.md` preserves the fuller implementation ledger, rollout history, verification notes, deployment runbook, and infrastructure rationale that used to live here.
 
@@ -15,6 +15,10 @@
 > **Session 187 note:** organization forms now support `ANONYMOUS` as a minimum responder access level in addition to `REGISTERED` and `TRUSTED`. Admin create/edit flows expose the new option, public organization-form pages no longer force sign-in when a form is marked anonymous, and the submission API now accepts anonymous responses while continuing to enforce signed-in gating for registered/trusted forms. To preserve the semantics of anonymous forms, those submissions are stored without a linked `userId`, and admin results now label them as anonymous responses. This slice changes the Prisma schema (`OrganizationFormSubmission.userId` is now nullable and the old `(formId, userId)` unique constraint becomes a plain index), so environments receiving it need `npx prisma db push --schema prisma/schema.prisma` before the feature works.
 >
 > **Anonymous forms follow-up:** anonymous responder access is now live, but abuse controls are not yet implemented. Treat IP/form-level throttling, lightweight bot resistance (for example honeypot or timing heuristics), and basic anonymous-submission monitoring/review signals as an explicit future requirement before relying on anonymous forms for any sensitive poll, survey, or high-visibility community vote.
+
+> **Session 188 note:** the first security hardening follow-up is now in place. Middleware no longer trusts client-supplied forwarded identity or tenant headers; it strips inbound `x-user-*`, `x-community-*`, and `x-client-ip` values and only re-injects trusted values derived from the authenticated session. Registration, credential login, and anonymous organization-form submission now have lightweight in-process rate limiting, and registration no longer reveals whether an email is already registered or banned. The shared upload route is also hardened: it now accepts only JPG/PNG/WebP inputs, requires successful server-side image decode, re-encodes uploaded images to normalized WebP output before storage, and no longer stores raw user-supplied bytes/extensions. Verification passed with `npm run typecheck` and the unit suite.
+>
+> **Security follow-up note:** remaining non-blocking security work should stay visible for a future slice. Highest next priority is replacing the new in-memory rate limiting with a shared persistent limiter if the app is deployed on multiple instances. After that, add explicit failed-login monitoring / anomaly surfacing and stronger anonymous-form bot resistance (for example honeypot or timing heuristics) before using anonymous forms for sensitive, high-volume, or high-visibility response collection.
 
 > **Session 185 note:** admin sidebar ordering is now a site-level preference instead of a personal browser-storage preference. `SUPER_ADMIN` users can still drag sidebar items and sections, but the order saves to the current community's `SiteSetting` key `admin_sidebar_order`; all admins then receive that saved order on login. Personal UI state remains limited to collapse/accordion display preferences.
 
@@ -436,7 +440,7 @@ src/lib/
 5. Canonical article behavior belongs under `/local-life/*`, not `/articles/*`.
 6. Categories/navigation are DB-driven; do not hardcode top-level or Local Life category lists.
 7. TipTap additions must stay on v2.x.
-8. Uploads are JPEG/PNG/WebP/GIF only, up to 5MB.
+8. Uploads are JPEG/PNG/WebP only, up to 5MB, and the shared upload route now re-encodes them to normalized WebP output before storage.
 9. Production uses Cloudflare R2 at `https://cdn.highlander.today`.
 10. The repo still uses `prisma db push` style rollout rather than checked-in migrations.
 11. The admin area is intentionally desktop-first and compact.

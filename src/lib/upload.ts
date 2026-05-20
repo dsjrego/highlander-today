@@ -61,12 +61,16 @@ export async function processImage(
   const quality = options?.quality || IMAGE_PROCESSING.quality;
 
   try {
-    return await sharp(buffer)
+    return await sharp(buffer, {
+      failOn: 'error',
+      limitInputPixels: 40_000_000,
+    })
+      .rotate()
       .resize(maxWidth, undefined, {
         withoutEnlargement: true,
         fit: 'inside',
       })
-      .jpeg({ quality })
+      .webp({ quality })
       .toBuffer();
   } catch (error) {
     throw new Error(`Failed to process image: ${String(error)}`);
@@ -131,7 +135,7 @@ export async function uploadImage(
 
   return uploadFile(processedBuffer, path, {
     ...options,
-    contentType: options.contentType || 'image/jpeg',
+    contentType: options.contentType || 'image/webp',
   });
 }
 

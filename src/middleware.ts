@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
+import {
+  applyTrustedIdentityHeaders,
+  getClientIpFromHeaders,
+  stripUntrustedForwardedHeaders,
+} from '@/lib/request-security';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -41,19 +46,12 @@ export async function middleware(request: NextRequest) {
   // Forward user context as headers so API route handlers can read them
   // without making extra DB calls on every request.
   const requestHeaders = new Headers(request.headers);
+  stripUntrustedForwardedHeaders(requestHeaders);
 
-  if (token) {
-    if (token.id)          requestHeaders.set('x-user-id',          String(token.id));
-    if (token.role)        requestHeaders.set('x-user-role',        String(token.role));
-    if (token.trust_level) requestHeaders.set('x-user-trust-level', String(token.trust_level));
-  }
+  applyTrustedIdentityHeaders(requestHeaders, token as any);
 
   // Forward client IP for activity logging and forensic trail.
-  // x-forwarded-for may contain a comma-separated list; take the first (original client).
-  const forwarded = request.headers.get('x-forwarded-for');
-  const clientIp = forwarded
-    ? forwarded.split(',')[0].trim()
-    : request.headers.get('x-real-ip') || '127.0.0.1';
+  const clientIp = getClientIpFromHeaders(request.headers);
   requestHeaders.set('x-client-ip', clientIp);
 
   return NextResponse.next({ request: { headers: requestHeaders } });
