@@ -1,6 +1,6 @@
 # Highlander Today — Project Status
 
-> **Last updated:** 2026-05-19 (session 188)
+> **Last updated:** 2026-05-19 (session 189)
 > **Purpose:** Fast-start context for the next session. Read this file first, then open only the supporting docs relevant to the active slice.
 > **Detailed reference:** `PROJECT-STATUS-REFERENCE.md` preserves the fuller implementation ledger, rollout history, verification notes, deployment runbook, and infrastructure rationale that used to live here.
 
@@ -19,6 +19,8 @@
 > **Session 188 note:** the first security hardening follow-up is now in place. Middleware no longer trusts client-supplied forwarded identity or tenant headers; it strips inbound `x-user-*`, `x-community-*`, and `x-client-ip` values and only re-injects trusted values derived from the authenticated session. Registration, credential login, and anonymous organization-form submission now have lightweight in-process rate limiting, and registration no longer reveals whether an email is already registered or banned. The shared upload route is also hardened: it now accepts only JPG/PNG/WebP inputs, requires successful server-side image decode, re-encodes uploaded images to normalized WebP output before storage, and no longer stores raw user-supplied bytes/extensions. Verification passed with `npm run typecheck` and the unit suite.
 >
 > **Security follow-up note:** remaining non-blocking security work should stay visible for a future slice. Highest next priority is replacing the new in-memory rate limiting with a shared persistent limiter if the app is deployed on multiple instances. After that, add explicit failed-login monitoring / anomaly surfacing and stronger anonymous-form bot resistance (for example honeypot or timing heuristics) before using anonymous forms for sensitive, high-volume, or high-visibility response collection.
+
+> **Session 189 note:** admin sidebar collapsed sections are now more legible. The shared sidebar toggle row now gives collapsed sections a stronger visual treatment plus an explicit hidden-item count (for example `Platform` showing how many links are hidden), reducing the chance that admins interpret collapsed groups as missing routes. Verification passed with `npm run typecheck`.
 
 > **Session 185 note:** admin sidebar ordering is now a site-level preference instead of a personal browser-storage preference. `SUPER_ADMIN` users can still drag sidebar items and sections, but the order saves to the current community's `SiteSetting` key `admin_sidebar_order`; all admins then receive that saved order on login. Personal UI state remains limited to collapse/accordion display preferences.
 
