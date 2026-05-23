@@ -78,6 +78,20 @@ export default async function AdminReporterSourcesPage() {
             errorMessage: true,
           },
         },
+        ingestionItems: {
+          orderBy: [{ publishedAt: 'desc' }, { lastSeenAt: 'desc' }],
+          take: 8,
+          select: {
+            id: true,
+            title: true,
+            canonicalUrl: true,
+            publishedAt: true,
+            firstSeenAt: true,
+            lastSeenAt: true,
+            publisher: true,
+            excerpt: true,
+          },
+        },
       },
     }),
     db.tenantCoverageArea.findMany({

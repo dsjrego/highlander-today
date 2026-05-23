@@ -58,6 +58,16 @@ type ReporterMonitoredSourceRow = {
     changedItemCount: number;
     errorMessage: string | null;
   }>;
+  ingestionItems: Array<{
+    id: string;
+    title: string;
+    canonicalUrl: string | null;
+    publishedAt: string | Date | null;
+    firstSeenAt: string | Date;
+    lastSeenAt: string | Date;
+    publisher: string | null;
+    excerpt: string | null;
+  }>;
 };
 
 interface ReporterMonitoredSourcesClientProps {
@@ -89,6 +99,18 @@ function formatDateTime(value?: string | Date | null) {
     year: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
+  });
+}
+
+function formatDate(value?: string | Date | null) {
+  if (!value) {
+    return '—';
+  }
+
+  return new Date(value).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
   });
 }
 
@@ -135,6 +157,7 @@ export default function ReporterMonitoredSourcesClient({
   const [updatingSourceId, setUpdatingSourceId] = useState<string | null>(null);
   const [runningFetchSourceId, setRunningFetchSourceId] = useState<string | null>(null);
   const [runningDueSources, setRunningDueSources] = useState(false);
+  const [creatingRunItemId, setCreatingRunItemId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
@@ -335,6 +358,61 @@ export default function ReporterMonitoredSourcesClient({
     }
   }
 
+  async function handleCreateReporterRunFromItem(
+    source: ReporterMonitoredSourceRow,
+    item: ReporterMonitoredSourceRow['ingestionItems'][number]
+  ) {
+    setCreatingRunItemId(item.id);
+    setError('');
+    setNotice('');
+
+    try {
+      const supportingLinks = item.canonicalUrl ? [item.canonicalUrl] : [];
+      const response = await fetch('/api/reporter/runs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mode: 'RESEARCH',
+          requestType: 'EDITOR_ASSIGNMENT',
+          topic: item.title,
+          title: item.title,
+          whatHappened:
+            item.excerpt ||
+            `Monitored source item discovered from ${source.label}.`,
+          requestSummary: `Discovered through monitored source: ${source.label}`,
+          editorNotes: [
+            `Created from monitored source: ${source.label}`,
+            source.publisher ? `Source publisher: ${source.publisher}` : null,
+            item.publisher ? `Item publisher: ${item.publisher}` : null,
+            item.publishedAt ? `Published: ${formatDateTime(item.publishedAt)}` : null,
+            item.canonicalUrl ? `Original URL: ${item.canonicalUrl}` : null,
+          ]
+            .filter(Boolean)
+            .join('\n'),
+          supportingLinks,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create reporter run from monitored source item');
+      }
+
+      router.push(`/admin/reporter/${data.id}?view=sources`);
+      router.refresh();
+    } catch (createRunError) {
+      setError(
+        createRunError instanceof Error
+          ? createRunError.message
+          : 'Failed to create reporter run from monitored source item'
+      );
+    } finally {
+      setCreatingRunItemId(null);
+    }
+  }
+
   const attentionCount = rows.filter((source) =>
     ['failing', 'stale', 'new'].includes(getReporterMonitoredSourceHealth(source))
   ).length;
@@ -517,6 +595,73 @@ export default function ReporterMonitoredSourcesClient({
                             <span>{runningFetchSourceId === source.id ? 'Fetching…' : 'Fetch now'}</span>
                           </button>
                         </div>
+                        {source.ingestionItems.length > 0 ? (
+                          <details className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+                            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.12em] text-slate-700">
+                              View recent items ({source.ingestionItems.length})
+                            </summary>
+                            <div className="mt-3 space-y-3">
+                              {source.ingestionItems.map((item) => (
+                                <div
+                                  key={item.id}
+                                  className="rounded-2xl border border-slate-200 bg-white px-3 py-3"
+                                >
+                                  <div className="flex flex-wrap items-start justify-between gap-2">
+                                    <div className="min-w-0 flex-1">
+                                      {item.canonicalUrl ? (
+                                        <a
+                                          href={item.canonicalUrl}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="admin-list-link block max-w-[320px] truncate text-sm font-medium text-slate-900 md:max-w-[420px]"
+                                          title={item.title}
+                                        >
+                                          {item.title}
+                                        </a>
+                                      ) : (
+                                        <div
+                                          className="max-w-[320px] truncate text-sm font-medium text-slate-900 md:max-w-[420px]"
+                                          title={item.title}
+                                        >
+                                          {item.title}
+                                        </div>
+                                      )}
+                                      <div className="mt-1 text-xs text-slate-500">
+                                        {item.publisher || source.publisher || 'Unknown publisher'}
+                                      </div>
+                                    </div>
+                                    <div className="text-right text-xs text-slate-500">
+                                      <div>Published {formatDate(item.publishedAt)}</div>
+                                      <div>Seen {formatDateTime(item.lastSeenAt)}</div>
+                                    </div>
+                                  </div>
+                                  {item.excerpt ? (
+                                    <div
+                                      className="mt-2 max-w-[520px] text-xs leading-5 text-slate-600"
+                                      title={item.excerpt}
+                                    >
+                                      {item.excerpt}
+                                    </div>
+                                  ) : null}
+                                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                                    <button
+                                      type="button"
+                                      className="inline-flex h-8 shrink-0 items-center justify-center rounded-full border border-sky-300 bg-sky-50 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-700 shadow-sm transition hover:border-sky-600 hover:bg-sky-100 hover:text-sky-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                      onClick={() => void handleCreateReporterRunFromItem(source, item)}
+                                      disabled={creatingRunItemId === item.id}
+                                    >
+                                      {creatingRunItemId === item.id ? 'Creating…' : 'Create Reporter Run'}
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        ) : source._count.ingestionItems > 0 ? (
+                          <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                            Items exist for this source, but the current view did not load any recent item records.
+                          </div>
+                        ) : null}
                       </td>
                       <td className="admin-list-cell">
                         <div className="text-sm text-slate-900">

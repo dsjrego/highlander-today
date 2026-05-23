@@ -53,6 +53,20 @@ const monitoredSourceSelect = {
       errorMessage: true,
     },
   },
+  ingestionItems: {
+    orderBy: [{ publishedAt: 'desc' as const }, { lastSeenAt: 'desc' as const }],
+    take: 8,
+    select: {
+      id: true,
+      title: true,
+      canonicalUrl: true,
+      publishedAt: true,
+      firstSeenAt: true,
+      lastSeenAt: true,
+      publisher: true,
+      excerpt: true,
+    },
+  },
 };
 
 export async function POST(
