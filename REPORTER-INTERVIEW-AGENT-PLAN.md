@@ -2,9 +2,9 @@
 
 ## Purpose
 
-Define the product and implementation shape for the Highlander Today Interview Agent before coding the browser-based interview workflow.
+Define the product and implementation shape for the Highlander Today Interview Agent.
 
-This document exists because the Interview Agent is no longer just a vague later-phase idea. The intended product shape is now clear enough that it should be anchored in writing before implementation drifts or gets interrupted.
+This document now serves as the canonical product and architecture reference for the browser-based interview workflow that is live in the application. Keep it as the authority for how the interview system is supposed to behave, even though the first implementation pass is already complete.
 
 Use this document alongside:
 
@@ -332,7 +332,7 @@ Do not split this into a separate service for v1.
 
 ## Recommendation
 
-Treat the Interview Agent as the next major reporter slice after the Phase 1 foundation.
+Treat the Interview Agent as a completed major reporter slice built on top of the Phase 1 foundation.
 
 The correct v1 is:
 

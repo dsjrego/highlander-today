@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
-import { buildDeterministicSourcePacketAnalysis } from '@/lib/reporter/source-packet-analysis';
-import { generateReporterDraftWithValidation } from '@/lib/reporter/draft-generator';
 import { REPORTER_DRAFT_TYPE, type ReporterSourcePacket } from '@/lib/reporter/types';
+
+jest.mock('@/lib/reporter/agent-trace-service', () => ({
+  createSuccessfulReporterAgentTrace: jest.fn(() => Promise.resolve({ id: 'trace-1' })),
+  createFailedReporterAgentTrace: jest.fn(() => Promise.resolve({ id: 'trace-2' })),
+}));
+
+const { buildDeterministicSourcePacketAnalysis } = require('@/lib/reporter/source-packet-analysis') as typeof import('@/lib/reporter/source-packet-analysis');
+const { generateReporterDraftWithValidation } = require('@/lib/reporter/draft-generator') as typeof import('@/lib/reporter/draft-generator');
 
 const originalFetch = global.fetch;
 
@@ -16,6 +22,7 @@ function buildPacket(): ReporterSourcePacket {
     requestedArticleType: null,
     requestSummary: 'School district event announcement.',
     editorNotes: null,
+    supportedClaims: [],
     sources: [
       {
         id: 'source-1',
@@ -122,6 +129,6 @@ describe('generateReporterDraftWithValidation', () => {
     expect(result.draft.body).toContain('Coverage recommendation');
     expect(result.draft.body).toContain('brief-ready');
     expect(result.draft.generationNotes).toContain('failed model response');
-    expect(result.draft.generationNotes).toContain('incomplete draft payload');
+    expect(result.draft.generationNotes).toContain('"body"');
   });
 });

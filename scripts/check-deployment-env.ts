@@ -211,6 +211,22 @@ function validate(options: Options, env: Record<string, string>): ValidationResu
     checks.push('Outbound email variables are present');
   }
 
+  if (env.CRON_SECRET?.trim()) {
+    checks.push('CRON_SECRET is present for Vercel cron authentication');
+  } else {
+    warnings.push(
+      'CRON_SECRET is missing; Vercel cron-triggered reporter source runs will be unauthorized',
+    );
+  }
+
+  if (!env.REPORTER_SCHEDULER_TOKEN?.trim()) {
+    warnings.push(
+      'REPORTER_SCHEDULER_TOKEN is missing; non-Vercel manual bearer-token scheduler calls will be disabled',
+    );
+  } else {
+    checks.push('REPORTER_SCHEDULER_TOKEN is present for manual scheduler triggers');
+  }
+
   return {
     ok: errors.length === 0,
     errors,

@@ -4,6 +4,8 @@
 
 Define the first buildable slice of the Highlander Today reporting system described in `REPORTER-AGENT-IMPLEMENTATION-PLAN.md`.
 
+This Phase 1 slice is already complete in the product. Keep this document as the canonical foundation spec for the reporter-run model, intake shape, and bounded drafting rules that later reporter work builds on.
+
 For the later browser-based Interview Agent itself, use `REPORTER-INTERVIEW-AGENT-PLAN.md` as the canonical follow-on plan once this foundation is in place.
 
 Phase 1 is intentionally narrow. It should establish the reporting-run foundation, article-request intake, source-packet structure, and an internal operational review surface without yet building autonomous interview loops or autonomous external web research.

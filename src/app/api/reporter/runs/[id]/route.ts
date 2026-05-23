@@ -63,6 +63,37 @@ export async function GET(
             },
           },
         },
+        agentTasks: {
+          orderBy: [{ createdAt: 'desc' }],
+          include: {
+            createdBy: {
+              select: { id: true, firstName: true, lastName: true },
+            },
+            traces: {
+              orderBy: [{ createdAt: 'desc' }],
+            },
+          },
+        },
+        agentTraces: {
+          orderBy: [{ createdAt: 'desc' }],
+        },
+        claims: {
+          orderBy: [{ createdAt: 'desc' }],
+          include: {
+            reporterSource: {
+              select: {
+                id: true,
+                sourceType: true,
+                title: true,
+                url: true,
+                publisher: true,
+              },
+            },
+            createdByUser: {
+              select: { id: true, firstName: true, lastName: true },
+            },
+          },
+        },
         drafts: {
           orderBy: [{ createdAt: 'desc' }],
         },

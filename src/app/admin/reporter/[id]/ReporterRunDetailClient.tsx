@@ -21,7 +21,14 @@ import {
   canGenerateReporterDraft,
 } from '@/lib/reporter/permissions';
 
-type TabKey = 'details' | 'interviews' | 'sources' | 'blockers' | 'analysis' | 'drafts';
+type TabKey =
+  | 'details'
+  | 'interviews'
+  | 'sources'
+  | 'blockers'
+  | 'analysis'
+  | 'drafts'
+  | 'agent';
 type PreviewDialogState =
   | { kind: 'draft'; id: string }
   | { kind: 'analysis'; id: string }
@@ -46,6 +53,7 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: 'blockers', label: 'Blockers' },
   { key: 'analysis', label: 'Analysis' },
   { key: 'drafts', label: 'Drafts' },
+  { key: 'agent', label: 'Agent' },
 ];
 
 const EMPTY_SOURCE_FORM = {
@@ -70,6 +78,14 @@ const BLOCKER_CODE_OPTIONS = [
   'LEGAL_REVIEW',
   'EDITORIAL_REVIEW',
   'OTHER',
+] as const;
+
+const CLAIM_VERIFICATION_STATUS_OPTIONS = [
+  'UNREVIEWED',
+  'SUPPORTED',
+  'NEEDS_CORROBORATION',
+  'DISPUTED',
+  'REJECTED',
 ] as const;
 
 const EMPTY_INTERVIEW_FORM = {
@@ -101,6 +117,32 @@ function normalizeOptionalUrl(value: string) {
     return trimmed;
   }
   return `https://${trimmed}`;
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) {
+    return '—';
+  }
+
+  return new Date(value).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function formatJsonValue(value: unknown) {
+  if (value === null || value === undefined) {
+    return '—';
+  }
+
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
 }
 
 function EditIcon() {
@@ -199,6 +241,8 @@ export default function ReporterRunDetailClient({
   });
   const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
+  const [isRunningTriage, setIsRunningTriage] = useState(false);
+  const [updatingClaimId, setUpdatingClaimId] = useState<string | null>(null);
   const [isConvertingDraft, setIsConvertingDraft] = useState<string | null>(null);
   const [previewDialog, setPreviewDialog] = useState<PreviewDialogState>(null);
   const articleDrafts = currentRun.drafts.filter((draft: any) => draft.draftType === 'ARTICLE_DRAFT');
@@ -222,6 +266,13 @@ export default function ReporterRunDetailClient({
   const canGenerateDraft = canGenerateReporterDraft(userRole);
   const canConvertDraft = canConvertReporterToArticle(userRole);
   const interviews = currentRun.interviewRequests || [];
+  const agentTasks = currentRun.agentTasks || [];
+  const agentTraces = currentRun.agentTraces || [];
+  const claims = currentRun.claims || [];
+  const latestTriageTask =
+    agentTasks.find((task: any) => task.taskType === 'TRIAGE_REPORTER_RUN') || null;
+  const latestTriageTrace =
+    agentTraces.find((trace: any) => trace.traceType === 'TRIAGE_SUMMARY') || null;
   const completedInterviewSessions = interviews.flatMap((interview: any) =>
     (interview.sessions || [])
       .filter((session: any) => session.status === 'COMPLETED')
@@ -463,6 +514,40 @@ export default function ReporterRunDetailClient({
       );
     } finally {
       setDeletingInterviewId(null);
+    }
+  }
+
+  async function handleClaimVerificationStatusChange(
+    claimId: string,
+    verificationStatus: string
+  ) {
+    setError('');
+    setNotice('');
+    setUpdatingClaimId(claimId);
+
+    try {
+      const response = await fetch(`/api/reporter/claims/${claimId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ verificationStatus }),
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update claim');
+      }
+
+      setCurrentRun((prev: any) => ({
+        ...prev,
+        claims: (prev.claims || []).map((claim: any) =>
+          claim.id === claimId ? data : claim
+        ),
+      }));
+      setNotice('Claim verification status updated.');
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : 'Failed to update claim');
+    } finally {
+      setUpdatingClaimId(null);
     }
   }
 
@@ -821,6 +906,34 @@ export default function ReporterRunDetailClient({
     }
   }
 
+  async function handleRunTriage() {
+    setError('');
+    setNotice('');
+    setIsRunningTriage(true);
+    try {
+      const response = await fetch('/api/admin/reporter/triage/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reporterRunId: currentRun.id }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to run reporter triage');
+      }
+      if (data.run) {
+        setCurrentRun(data.run);
+      }
+      setNotice('Reporter triage completed.');
+      updateSearchParams({ view: 'agent' });
+    } catch (triageError) {
+      setError(
+        triageError instanceof Error ? triageError.message : 'Failed to run reporter triage'
+      );
+    } finally {
+      setIsRunningTriage(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <AdminViewTabs
@@ -887,6 +1000,18 @@ export default function ReporterRunDetailClient({
             <div className="mt-2 text-sm font-semibold text-slate-900">
               {currentRun.drafts.length}
             </div>
+          </div>
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+              Agent Tasks
+            </div>
+            <div className="mt-2 text-sm font-semibold text-slate-900">{agentTasks.length}</div>
+          </div>
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+              Claims
+            </div>
+            <div className="mt-2 text-sm font-semibold text-slate-900">{claims.length}</div>
           </div>
         </section>
 
@@ -2341,6 +2466,338 @@ export default function ReporterRunDetailClient({
                 </div>
               </section>
             ) : null}
+          </div>
+        ) : null}
+
+        {activeTab === 'agent' ? (
+          <div className="space-y-4">
+            <section className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">Agent Operations</h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Inspect reporter agent tasks, traces, and claims for this run, and run a deterministic internal triage pass.
+                  </p>
+                </div>
+                {canEditRun ? (
+                  <button
+                    type="button"
+                    className="page-header-action"
+                    onClick={handleRunTriage}
+                    disabled={isRunningTriage}
+                  >
+                    {isRunningTriage ? 'Running Triage...' : 'Run Triage'}
+                  </button>
+                ) : (
+                  <span className="inline-flex h-9 items-center justify-center rounded-full border border-slate-300 bg-white px-3 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 shadow-sm">
+                    View Only
+                  </span>
+                )}
+              </div>
+              {latestTriageTask || latestTriageTrace ? (
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  <div className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs text-slate-600">
+                    <div className="font-semibold text-slate-900">Latest Triage Task</div>
+                    <div className="mt-1">
+                      {latestTriageTask
+                        ? `${latestTriageTask.status} • ${formatDateTime(latestTriageTask.updatedAt)}`
+                        : '—'}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs text-slate-600">
+                    <div className="font-semibold text-slate-900">Latest Triage Summary</div>
+                    <div className="mt-1 whitespace-pre-wrap break-words">
+                      {latestTriageTrace?.parsedOutputJson?.summary || '—'}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </section>
+
+            <section className="admin-list rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="mb-3">
+                <h3 className="text-sm font-semibold text-slate-900">Agent Tasks</h3>
+                <p className="text-xs text-slate-500">
+                  Durable internal work items for this run.
+                </p>
+              </div>
+              <div className="admin-list-table-wrap">
+                <table className="admin-list-table">
+                  <thead className="admin-list-head">
+                    <tr>
+                      <th className="admin-list-header-cell">Task Type</th>
+                      <th className="admin-list-header-cell">Status</th>
+                      <th className="admin-list-header-cell">Attempts</th>
+                      <th className="admin-list-header-cell">Scheduled</th>
+                      <th className="admin-list-header-cell">Lifecycle</th>
+                      <th className="admin-list-header-cell">Error</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {agentTasks.length === 0 ? (
+                      <tr className="admin-list-row">
+                        <td className="admin-list-empty" colSpan={6}>
+                          No agent tasks yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      agentTasks.map((task: any) => (
+                        <tr
+                          key={task.id}
+                          className={`admin-list-row ${
+                            task.status === 'FAILED'
+                              ? 'bg-rose-50/60'
+                              : task.status === 'BLOCKED'
+                                ? 'bg-amber-50/60'
+                                : ''
+                          }`}
+                        >
+                          <td className="admin-list-cell">
+                            <div className="text-sm font-medium text-slate-900">{task.taskType}</div>
+                            <div className="text-xs text-slate-500">{task.scopeKey || '—'}</div>
+                          </td>
+                          <td className="admin-list-cell">{task.status}</td>
+                          <td className="admin-list-cell">
+                            {task.attempts} / {task.maxAttempts}
+                          </td>
+                          <td className="admin-list-cell">{formatDateTime(task.scheduledFor)}</td>
+                          <td className="admin-list-cell">
+                            <div className="space-y-1 text-xs text-slate-600">
+                              <div>Started: {formatDateTime(task.startedAt)}</div>
+                              <div>Completed: {formatDateTime(task.completedAt)}</div>
+                              <div>Failed: {formatDateTime(task.failedAt)}</div>
+                              <div>Cancelled: {formatDateTime(task.cancelledAt)}</div>
+                            </div>
+                          </td>
+                          <td className="admin-list-cell">
+                            <div
+                              className="max-w-[260px] truncate text-sm text-slate-700 md:max-w-[340px]"
+                              title={task.errorMessage || ''}
+                            >
+                              {task.errorMessage || '—'}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section className="admin-list rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="mb-3">
+                <h3 className="text-sm font-semibold text-slate-900">Agent Traces</h3>
+                <p className="text-xs text-slate-500">
+                  Model-assisted execution metadata and debug detail for trusted internal review.
+                </p>
+              </div>
+              <div className="space-y-3">
+                {agentTraces.length === 0 ? (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                    No agent traces yet.
+                  </div>
+                ) : (
+                  agentTraces.map((trace: any) => (
+                    <details
+                      key={trace.id}
+                      className={`rounded-2xl border px-4 py-3 ${
+                        trace.wasSuccessful === false
+                          ? 'border-rose-200 bg-rose-50'
+                          : 'border-slate-200 bg-slate-50'
+                      }`}
+                    >
+                      <summary className="cursor-pointer list-none">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-semibold text-slate-900">
+                              {trace.traceType}
+                            </div>
+                            <div className="mt-1 text-xs text-slate-500">
+                              {[trace.provider, trace.modelName, trace.promptKey]
+                                .filter(Boolean)
+                                .join(' • ') || 'Internal trace'}
+                            </div>
+                          </div>
+                          <div className="text-right text-xs text-slate-500">
+                            <div>
+                              {trace.wasSuccessful === false ? 'Failed' : 'Successful'}
+                            </div>
+                            <div>{formatDateTime(trace.createdAt)}</div>
+                          </div>
+                        </div>
+                      </summary>
+                      <div className="mt-4 grid gap-3 md:grid-cols-2">
+                        <div className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs text-slate-600">
+                          <div>Prompt Version: {trace.promptVersion || '—'}</div>
+                          <div>Prompt Hash: {trace.promptHash || '—'}</div>
+                          <div>Input Hash: {trace.inputHash || '—'}</div>
+                          <div>Latency: {trace.latencyMs ?? '—'} ms</div>
+                          <div>Token Estimate: {trace.tokenEstimate ?? '—'}</div>
+                          <div>Task Link: {trace.reporterAgentTaskId || '—'}</div>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs text-slate-600">
+                          <div className="font-semibold text-slate-900">Error</div>
+                          <div className="mt-1 whitespace-pre-wrap break-words">
+                            {trace.errorMessage || '—'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-3 space-y-3">
+                        <div>
+                          <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                            Parsed Output
+                          </div>
+                          <pre className="overflow-x-auto rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs text-slate-700">
+                            {formatJsonValue(trace.parsedOutputJson)}
+                          </pre>
+                        </div>
+                        <div>
+                          <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                            Validation
+                          </div>
+                          <pre className="overflow-x-auto rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs text-slate-700">
+                            {formatJsonValue(trace.validationJson)}
+                          </pre>
+                        </div>
+                        <div>
+                          <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                            Input Snapshot
+                          </div>
+                          <pre className="overflow-x-auto rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs text-slate-700">
+                            {formatJsonValue(trace.inputSnapshotJson)}
+                          </pre>
+                        </div>
+                        {trace.rawOutputText ? (
+                          <div>
+                            <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                              Raw Output
+                            </div>
+                            <pre className="overflow-x-auto rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs text-slate-700">
+                              {trace.rawOutputText}
+                            </pre>
+                          </div>
+                        ) : null}
+                      </div>
+                    </details>
+                  ))
+                )}
+              </div>
+            </section>
+
+            <section className="admin-list rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="mb-3">
+                <h3 className="text-sm font-semibold text-slate-900">Claims</h3>
+                <p className="text-xs text-slate-500">
+                  Run-level editorial claims and verification state.
+                </p>
+              </div>
+              <div className="admin-list-table-wrap">
+                <table className="admin-list-table">
+                  <thead className="admin-list-head">
+                    <tr>
+                      <th className="admin-list-header-cell">Claim</th>
+                      <th className="admin-list-header-cell">Type</th>
+                      <th className="admin-list-header-cell">Source</th>
+                      <th className="admin-list-header-cell">Confidence</th>
+                      <th className="admin-list-header-cell">Verification</th>
+                      <th className="admin-list-header-cell">Created By</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {claims.length === 0 ? (
+                      <tr className="admin-list-row">
+                        <td className="admin-list-empty" colSpan={6}>
+                          No claims yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      claims.map((claim: any) => {
+                        const attentionTone =
+                          claim.verificationStatus === 'SUPPORTED'
+                            ? ''
+                            : claim.verificationStatus === 'REJECTED' ||
+                                claim.verificationStatus === 'DISPUTED'
+                              ? 'bg-rose-50/60'
+                              : 'bg-amber-50/60';
+
+                        return (
+                          <tr key={claim.id} className={`admin-list-row ${attentionTone}`}>
+                            <td className="admin-list-cell">
+                              <div
+                                className="max-w-[280px] truncate text-sm font-medium text-slate-900 md:max-w-[360px] lg:max-w-[460px]"
+                                title={claim.claimText}
+                              >
+                                {claim.claimText}
+                              </div>
+                              {claim.sourceExcerpt ? (
+                                <div
+                                  className="mt-1 max-w-[280px] truncate text-xs text-slate-500 md:max-w-[360px] lg:max-w-[460px]"
+                                  title={claim.sourceExcerpt}
+                                >
+                                  {claim.sourceExcerpt}
+                                </div>
+                              ) : null}
+                            </td>
+                            <td className="admin-list-cell">{claim.claimType}</td>
+                            <td className="admin-list-cell">
+                              {claim.reporterSource ? (
+                                <div className="space-y-1">
+                                  <div className="text-sm text-slate-900">
+                                    {claim.reporterSource.title || claim.reporterSource.sourceType}
+                                  </div>
+                                  <div className="text-xs text-slate-500">
+                                    {claim.reporterSource.publisher || claim.reporterSource.sourceType}
+                                  </div>
+                                </div>
+                              ) : (
+                                '—'
+                              )}
+                            </td>
+                            <td className="admin-list-cell">{claim.confidence}</td>
+                            <td className="admin-list-cell">
+                              {canEditRun ? (
+                                <label className="flex flex-col gap-1 text-xs text-slate-500">
+                                  <span className="sr-only">Verification status</span>
+                                  <select
+                                    className="rounded-xl border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 shadow-sm"
+                                    value={claim.verificationStatus}
+                                    onChange={(event) =>
+                                      handleClaimVerificationStatusChange(
+                                        claim.id,
+                                        event.target.value
+                                      )
+                                    }
+                                    disabled={updatingClaimId === claim.id}
+                                  >
+                                    {CLAIM_VERIFICATION_STATUS_OPTIONS.map((status) => (
+                                      <option key={status} value={status}>
+                                        {status}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  {updatingClaimId === claim.id ? 'Saving…' : 'Internal only'}
+                                </label>
+                              ) : (
+                                claim.verificationStatus
+                              )}
+                            </td>
+                            <td className="admin-list-cell">
+                              <div>{claim.createdBy}</div>
+                              <div className="text-xs text-slate-500">
+                                {claim.createdByUser
+                                  ? `${claim.createdByUser.firstName} ${claim.createdByUser.lastName}`
+                                  : 'System'}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           </div>
         ) : null}
       </div>

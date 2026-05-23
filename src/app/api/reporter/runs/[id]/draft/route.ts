@@ -7,6 +7,7 @@ import { logActivity } from '@/lib/activity-log';
 import { canGenerateReporterDraft } from '@/lib/reporter/permissions';
 import { buildReporterSourcePacket } from '@/lib/reporter/source-packet';
 import { generateReporterDraftWithValidation } from '@/lib/reporter/draft-generator';
+import { createReporterClaimsFromSourcePacketAnalysis } from '@/lib/reporter/claim-service';
 
 const GenerateReporterDraftSchema = z.object({
   draftType: z.enum(['ARTICLE_DRAFT', 'SOURCE_PACKET_SUMMARY']).optional(),
@@ -35,6 +36,9 @@ export async function POST(
       include: {
         sources: {
           orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+        },
+        claims: {
+          orderBy: [{ createdAt: 'desc' }],
         },
         interviewRequests: {
           include: {
@@ -70,7 +74,7 @@ export async function POST(
 
     const body = await request.json().catch(() => ({}));
     const validated = GenerateReporterDraftSchema.parse(body);
-    const packet = buildReporterSourcePacket(run, run.sources);
+    const packet = buildReporterSourcePacket(run, run.sources, run.claims);
     const { draft, validation } = await generateReporterDraftWithValidation(
       packet,
       validated.draftType
@@ -123,6 +127,14 @@ export async function POST(
 
       return createdDraft;
     });
+
+    if (draft.draftType === 'SOURCE_PACKET_SUMMARY') {
+      await createReporterClaimsFromSourcePacketAnalysis({
+        reporterRunId: run.id,
+        sources: run.sources,
+        createdByUserId: userId,
+      });
+    }
 
     await logActivity({
       userId,

@@ -202,6 +202,16 @@ export interface ReporterSourcePacketItem {
   reliabilityTier: ReporterReliabilityTierValue;
 }
 
+export interface ReporterSourcePacketClaimItem {
+  id: string;
+  claimType: string;
+  claimText: string;
+  sourceExcerpt: string | null;
+  attribution: string | null;
+  confidence: string;
+  verificationStatus: string;
+}
+
 export interface ReporterSourcePacket {
   runId: string;
   mode: ReporterModeValue;
@@ -212,6 +222,7 @@ export interface ReporterSourcePacket {
   requestedArticleType: string | null;
   requestSummary: string | null;
   editorNotes: string | null;
+  supportedClaims: ReporterSourcePacketClaimItem[];
   sources: ReporterSourcePacketItem[];
 }
 
@@ -245,6 +256,16 @@ export interface ReporterValidationResult {
 export interface ReporterProviderMetadata {
   provider: string;
   model: string;
+  promptKey?: string | null;
+  promptVersion?: string | null;
+  promptHash?: string | null;
+  inputHash?: string | null;
+  latencyMs?: number | null;
+  rawOutputText?: string | null;
+  parsedOutputJson?: unknown;
+  inputSnapshotJson?: unknown;
+  usedDeterministicFallback?: boolean;
+  fallbackReason?: string | null;
 }
 
 export interface ReporterProviderDraftResult extends ReporterGeneratedDraft {

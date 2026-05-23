@@ -8,6 +8,19 @@ import {
   getInterviewQuestionFramework,
   getInterviewQuestionPlan,
 } from './interview-templates';
+import {
+  buildPromptTraceMetadata,
+  hashReporterJson,
+  loadReporterPromptTemplate,
+  renderReporterPromptTemplate,
+} from './prompt-loader';
+import { createFailedReporterAgentTrace, createSuccessfulReporterAgentTrace } from './agent-trace-service';
+import { InterviewStepDecisionSchema } from './reporter-agent-schemas';
+import {
+  assertReporterAgentActionAllowed,
+  REPORTER_AGENT_ACTION,
+  REPORTER_AGENT_ACTOR,
+} from './reporter-agent-permissions';
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/responses';
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
@@ -40,13 +53,6 @@ export interface InterviewStepDecision {
   rationale: string | null;
 }
 
-interface ParsedDecision {
-  shouldComplete?: boolean;
-  questionKey?: string | null;
-  questionText?: string | null;
-  rationale?: string | null;
-}
-
 function getProvider() {
   return (process.env.REPORTER_MODEL_PROVIDER || 'anthropic').toLowerCase();
 }
@@ -74,7 +80,7 @@ function answeredQuestionKeys(turns: InterviewTurnLike[]) {
     .map((turn) => turn.questionKey);
 }
 
-function parseEmbeddedJson(text: string): ParsedDecision {
+function parseEmbeddedJson(text: string) {
   const trimmed = text.trim();
   const start = trimmed.indexOf('{');
   const end = trimmed.lastIndexOf('}');
@@ -115,24 +121,7 @@ function extractTextFromAnthropicResponse(data: any) {
     .trim();
 }
 
-function buildSystemPrompt() {
-  return [
-    'You are the Highlander Today interviewer agent.',
-    'Act like a careful local reporter conducting a one-question-at-a-time interview.',
-    'Be conversational and specific, not robotic or generic.',
-    'Use the prior answers to ask the most useful next follow-up question.',
-    'You are expected to conduct a deeper reporting interview, not a quick intake form.',
-    'Do not ask multiple unrelated questions at once.',
-    'Do not invent facts or assume details not stated by the source.',
-    'Keep each question concise and understandable to an ordinary community member.',
-    'Probe chronology, direct observation, uncertainty, missing concrete details, and verification paths before ending.',
-    'The interview should usually continue well past the first surface-level answers.',
-    'Only end the interview when the required topics are covered, the minimum depth has been reached, and no high-value follow-up remains, or when the turn cap has been reached.',
-    'Return valid JSON only with keys: shouldComplete, questionKey, questionText, rationale.',
-  ].join(' ');
-}
-
-function buildUserPrompt(params: {
+async function buildInterviewPromptBundle(params: {
   request: InterviewRequestLike;
   language: ReporterSupportedLanguage;
   turns: InterviewTurnLike[];
@@ -141,6 +130,8 @@ function buildUserPrompt(params: {
   minimumTurns: number;
   maxTurns: number;
 }) {
+  const systemTemplate = await loadReporterPromptTemplate('interview-next-step.system');
+  const userTemplate = await loadReporterPromptTemplate('interview-next-step.user');
   const transcript = params.turns.length
     ? params.turns
         .map(
@@ -150,43 +141,59 @@ function buildUserPrompt(params: {
         .join('\n\n')
     : 'No questions asked yet.';
 
-  return [
-    'Decide the next step for this interview.',
-    'Return JSON only.',
-    `Interview type: ${params.request.interviewType}`,
-    `Interviewee: ${params.request.intervieweeName}`,
-    `Interview language: ${params.language}`,
-    `Purpose: ${params.request.purpose}`,
-    params.request.mustLearn ? `Must learn: ${params.request.mustLearn}` : null,
-    params.request.relationshipToStory
+  const systemPrompt = renderReporterPromptTemplate(systemTemplate, {});
+  const userPrompt = renderReporterPromptTemplate(userTemplate, {
+    interviewType: params.request.interviewType,
+    intervieweeName: params.request.intervieweeName,
+    language: params.language,
+    purpose: params.request.purpose,
+    mustLearnBlock: params.request.mustLearn ? `Must learn: ${params.request.mustLearn}` : '',
+    relationshipBlock: params.request.relationshipToStory
       ? `Relationship to story: ${params.request.relationshipToStory}`
-      : null,
-    params.request.editorBrief ? `Editor brief: ${params.request.editorBrief}` : null,
-    params.request.knownContext ? `Known context: ${params.request.knownContext}` : null,
-    params.request.sensitivityNotes
+      : '',
+    editorBriefBlock: params.request.editorBrief
+      ? `Editor brief: ${params.request.editorBrief}`
+      : '',
+    knownContextBlock: params.request.knownContext
+      ? `Known context: ${params.request.knownContext}`
+      : '',
+    sensitivityNotesBlock: params.request.sensitivityNotes
       ? `Sensitivity notes: ${params.request.sensitivityNotes}`
-      : null,
-    `Covered required topics: ${params.coveredRequired.join(', ') || 'none yet'}`,
-    `Outstanding required topics: ${params.outstandingRequired.join(', ') || 'none'}`,
-    `Answered turns so far: ${params.turns.length}`,
-    `Minimum turns before completion: ${params.minimumTurns}`,
-    `Turn cap: ${params.maxTurns}`,
-    'If shouldComplete is false, questionText must contain exactly one natural next question.',
-    'Prefer a direct follow-up tied to what the person just said.',
-    'Use questionKey from the outstanding required topic when possible. If all required topics are covered but deeper clarification is still needed, use follow_up.',
-    'Before completion, make sure you have probed uncertainty, missing specifics, and who or what could verify the account.',
-    'If the source gives a vague answer, ask for examples, timing, names, places, or documents rather than moving on.',
-    'Do not ask for sensitive personal data unless necessary to verify the story.',
-    '',
-    'Interview transcript so far:',
+      : '',
+    coveredRequired: params.coveredRequired.join(', ') || 'none yet',
+    outstandingRequired: params.outstandingRequired.join(', ') || 'none',
+    answeredTurnsCount: params.turns.length,
+    minimumTurns: params.minimumTurns,
+    maxTurns: params.maxTurns,
     transcript,
-  ]
-    .filter((value): value is string => Boolean(value))
-    .join('\n');
+  });
+
+  return {
+    systemPrompt,
+    userPrompt,
+    inputSnapshotJson: {
+      request: params.request,
+      language: params.language,
+      turns: params.turns,
+      outstandingRequired: params.outstandingRequired,
+      coveredRequired: params.coveredRequired,
+      minimumTurns: params.minimumTurns,
+      maxTurns: params.maxTurns,
+    },
+    traceMetadata: buildPromptTraceMetadata({
+      promptFamilyKey: 'interview-next-step',
+      templates: [systemTemplate, userTemplate],
+      renderedPrompts: [systemPrompt, userPrompt],
+    }),
+  };
 }
 
-async function requestOpenAIInterviewDecision(prompt: string) {
+async function requestOpenAIInterviewDecision(params: {
+  systemPrompt: string;
+  userPrompt: string;
+}) {
   const model = getModel('openai');
+  const startedAt = Date.now();
   const response = await fetch(OPENAI_API_URL, {
     method: 'POST',
     headers: {
@@ -200,11 +207,11 @@ async function requestOpenAIInterviewDecision(prompt: string) {
       input: [
         {
           role: 'system',
-          content: [{ type: 'input_text', text: buildSystemPrompt() }],
+          content: [{ type: 'input_text', text: params.systemPrompt }],
         },
         {
           role: 'user',
-          content: [{ type: 'input_text', text: prompt }],
+          content: [{ type: 'input_text', text: params.userPrompt }],
         },
       ],
     }),
@@ -226,11 +233,22 @@ async function requestOpenAIInterviewDecision(prompt: string) {
     throw new Error('OpenAI interview response did not include text content');
   }
 
-  return parseEmbeddedJson(rawText);
+  const parsed = InterviewStepDecisionSchema.parse(parseEmbeddedJson(rawText));
+
+  return {
+    parsed,
+    model,
+    rawText,
+    latencyMs: Date.now() - startedAt,
+  };
 }
 
-async function requestAnthropicInterviewDecision(prompt: string) {
+async function requestAnthropicInterviewDecision(params: {
+  systemPrompt: string;
+  userPrompt: string;
+}) {
   const model = getModel('anthropic');
+  const startedAt = Date.now();
   const response = await fetch(ANTHROPIC_API_URL, {
     method: 'POST',
     headers: {
@@ -242,11 +260,11 @@ async function requestAnthropicInterviewDecision(prompt: string) {
       model,
       max_tokens: 350,
       temperature: 0.4,
-      system: buildSystemPrompt(),
+      system: params.systemPrompt,
       messages: [
         {
           role: 'user',
-          content: [{ type: 'text', text: prompt }],
+          content: [{ type: 'text', text: params.userPrompt }],
         },
       ],
     }),
@@ -268,7 +286,14 @@ async function requestAnthropicInterviewDecision(prompt: string) {
     throw new Error('Anthropic interview response did not include text content');
   }
 
-  return parseEmbeddedJson(rawText);
+  const parsed = InterviewStepDecisionSchema.parse(parseEmbeddedJson(rawText));
+
+  return {
+    parsed,
+    model,
+    rawText,
+    latencyMs: Date.now() - startedAt,
+  };
 }
 
 function buildFallbackDecision(params: {
@@ -328,7 +353,21 @@ export async function decideNextInterviewStep(params: {
   request: InterviewRequestLike;
   language: ReporterSupportedLanguage;
   turns: InterviewTurnLike[];
+  reporterRunId?: string | null;
 }): Promise<InterviewStepDecision> {
+  if (params.reporterRunId) {
+    await assertReporterAgentActionAllowed({
+      actor: REPORTER_AGENT_ACTOR.INTERVIEW_AGENT,
+      action: REPORTER_AGENT_ACTION.READ_REPORTER_RUN,
+      reporterRunId: params.reporterRunId,
+    });
+    await assertReporterAgentActionAllowed({
+      actor: REPORTER_AGENT_ACTOR.INTERVIEW_AGENT,
+      action: REPORTER_AGENT_ACTION.CREATE_INTERVIEW_TURN,
+      reporterRunId: params.reporterRunId,
+    });
+  }
+
   const framework = getInterviewQuestionFramework({
     request: params.request,
     language: params.language,
@@ -341,7 +380,7 @@ export async function decideNextInterviewStep(params: {
   );
 
   if (!hasConfiguredInterviewerProvider()) {
-    return buildFallbackDecision({
+    const fallbackDecision = buildFallbackDecision({
       request: params.request,
       language: params.language,
       turns: params.turns,
@@ -350,10 +389,21 @@ export async function decideNextInterviewStep(params: {
       minimumTurns: framework.minimumTurns,
       maxTurns: framework.maxTurns,
     });
+    if (params.reporterRunId) {
+      await createSuccessfulReporterAgentTrace({
+        reporterRunId: params.reporterRunId,
+        traceType: 'INTERVIEW_NEXT_STEP',
+        provider: 'fallback',
+        modelName: null,
+        parsedOutputJson: fallbackDecision,
+        validationJson: { reason: 'provider_not_configured' },
+      });
+    }
+    return fallbackDecision;
   }
 
   try {
-    const prompt = buildUserPrompt({
+    const promptBundle = await buildInterviewPromptBundle({
       request: params.request,
       language: params.language,
       turns: params.turns,
@@ -363,10 +413,17 @@ export async function decideNextInterviewStep(params: {
       maxTurns: framework.maxTurns,
     });
 
-    const parsed =
+    const response =
       getProvider() === 'openai'
-        ? await requestOpenAIInterviewDecision(prompt)
-        : await requestAnthropicInterviewDecision(prompt);
+        ? await requestOpenAIInterviewDecision({
+            systemPrompt: promptBundle.systemPrompt,
+            userPrompt: promptBundle.userPrompt,
+          })
+        : await requestAnthropicInterviewDecision({
+            systemPrompt: promptBundle.systemPrompt,
+            userPrompt: promptBundle.userPrompt,
+          });
+    const parsed = response.parsed;
 
     const wantsToComplete = Boolean(parsed.shouldComplete);
     const canComplete =
@@ -375,7 +432,7 @@ export async function decideNextInterviewStep(params: {
     const shouldComplete = params.turns.length >= framework.maxTurns || (wantsToComplete && canComplete);
 
     if (shouldComplete) {
-      return {
+      const completionDecision: InterviewStepDecision = {
         questionKey: null,
         questionText: null,
         language: params.language,
@@ -392,6 +449,21 @@ export async function decideNextInterviewStep(params: {
             ? parsed.rationale.trim()
             : 'Model decided that the interview has enough coverage to conclude.',
       };
+      if (params.reporterRunId) {
+        await createSuccessfulReporterAgentTrace({
+          reporterRunId: params.reporterRunId,
+          traceType: 'INTERVIEW_NEXT_STEP',
+          provider: getProvider(),
+          modelName: response.model,
+          ...promptBundle.traceMetadata,
+          inputHash: hashReporterJson(promptBundle.inputSnapshotJson),
+          inputSnapshotJson: promptBundle.inputSnapshotJson,
+          rawOutputText: response.rawText,
+          parsedOutputJson: parsed,
+          latencyMs: response.latencyMs,
+        });
+      }
+      return completionDecision;
     }
 
     const fallback = buildFallbackDecision({
@@ -418,7 +490,7 @@ export async function decideNextInterviewStep(params: {
         ? requestedKey
         : outstandingRequired[0] || fallback.questionKey || 'follow_up';
 
-    return {
+    const nextDecision: InterviewStepDecision = {
       questionKey: normalizedKey,
       questionText,
       language: params.language,
@@ -435,9 +507,37 @@ export async function decideNextInterviewStep(params: {
           ? parsed.rationale.trim()
           : 'Model selected the next follow-up question.',
     };
+    if (params.reporterRunId) {
+      await createSuccessfulReporterAgentTrace({
+        reporterRunId: params.reporterRunId,
+        traceType: 'INTERVIEW_NEXT_STEP',
+        provider: getProvider(),
+        modelName: response.model,
+        ...promptBundle.traceMetadata,
+        inputHash: hashReporterJson(promptBundle.inputSnapshotJson),
+        inputSnapshotJson: promptBundle.inputSnapshotJson,
+        rawOutputText: response.rawText,
+        parsedOutputJson: parsed,
+        validationJson: { normalizedKey },
+        latencyMs: response.latencyMs,
+      });
+    }
+    return nextDecision;
   } catch (error) {
     console.error('Reporter interview model decision failed; using deterministic fallback.', error);
-    return buildFallbackDecision({
+    if (params.reporterRunId) {
+      await createFailedReporterAgentTrace({
+        reporterRunId: params.reporterRunId,
+        traceType: 'INTERVIEW_NEXT_STEP',
+        provider: hasConfiguredInterviewerProvider() ? getProvider() : 'fallback',
+        modelName: hasConfiguredInterviewerProvider() ? getModel(getProvider()) : null,
+        errorMessage:
+          error instanceof Error
+            ? error.message
+            : 'Reporter interview model decision failed.',
+      });
+    }
+    const fallbackDecision = buildFallbackDecision({
       request: params.request,
       language: params.language,
       turns: params.turns,
@@ -446,5 +546,18 @@ export async function decideNextInterviewStep(params: {
       minimumTurns: framework.minimumTurns,
       maxTurns: framework.maxTurns,
     });
+    if (params.reporterRunId) {
+      await createSuccessfulReporterAgentTrace({
+        reporterRunId: params.reporterRunId,
+        traceType: 'INTERVIEW_NEXT_STEP',
+        provider: 'fallback',
+        modelName: null,
+        parsedOutputJson: fallbackDecision,
+        validationJson: {
+          reason: error instanceof Error ? error.message : 'model_failure',
+        },
+      });
+    }
+    return fallbackDecision;
   }
 }

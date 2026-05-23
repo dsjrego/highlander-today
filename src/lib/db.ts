@@ -54,7 +54,10 @@ function getClient(): AppPrismaClient {
       !(global.prisma as any).reporterInterviewSession ||
       !(global.prisma as any).reporterInterviewTurn ||
       !(global.prisma as any).reporterInterviewFact ||
-      !(global.prisma as any).reporterInterviewSafetyFlag
+      !(global.prisma as any).reporterInterviewSafetyFlag ||
+      !(global.prisma as any).reporterAgentTask ||
+      !(global.prisma as any).reporterAgentTrace ||
+      !(global.prisma as any).reporterClaim
     ) {
       console.warn('[db] Stale PrismaClient detected — recreating');
       global.prisma = createPrismaClient();

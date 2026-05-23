@@ -16,6 +16,7 @@ function buildPacket(): ReporterSourcePacket {
     requestedArticleType: null,
     requestSummary: 'Bridge closed after inspection.',
     editorNotes: null,
+    supportedClaims: [],
     sources: [
       {
         id: 'source-1',
@@ -160,7 +161,7 @@ describe('OpenAIReporterProvider', () => {
     expect(result.body).toContain('Next steps');
   });
 
-  it('throws instead of silently persisting the fallback article template', async () => {
+  it('throws when the model payload fails schema validation', async () => {
     process.env.OPENAI_API_KEY = 'test-key';
     global.fetch = jest.fn(async () => ({
       ok: true,
@@ -180,6 +181,6 @@ describe('OpenAIReporterProvider', () => {
         packet: buildPacket(),
         draftType: REPORTER_DRAFT_TYPE.ARTICLE_DRAFT,
       })
-    ).rejects.toThrow('fallback article text was not persisted');
+    ).rejects.toThrow('Required');
   });
 });

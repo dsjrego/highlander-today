@@ -21,6 +21,12 @@ jest.mock('@/lib/activity-log', () => ({
   logActivity: (...args: unknown[]) => logActivityMock(...(args as [])),
 }));
 
+const createReporterClaimsFromSourcePacketAnalysisMock = jest.fn(() => Promise.resolve([]));
+jest.mock('@/lib/reporter/claim-service', () => ({
+  createReporterClaimsFromSourcePacketAnalysis: (...args: unknown[]) =>
+    createReporterClaimsFromSourcePacketAnalysisMock(...(args as [])),
+}));
+
 const { POST } = require('@/app/api/reporter/runs/[id]/draft/route') as typeof import('@/app/api/reporter/runs/[id]/draft/route');
 
 function buildRequest() {
@@ -49,6 +55,7 @@ describe('reporter draft route', () => {
       requestedArticleType: null,
       requestSummary: 'Bridge closed after inspection.',
       editorNotes: null,
+      claims: [],
       sources: [
         {
           id: 'source-1',
@@ -137,6 +144,7 @@ describe('reporter draft route', () => {
       where: { id: 'run-1' },
       data: { status: 'DRAFT_CREATED' },
     });
+    expect(createReporterClaimsFromSourcePacketAnalysisMock).not.toHaveBeenCalled();
   });
 
   it('rejects draft generation without permission', async () => {
@@ -167,6 +175,7 @@ describe('reporter draft route', () => {
       requestedArticleType: null,
       requestSummary: 'Bridge closed after inspection.',
       editorNotes: null,
+      claims: [],
       sources: [],
       interviewRequests: [
         {
@@ -187,5 +196,45 @@ describe('reporter draft route', () => {
       error:
         'Completed interview output must be reviewed before generating a reporter draft.',
     });
+  });
+
+  it('creates source-packet analysis claims when generating analysis output', async () => {
+    (generateReporterDraftWithValidationMock as any).mockResolvedValue({
+      draft: {
+        headline: 'Reporter Agent Analysis: Bridge closure',
+        dek: null,
+        body: 'Analysis body',
+        draftType: 'SOURCE_PACKET_SUMMARY',
+        modelProvider: 'anthropic',
+        modelName: 'claude-sonnet',
+        generationNotes: null,
+      },
+      validation: {
+        hasCriticalIssues: false,
+        issues: [],
+      },
+    });
+
+    const response = await POST(
+      new Request('http://localhost/api/reporter/runs/run-1/draft', {
+        method: 'POST',
+        headers: {
+          'x-user-id': 'staff-1',
+          'x-user-role': 'STAFF_WRITER',
+          'x-community-id': 'community-1',
+        },
+        body: JSON.stringify({ draftType: 'SOURCE_PACKET_SUMMARY' }),
+      }) as any,
+      { params: { id: 'run-1' } }
+    );
+
+    expect(response.status).toBe(200);
+    expect(createReporterClaimsFromSourcePacketAnalysisMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reporterRunId: 'run-1',
+        createdByUserId: 'staff-1',
+        sources: expect.any(Array),
+      })
+    );
   });
 });

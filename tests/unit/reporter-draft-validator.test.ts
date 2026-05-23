@@ -17,6 +17,7 @@ function buildPacket(): ReporterSourcePacket {
     requestedArticleType: null,
     requestSummary: 'Bridge closed after inspection.',
     editorNotes: null,
+    supportedClaims: [],
     sources: [
       {
         id: 'source-1',

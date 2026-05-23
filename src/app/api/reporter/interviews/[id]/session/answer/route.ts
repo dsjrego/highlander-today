@@ -101,6 +101,7 @@ export async function POST(
       request: interview,
       language: session.language,
       turns: answeredTurns,
+      reporterRunId: interview.reporterRunId,
     });
 
     let nextSessionState: any = null;

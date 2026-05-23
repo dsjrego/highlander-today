@@ -15,6 +15,12 @@ jest.mock('@/lib/activity-log', () => ({
   logActivity: (...args: unknown[]) => logActivityMock(...(args as [])),
 }));
 
+const createReporterClaimsFromInterviewFactsMock = jest.fn(() => Promise.resolve([]));
+jest.mock('@/lib/reporter/claim-service', () => ({
+  createReporterClaimsFromInterviewFacts: (...args: unknown[]) =>
+    createReporterClaimsFromInterviewFactsMock(...(args as [])),
+}));
+
 const reviewRoute = require('@/app/api/reporter/interview-sessions/[id]/review/route') as typeof import('@/app/api/reporter/interview-sessions/[id]/review/route');
 
 function buildRequest() {
@@ -85,6 +91,13 @@ describe('reporter interview review route', () => {
         id: 'editor-1',
       }),
     });
+    expect(createReporterClaimsFromInterviewFactsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reporterRunId: 'run-1',
+        facts: [],
+        createdByUserId: 'editor-1',
+      })
+    );
     expect(logActivityMock).toHaveBeenCalled();
   });
 

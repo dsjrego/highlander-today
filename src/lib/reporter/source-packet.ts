@@ -1,4 +1,5 @@
 import type {
+  ReporterSourcePacketClaimItem,
   ReporterModeValue,
   ReporterRequestTypeValue,
   ReporterReliabilityTierValue,
@@ -34,6 +35,16 @@ interface ReporterSourceLike {
   sortOrder: number;
 }
 
+interface ReporterClaimLike {
+  id: string;
+  claimType: string;
+  claimText: string;
+  sourceExcerpt: string | null;
+  attribution: string | null;
+  confidence: string;
+  verificationStatus: string;
+}
+
 function mapSource(source: ReporterSourceLike): ReporterSourcePacketItem {
   return {
     id: source.id,
@@ -50,11 +61,37 @@ function mapSource(source: ReporterSourceLike): ReporterSourcePacketItem {
   };
 }
 
+function mapClaim(claim: ReporterClaimLike): ReporterSourcePacketClaimItem {
+  return {
+    id: claim.id,
+    claimType: claim.claimType,
+    claimText: claim.claimText,
+    sourceExcerpt: claim.sourceExcerpt,
+    attribution: claim.attribution,
+    confidence: claim.confidence,
+    verificationStatus: claim.verificationStatus,
+  };
+}
+
 export function buildReporterSourcePacket(
   run: ReporterRunLike,
-  sources: ReporterSourceLike[]
+  sources: ReporterSourceLike[],
+  claims: ReporterClaimLike[] = []
 ): ReporterSourcePacket {
   const orderedSources = [...sources].sort((a, b) => a.sortOrder - b.sortOrder);
+  const prioritizedClaims = [...claims].sort((left, right) => {
+    const verificationScore =
+      (left.verificationStatus === 'SUPPORTED' ? 3 : left.verificationStatus === 'UNREVIEWED' ? 2 : 1) -
+      (right.verificationStatus === 'SUPPORTED' ? 3 : right.verificationStatus === 'UNREVIEWED' ? 2 : 1);
+    if (verificationScore !== 0) {
+      return verificationScore * -1;
+    }
+
+    const confidenceScore =
+      (left.confidence === 'HIGH' ? 4 : left.confidence === 'MEDIUM' ? 3 : left.confidence === 'LOW' ? 2 : 1) -
+      (right.confidence === 'HIGH' ? 4 : right.confidence === 'MEDIUM' ? 3 : right.confidence === 'LOW' ? 2 : 1);
+    return confidenceScore * -1;
+  });
 
   return {
     runId: run.id,
@@ -66,6 +103,7 @@ export function buildReporterSourcePacket(
     requestedArticleType: run.requestedArticleType,
     requestSummary: run.requestSummary,
     editorNotes: run.editorNotes,
+    supportedClaims: prioritizedClaims.map(mapClaim),
     sources: orderedSources.map(mapSource),
   };
 }

@@ -198,6 +198,7 @@ export async function POST(
       request: result.interview,
       language,
       turns: [],
+      reporterRunId: result.interview.reporterRunId,
     });
 
     const session = await db.reporterInterviewSession.create({

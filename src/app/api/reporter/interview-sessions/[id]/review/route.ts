@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { getCurrentCommunity } from '@/lib/community';
 import { logActivity } from '@/lib/activity-log';
 import { canEditReporterRun, canViewReporterRun } from '@/lib/reporter/permissions';
+import { createReporterClaimsFromInterviewFacts } from '@/lib/reporter/claim-service';
 
 export async function POST(
   request: NextRequest,
@@ -92,6 +93,12 @@ export async function POST(
           select: { id: true, firstName: true, lastName: true },
         },
       },
+    });
+
+    await createReporterClaimsFromInterviewFacts({
+      reporterRunId: existing.interviewRequest.reporterRun.id,
+      facts: reviewedSession.facts,
+      createdByUserId: userId,
     });
 
     await logActivity({

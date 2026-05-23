@@ -5,11 +5,37 @@ import {
   type ReporterProviderDraftResult,
 } from './types';
 import { buildFallbackDraft } from './provider-adapter';
+import {
+  buildPromptTraceMetadata,
+  hashReporterJson,
+  loadReporterPromptTemplate,
+  renderReporterPromptTemplate,
+} from './prompt-loader';
+import {
+  ReporterDraftOutputSchema,
+  SourcePacketAnalysisOutputSchema,
+} from './reporter-agent-schemas';
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_API_VERSION = '2023-06-01';
 
 function buildSourcePacketPrompt(input: ReporterDraftGenerationInput) {
+  const claims = input.packet.supportedClaims
+    .slice(0, 8)
+    .map((claim, index) => {
+      const claimParts = [
+        `${index + 1}. ${claim.claimText}`,
+        `type=${claim.claimType}`,
+        `verification=${claim.verificationStatus}`,
+        `confidence=${claim.confidence}`,
+        claim.attribution ? `attribution=${claim.attribution}` : null,
+        claim.sourceExcerpt ? `excerpt=${claim.sourceExcerpt}` : null,
+      ].filter(Boolean);
+
+      return claimParts.join('\n');
+    })
+    .join('\n\n');
+
   const sources = input.packet.sources
     .map((source, index) => {
       const parts = [
@@ -36,6 +62,9 @@ function buildSourcePacketPrompt(input: ReporterDraftGenerationInput) {
     input.packet.requestSummary ? `Request summary: ${input.packet.requestSummary}` : null,
     input.packet.editorNotes ? `Editor notes: ${input.packet.editorNotes}` : null,
     '',
+    'Preferred claims:',
+    claims || 'No prioritized claims were provided.',
+    '',
     'Sources:',
     sources || 'No sources provided.',
   ]
@@ -43,59 +72,35 @@ function buildSourcePacketPrompt(input: ReporterDraftGenerationInput) {
     .join('\n');
 }
 
-function buildAnthropicUserPrompt(input: ReporterDraftGenerationInput, draftType: string) {
-  if (draftType === REPORTER_DRAFT_TYPE.SOURCE_PACKET_SUMMARY) {
-    return [
-      'Generate Reporter Agent analysis from this source packet.',
-      'Return JSON only.',
-      'The body must use exactly these section headings in this order:',
-      'What we know',
-      'Source strength',
-      'Missing information',
-      'Reporting gaps',
-      'Coverage recommendation',
-      'Next steps',
-      'This is internal newsroom analysis, not a public article or press-brief rewrite.',
-      'Each section should contain concise bullet-style lines or short paragraphs.',
-      'Make every section specific to this story. Do not use generic placeholder advice.',
-      'Do not write vague filler such as "additional sourcing may still be needed", "review the strongest source items", or "identify missing primary-source confirmation".',
-      'Source strength must name the strongest source item and the weakest source item or weakest unsupported claim in this packet.',
-      'Missing information must name the exact unanswered questions for this story.',
-      'Reporting gaps must explain what is weak, missing, single-sourced, or unverified in this packet.',
-      'Coverage recommendation must explicitly choose one of: draft-ready, brief-ready, or needs more sourcing.',
-      'Coverage recommendation must explain why that label fits this specific packet.',
-      'If only a brief is supportable, say so directly. If the packet is too weak for a draft, say so directly.',
-      'Next steps must be concrete reporting actions tied to this story, not generic process advice.',
-      'Separate confirmed facts from claims that appear only once or remain unattributed.',
-      'Do not output a public news story lead or framing brainstorm in this analysis.',
-      buildSourcePacketPrompt(input),
-    ].join('\n\n');
-  }
-
-  return [
-    'Draft a publishable internal article draft from this source packet.',
-    'Return JSON only.',
-    'Write a real article draft, not a source summary, bullet list, or transcript digest.',
-    'Use only the facts supported by the packet. Attribute claims when needed.',
-    'Do not paste raw URLs into the body unless the story itself is about the URL or registration link.',
-    'Do not say "This draft was generated from the current source packet only."',
-    'Do not simply enumerate source items.',
-    'The body should read like a local news article with a clear lead and short paragraphs.',
-    buildSourcePacketPrompt(input),
-  ].join('\n\n');
-}
-
-function buildAnthropicSystemPrompt(draftType: string) {
-  return [
-    'You are an internal newsroom drafting assistant for Highlander Today.',
-    'Use only the provided source packet. Do not invent facts, quotes, chronology, or attribution.',
-    'If information is uncertain, explicitly say so in the draft rather than smoothing over the gap.',
-    'Write in a grounded, human, local-news voice. Avoid robotic filler, hype, and generic AI phrasing.',
-    'Return valid JSON only with keys: headline, dek, body, generationNotes.',
+async function buildAnthropicPromptBundle(
+  input: ReporterDraftGenerationInput,
+  draftType: string
+) {
+  const promptFamilyKey =
     draftType === REPORTER_DRAFT_TYPE.SOURCE_PACKET_SUMMARY
-      ? 'For source packet summaries, produce internal Reporter Agent analysis with sections for What we know, Source strength, Missing information, Reporting gaps, Coverage recommendation, and Next steps. This is internal newsroom guidance, not a public article. Avoid second-person coaching language.'
-      : 'For article drafts, produce a clean article draft with short paragraphs and no markdown.',
-  ].join(' ');
+      ? 'source-packet-analysis'
+      : 'draft-generation';
+  const systemTemplate = await loadReporterPromptTemplate(`${promptFamilyKey}.system`);
+  const userTemplate = await loadReporterPromptTemplate(`${promptFamilyKey}.user`);
+  const sourcePacketPrompt = buildSourcePacketPrompt(input);
+  const systemPrompt = renderReporterPromptTemplate(systemTemplate, {});
+  const userPrompt = renderReporterPromptTemplate(userTemplate, {
+    sourcePacketPrompt,
+  });
+
+  return {
+    systemPrompt,
+    userPrompt,
+    inputSnapshotJson: {
+      packet: input.packet,
+      draftType,
+    },
+    traceMetadata: buildPromptTraceMetadata({
+      promptFamilyKey,
+      templates: [systemTemplate, userTemplate],
+      renderedPrompts: [systemPrompt, userPrompt],
+    }),
+  };
 }
 
 function extractTextFromAnthropicResponse(data: any) {
@@ -185,6 +190,8 @@ export class AnthropicReporterProvider implements ReporterProviderAdapter {
     const draftType = input.draftType ?? REPORTER_DRAFT_TYPE.ARTICLE_DRAFT;
 
     try {
+      const promptBundle = await buildAnthropicPromptBundle(input, draftType);
+      const startedAt = Date.now();
       const response = await fetch(ANTHROPIC_API_URL, {
         method: 'POST',
         headers: {
@@ -196,14 +203,14 @@ export class AnthropicReporterProvider implements ReporterProviderAdapter {
           model: this.model,
           max_tokens: draftType === REPORTER_DRAFT_TYPE.SOURCE_PACKET_SUMMARY ? 1200 : 2200,
           temperature: 0.4,
-          system: buildAnthropicSystemPrompt(draftType),
+          system: promptBundle.systemPrompt,
           messages: [
             {
               role: 'user',
               content: [
                 {
                   type: 'text',
-                  text: buildAnthropicUserPrompt(input, draftType),
+                  text: promptBundle.userPrompt,
                 },
               ],
             },
@@ -228,12 +235,35 @@ export class AnthropicReporterProvider implements ReporterProviderAdapter {
       }
 
       const parsed = parseDraftJson(rawText);
+      const validatedParsed =
+        draftType === REPORTER_DRAFT_TYPE.SOURCE_PACKET_SUMMARY
+          ? SourcePacketAnalysisOutputSchema.parse(parsed)
+          : ReporterDraftOutputSchema.parse(parsed);
       const fallback = buildFallbackDraft(this.provider, this.model, {
         ...input,
         draftType,
       });
 
-      return finalizeProviderDraft(parsed, fallback, draftType, this.provider, this.model);
+      const result = finalizeProviderDraft(
+        validatedParsed,
+        fallback,
+        draftType,
+        this.provider,
+        this.model
+      );
+
+      return {
+        ...result,
+        metadata: {
+          ...result.metadata,
+          ...promptBundle.traceMetadata,
+          inputHash: hashReporterJson(promptBundle.inputSnapshotJson),
+          inputSnapshotJson: promptBundle.inputSnapshotJson,
+          rawOutputText: rawText,
+          parsedOutputJson: validatedParsed,
+          latencyMs: Date.now() - startedAt,
+        },
+      };
     } catch (error) {
       console.error('Anthropic reporter draft generation failed:', error);
       throw error instanceof Error

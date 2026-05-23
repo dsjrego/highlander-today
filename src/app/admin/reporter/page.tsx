@@ -101,9 +101,14 @@ export default async function AdminReporterPage() {
     <AdminPage
       title="Reporter"
       actions={
-        <Link href="/report-a-story" className="page-header-action">
-          Public Intake
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/admin/reporter/sources" className="page-header-action">
+            Source Monitor
+          </Link>
+          <Link href="/report-a-story" className="page-header-action">
+            Public Intake
+          </Link>
+        </div>
       }
     >
       <div className="admin-card">

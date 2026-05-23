@@ -6,6 +6,8 @@ Translate `REPORTER-AGENT-PHASE-1-SPEC.md` into a concrete implementation checkl
 
 This document is intentionally operational. It maps the Phase 1 reporter foundation to the files, schema seams, permission hooks, API conventions, and UI patterns already present in the repo.
 
+The checklist is now historical reference for the completed Phase 1 implementation baseline rather than an active to-do list.
+
 For the later browser-based interview queue and session system, use `REPORTER-INTERVIEW-AGENT-PLAN.md` rather than extending this Phase 1 checklist past its intended scope.
 
 ## Current-Code Constraints

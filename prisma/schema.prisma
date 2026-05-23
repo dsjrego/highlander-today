@@ -45,6 +45,7 @@ model Community {
   homepageSectionsLegacy HomepageSectionLegacy[]
   domains                TenantDomain[]
   reporterRuns           ReporterRun[]
+  reporterMonitoredSources ReporterMonitoredSource[]
   categories             Category[]
   memorialPeople         MemorialPerson[]
   memorialPages          MemorialPage[]
@@ -141,6 +142,9 @@ model User {
   reporterSourcesCreated   ReporterSource[]          @relation("reporterSourceCreatedBy")
   reporterDraftsCreated    ReporterDraft[]           @relation("reporterDraftCreatedBy")
   reporterBlockersResolved ReporterBlocker[]         @relation("reporterBlockerResolvedBy")
+  reporterAgentTasksCreated ReporterAgentTask[]      @relation("reporterAgentTaskCreatedBy")
+  reporterClaimsCreated    ReporterClaim[]           @relation("reporterClaimCreatedBy")
+  reporterMonitoredSourcesCreated ReporterMonitoredSource[] @relation("reporterMonitoredSourceCreatedBy")
   reporterInterviewRequestsCreated ReporterInterviewRequest[] @relation("reporterInterviewRequestCreatedBy")
   reporterInterviewRequestsAsSubject ReporterInterviewRequest[] @relation("reporterInterviewRequestInterviewee")
   reporterInterviewSessionsReviewed ReporterInterviewSession[] @relation("reporterInterviewSessionReviewedBy")
@@ -312,6 +316,7 @@ model Place {
   userRelationships      UserPlaceRelationship[]
   matchedObservedGeos    ObservedGeoLocation[]
   reporterSources        ReporterSource[]        @relation("reporterSourcePlace")
+  reporterMonitoredSources ReporterMonitoredSource[]
 
   @@index([type])
   @@index([countryCode])
@@ -498,6 +503,7 @@ model Organization {
   forms       OrganizationForm[]
   formSubmissions OrganizationFormSubmission[]
   reporterSources ReporterSource[] @relation("reporterSourceOrganization")
+  reporterMonitoredSources ReporterMonitoredSource[]
 
   @@unique([communityId, slug])
   @@index([communityId])
@@ -831,6 +837,103 @@ enum ReporterDraftType {
   SOURCE_PACKET_SUMMARY
 }
 
+enum ReporterAgentTaskType {
+  ANALYZE_SOURCE_PACKET
+  GENERATE_REPORTING_GAPS
+  GENERATE_DRAFT
+  VALIDATE_DRAFT
+  EXTRACT_INTERVIEW_FACTS
+  SUGGEST_FOLLOW_UPS
+  CLASSIFY_READINESS
+  TRIAGE_REPORTER_RUN
+}
+
+enum ReporterAgentTaskStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  BLOCKED
+}
+
+enum ReporterAgentTraceType {
+  INTERVIEW_NEXT_STEP
+  SOURCE_PACKET_ANALYSIS
+  DRAFT_GENERATION
+  DRAFT_VALIDATION
+  INTERVIEW_FACT_EXTRACTION
+  TRIAGE_SUMMARY
+}
+
+enum ReporterClaimType {
+  DIRECT_OBSERVATION
+  ATTRIBUTED_CLAIM
+  OFFICIAL_STATEMENT
+  DATE_TIME_FACT
+  LOCATION_FACT
+  QUOTE
+  BACKGROUND_CONTEXT
+  UNVERIFIED_ASSERTION
+  FOLLOW_UP_REQUIREMENT
+}
+
+enum ReporterClaimConfidence {
+  HIGH
+  MEDIUM
+  LOW
+  UNKNOWN
+}
+
+enum ReporterClaimVerificationStatus {
+  UNREVIEWED
+  SUPPORTED
+  NEEDS_CORROBORATION
+  DISPUTED
+  REJECTED
+}
+
+enum ReporterClaimCreatedBy {
+  HUMAN
+  AGENT
+}
+
+enum ReporterMonitoredSourceType {
+  MUNICIPAL_AGENDA
+  MUNICIPAL_MINUTES
+  MUNICIPAL_NOTICES
+  COUNTY_UPDATES
+  SCHOOL_BOARD
+  SCHOOL_ANNOUNCEMENTS
+  PUBLIC_SAFETY
+  LOCAL_NEWSROOM
+  PRESS_RELEASE
+  COMMUNITY_BULLETIN
+  OTHER
+}
+
+enum ReporterMonitoredSourceFormat {
+  RSS
+  ATOM
+  HTML
+  JSON
+  PDF
+  ICS
+  OTHER
+}
+
+enum ReporterMonitoredSourceStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum ReporterSourceFetchStatus {
+  SUCCESS
+  NO_CHANGE
+  FAILED
+}
+
 enum ReporterInterviewRequestStatus {
   DRAFT
   INVITED
@@ -925,6 +1028,9 @@ model ReporterRun {
   blockers          ReporterBlocker[]
   drafts            ReporterDraft[]
   validationIssues  ReporterValidationIssue[]
+  agentTasks        ReporterAgentTask[]
+  agentTraces       ReporterAgentTrace[]
+  claims            ReporterClaim[]
   interviewRequests ReporterInterviewRequest[]
 
   @@index([communityId, status])
@@ -964,6 +1070,7 @@ model ReporterSource {
   linkedEvent        Event?        @relation("reporterSourceEvent", fields: [linkedEventId], references: [id], onDelete: SetNull)
   linkedOrganization Organization? @relation("reporterSourceOrganization", fields: [linkedOrganizationId], references: [id], onDelete: SetNull)
   linkedPlace        Place?        @relation("reporterSourcePlace", fields: [linkedPlaceId], references: [id], onDelete: SetNull)
+  claims            ReporterClaim[]
 
   @@index([reporterRunId, sortOrder])
   @@index([sourceType])
@@ -1036,6 +1143,188 @@ model ReporterValidationIssue {
   @@index([reporterRunId])
   @@index([reporterDraftId])
   @@map("reporter_validation_issues")
+}
+
+model ReporterAgentTask {
+  id              String                  @id @default(uuid()) @db.Uuid
+  reporterRunId   String?                 @db.Uuid
+  scopeKey        String?
+  taskType        ReporterAgentTaskType
+  status          ReporterAgentTaskStatus @default(PENDING)
+  priority        Int                     @default(50)
+  inputJson       Json?
+  outputJson      Json?
+  errorMessage    String?
+  attempts        Int                     @default(0)
+  maxAttempts     Int                     @default(3)
+  scheduledFor    DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  failedAt        DateTime?
+  cancelledAt     DateTime?
+  createdByUserId String?                 @db.Uuid
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  reporterRun ReporterRun?        @relation(fields: [reporterRunId], references: [id], onDelete: Cascade)
+  createdBy   User?               @relation("reporterAgentTaskCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  traces      ReporterAgentTrace[]
+
+  @@index([reporterRunId])
+  @@index([scopeKey])
+  @@index([taskType])
+  @@index([status])
+  @@index([scheduledFor])
+  @@map("reporter_agent_tasks")
+}
+
+model ReporterAgentTrace {
+  id                  String                 @id @default(uuid()) @db.Uuid
+  reporterRunId       String?                @db.Uuid
+  reporterAgentTaskId String?                @db.Uuid
+  traceType           ReporterAgentTraceType
+  provider            String?
+  modelName           String?
+  promptKey           String?
+  promptVersion       String?
+  promptHash          String?
+  inputHash           String?
+  inputSnapshotJson   Json?
+  rawOutputText       String?
+  parsedOutputJson    Json?
+  validationJson      Json?
+  latencyMs           Int?
+  tokenEstimate       Int?
+  wasSuccessful       Boolean?
+  errorMessage        String?
+  createdAt           DateTime               @default(now())
+
+  reporterRun       ReporterRun?       @relation(fields: [reporterRunId], references: [id], onDelete: Cascade)
+  reporterAgentTask ReporterAgentTask? @relation(fields: [reporterAgentTaskId], references: [id], onDelete: SetNull)
+
+  @@index([reporterRunId])
+  @@index([reporterAgentTaskId])
+  @@index([traceType])
+  @@index([createdAt])
+  @@map("reporter_agent_traces")
+}
+
+model ReporterClaim {
+  id                 String                           @id @default(uuid()) @db.Uuid
+  reporterRunId      String                           @db.Uuid
+  reporterSourceId   String?                          @db.Uuid
+  claimType          ReporterClaimType
+  claimText          String
+  sourceExcerpt      String?
+  attribution        String?
+  confidence         ReporterClaimConfidence          @default(UNKNOWN)
+  verificationStatus ReporterClaimVerificationStatus  @default(UNREVIEWED)
+  createdBy          ReporterClaimCreatedBy
+  createdByUserId    String?                          @db.Uuid
+  createdAt          DateTime                         @default(now())
+  updatedAt          DateTime                         @updatedAt
+
+  reporterRun    ReporterRun    @relation(fields: [reporterRunId], references: [id], onDelete: Cascade)
+  reporterSource ReporterSource? @relation(fields: [reporterSourceId], references: [id], onDelete: SetNull)
+  createdByUser  User?          @relation("reporterClaimCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([reporterRunId])
+  @@index([reporterSourceId])
+  @@index([claimType])
+  @@index([verificationStatus])
+  @@map("reporter_claims")
+}
+
+model ReporterMonitoredSource {
+  id                 String                        @id @default(uuid()) @db.Uuid
+  communityId        String                        @db.Uuid
+  placeId            String?                       @db.Uuid
+  organizationId     String?                       @db.Uuid
+  createdByUserId    String?                       @db.Uuid
+  label              String
+  sourceType         ReporterMonitoredSourceType
+  sourceFormat       ReporterMonitoredSourceFormat
+  url                String
+  publisher          String?
+  notes              String?
+  status             ReporterMonitoredSourceStatus @default(ACTIVE)
+  fetchFrequencyMinutes Int                        @default(1440)
+  lastFetchedAt      DateTime?
+  lastSuccessfulAt   DateTime?
+  lastChangedAt      DateTime?
+  lastErrorAt        DateTime?
+  lastErrorMessage   String?
+  lastHttpStatus     Int?
+  lastETag           String?
+  lastModifiedHeader String?
+  createdAt          DateTime                      @default(now())
+  updatedAt          DateTime                      @updatedAt
+
+  community      Community                    @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  place          Place?                       @relation(fields: [placeId], references: [id], onDelete: SetNull)
+  organization   Organization?                @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  createdBy      User?                        @relation("reporterMonitoredSourceCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  fetches        ReporterSourceFetch[]
+  ingestionItems ReporterSourceIngestionItem[]
+
+  @@index([communityId, status])
+  @@index([placeId])
+  @@index([organizationId])
+  @@index([createdByUserId])
+  @@index([lastSuccessfulAt])
+  @@index([lastErrorAt])
+  @@map("reporter_monitored_sources")
+}
+
+model ReporterSourceFetch {
+  id                 String                   @id @default(uuid()) @db.Uuid
+  monitoredSourceId  String                   @db.Uuid
+  status             ReporterSourceFetchStatus
+  startedAt          DateTime                 @default(now())
+  completedAt        DateTime?
+  httpStatus         Int?
+  responseEtag       String?
+  responseLastModified String?
+  sourceFingerprint  String?
+  errorMessage       String?
+  itemCount          Int                      @default(0)
+  newItemCount       Int                      @default(0)
+  changedItemCount   Int                      @default(0)
+  createdAt          DateTime                 @default(now())
+
+  monitoredSource ReporterMonitoredSource @relation(fields: [monitoredSourceId], references: [id], onDelete: Cascade)
+
+  @@index([monitoredSourceId, startedAt])
+  @@index([status])
+  @@map("reporter_source_fetches")
+}
+
+model ReporterSourceIngestionItem {
+  id                String   @id @default(uuid()) @db.Uuid
+  monitoredSourceId String   @db.Uuid
+  dedupeKey         String
+  externalId        String?
+  canonicalUrl      String?
+  title             String
+  excerpt           String?
+  publishedAt       DateTime?
+  retrievedAt       DateTime?
+  firstSeenAt       DateTime @default(now())
+  lastSeenAt        DateTime @default(now())
+  publisher         String?
+  sourceFingerprint String?
+  contentText       String?
+  metadataJson      Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  monitoredSource ReporterMonitoredSource @relation(fields: [monitoredSourceId], references: [id], onDelete: Cascade)
+
+  @@unique([monitoredSourceId, dedupeKey])
+  @@index([monitoredSourceId, publishedAt])
+  @@index([monitoredSourceId, lastSeenAt])
+  @@index([canonicalUrl])
+  @@map("reporter_source_ingestion_items")
 }
 
 model ReporterInterviewRequest {
@@ -2387,6 +2676,8 @@ enum ResourceType {
   REPORTER_RUN
   REPORTER_DRAFT
   REPORTER_INTERVIEW_REQUEST
+  REPORTER_MONITORED_SOURCE
+  REPORTER_SOURCE_FETCH
   RECIPE
   COMMENT
   EVENT

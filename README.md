@@ -299,6 +299,34 @@ Recommended allowed origins / app domains:
 6. After redeploy, test credentials login and Google login on `https://highlander.today/login`.
 7. Verify each successful login creates or reuses the expected user record and records a `LoginEvent` / anomaly audit trail in production.
 
+## Reporter Source Scheduler
+
+Reporter monitored-source fetching now includes a Vercel cron wiring path for the seeded `highlander-today` community.
+
+Production scheduler variables:
+
+```env
+CRON_SECRET=<strong-random-secret>
+REPORTER_SCHEDULER_TOKEN=<optional-secondary-bearer-token>
+```
+
+Notes:
+
+- Vercel cron jobs invoke route handlers with `GET`, not `POST`.
+- Vercel automatically sends `Authorization: Bearer <CRON_SECRET>` when `CRON_SECRET` is configured in the project environment.
+- The repo now includes [vercel.json](/Users/dennisdestjeor/work/highlander-today/vercel.json), which schedules `/api/admin/reporter/monitored-sources/run-due/highlander-today` once per day at `10:15 UTC`. That daily cadence is intentional because Vercel Hobby plans only allow once-per-day cron execution.
+- The route still accepts `REPORTER_SCHEDULER_TOKEN` for non-Vercel or manual bearer-token callers, but Vercel production cron should use `CRON_SECRET`.
+
+Operator sequence:
+
+1. Set `CRON_SECRET` in the Vercel production environment.
+2. Optionally set `REPORTER_SCHEDULER_TOKEN` if you also want to trigger the same route from another scheduler or manual bearer-token client.
+3. Redeploy so Vercel registers the cron from `vercel.json`.
+4. In Vercel Project Settings, confirm the cron job appears for `/api/admin/reporter/monitored-sources/run-due/highlander-today`.
+5. Verify the monitored-source registry in `/admin/reporter/sources` after the first scheduled production run.
+
+If you upgrade to a Vercel plan that supports more frequent cron execution, you can tighten the schedule in `vercel.json` without changing the reporter fetcher itself.
+
 ## Login Geolocation
 
 Login anomaly logging now expects MaxMind credentials for public-IP geolocation:
