@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Highlander Today Reporter User Manual</title>
+    <style>
+      :root {
+        --bg: #f4f6f8;
+        --paper: #ffffff;
+        --ink: #193044;
+        --muted: #587187;
+        --line: #d8e1e8;
+        --brand: #12436b;
+        --brand-deep: #0c2f4b;
+        --accent: #8f1d2c;
+        --accent-soft: #f8e6e9;
+        --brand-soft: #eaf2f8;
+        --success-soft: #e8f4eb;
+        --warning-soft: #fff3dd;
+        --shadow: 0 24px 80px rgba(18, 67, 107, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at top left, rgba(143, 29, 44, 0.08), transparent 28rem),
+          radial-gradient(circle at top right, rgba(18, 67, 107, 0.12), transparent 32rem),
+          var(--bg);
+        color: var(--ink);
+        font:
+          16px/1.65 "Georgia",
+          "Iowan Old Style",
+          "Palatino Linotype",
+          "Book Antiqua",
+          serif;
+      }
+
+      a {
+        color: var(--brand);
+      }
+
+      .page {
+        width: min(1120px, calc(100% - 2rem));
+        margin: 2rem auto 4rem;
+      }
+
+      .hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 32px;
+        padding: 3rem;
+        background:
+          linear-gradient(140deg, rgba(12, 47, 75, 0.98), rgba(18, 67, 107, 0.94)),
+          var(--brand);
+        color: #fff;
+        box-shadow: var(--shadow);
+      }
+
+      .hero::after {
+        content: "";
+        position: absolute;
+        inset: auto -8rem -8rem auto;
+        width: 20rem;
+        height: 20rem;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .eyebrow {
+        margin: 0 0 0.75rem;
+        font:
+          700 0.76rem/1.2 "Arial",
+          sans-serif;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.72);
+      }
+
+      h1 {
+        margin: 0;
+        max-width: 12ch;
+        font-size: clamp(2.4rem, 6vw, 4.3rem);
+        line-height: 0.95;
+        letter-spacing: -0.05em;
+      }
+
+      .hero p {
+        max-width: 46rem;
+        margin: 1.2rem 0 0;
+        font-size: 1.05rem;
+        color: rgba(255, 255, 255, 0.86);
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: 1.6fr 1fr;
+        gap: 2rem;
+        align-items: end;
+      }
+
+      .hero-card {
+        position: relative;
+        z-index: 1;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 24px;
+        padding: 1.2rem 1.25rem;
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(8px);
+      }
+
+      .hero-card h2 {
+        margin: 0 0 0.6rem;
+        font:
+          700 0.9rem/1.2 "Arial",
+          sans-serif;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .hero-card ul {
+        margin: 0;
+        padding-left: 1.1rem;
+      }
+
+      .hero-card li {
+        margin: 0.3rem 0;
+        color: rgba(255, 255, 255, 0.86);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+      }
+
+      .toc {
+        position: sticky;
+        top: 1rem;
+        align-self: start;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        padding: 1.25rem;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 14px 40px rgba(25, 48, 68, 0.06);
+      }
+
+      .toc h2 {
+        margin: 0 0 0.8rem;
+        font:
+          700 0.9rem/1.2 "Arial",
+          sans-serif;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--brand);
+      }
+
+      .toc ol {
+        margin: 0;
+        padding-left: 1.15rem;
+      }
+
+      .toc li {
+        margin: 0.5rem 0;
+      }
+
+      .toc a {
+        text-decoration: none;
+        color: var(--ink);
+      }
+
+      .toc a:hover {
+        color: var(--accent);
+      }
+
+      .content {
+        display: grid;
+        gap: 1.25rem;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 30px;
+        padding: 1.75rem;
+        background: var(--paper);
+        box-shadow: 0 12px 32px rgba(25, 48, 68, 0.05);
+      }
+
+      .card h2 {
+        margin: 0 0 0.9rem;
+        color: var(--brand-deep);
+        font-size: 1.75rem;
+        line-height: 1.1;
+        letter-spacing: -0.03em;
+      }
+
+      .card h3 {
+        margin: 1.25rem 0 0.55rem;
+        color: var(--ink);
+        font-size: 1.1rem;
+      }
+
+      .card p {
+        margin: 0.65rem 0;
+      }
+
+      .card ul,
+      .card ol {
+        margin: 0.5rem 0 0.8rem;
+        padding-left: 1.2rem;
+      }
+
+      .card li {
+        margin: 0.28rem 0;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        margin-top: 1rem;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 0.45rem 0.8rem;
+        background: var(--brand-soft);
+        color: var(--brand-deep);
+        font:
+          700 0.78rem/1.2 "Arial",
+          sans-serif;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .note,
+      .tip,
+      .warning {
+        border-radius: 22px;
+        padding: 1rem 1.1rem;
+        margin: 1rem 0;
+      }
+
+      .note {
+        background: var(--brand-soft);
+      }
+
+      .tip {
+        background: var(--success-soft);
+      }
+
+      .warning {
+        background: var(--warning-soft);
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+
+      .mini {
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        padding: 1rem;
+        background: #fbfcfd;
+      }
+
+      .mini h4 {
+        margin: 0 0 0.45rem;
+        font-size: 1rem;
+        color: var(--brand-deep);
+      }
+
+      .route {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 0.24rem 0.65rem;
+        background: #eef3f7;
+        color: var(--brand-deep);
+        font:
+          700 0.78rem/1.2 "Courier New",
+          monospace;
+      }
+
+      .footer {
+        margin-top: 1.5rem;
+        border-radius: 28px;
+        padding: 1.4rem 1.6rem;
+        background: linear-gradient(180deg, #fff, #f7fafc);
+        border: 1px solid var(--line);
+        color: var(--muted);
+      }
+
+      @media (max-width: 960px) {
+        .hero-grid,
+        .layout,
+        .split {
+          grid-template-columns: 1fr;
+        }
+
+        .toc {
+          position: static;
+        }
+
+        .hero {
+          padding: 2rem;
+        }
+      }
+
+      @media print {
+        body {
+          background: #fff;
+        }
+
+        .page {
+          width: 100%;
+          margin: 0;
+        }
+
+        .toc {
+          position: static;
+        }
+
+        .hero,
+        .card,
+        .footer,
+        .toc {
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <div class="hero-grid">
+          <div>
+            <p class="eyebrow">Highlander Today</p>
+            <h1>Reporter User Manual</h1>
+            <p>
+              This guide explains the live Highlander Today Reporter system in
+              plain, relatable language. It is written for newsroom staff,
+              interview participants, and support-minded users who need to
+              understand how the entire reporting workflow works without reading
+              technical plans or code.
+            </p>
+          </div>
+          <aside class="hero-card">
+            <h2>What This Covers</h2>
+            <ul>
+              <li>Public story tips and article requests</li>
+              <li>Internal newsroom run management</li>
+              <li>Guided interviews in the browser</li>
+              <li>Sources, blockers, analysis, drafts, and conversion</li>
+              <li>Monitored public-interest sources</li>
+            </ul>
+          </aside>
+        </div>
+      </header>
+
+      <div class="layout">
+        <nav class="toc" aria-label="Table of contents">
+          <h2>Contents</h2>
+          <ol>
+            <li><a href="#overview">What The Reporter System Is</a></li>
+            <li><a href="#public-tips">Public Story Tips</a></li>
+            <li><a href="#main-admin">Main Reporter Admin Page</a></li>
+            <li><a href="#run-detail">Reporter Run Detail Page</a></li>
+            <li><a href="#tabs">Run Tabs Explained</a></li>
+            <li><a href="#interviewee">Interview Experience</a></li>
+            <li><a href="#sources-monitor">Monitored Sources</a></li>
+            <li><a href="#workflow">Recommended Workflow</a></li>
+            <li><a href="#common">Common Situations</a></li>
+            <li><a href="#limits">Important Limits</a></li>
+            <li><a href="#best-practices">Best Practices</a></li>
+          </ol>
+        </nav>
+
+        <main class="content">
+          <section class="card" id="overview">
+            <h2>What The Reporter System Is</h2>
+            <p>
+              The Reporter system is Highlander Today’s internal newsroom
+              workflow for turning story ideas, tips, interviews, and source
+              material into reviewable reporting work.
+            </p>
+            <div class="warning">
+              <strong>Important rule:</strong> the system can help organize
+              material, summarize material, and draft from supplied material,
+              but a human still reviews the result before anything becomes a
+              published article.
+            </div>
+            <div class="pill-row">
+              <span class="pill">Public Intake</span>
+              <span class="pill">Newsroom Review</span>
+              <span class="pill">Guided Interviews</span>
+              <span class="pill">Draft Support</span>
+              <span class="pill">Source Monitoring</span>
+            </div>
+          </section>
+
+          <section class="card" id="public-tips">
+            <h2>Public Story Tips</h2>
+            <p>
+              Public users submit story ideas through
+              <span class="route">/report-a-story</span>.
+            </p>
+            <h3>What the form asks for</h3>
+            <ul>
+              <li>Topic</li>
+              <li>Who Is Involved</li>
+              <li>What Happened</li>
+              <li>Where Did It Happen</li>
+              <li>When Did It Happen</li>
+              <li>Why It Matters</li>
+              <li>Supporting Links</li>
+              <li>Additional Notes</li>
+              <li>Name, email, and phone</li>
+            </ul>
+            <div class="tip">
+              <strong>Best submissions are concrete.</strong> Names, dates,
+              places, links, and why the story matters locally are far more
+              useful than a vague complaint or rumor.
+            </div>
+            <p>
+              Submitting this form creates a reporter run for internal review.
+              It does not publish an article automatically.
+            </p>
+          </section>
+
+          <section class="card" id="main-admin">
+            <h2>Main Reporter Admin Page</h2>
+            <p>
+              Internal users begin in
+              <span class="route">/admin/reporter</span>.
+            </p>
+            <p>
+              This page is the main newsroom queue for reviewing and creating
+              reporter runs.
+            </p>
+            <div class="split">
+              <div class="mini">
+                <h4>What staff can do here</h4>
+                <ul>
+                  <li>Search and filter runs</li>
+                  <li>Create a run manually</li>
+                  <li>Review status and assignee</li>
+                  <li>Open the interview queue</li>
+                  <li>Jump to Source Monitor or Public Intake</li>
+                </ul>
+              </div>
+              <div class="mini">
+                <h4>Common run statuses</h4>
+                <ul>
+                  <li><strong>NEW:</strong> just entered the system</li>
+                  <li><strong>NEEDS_REVIEW:</strong> needs newsroom shaping</li>
+                  <li><strong>SOURCE_PACKET_IN_PROGRESS:</strong> material still being assembled</li>
+                  <li><strong>READY_FOR_DRAFT:</strong> enough material may exist to draft</li>
+                  <li><strong>BLOCKED:</strong> something important is missing</li>
+                  <li><strong>DRAFT_CREATED:</strong> at least one draft exists</li>
+                </ul>
+              </div>
+            </div>
+            <div class="note">
+              A <strong>reporter run</strong> is one reporting job. Think of it
+              as the working folder for one story effort.
+            </div>
+          </section>
+
+          <section class="card" id="run-detail">
+            <h2>Reporter Run Detail Page</h2>
+            <p>
+              Each run opens in
+              <span class="route">/admin/reporter/[id]</span>.
+            </p>
+            <p>
+              This is the main operational page for a single story effort.
+            </p>
+            <h3>What staff see first</h3>
+            <ul>
+              <li>Run status</li>
+              <li>Assignee</li>
+              <li>Interview count</li>
+              <li>Source count</li>
+              <li>Open blocker count</li>
+              <li>Draft count</li>
+              <li>Agent task count</li>
+              <li>Claim count</li>
+            </ul>
+            <div class="warning">
+              <strong>Run Readiness</strong> is the fastest summary of what the
+              run still needs. It can tell staff whether the run is missing
+              sources, blocked, waiting for interview review, carrying
+              validation issues, or ready for draft.
+            </div>
+          </section>
+
+          <section class="card" id="tabs">
+            <h2>Run Tabs Explained</h2>
+            <div class="pill-row">
+              <span class="pill">Details</span>
+              <span class="pill">Interviews</span>
+              <span class="pill">Sources</span>
+              <span class="pill">Blockers</span>
+              <span class="pill">Analysis</span>
+              <span class="pill">Drafts</span>
+              <span class="pill">Agent</span>
+            </div>
+
+            <h3>Details</h3>
+            <p>
+              Use this tab to manage the basic story frame: topic, title,
+              subject, status, assignee, request summary, and editor notes.
+            </p>
+
+            <h3>Interviews</h3>
+            <p>
+              Use this tab when the story needs direct answers from a person.
+              Staff can add interview requests, invite people, copy interview
+              links, reopen requests, review completed sessions, and mark them
+              reviewed.
+            </p>
+            <div class="tip">
+              Better interview setup produces a better interview. Purpose, what
+              must be learned, known context, and sensitivity notes all matter.
+            </div>
+
+            <h3>Sources</h3>
+            <p>
+              This tab is the source packet. Staff can add notes, links,
+              official documents, transcript excerpts, and assign a reliability
+              level to each source.
+            </p>
+
+            <h3>Blockers</h3>
+            <p>
+              Use blockers when the story cannot move forward safely or
+              responsibly, for example because corroboration is missing, the
+              timeframe is unclear, or a response is still pending.
+            </p>
+
+            <h3>Analysis</h3>
+            <p>
+              <strong>Generate Analysis</strong> creates an internal
+              source-packet summary. It helps staff understand what is already
+              in the packet before moving into drafting.
+            </p>
+
+            <h3>Drafts</h3>
+            <p>
+              <strong>Generate Draft</strong> creates an article draft from the
+              source packet. <strong>Convert</strong> turns that reporter draft
+              into a normal article draft for editing in the article workflow.
+            </p>
+            <div class="warning">
+              Draft generation can be blocked if there are no sources, open
+              blockers, or completed interview sessions that have not been
+              reviewed.
+            </div>
+
+            <h3>Agent</h3>
+            <p>
+              This tab is for advanced internal review. It includes triage,
+              internal agent tasks, agent traces, and reviewable claims with
+              verification states such as <em>Supported</em>,
+              <em>Needs Corroboration</em>, <em>Disputed</em>, and
+              <em>Rejected</em>.
+            </p>
+          </section>
+
+          <section class="card" id="interviewee">
+            <h2>Interview Experience For The Interviewee</h2>
+            <p>
+              Interview participants open
+              <span class="route">/interviews/[id]</span>.
+            </p>
+            <p>
+              The browser interview is structured. It starts when the
+              participant clicks <strong>Start Interview</strong>, confirms the
+              language, and then answers one question at a time.
+            </p>
+            <h3>What the participant is asked to do</h3>
+            <ul>
+              <li>Answer in detail</li>
+              <li>Include names, dates, places, and timeline</li>
+              <li>Separate personal knowledge from secondhand information</li>
+              <li>Say what is still uncertain</li>
+            </ul>
+            <div class="note">
+              After the interview is complete, the participant’s responses are
+              saved for internal newsroom review. Staff can then review the
+              summary, transcript, facts, and any safety flags.
+            </div>
+          </section>
+
+          <section class="card" id="sources-monitor">
+            <h2>Monitored Sources</h2>
+            <p>
+              The monitored-source tool lives at
+              <span class="route">/admin/reporter/sources</span>.
+            </p>
+            <p>
+              It helps staff track recurring public-interest sources such as
+              government pages, school pages, public notices, feeds, and other
+              repeating information sources.
+            </p>
+
+            <div class="split">
+              <div class="mini">
+                <h4>Main actions</h4>
+                <ul>
+                  <li><strong>Run Due Sources:</strong> manually run sources that are due right now</li>
+                  <li><strong>Fetch now:</strong> immediately fetch one source</li>
+                  <li><strong>Monitored Source:</strong> add a new watched source</li>
+                </ul>
+              </div>
+              <div class="mini">
+                <h4>Health labels</h4>
+                <ul>
+                  <li><strong>Healthy:</strong> working normally</li>
+                  <li><strong>Failing:</strong> latest fetches are breaking</li>
+                  <li><strong>Stale:</strong> expected updates are not appearing</li>
+                  <li><strong>New:</strong> recently added and still being proven</li>
+                  <li><strong>Paused:</strong> intentionally inactive</li>
+                  <li><strong>Archived:</strong> no longer part of active monitoring</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <section class="card" id="workflow">
+            <h2>Recommended Workflow</h2>
+            <ol>
+              <li>Create or receive a reporter run.</li>
+              <li>Review and sharpen it in Details.</li>
+              <li>Add or clean up the source packet in Sources.</li>
+              <li>Add blockers if anything important is missing.</li>
+              <li>Create interview requests if direct testimony is needed.</li>
+              <li>Review completed interviews and mark them reviewed.</li>
+              <li>Generate Analysis if the packet needs internal summarizing.</li>
+              <li>Generate a Draft when the run is ready.</li>
+              <li>Review validation issues and claims.</li>
+              <li>Convert the best draft into an article draft.</li>
+              <li>Finish editing in the regular article workflow.</li>
+            </ol>
+          </section>
+
+          <section class="card" id="common">
+            <h2>Common Situations</h2>
+            <h3>“We received a tip but it is vague.”</h3>
+            <p>
+              Clean up the topic, add a blocker if the story is unclear, and
+              create an interview request if follow-up is needed.
+            </p>
+
+            <h3>“We have plenty of links but no clear angle.”</h3>
+            <p>
+              Add the materials in Sources, set honest reliability levels, and
+              use Generate Analysis before moving into drafting.
+            </p>
+
+            <h3>“The interview is done, but the draft should wait.”</h3>
+            <p>
+              Make sure the completed session is reviewed and check whether any
+              blockers or major source gaps remain.
+            </p>
+
+            <h3>“A source monitor entry is failing.”</h3>
+            <p>
+              Check the latest error message, try Fetch now, verify the URL and
+              format, and pause or archive the source if it is no longer useful.
+            </p>
+          </section>
+
+          <section class="card" id="limits">
+            <h2>Important Limits</h2>
+            <ul>
+              <li>The reporter system does not publish automatically.</li>
+              <li>The interview tool is login-gated and staff-created.</li>
+              <li>The interview tool is not an unrestricted chatbot.</li>
+              <li>Draft generation depends on supplied material.</li>
+              <li>Open blockers and unreviewed interviews can stop drafting.</li>
+              <li>Monitored sources collect inputs. They do not approve publication.</li>
+            </ul>
+          </section>
+
+          <section class="card" id="best-practices">
+            <h2>Best Practices</h2>
+            <div class="split">
+              <div class="mini">
+                <h4>For tip submitters</h4>
+                <ul>
+                  <li>Be specific</li>
+                  <li>Include dates and places</li>
+                  <li>Include links if you have them</li>
+                  <li>Explain why local readers should care</li>
+                </ul>
+              </div>
+              <div class="mini">
+                <h4>For newsroom staff</h4>
+                <ul>
+                  <li>Keep run titles and topics clear</li>
+                  <li>Add source material before drafting</li>
+                  <li>Use blockers honestly</li>
+                  <li>Review interview output before relying on it</li>
+                  <li>Treat claims and validation issues as real checkpoints</li>
+                </ul>
+              </div>
+            </div>
+            <div class="tip">
+              The easiest way to think about the Reporter system is this:
+              <strong>tips come in, staff shape the run, interviews and sources
+              build the reporting packet, analysis and drafts help the newsroom,
+              and conversion hands the work into the normal article editor.</strong>
+            </div>
+          </section>
+        </main>
+      </div>
+
+      <footer class="footer">
+        Highlander Today Reporter User Manual. This page is intended as a
+        readable support document for the live reporter workflow and focuses on
+        practical use rather than internal implementation details.
+      </footer>
+    </div>
+  </body>
+</html>
