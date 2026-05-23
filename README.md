@@ -229,34 +229,6 @@ src/lib/
 - Production uploads now use Cloudflare R2 when the required env vars are configured
 - Local development still writes to `public/uploads/{context}/`
 
-### Production upload setup (Cloudflare R2)
-
-Production uploads are already live on Cloudflare R2 for `highlander.today`. The app uses these variables when production storage is configured:
-
-```env
-R2_ACCOUNT_ID=...
-R2_ACCESS_KEY_ID=...
-R2_SECRET_ACCESS_KEY=...
-R2_BUCKET_NAME=highlander-today
-R2_PUBLIC_URL=https://cdn.example.com
-```
-
-Operator sequence for a fresh environment:
-
-1. Create an R2 bucket for production uploads, for example `highlander-today`.
-2. Create an R2 API token with object read/write access scoped to that bucket and save the access key ID and secret.
-3. Attach a public custom domain to the bucket, for example `cdn.highlander-today.com`.
-4. Create the required DNS record in the authoritative DNS provider for the domain. For the live production setup, DNS is managed in Cloudflare.
-5. Add the five variables above to the Vercel production environment.
-6. Redeploy after saving the variables.
-7. Verify production uploads from any wired form and confirm the returned file URL uses the configured `R2_PUBLIC_URL` host rather than `/uploads/...`.
-
-Notes:
-
-- `R2_ACCOUNT_ID` is enough for the app to derive the S3-compatible endpoint automatically.
-- `R2_PUBLIC_URL` must be the final public asset base URL, not the private R2 API endpoint.
-- If production uploads return `Upload storage is not configured for production`, at least one required variable is missing in Vercel.
-
 ## Production Auth Setup
 
 The current launch auth surface is credentials plus Google OAuth on the final production domain:
@@ -269,6 +241,14 @@ GOOGLE_CLIENT_SECRET=...
 ```
 
 Set those values in the Vercel production environment, redeploy, and verify that the deployed app is serving auth from `https://highlander.today` rather than a preview or localhost URL.
+
+For the full Vercel operator setup, use [VERCEL.md](/Users/dennisdestjeor/work/highlander-today/VERCEL.md). That file is now the canonical reference for:
+
+- production environment variables
+- Google OAuth production settings
+- Cloudflare R2 upload setup
+- reporter scheduler / cron configuration
+- redeploy and verification steps
 
 For a repo-side preflight check, run:
 
@@ -288,44 +268,6 @@ Recommended allowed origins / app domains:
 
 - `https://highlander.today`
 - `https://www.highlander.today`
-
-### Operator checklist
-
-1. In Vercel Production env vars, confirm `NEXTAUTH_URL` is exactly `https://highlander.today`.
-2. Confirm `NEXTAUTH_SECRET` is present and does not differ across prod auth requests.
-3. Confirm the current Google client ID/secret in Vercel matches the rotated local values before testing production login.
-4. In Google Cloud Console, add `https://highlander.today` to Authorized JavaScript origins and `https://highlander.today/api/auth/callback/google` to Authorized redirect URIs.
-5. Keep Facebook OAuth deferred until Meta business verification is complete; it is not part of the current launch auth surface.
-6. After redeploy, test credentials login and Google login on `https://highlander.today/login`.
-7. Verify each successful login creates or reuses the expected user record and records a `LoginEvent` / anomaly audit trail in production.
-
-## Reporter Source Scheduler
-
-Reporter monitored-source fetching now includes a Vercel cron wiring path for the seeded `highlander-today` community.
-
-Production scheduler variables:
-
-```env
-CRON_SECRET=<strong-random-secret>
-REPORTER_SCHEDULER_TOKEN=<optional-secondary-bearer-token>
-```
-
-Notes:
-
-- Vercel cron jobs invoke route handlers with `GET`, not `POST`.
-- Vercel automatically sends `Authorization: Bearer <CRON_SECRET>` when `CRON_SECRET` is configured in the project environment.
-- The repo now includes [vercel.json](/Users/dennisdestjeor/work/highlander-today/vercel.json), which schedules `/api/admin/reporter/monitored-sources/run-due/highlander-today` once per day at `10:15 UTC`. That daily cadence is intentional because Vercel Hobby plans only allow once-per-day cron execution.
-- The route still accepts `REPORTER_SCHEDULER_TOKEN` for non-Vercel or manual bearer-token callers, but Vercel production cron should use `CRON_SECRET`.
-
-Operator sequence:
-
-1. Set `CRON_SECRET` in the Vercel production environment.
-2. Optionally set `REPORTER_SCHEDULER_TOKEN` if you also want to trigger the same route from another scheduler or manual bearer-token client.
-3. Redeploy so Vercel registers the cron from `vercel.json`.
-4. In Vercel Project Settings, confirm the cron job appears for `/api/admin/reporter/monitored-sources/run-due/highlander-today`.
-5. Verify the monitored-source registry in `/admin/reporter/sources` after the first scheduled production run.
-
-If you upgrade to a Vercel plan that supports more frequent cron execution, you can tighten the schedule in `vercel.json` without changing the reporter fetcher itself.
 
 ## Login Geolocation
 
