@@ -113,6 +113,90 @@ describe('reporter runs route', () => {
     expect(logActivityMock).toHaveBeenCalled();
   });
 
+  it('accepts explicit initial source seeds for multi-source story packets', async () => {
+    (prismaMock.reporterRun.create as any).mockImplementation(async (args: any) => ({
+      id: 'run-packet-1',
+      status: 'NEW',
+      mode: args.data.mode ?? 'REQUEST',
+      requestType: args.data.requestType ?? 'ARTICLE_REQUEST',
+      topic: args.data.topic,
+      title: args.data.title,
+      subjectName: args.data.subjectName,
+      requesterName: args.data.requesterName,
+      requesterEmail: args.data.requesterEmail,
+      requesterPhone: args.data.requesterPhone,
+      requestSummary: args.data.requestSummary,
+      editorNotes: args.data.editorNotes,
+      publicDescription: args.data.publicDescription,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      sources: args.data.sources.create.map((source: any, index: number) => ({
+        id: `source-${index + 1}`,
+        sourceType: source.sourceType,
+        title: source.title,
+        url: source.url,
+        contentText: source.contentText,
+        reliabilityTier: source.reliabilityTier,
+        sortOrder: source.sortOrder,
+      })),
+    }));
+
+    const response = await POST(
+      buildRequest('POST', {
+        mode: 'RESEARCH',
+        requestType: 'EDITOR_ASSIGNMENT',
+        topic: 'Downtown water advisory',
+        title: 'Downtown water advisory',
+        whatHappened: 'Several sources are reporting a water advisory affecting downtown residents.',
+        initialSources: [
+          {
+            sourceType: 'NEWS_ARTICLE',
+            title: 'Station article',
+            url: 'https://example.com/station-story',
+            excerpt: 'Officials advised residents to boil water.',
+            note: 'From monitored source: WJAC TV',
+            reliabilityTier: 'UNVERIFIED',
+          },
+          {
+            sourceType: 'OFFICIAL_URL',
+            title: 'Municipal notice',
+            url: 'https://borough.example/water-advisory',
+            excerpt: 'Borough notice confirms the advisory and affected streets.',
+            note: 'From monitored source: Borough notices',
+            reliabilityTier: 'PRIMARY',
+          },
+        ],
+      })
+    );
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toMatchObject({
+      id: 'run-packet-1',
+      topic: 'Downtown water advisory',
+    });
+    expect(prismaMock.reporterRun.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          sources: {
+            create: expect.arrayContaining([
+              expect.objectContaining({
+                sourceType: 'NEWS_ARTICLE',
+                title: 'Station article',
+                url: 'https://example.com/station-story',
+              }),
+              expect.objectContaining({
+                sourceType: 'OFFICIAL_URL',
+                title: 'Municipal notice',
+                url: 'https://borough.example/water-advisory',
+                reliabilityTier: 'PRIMARY',
+              }),
+            ]),
+          },
+        }),
+      })
+    );
+  });
+
   it('rejects anonymous creation without contact info', async () => {
     const response = await POST(
       buildRequest(

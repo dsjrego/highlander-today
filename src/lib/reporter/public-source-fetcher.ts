@@ -79,6 +79,10 @@ function maybeDate(value?: string | null) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function countWords(value: string) {
+  return value.split(/\s+/).filter(Boolean).length;
+}
+
 function extractFirstTagValue(block: string, tagNames: string[]) {
   for (const tagName of tagNames) {
     const match = block.match(new RegExp(`<${tagName}\\b[^>]*>([\\s\\S]*?)<\\/${tagName}>`, 'i'));
@@ -244,7 +248,131 @@ function extractMetaContent(html: string, name: string) {
   return null;
 }
 
+function isProbablyArticleTitle(title: string) {
+  const collapsed = collapseWhitespace(title);
+  if (collapsed.length < 18 || collapsed.length > 220) {
+    return false;
+  }
+
+  if (countWords(collapsed) < 3) {
+    return false;
+  }
+
+  const lowered = collapsed.toLowerCase();
+  const obviousNavLabels = [
+    'read more',
+    'click here',
+    'learn more',
+    'home',
+    'about us',
+    'contact us',
+    'privacy policy',
+    'sign up',
+    'log in',
+    'watch live',
+  ];
+
+  return !obviousNavLabels.includes(lowered);
+}
+
+function extractTimeFromContext(context: string) {
+  return maybeDate(
+    sanitizeText(
+      context.match(/<time\b[^>]*datetime=["']([^"']+)["'][^>]*>/i)?.[1] ||
+        context.match(/\b(?:published|updated)\b[^<]{0,80}?([A-Z][a-z]{2,8}\.? \d{1,2},? \d{4})/i)?.[1] ||
+        null
+    )
+  );
+}
+
+function extractParagraphExcerpt(context: string, title: string) {
+  const paragraphRegex = /<p\b[^>]*>([\s\S]*?)<\/p>/gi;
+
+  for (const match of context.matchAll(paragraphRegex)) {
+    const candidate = truncate(sanitizeText(match[1]), 2000);
+    if (!candidate) {
+      continue;
+    }
+
+    if (candidate === title) {
+      continue;
+    }
+
+    if (candidate.length < 40) {
+      continue;
+    }
+
+    return candidate;
+  }
+
+  return null;
+}
+
+function parseHtmlListingItems(
+  html: string,
+  baseUrl: string,
+  defaultPublisher?: string | null
+): ParsedIngestionItem[] {
+  const publisher =
+    sanitizeText(extractMetaContent(html, 'og:site_name')) || defaultPublisher || null;
+  const baseWithoutHash = resolveUrl(baseUrl, baseUrl);
+  const anchorRegex = /<a\b([^>]*)href=["']([^"']+)["']([^>]*)>([\s\S]*?)<\/a>/gi;
+  const items: ParsedIngestionItem[] = [];
+  const seenKeys = new Set<string>();
+
+  for (const match of html.matchAll(anchorRegex)) {
+    const href = resolveUrl(match[2], baseUrl);
+    const title = sanitizeText(match[4]);
+
+    if (!href || !title || !isProbablyArticleTitle(title)) {
+      continue;
+    }
+
+    if (
+      href.startsWith('javascript:') ||
+      href.startsWith('mailto:') ||
+      href === baseWithoutHash
+    ) {
+      continue;
+    }
+
+    const matchIndex = match.index || 0;
+    const contextStart = Math.max(0, matchIndex - 500);
+    const contextEnd = Math.min(html.length, matchIndex + match[0].length + 900);
+    const context = html.slice(contextStart, contextEnd);
+    const excerpt = extractParagraphExcerpt(context, title);
+    const publishedAt = extractTimeFromContext(context);
+    const dedupeKey = href;
+
+    if (seenKeys.has(dedupeKey)) {
+      continue;
+    }
+
+    seenKeys.add(dedupeKey);
+    items.push({
+      dedupeKey,
+      canonicalUrl: href,
+      title,
+      excerpt,
+      publishedAt,
+      publisher,
+      contentText: excerpt,
+      metadataJson: {
+        format: 'HTML',
+        extractionMode: 'listing',
+      },
+    });
+  }
+
+  return items;
+}
+
 function parseHtmlDocument(html: string, baseUrl: string, defaultPublisher?: string | null): ParsedIngestionItem[] {
+  const listingItems = parseHtmlListingItems(html, baseUrl, defaultPublisher);
+  if (listingItems.length >= 2) {
+    return listingItems;
+  }
+
   const title =
     sanitizeText(extractMetaContent(html, 'og:title')) ||
     sanitizeText(extractMetaContent(html, 'twitter:title')) ||
@@ -288,7 +416,10 @@ function parseHtmlDocument(html: string, baseUrl: string, defaultPublisher?: str
       publishedAt,
       publisher,
       contentText,
-      metadataJson: buildFormatMetadata('HTML'),
+      metadataJson: {
+        format: 'HTML',
+        extractionMode: 'document',
+      },
     },
   ];
 }

@@ -31,6 +31,43 @@ describe('normalizeReporterRunInput', () => {
     expect(result.topic).toBe('Water service was interrupted on Maple Avenue.');
   });
 
+  it('keeps explicit initial source seeds for multi-source packets', () => {
+    const result = normalizeReporterRunInput({
+      topic: 'Downtown water advisory',
+      initialSources: [
+        {
+          sourceType: 'NEWS_ARTICLE',
+          title: 'Station report',
+          url: 'https://example.com/station-report',
+          excerpt: 'Residents were told to boil water before use.',
+          note: 'From monitored source: WJAC TV',
+          reliabilityTier: 'UNVERIFIED',
+        },
+        {
+          sourceType: 'OFFICIAL_URL',
+          title: 'Borough advisory',
+          url: 'https://borough.example/advisory',
+          excerpt: 'The borough lists affected streets and pickup times.',
+          reliabilityTier: 'PRIMARY',
+        },
+      ],
+    });
+
+    expect(result.initialSources).toEqual([
+      expect.objectContaining({
+        sourceType: 'NEWS_ARTICLE',
+        title: 'Station report',
+        url: 'https://example.com/station-report',
+      }),
+      expect.objectContaining({
+        sourceType: 'OFFICIAL_URL',
+        title: 'Borough advisory',
+        url: 'https://borough.example/advisory',
+        reliabilityTier: 'PRIMARY',
+      }),
+    ]);
+  });
+
   it('throws when neither topic nor story description is present', () => {
     expect(() => normalizeReporterRunInput({ notes: 'Missing core topic' })).toThrow(
       'Reporter run requires a topic or story description'

@@ -157,6 +157,7 @@ export interface ReporterRunIntakePayload {
   notes?: string | null;
   editorNotes?: string | null;
   supportingLinks?: Array<string | null | undefined>;
+  initialSources?: Array<ReporterSourceSeedInput | null | undefined>;
   requesterName?: string | null;
   requesterEmail?: string | null;
   requesterPhone?: string | null;
@@ -186,6 +187,16 @@ export interface ReporterSourceSeed {
   excerpt: string | null;
   note: string | null;
   reliabilityTier: ReporterReliabilityTierValue;
+}
+
+export interface ReporterSourceSeedInput {
+  sourceType?: ReporterSourceTypeValue | null;
+  title?: string | null;
+  url?: string | null;
+  contentText?: string | null;
+  excerpt?: string | null;
+  note?: string | null;
+  reliabilityTier?: ReporterReliabilityTierValue | null;
 }
 
 export interface ReporterSourcePacketItem {

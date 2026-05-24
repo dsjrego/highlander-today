@@ -66,6 +66,34 @@ function buildInitialSources(payload: ReporterRunIntakePayload): ReporterSourceS
     });
   }
 
+  for (const source of payload.initialSources || []) {
+    if (!source) {
+      continue;
+    }
+
+    const sourceType = source.sourceType ?? REPORTER_SOURCE_TYPE.STAFF_NOTE;
+    const title = cleanString(source.title);
+    const url = cleanString(source.url);
+    const contentText = cleanString(source.contentText);
+    const excerpt = cleanString(source.excerpt);
+    const note = cleanString(source.note);
+    const reliabilityTier = source.reliabilityTier ?? REPORTER_RELIABILITY_TIER.UNVERIFIED;
+
+    if (!title && !url && !contentText && !excerpt && !note) {
+      continue;
+    }
+
+    sources.push({
+      sourceType,
+      title,
+      url: url && isLikelyUrl(url) ? url : null,
+      contentText,
+      excerpt,
+      note,
+      reliabilityTier,
+    });
+  }
+
   return sources;
 }
 

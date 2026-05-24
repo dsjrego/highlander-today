@@ -24,7 +24,7 @@ export default async function AdminReporterSourcesPage() {
     redirect('/admin/reporter');
   }
 
-  const [sources, coverageAreas] = await Promise.all([
+  const [sources, coverageAreas, reporterRuns] = await Promise.all([
     db.reporterMonitoredSource.findMany({
       where: {
         communityId: currentCommunity.id,
@@ -111,6 +111,22 @@ export default async function AdminReporterSourcesPage() {
         },
       },
     }),
+    db.reporterRun.findMany({
+      where: {
+        communityId: currentCommunity.id,
+        status: {
+          not: 'ARCHIVED',
+        },
+      },
+      orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+      take: 100,
+      select: {
+        id: true,
+        topic: true,
+        title: true,
+        status: true,
+      },
+    }),
   ]);
 
   return (
@@ -149,6 +165,7 @@ export default async function AdminReporterSourcesPage() {
           <ReporterMonitoredSourcesClient
             sources={sources}
             coveragePlaces={coverageAreas.map(({ place }) => place)}
+            reporterRuns={reporterRuns}
           />
         </div>
       </div>

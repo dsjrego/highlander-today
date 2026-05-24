@@ -132,4 +132,75 @@ describe('reporter public source fetcher', () => {
       })
     );
   });
+
+  it('extracts multiple article candidates from an HTML listing page', async () => {
+    (prismaMock.reporterMonitoredSource.findUnique as any).mockResolvedValue({
+      id: 'source-1',
+      label: 'WJAC local news',
+      communityId: 'community-1',
+      url: 'https://wjac.example/news/local',
+      sourceFormat: 'HTML',
+      publisher: 'WJAC',
+      status: 'ACTIVE',
+      lastETag: null,
+      lastModifiedHeader: null,
+    });
+
+    global.fetch = jest.fn(async () =>
+      new Response(
+        `<!doctype html>
+        <html>
+          <head>
+            <title>Local News | WJAC</title>
+            <meta property="og:site_name" content="WJAC" />
+          </head>
+          <body>
+            <main>
+              <article>
+                <a href="/news/local/bridge-project-approved">
+                  Bridge project approved after packed township meeting
+                </a>
+                <time datetime="2026-05-23T09:00:00Z"></time>
+                <p>Supervisors approved the first phase after residents raised traffic concerns.</p>
+              </article>
+              <article>
+                <a href="/news/local/school-board-budget-vote">
+                  School board budget vote set after weeks of public debate
+                </a>
+                <time datetime="2026-05-23T10:30:00Z"></time>
+                <p>District leaders scheduled a final vote following several crowded hearings.</p>
+              </article>
+            </main>
+          </body>
+        </html>`,
+        { status: 200 }
+      )
+    ) as any;
+
+    (recordReporterMonitoredSourceFetchMock as any).mockResolvedValue({
+      fetch: { id: 'fetch-4', status: 'SUCCESS' },
+      summary: { itemCount: 2, newItemCount: 2, changedItemCount: 0 },
+    });
+
+    await executeReporterMonitoredSourceFetch('source-1');
+
+    expect(recordReporterMonitoredSourceFetchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        monitoredSourceId: 'source-1',
+        status: 'SUCCESS',
+        items: [
+          expect.objectContaining({
+            canonicalUrl: 'https://wjac.example/news/local/bridge-project-approved',
+            title: 'Bridge project approved after packed township meeting',
+            publisher: 'WJAC',
+          }),
+          expect.objectContaining({
+            canonicalUrl: 'https://wjac.example/news/local/school-board-budget-vote',
+            title: 'School board budget vote set after weeks of public debate',
+            publisher: 'WJAC',
+          }),
+        ],
+      })
+    );
+  });
 });

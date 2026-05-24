@@ -25,6 +25,38 @@ const CreateReporterRunSchema = z.object({
   notes: z.string().trim().optional().nullable(),
   editorNotes: z.string().trim().optional().nullable(),
   supportingLinks: z.array(z.string().trim()).optional().default([]),
+  initialSources: z
+    .array(
+      z.object({
+        sourceType: z
+          .enum([
+            'USER_NOTE',
+            'STAFF_NOTE',
+            'INTERVIEW_NOTE',
+            'TRANSCRIPT_EXCERPT',
+            'DOCUMENT',
+            'OFFICIAL_URL',
+            'NEWS_ARTICLE',
+            'HIGHLANDER_ARTICLE',
+            'EVENT_RECORD',
+            'ORGANIZATION_RECORD',
+            'PLACE_RECORD',
+          ])
+          .optional()
+          .nullable(),
+        title: z.string().trim().optional().nullable(),
+        url: z.string().trim().optional().nullable(),
+        contentText: z.string().trim().optional().nullable(),
+        excerpt: z.string().trim().optional().nullable(),
+        note: z.string().trim().optional().nullable(),
+        reliabilityTier: z
+          .enum(['PRIMARY', 'HIGH', 'MEDIUM', 'LOW', 'UNVERIFIED'])
+          .optional()
+          .nullable(),
+      })
+    )
+    .optional()
+    .default([]),
   requesterName: z.string().trim().optional().nullable(),
   requesterEmail: z.string().trim().optional().nullable(),
   requesterPhone: z.string().trim().optional().nullable(),

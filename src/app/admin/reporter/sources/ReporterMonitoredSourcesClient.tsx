@@ -73,7 +73,42 @@ type ReporterMonitoredSourceRow = {
 interface ReporterMonitoredSourcesClientProps {
   sources: ReporterMonitoredSourceRow[];
   coveragePlaces: CoveragePlaceOption[];
+  reporterRuns: Array<{
+    id: string;
+    topic: string;
+    title: string | null;
+    status: string;
+  }>;
 }
+
+type AttachDialogState =
+  | {
+      source: ReporterMonitoredSourceRow;
+      item: ReporterMonitoredSourceRow['ingestionItems'][number];
+    }
+  | null;
+
+type MonitoredIngestionStoryItem = {
+  id: string;
+  title: string;
+  canonicalUrl: string | null;
+  publishedAt: string | Date | null;
+  firstSeenAt: string | Date;
+  lastSeenAt: string | Date;
+  publisher: string | null;
+  excerpt: string | null;
+  sourceId: string;
+  sourceLabel: string;
+  sourcePlaceName: string | null;
+};
+
+type StoryPacketCluster = {
+  id: string;
+  title: string;
+  items: MonitoredIngestionStoryItem[];
+  sourceCount: number;
+  latestAt: string | Date;
+};
 
 const STATUS_OPTIONS = ['ALL', ...REPORTER_MONITORED_SOURCE_STATUS_OPTIONS] as const;
 
@@ -87,6 +122,35 @@ const EMPTY_CREATE_FORM = {
   placeId: '',
   fetchFrequencyHours: '24',
 };
+
+const STORY_STOP_WORDS = new Set([
+  'a',
+  'an',
+  'and',
+  'are',
+  'as',
+  'at',
+  'be',
+  'by',
+  'for',
+  'from',
+  'in',
+  'into',
+  'is',
+  'it',
+  'its',
+  'of',
+  'on',
+  'or',
+  'that',
+  'the',
+  'their',
+  'this',
+  'to',
+  'was',
+  'will',
+  'with',
+]);
 
 function formatDateTime(value?: string | Date | null) {
   if (!value) {
@@ -138,9 +202,83 @@ function healthLabel(source: ReporterMonitoredSourceRow) {
   return formatReporterMonitoredSourceEnumLabel(getReporterMonitoredSourceHealth(source));
 }
 
+function normalizeStoryText(value: string | null | undefined) {
+  return (value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function tokenizeStoryText(value: string | null | undefined) {
+  return normalizeStoryText(value)
+    .split(' ')
+    .filter((token) => token.length >= 3 && !STORY_STOP_WORDS.has(token));
+}
+
+function buildStoryTokenSet(value: string | null | undefined) {
+  return new Set(tokenizeStoryText(value));
+}
+
+function scoreRunSimilarity(
+  item: ReporterMonitoredSourceRow['ingestionItems'][number],
+  run: { id: string; topic: string; title: string | null; status: string }
+) {
+  const itemTokens = buildStoryTokenSet(`${item.title} ${item.excerpt || ''}`);
+  const runTokens = buildStoryTokenSet(`${run.title || ''} ${run.topic}`);
+
+  if (itemTokens.size === 0 || runTokens.size === 0) {
+    return 0;
+  }
+
+  let overlap = 0;
+  for (const token of itemTokens) {
+    if (runTokens.has(token)) {
+      overlap += 1;
+    }
+  }
+
+  const itemTitle = normalizeStoryText(item.title);
+  const runTitle = normalizeStoryText(run.title || run.topic);
+  const titleBoost =
+    itemTitle && runTitle && (itemTitle.includes(runTitle) || runTitle.includes(itemTitle))
+      ? 2
+      : 0;
+
+  return overlap + titleBoost;
+}
+
+function scoreItemSimilarity(a: MonitoredIngestionStoryItem, b: MonitoredIngestionStoryItem) {
+  const aTokens = buildStoryTokenSet(`${a.title} ${a.excerpt || ''}`);
+  const bTokens = buildStoryTokenSet(`${b.title} ${b.excerpt || ''}`);
+
+  if (aTokens.size === 0 || bTokens.size === 0) {
+    return 0;
+  }
+
+  let overlap = 0;
+  for (const token of aTokens) {
+    if (bTokens.has(token)) {
+      overlap += 1;
+    }
+  }
+
+  const aTitle = normalizeStoryText(a.title);
+  const bTitle = normalizeStoryText(b.title);
+  const titleBoost =
+    aTitle && bTitle && (aTitle.includes(bTitle) || bTitle.includes(aTitle)) ? 2 : 0;
+
+  return overlap + titleBoost;
+}
+
+function getItemActivityTime(item: MonitoredIngestionStoryItem) {
+  return new Date(item.publishedAt || item.lastSeenAt || item.firstSeenAt).getTime();
+}
+
 export default function ReporterMonitoredSourcesClient({
   sources,
   coveragePlaces,
+  reporterRuns,
 }: ReporterMonitoredSourcesClientProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -158,8 +296,89 @@ export default function ReporterMonitoredSourcesClient({
   const [runningFetchSourceId, setRunningFetchSourceId] = useState<string | null>(null);
   const [runningDueSources, setRunningDueSources] = useState(false);
   const [creatingRunItemId, setCreatingRunItemId] = useState<string | null>(null);
+  const [creatingRunPacketId, setCreatingRunPacketId] = useState<string | null>(null);
+  const [attachDialog, setAttachDialog] = useState<AttachDialogState>(null);
+  const [selectedRunId, setSelectedRunId] = useState('');
+  const [attachingRunItemId, setAttachingRunItemId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+
+  const recentStoryItems = useMemo<MonitoredIngestionStoryItem[]>(() => {
+    return rows
+      .flatMap((source) =>
+        source.ingestionItems.map((item) => ({
+          ...item,
+          sourceId: source.id,
+          sourceLabel: source.label,
+          sourcePlaceName: source.place?.displayName || null,
+        }))
+      )
+      .sort((a, b) => getItemActivityTime(b) - getItemActivityTime(a));
+  }, [rows]);
+
+  const suggestedRunsByItemId = useMemo(() => {
+    const map = new Map<
+      string,
+      Array<{ id: string; topic: string; title: string | null; status: string; score: number }>
+    >();
+
+    for (const source of rows) {
+      for (const item of source.ingestionItems) {
+        const suggestions = reporterRuns
+          .map((run) => ({
+            ...run,
+            score: scoreRunSimilarity(item, run),
+          }))
+          .filter((run) => run.score >= 2)
+          .sort((a, b) => {
+            if (b.score !== a.score) {
+              return b.score - a.score;
+            }
+            return (a.title || a.topic).localeCompare(b.title || b.topic);
+          })
+          .slice(0, 3);
+
+        map.set(item.id, suggestions);
+      }
+    }
+
+    return map;
+  }, [reporterRuns, rows]);
+
+  const storyPackets = useMemo<StoryPacketCluster[]>(() => {
+    const remaining = [...recentStoryItems];
+    const clusters: StoryPacketCluster[] = [];
+
+    while (remaining.length > 0) {
+      const seed = remaining.shift()!;
+      const clusterItems = [seed];
+
+      for (let index = remaining.length - 1; index >= 0; index -= 1) {
+        const candidate = remaining[index];
+        const score = scoreItemSimilarity(seed, candidate);
+        if (score >= 3) {
+          clusterItems.push(candidate);
+          remaining.splice(index, 1);
+        }
+      }
+
+      const distinctSourceCount = new Set(clusterItems.map((item) => item.sourceId)).size;
+      if (clusterItems.length >= 2 && distinctSourceCount >= 2) {
+        clusterItems.sort((a, b) => getItemActivityTime(b) - getItemActivityTime(a));
+        clusters.push({
+          id: `packet-${seed.id}`,
+          title: clusterItems[0].title,
+          items: clusterItems,
+          sourceCount: distinctSourceCount,
+          latestAt: clusterItems[0].publishedAt || clusterItems[0].lastSeenAt,
+        });
+      }
+    }
+
+    return clusters
+      .sort((a, b) => new Date(b.latestAt).getTime() - new Date(a.latestAt).getTime())
+      .slice(0, 8);
+  }, [recentStoryItems]);
 
   function updateSearchParams(updates: Record<string, string | null>) {
     const next = new URLSearchParams(searchParams.toString());
@@ -413,6 +632,131 @@ export default function ReporterMonitoredSourcesClient({
     }
   }
 
+  async function handleCreateReporterRunFromPacket(packet: StoryPacketCluster) {
+    setCreatingRunPacketId(packet.id);
+    setError('');
+    setNotice('');
+
+    try {
+      const supportingLinks = Array.from(
+        new Set(packet.items.map((item) => item.canonicalUrl).filter(Boolean))
+      ) as string[];
+      const response = await fetch('/api/reporter/runs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mode: 'RESEARCH',
+          requestType: 'EDITOR_ASSIGNMENT',
+          topic: packet.title,
+          title: packet.title,
+          whatHappened:
+            packet.items
+              .map((item) => item.excerpt)
+              .filter(Boolean)
+              .slice(0, 3)
+              .join('\n\n') ||
+            `Multi-source story packet built from ${packet.sourceCount} monitored sources.`,
+          requestSummary: `Multi-source story packet detected from ${packet.sourceCount} monitored sources and ${packet.items.length} related items.`,
+          editorNotes: [
+            'Created from monitored-source story packet.',
+            ...packet.items.map(
+              (item) =>
+                `${item.sourceLabel}: ${item.title}${item.canonicalUrl ? ` (${item.canonicalUrl})` : ''}`
+            ),
+          ].join('\n'),
+          supportingLinks,
+          initialSources: packet.items.map((item) => ({
+            sourceType: item.canonicalUrl ? 'NEWS_ARTICLE' : 'STAFF_NOTE',
+            title: item.title,
+            url: item.canonicalUrl,
+            excerpt: item.excerpt,
+            contentText: item.excerpt,
+            note: `From monitored source: ${item.sourceLabel}`,
+            reliabilityTier: 'UNVERIFIED',
+          })),
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create reporter run from story packet');
+      }
+
+      router.push(`/admin/reporter/${data.id}?view=sources`);
+      router.refresh();
+    } catch (createRunError) {
+      setError(
+        createRunError instanceof Error
+          ? createRunError.message
+          : 'Failed to create reporter run from story packet'
+      );
+    } finally {
+      setCreatingRunPacketId(null);
+    }
+  }
+
+  function openAttachDialog(
+    source: ReporterMonitoredSourceRow,
+    item: ReporterMonitoredSourceRow['ingestionItems'][number]
+  ) {
+    const suggestedRunId = suggestedRunsByItemId.get(item.id)?.[0]?.id || '';
+    setAttachDialog({ source, item });
+    setSelectedRunId(suggestedRunId || reporterRuns[0]?.id || '');
+    setError('');
+    setNotice('');
+  }
+
+  async function handleAttachItemToExistingRun() {
+    if (!attachDialog || !selectedRunId) {
+      setError('Choose a reporter run first.');
+      return;
+    }
+
+    const { source, item } = attachDialog;
+    setAttachingRunItemId(item.id);
+    setError('');
+    setNotice('');
+
+    try {
+      const response = await fetch(`/api/reporter/runs/${selectedRunId}/sources`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sourceType: item.canonicalUrl ? 'NEWS_ARTICLE' : 'STAFF_NOTE',
+          title: item.title,
+          url: item.canonicalUrl,
+          publisher: item.publisher || source.publisher || '',
+          excerpt: item.excerpt || '',
+          contentText: item.excerpt || '',
+          note: `Attached from monitored source: ${source.label}`,
+          reliabilityTier: 'UNVERIFIED',
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to attach monitored source item to reporter run');
+      }
+
+      setAttachDialog(null);
+      setSelectedRunId('');
+      router.push(`/admin/reporter/${selectedRunId}?view=sources`);
+      router.refresh();
+    } catch (attachError) {
+      setError(
+        attachError instanceof Error
+          ? attachError.message
+          : 'Failed to attach monitored source item to reporter run'
+      );
+    } finally {
+      setAttachingRunItemId(null);
+    }
+  }
+
   const attentionCount = rows.filter((source) =>
     ['failing', 'stale', 'new'].includes(getReporterMonitoredSourceHealth(source))
   ).length;
@@ -448,6 +792,81 @@ export default function ReporterMonitoredSourcesClient({
       {notice ? (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           {notice}
+        </div>
+      ) : null}
+
+      {storyPackets.length > 0 ? (
+        <div className="rounded-[28px] border border-sky-200 bg-[linear-gradient(135deg,rgba(240,249,255,0.95),rgba(248,250,252,0.98))] px-5 py-5 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-700">
+                Story Packets
+              </div>
+              <h2 className="mt-1 text-lg font-black tracking-[-0.03em] text-slate-950">
+                Possible Multi-Source Stories
+              </h2>
+              <p className="mt-1 max-w-3xl text-sm text-slate-600">
+                These clusters group similar recent items across different monitored sources so
+                you can start one reporter run with a fuller source packet.
+              </p>
+            </div>
+            <div className="rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-sky-800">
+              {storyPackets.length} packet{storyPackets.length === 1 ? '' : 's'}
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            {storyPackets.map((packet) => (
+              <div
+                key={packet.id}
+                className="rounded-3xl border border-sky-100 bg-white px-4 py-4 shadow-sm"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-base font-bold text-slate-950">{packet.title}</div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      {packet.sourceCount} source{packet.sourceCount === 1 ? '' : 's'} •{' '}
+                      {packet.items.length} item{packet.items.length === 1 ? '' : 's'} • latest{' '}
+                      {formatDateTime(packet.latestAt)}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-sky-300 bg-sky-50 px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-700 shadow-sm transition hover:border-sky-600 hover:bg-sky-100 hover:text-sky-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={() => void handleCreateReporterRunFromPacket(packet)}
+                    disabled={creatingRunPacketId === packet.id}
+                  >
+                    {creatingRunPacketId === packet.id ? 'Creating…' : 'Create Run From Packet'}
+                  </button>
+                </div>
+
+                <div className="mt-3 space-y-2">
+                  {packet.items.slice(0, 4).map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-semibold text-slate-900">{item.title}</div>
+                          <div className="mt-1 text-xs text-slate-500">
+                            {item.sourceLabel}
+                            {item.sourcePlaceName ? ` • ${item.sourcePlaceName}` : ''}
+                          </div>
+                        </div>
+                        <div className="text-right text-xs text-slate-500">
+                          {formatDate(item.publishedAt)}
+                        </div>
+                      </div>
+                      {item.excerpt ? (
+                        <div className="mt-2 text-xs leading-5 text-slate-600">{item.excerpt}</div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       ) : null}
 
@@ -606,6 +1025,28 @@ export default function ReporterMonitoredSourcesClient({
                                   key={item.id}
                                   className="rounded-2xl border border-slate-200 bg-white px-3 py-3"
                                 >
+                                  {suggestedRunsByItemId.get(item.id)?.length ? (
+                                    <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2">
+                                      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-800">
+                                        Possible Existing Runs
+                                      </div>
+                                      <div className="mt-2 flex flex-wrap gap-2">
+                                        {suggestedRunsByItemId.get(item.id)!.map((run) => (
+                                          <button
+                                            key={run.id}
+                                            type="button"
+                                            className="inline-flex items-center rounded-full border border-amber-300 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-amber-800 shadow-sm transition hover:border-amber-500 hover:bg-amber-100"
+                                            onClick={() => {
+                                              setSelectedRunId(run.id);
+                                              openAttachDialog(source, item);
+                                            }}
+                                          >
+                                            {(run.title || run.topic).slice(0, 48)} • {run.status}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ) : null}
                                   <div className="flex flex-wrap items-start justify-between gap-2">
                                     <div className="min-w-0 flex-1">
                                       {item.canonicalUrl ? (
@@ -651,6 +1092,14 @@ export default function ReporterMonitoredSourcesClient({
                                       disabled={creatingRunItemId === item.id}
                                     >
                                       {creatingRunItemId === item.id ? 'Creating…' : 'Create Reporter Run'}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="inline-flex h-8 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-slate-50 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-700 shadow-sm transition hover:border-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                                      onClick={() => openAttachDialog(source, item)}
+                                      disabled={reporterRuns.length === 0}
+                                    >
+                                      Attach To Existing Run
                                     </button>
                                   </div>
                                 </div>
@@ -855,6 +1304,101 @@ export default function ReporterMonitoredSourcesClient({
             {isCreating ? 'Saving…' : 'Create Source'}
           </button>
         </form>
+      </AdminDrawer>
+
+      <AdminDrawer title="Attach To Existing Reporter Run">
+        {attachDialog ? (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
+              <div className="font-semibold text-slate-900">{attachDialog.item.title}</div>
+              <div className="mt-1 text-xs text-slate-500">
+                From monitored source: {attachDialog.source.label}
+              </div>
+              {attachDialog.item.excerpt ? (
+                <div className="mt-2 text-xs leading-5 text-slate-600">
+                  {attachDialog.item.excerpt}
+                </div>
+              ) : null}
+            </div>
+
+            {reporterRuns.length === 0 ? (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                There are no open reporter runs to attach this item to.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {attachDialog && suggestedRunsByItemId.get(attachDialog.item.id)?.length ? (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-800">
+                      Suggested Runs
+                    </div>
+                    <div className="mt-2 space-y-2">
+                      {suggestedRunsByItemId.get(attachDialog.item.id)!.map((run) => (
+                        <label
+                          key={run.id}
+                          className="flex cursor-pointer items-start gap-3 rounded-2xl border border-amber-200 bg-white px-3 py-3"
+                        >
+                          <input
+                            type="radio"
+                            name="suggested-run"
+                            checked={selectedRunId === run.id}
+                            onChange={() => setSelectedRunId(run.id)}
+                          />
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold text-slate-900">
+                              {run.title || run.topic}
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              {run.status} • similarity score {run.score}
+                            </div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                <label className="admin-list-filter">
+                  <span className="admin-list-filter-label">Reporter Run</span>
+                  <select
+                    value={selectedRunId}
+                    onChange={(event) => setSelectedRunId(event.target.value)}
+                    className="form-input"
+                  >
+                    {reporterRuns.map((run) => (
+                      <option key={run.id} value={run.id}>
+                        {(run.title || run.topic).slice(0, 100)} • {run.status}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between gap-3">
+              <button
+                type="button"
+                className="admin-list-cell-button"
+                onClick={() => {
+                  setAttachDialog(null);
+                  setSelectedRunId('');
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="page-header-action"
+                onClick={() => void handleAttachItemToExistingRun()}
+                disabled={!selectedRunId || attachingRunItemId === attachDialog.item.id}
+              >
+                {attachingRunItemId === attachDialog.item.id ? 'Attaching…' : 'Attach To Run'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="text-sm text-slate-500">Select an item first.</div>
+        )}
       </AdminDrawer>
     </div>
   );
