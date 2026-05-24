@@ -135,8 +135,10 @@ export const prismaMock = {
   },
   reporterSourceIngestionItem: {
     create: jest.fn(),
+    findFirst: jest.fn(),
     findMany: jest.fn(),
     update: jest.fn(),
+    delete: jest.fn(),
     deleteMany: jest.fn(),
   },
   reporterInterviewRequest: {

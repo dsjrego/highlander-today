@@ -451,6 +451,7 @@ export default function ReporterMonitoredSourcesClient({
   const [runningDueSources, setRunningDueSources] = useState(false);
   const [creatingRunItemId, setCreatingRunItemId] = useState<string | null>(null);
   const [creatingRunPacketId, setCreatingRunPacketId] = useState<string | null>(null);
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [attachDialog, setAttachDialog] = useState<AttachDialogState>(null);
   const [selectedRunId, setSelectedRunId] = useState('');
   const [attachingRunItemId, setAttachingRunItemId] = useState<string | null>(null);
@@ -938,6 +939,63 @@ export default function ReporterMonitoredSourcesClient({
       );
     } finally {
       setCreatingRunPacketId(null);
+    }
+  }
+
+  async function handleDeleteIngestionItem(
+    source: ReporterMonitoredSourceRow,
+    item: ReporterMonitoredSourceRow['ingestionItems'][number]
+  ) {
+    if (!window.confirm(`Delete "${item.title}" from monitored-source results?`)) {
+      return;
+    }
+
+    setDeletingItemId(item.id);
+    setError('');
+    setNotice('');
+
+    try {
+      const response = await fetch(
+        `/api/admin/reporter/monitored-sources/${source.id}/items/${item.id}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete monitored source item');
+      }
+
+      setRows((current) =>
+        current.map((row) =>
+          row.id !== source.id
+            ? row
+            : {
+                ...row,
+                ingestionItems: row.ingestionItems.filter((candidate) => candidate.id !== item.id),
+                _count: {
+                  ...row._count,
+                  ingestionItems: Math.max(0, row._count.ingestionItems - 1),
+                },
+              }
+        )
+      );
+
+      if (attachDialog?.item.id === item.id) {
+        setAttachDialog(null);
+        setSelectedRunId('');
+      }
+
+      setNotice(`Deleted monitored-source item: ${item.title}`);
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : 'Failed to delete monitored source item'
+      );
+    } finally {
+      setDeletingItemId(null);
     }
   }
 
@@ -1463,6 +1521,14 @@ export default function ReporterMonitoredSourcesClient({
                                       disabled={reporterRuns.length === 0}
                                     >
                                       Attach To Existing Run
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="inline-flex h-8 shrink-0 items-center justify-center rounded-full border border-red-300 bg-red-50 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-red-700 shadow-sm transition hover:border-red-600 hover:bg-red-100 hover:text-red-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                      onClick={() => void handleDeleteIngestionItem(source, item)}
+                                      disabled={deletingItemId === item.id}
+                                    >
+                                      {deletingItemId === item.id ? 'Deleting…' : 'Delete'}
                                     </button>
                                   </div>
                                 </div>

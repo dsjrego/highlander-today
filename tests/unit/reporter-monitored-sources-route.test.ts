@@ -37,11 +37,12 @@ const collectionRoute = require('@/app/api/admin/reporter/monitored-sources/rout
 const itemRoute = require('@/app/api/admin/reporter/monitored-sources/[id]/route') as typeof import('@/app/api/admin/reporter/monitored-sources/[id]/route');
 const fetchRoute = require('@/app/api/admin/reporter/monitored-sources/[id]/record-fetch/route') as typeof import('@/app/api/admin/reporter/monitored-sources/[id]/record-fetch/route');
 const runFetchRoute = require('@/app/api/admin/reporter/monitored-sources/[id]/run-fetch/route') as typeof import('@/app/api/admin/reporter/monitored-sources/[id]/run-fetch/route');
+const itemDeleteRoute = require('@/app/api/admin/reporter/monitored-sources/[id]/items/[itemId]/route') as typeof import('@/app/api/admin/reporter/monitored-sources/[id]/items/[itemId]/route');
 const runDueRoute = require('@/app/api/admin/reporter/monitored-sources/run-due/route') as typeof import('@/app/api/admin/reporter/monitored-sources/run-due/route');
 const runDueCommunityRoute = require('@/app/api/admin/reporter/monitored-sources/run-due/[communitySlug]/route') as typeof import('@/app/api/admin/reporter/monitored-sources/run-due/[communitySlug]/route');
 
 function buildRequest(
-  method: 'GET' | 'POST' | 'PATCH',
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
   url: string,
   body?: unknown,
   headers?: Record<string, string>
@@ -179,6 +180,42 @@ describe('reporter monitored source routes', () => {
         status: 'PAUSED',
       }),
     });
+  });
+
+  it('deletes a monitored-source ingestion item', async () => {
+    (prismaMock.reporterMonitoredSource.findUnique as any).mockResolvedValue({
+      id: 'source-1',
+      communityId: 'community-1',
+    });
+    (prismaMock.reporterSourceIngestionItem.findFirst as any).mockResolvedValue({
+      id: 'item-1',
+      title: 'Bridge project approved',
+      canonicalUrl: 'https://example.com/bridge-project',
+    });
+    (prismaMock.reporterSourceIngestionItem.delete as any).mockResolvedValue({
+      id: 'item-1',
+    });
+
+    const response = await itemDeleteRoute.DELETE(
+      buildRequest(
+        'DELETE',
+        'http://localhost/api/admin/reporter/monitored-sources/source-1/items/item-1'
+      ),
+      { params: { id: 'source-1', itemId: 'item-1' } }
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ success: true });
+    expect(prismaMock.reporterSourceIngestionItem.delete).toHaveBeenCalledWith({
+      where: { id: 'item-1' },
+    });
+    expect(logActivityMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'DELETE',
+        resourceType: 'REPORTER_MONITORED_SOURCE',
+        resourceId: 'source-1',
+      })
+    );
   });
 
   it('records a monitored-source fetch result', async () => {
