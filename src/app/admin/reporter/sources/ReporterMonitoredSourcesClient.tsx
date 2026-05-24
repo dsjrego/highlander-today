@@ -15,6 +15,10 @@ import {
   formatReporterMonitoredSourceEnumLabel,
   getReporterMonitoredSourceHealth,
 } from '@/lib/reporter/monitored-sources';
+import {
+  findReporterTenantKeywordMatches,
+  parseReporterTenantKeywords,
+} from '@/lib/reporter/tenant-keywords';
 
 type CoveragePlaceOption = {
   id: string;
@@ -79,6 +83,7 @@ interface ReporterMonitoredSourcesClientProps {
     title: string | null;
     status: string;
   }>;
+  tenantKeywordsText: string;
 }
 
 type AttachDialogState =
@@ -108,6 +113,7 @@ type StoryPacketCluster = {
   items: MonitoredIngestionStoryItem[];
   sourceCount: number;
   latestAt: string | Date;
+  matchedKeywords: string[];
 };
 
 const STATUS_OPTIONS = ['ALL', ...REPORTER_MONITORED_SOURCE_STATUS_OPTIONS] as const;
@@ -279,6 +285,7 @@ export default function ReporterMonitoredSourcesClient({
   sources,
   coveragePlaces,
   reporterRuns,
+  tenantKeywordsText: initialTenantKeywordsText,
 }: ReporterMonitoredSourcesClientProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -287,6 +294,7 @@ export default function ReporterMonitoredSourcesClient({
 
   const [rows, setRows] = useState(sources);
   const [query, setQuery] = useState('');
+  const [tenantKeywordsText, setTenantKeywordsText] = useState(initialTenantKeywordsText);
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_OPTIONS)[number]>('ALL');
   const [typeFilter, setTypeFilter] = useState('all');
   const [createForm, setCreateForm] = useState(EMPTY_CREATE_FORM);
@@ -300,8 +308,14 @@ export default function ReporterMonitoredSourcesClient({
   const [attachDialog, setAttachDialog] = useState<AttachDialogState>(null);
   const [selectedRunId, setSelectedRunId] = useState('');
   const [attachingRunItemId, setAttachingRunItemId] = useState<string | null>(null);
+  const [isSavingTenantKeywords, setIsSavingTenantKeywords] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+
+  const tenantKeywords = useMemo(
+    () => parseReporterTenantKeywords(tenantKeywordsText),
+    [tenantKeywordsText]
+  );
 
   const recentStoryItems = useMemo<MonitoredIngestionStoryItem[]>(() => {
     return rows
@@ -315,6 +329,24 @@ export default function ReporterMonitoredSourcesClient({
       )
       .sort((a, b) => getItemActivityTime(b) - getItemActivityTime(a));
   }, [rows]);
+
+  const itemKeywordMatchesById = useMemo(() => {
+    const matches = new Map<string, string[]>();
+
+    for (const item of recentStoryItems) {
+      matches.set(
+        item.id,
+        findReporterTenantKeywordMatches(
+          [item.title, item.excerpt, item.sourceLabel, item.sourcePlaceName, item.publisher]
+            .filter(Boolean)
+            .join(' '),
+          tenantKeywords
+        )
+      );
+    }
+
+    return matches;
+  }, [recentStoryItems, tenantKeywords]);
 
   const suggestedRunsByItemId = useMemo(() => {
     const map = new Map<
@@ -365,20 +397,29 @@ export default function ReporterMonitoredSourcesClient({
       const distinctSourceCount = new Set(clusterItems.map((item) => item.sourceId)).size;
       if (clusterItems.length >= 2 && distinctSourceCount >= 2) {
         clusterItems.sort((a, b) => getItemActivityTime(b) - getItemActivityTime(a));
+        const matchedKeywords = Array.from(
+          new Set(clusterItems.flatMap((item) => itemKeywordMatchesById.get(item.id) || []))
+        );
         clusters.push({
           id: `packet-${seed.id}`,
           title: clusterItems[0].title,
           items: clusterItems,
           sourceCount: distinctSourceCount,
           latestAt: clusterItems[0].publishedAt || clusterItems[0].lastSeenAt,
+          matchedKeywords,
         });
       }
     }
 
     return clusters
-      .sort((a, b) => new Date(b.latestAt).getTime() - new Date(a.latestAt).getTime())
+      .sort((a, b) => {
+        if (b.matchedKeywords.length !== a.matchedKeywords.length) {
+          return b.matchedKeywords.length - a.matchedKeywords.length;
+        }
+        return new Date(b.latestAt).getTime() - new Date(a.latestAt).getTime();
+      })
       .slice(0, 8);
-  }, [recentStoryItems]);
+  }, [itemKeywordMatchesById, recentStoryItems]);
 
   function updateSearchParams(updates: Record<string, string | null>) {
     const next = new URLSearchParams(searchParams.toString());
@@ -577,6 +618,45 @@ export default function ReporterMonitoredSourcesClient({
     }
   }
 
+  async function handleSaveTenantKeywords(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSavingTenantKeywords(true);
+    setError('');
+    setNotice('');
+
+    try {
+      const response = await fetch('/api/admin/reporter/tenant-keywords', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          keywordsText: tenantKeywordsText,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save reporter tenant keywords');
+      }
+
+      setTenantKeywordsText(data.keywordsText || '');
+      setNotice(
+        data.keywords?.length
+          ? `Saved ${data.keywords.length} tenant keyword${data.keywords.length === 1 ? '' : 's'} for reporter discovery.`
+          : 'Cleared reporter tenant keywords.'
+      );
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : 'Failed to save reporter tenant keywords'
+      );
+    } finally {
+      setIsSavingTenantKeywords(false);
+    }
+  }
+
   async function handleCreateReporterRunFromItem(
     source: ReporterMonitoredSourceRow,
     item: ReporterMonitoredSourceRow['ingestionItems'][number]
@@ -603,6 +683,9 @@ export default function ReporterMonitoredSourcesClient({
           requestSummary: `Discovered through monitored source: ${source.label}`,
           editorNotes: [
             `Created from monitored source: ${source.label}`,
+            ...(itemKeywordMatchesById.get(item.id)?.length
+              ? [`Tenant keyword matches: ${itemKeywordMatchesById.get(item.id)!.join(', ')}`]
+              : []),
             source.publisher ? `Source publisher: ${source.publisher}` : null,
             item.publisher ? `Item publisher: ${item.publisher}` : null,
             item.publishedAt ? `Published: ${formatDateTime(item.publishedAt)}` : null,
@@ -661,6 +744,9 @@ export default function ReporterMonitoredSourcesClient({
           requestSummary: `Multi-source story packet detected from ${packet.sourceCount} monitored sources and ${packet.items.length} related items.`,
           editorNotes: [
             'Created from monitored-source story packet.',
+            ...(packet.matchedKeywords.length
+              ? [`Tenant keyword matches: ${packet.matchedKeywords.join(', ')}`]
+              : []),
             ...packet.items.map(
               (item) =>
                 `${item.sourceLabel}: ${item.title}${item.canonicalUrl ? ` (${item.canonicalUrl})` : ''}`
@@ -706,6 +792,7 @@ export default function ReporterMonitoredSourcesClient({
     setSelectedRunId(suggestedRunId || reporterRuns[0]?.id || '');
     setError('');
     setNotice('');
+    updateSearchParams({ focus: 'attach-run' });
   }
 
   async function handleAttachItemToExistingRun() {
@@ -795,6 +882,57 @@ export default function ReporterMonitoredSourcesClient({
         </div>
       ) : null}
 
+      <div className="rounded-[28px] border border-slate-200 bg-white px-5 py-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+              Tenant Keywords
+            </div>
+            <h2 className="mt-1 text-lg font-black tracking-[-0.03em] text-slate-950">
+              Reporter Coverage Terms
+            </h2>
+            <p className="mt-1 max-w-3xl text-sm text-slate-600">
+              Add the place names, institutions, people, and recurring topics that matter for this
+              tenant. These terms boost and highlight matching items and story packets across all
+              monitored sources.
+            </p>
+          </div>
+          <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-700">
+            {tenantKeywords.length} active
+          </div>
+        </div>
+
+        <form onSubmit={handleSaveTenantKeywords} className="mt-4 space-y-3">
+          <textarea
+            value={tenantKeywordsText}
+            onChange={(event) => setTenantKeywordsText(event.target.value)}
+            className="form-input min-h-[120px]"
+            placeholder="Johnstown, Richland Township, Westmont Hilltop, school board, zoning, water authority"
+          />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="text-xs text-slate-500">
+              Separate terms with commas or new lines. Matching terms do not hard-filter fetches
+              yet; they help the reporter prioritize likely local stories.
+            </div>
+            <button type="submit" className="page-header-action" disabled={isSavingTenantKeywords}>
+              {isSavingTenantKeywords ? 'Saving…' : 'Save Coverage Terms'}
+            </button>
+          </div>
+          {tenantKeywords.length ? (
+            <div className="flex flex-wrap gap-2">
+              {tenantKeywords.map((keyword) => (
+                <span
+                  key={keyword}
+                  className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-sky-800"
+                >
+                  {keyword}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </form>
+      </div>
+
       {storyPackets.length > 0 ? (
         <div className="rounded-[28px] border border-sky-200 bg-[linear-gradient(135deg,rgba(240,249,255,0.95),rgba(248,250,252,0.98))] px-5 py-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -829,6 +967,18 @@ export default function ReporterMonitoredSourcesClient({
                       {packet.items.length} item{packet.items.length === 1 ? '' : 's'} • latest{' '}
                       {formatDateTime(packet.latestAt)}
                     </div>
+                    {packet.matchedKeywords.length ? (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {packet.matchedKeywords.map((keyword) => (
+                          <span
+                            key={keyword}
+                            className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-emerald-800"
+                          >
+                            Match: {keyword}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                   <button
                     type="button"
@@ -853,6 +1003,18 @@ export default function ReporterMonitoredSourcesClient({
                             {item.sourceLabel}
                             {item.sourcePlaceName ? ` • ${item.sourcePlaceName}` : ''}
                           </div>
+                          {itemKeywordMatchesById.get(item.id)?.length ? (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {itemKeywordMatchesById.get(item.id)!.map((keyword) => (
+                                <span
+                                  key={keyword}
+                                  className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-emerald-800"
+                                >
+                                  Match: {keyword}
+                                </span>
+                              ))}
+                            </div>
+                          ) : null}
                         </div>
                         <div className="text-right text-xs text-slate-500">
                           {formatDate(item.publishedAt)}
@@ -1070,6 +1232,18 @@ export default function ReporterMonitoredSourcesClient({
                                       <div className="mt-1 text-xs text-slate-500">
                                         {item.publisher || source.publisher || 'Unknown publisher'}
                                       </div>
+                                      {itemKeywordMatchesById.get(item.id)?.length ? (
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                          {itemKeywordMatchesById.get(item.id)!.map((keyword) => (
+                                            <span
+                                              key={keyword}
+                                              className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-emerald-800"
+                                            >
+                                              Match: {keyword}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      ) : null}
                                     </div>
                                     <div className="text-right text-xs text-slate-500">
                                       <div>Published {formatDate(item.publishedAt)}</div>
@@ -1174,7 +1348,7 @@ export default function ReporterMonitoredSourcesClient({
         </div>
       </div>
 
-      <AdminDrawer title="New Monitored Source">
+      <AdminDrawer title="New Monitored Source" focusKey="new">
         <form onSubmit={handleCreateSource} className="space-y-4">
           {createError ? <div className="admin-list-error">{createError}</div> : null}
 
@@ -1306,7 +1480,7 @@ export default function ReporterMonitoredSourcesClient({
         </form>
       </AdminDrawer>
 
-      <AdminDrawer title="Attach To Existing Reporter Run">
+      <AdminDrawer title="Attach To Existing Reporter Run" focusKey="attach-run">
         {attachDialog ? (
           <div className="space-y-4">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">

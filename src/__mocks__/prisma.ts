@@ -191,6 +191,15 @@ export const prismaMock = {
     delete: jest.fn(),
     deleteMany: jest.fn(),
   },
+  siteSetting: {
+    create: jest.fn(),
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    upsert: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    deleteMany: jest.fn(),
+  },
   tenantCoverageArea: {
     create: jest.fn(),
     findFirst: jest.fn(),

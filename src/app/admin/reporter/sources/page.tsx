@@ -9,6 +9,7 @@ import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
 import { AdminPage } from '@/components/admin/AdminPage';
 import ReporterMonitoredSourcesClient from './ReporterMonitoredSourcesClient';
+import { REPORTER_TENANT_KEYWORDS_SETTING_KEY } from '@/lib/reporter/tenant-keywords';
 
 export default async function AdminReporterSourcesPage() {
   const session = await getServerSession(authOptions);
@@ -24,7 +25,7 @@ export default async function AdminReporterSourcesPage() {
     redirect('/admin/reporter');
   }
 
-  const [sources, coverageAreas, reporterRuns] = await Promise.all([
+  const [sources, coverageAreas, reporterRuns, tenantKeywordSetting] = await Promise.all([
     db.reporterMonitoredSource.findMany({
       where: {
         communityId: currentCommunity.id,
@@ -127,6 +128,17 @@ export default async function AdminReporterSourcesPage() {
         status: true,
       },
     }),
+    db.siteSetting.findUnique({
+      where: {
+        communityId_key: {
+          communityId: currentCommunity.id,
+          key: REPORTER_TENANT_KEYWORDS_SETTING_KEY,
+        },
+      },
+      select: {
+        value: true,
+      },
+    }),
   ]);
 
   return (
@@ -166,6 +178,7 @@ export default async function AdminReporterSourcesPage() {
             sources={sources}
             coveragePlaces={coverageAreas.map(({ place }) => place)}
             reporterRuns={reporterRuns}
+            tenantKeywordsText={tenantKeywordSetting?.value || ''}
           />
         </div>
       </div>

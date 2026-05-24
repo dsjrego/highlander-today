@@ -7,14 +7,17 @@ import type { ReactNode } from 'react';
 export function AdminDrawer({
   children,
   title,
+  focusKey,
 }: {
   children: ReactNode;
   title: string;
+  focusKey?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const focus = params.get('focus');
+  const isOpen = focusKey ? focus === focusKey : Boolean(focus);
 
   const close = useCallback(() => {
     const next = new URLSearchParams(params);
@@ -24,7 +27,7 @@ export function AdminDrawer({
   }, [params, pathname, router]);
 
   useEffect(() => {
-    if (!focus) {
+    if (!isOpen) {
       return;
     }
 
@@ -36,9 +39,9 @@ export function AdminDrawer({
 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [close, focus]);
+  }, [close, isOpen]);
 
-  if (!focus) {
+  if (!isOpen) {
     return null;
   }
 
