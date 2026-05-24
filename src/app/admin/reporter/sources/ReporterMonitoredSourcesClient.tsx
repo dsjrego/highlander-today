@@ -116,6 +116,12 @@ type StoryPacketCluster = {
   matchedKeywords: string[];
 };
 
+type StorySignalAssessment = {
+  level: 'likely' | 'possible' | 'low';
+  score: number;
+  reasons: string[];
+};
+
 const STATUS_OPTIONS = ['ALL', ...REPORTER_MONITORED_SOURCE_STATUS_OPTIONS] as const;
 
 const EMPTY_CREATE_FORM = {
@@ -157,6 +163,27 @@ const STORY_STOP_WORDS = new Set([
   'will',
   'with',
 ]);
+
+const CIVIC_SIGNAL_TERMS = [
+  'board',
+  'budget',
+  'council',
+  'court',
+  'election',
+  'emergency',
+  'fire',
+  'hearing',
+  'lawsuit',
+  'meeting',
+  'police',
+  'road',
+  'school',
+  'shutdown',
+  'tax',
+  'vote',
+  'water',
+  'zoning',
+] as const;
 
 function formatDateTime(value?: string | Date | null) {
   if (!value) {
@@ -281,6 +308,125 @@ function getItemActivityTime(item: MonitoredIngestionStoryItem) {
   return new Date(item.publishedAt || item.lastSeenAt || item.firstSeenAt).getTime();
 }
 
+function countCivicSignalTerms(value: string) {
+  const lowered = normalizeStoryText(value);
+  return CIVIC_SIGNAL_TERMS.filter((term) => lowered.includes(term)).length;
+}
+
+function assessStoryItemSignal(item: MonitoredIngestionStoryItem, matchedKeywords: string[]) {
+  let score = 0;
+  const reasons: string[] = [];
+  const combinedText = [item.title, item.excerpt].filter(Boolean).join(' ');
+  const civicSignalCount = countCivicSignalTerms(combinedText);
+  const titleWordCount = tokenizeStoryText(item.title).length;
+  const ageHours = Math.max(
+    0,
+    (Date.now() - getItemActivityTime(item)) / (1000 * 60 * 60)
+  );
+
+  if (matchedKeywords.length > 0) {
+    score += Math.min(3, matchedKeywords.length);
+    reasons.push(`matches ${matchedKeywords.length} tenant term${matchedKeywords.length === 1 ? '' : 's'}`);
+  }
+
+  if (item.canonicalUrl) {
+    score += 2;
+    reasons.push('has a direct article link');
+  }
+
+  if (item.excerpt && item.excerpt.length >= 80) {
+    score += 1;
+    reasons.push('includes a useful summary');
+  }
+
+  if (civicSignalCount > 0) {
+    score += Math.min(3, civicSignalCount);
+    reasons.push('mentions civic/public-interest terms');
+  }
+
+  if (titleWordCount >= 5) {
+    score += 1;
+    reasons.push('has a specific headline');
+  }
+
+  if (ageHours <= 48) {
+    score += 1;
+    reasons.push('is recent');
+  }
+
+  if (score >= 6) {
+    return { level: 'likely', score, reasons: reasons.slice(0, 3) } satisfies StorySignalAssessment;
+  }
+
+  if (score >= 3) {
+    return { level: 'possible', score, reasons: reasons.slice(0, 3) } satisfies StorySignalAssessment;
+  }
+
+  return {
+    level: 'low',
+    score,
+    reasons: reasons.length ? reasons.slice(0, 2) : ['weak story signal'],
+  } satisfies StorySignalAssessment;
+}
+
+function assessStoryPacketSignal(packet: StoryPacketCluster) {
+  let score = 0;
+  const reasons: string[] = [];
+  const civicSignalCount = countCivicSignalTerms(
+    packet.items.map((item) => [item.title, item.excerpt].filter(Boolean).join(' ')).join(' ')
+  );
+  const recentItems = packet.items.filter((item) => {
+    const ageHours = Math.max(0, (Date.now() - getItemActivityTime(item)) / (1000 * 60 * 60));
+    return ageHours <= 72;
+  }).length;
+
+  if (packet.sourceCount >= 2) {
+    score += Math.min(4, packet.sourceCount);
+    reasons.push(`appears across ${packet.sourceCount} sources`);
+  }
+
+  if (packet.matchedKeywords.length > 0) {
+    score += Math.min(3, packet.matchedKeywords.length);
+    reasons.push(`matches ${packet.matchedKeywords.length} tenant term${packet.matchedKeywords.length === 1 ? '' : 's'}`);
+  }
+
+  if (civicSignalCount > 0) {
+    score += Math.min(3, civicSignalCount);
+    reasons.push('contains civic/public-interest language');
+  }
+
+  if (recentItems > 0) {
+    score += 1;
+    reasons.push('has recent activity');
+  }
+
+  if (score >= 7) {
+    return { level: 'likely', score, reasons: reasons.slice(0, 3) } satisfies StorySignalAssessment;
+  }
+
+  if (score >= 4) {
+    return { level: 'possible', score, reasons: reasons.slice(0, 3) } satisfies StorySignalAssessment;
+  }
+
+  return {
+    level: 'low',
+    score,
+    reasons: reasons.length ? reasons.slice(0, 2) : ['weak packet signal'],
+  } satisfies StorySignalAssessment;
+}
+
+function storySignalTone(level: StorySignalAssessment['level']): 'ok' | 'pend' | 'neu' {
+  if (level === 'likely') return 'ok';
+  if (level === 'possible') return 'pend';
+  return 'neu';
+}
+
+function storySignalLabel(level: StorySignalAssessment['level']) {
+  if (level === 'likely') return 'Likely Story';
+  if (level === 'possible') return 'Possible Story';
+  return 'Low Signal';
+}
+
 export default function ReporterMonitoredSourcesClient({
   sources,
   coveragePlaces,
@@ -348,6 +494,16 @@ export default function ReporterMonitoredSourcesClient({
     return matches;
   }, [recentStoryItems, tenantKeywords]);
 
+  const itemSignalById = useMemo(() => {
+    const signals = new Map<string, StorySignalAssessment>();
+
+    for (const item of recentStoryItems) {
+      signals.set(item.id, assessStoryItemSignal(item, itemKeywordMatchesById.get(item.id) || []));
+    }
+
+    return signals;
+  }, [itemKeywordMatchesById, recentStoryItems]);
+
   const suggestedRunsByItemId = useMemo(() => {
     const map = new Map<
       string,
@@ -413,8 +569,10 @@ export default function ReporterMonitoredSourcesClient({
 
     return clusters
       .sort((a, b) => {
-        if (b.matchedKeywords.length !== a.matchedKeywords.length) {
-          return b.matchedKeywords.length - a.matchedKeywords.length;
+        const aSignal = assessStoryPacketSignal(a);
+        const bSignal = assessStoryPacketSignal(b);
+        if (bSignal.score !== aSignal.score) {
+          return bSignal.score - aSignal.score;
         }
         return new Date(b.latestAt).getTime() - new Date(a.latestAt).getTime();
       })
@@ -954,11 +1112,14 @@ export default function ReporterMonitoredSourcesClient({
           </div>
 
           <div className="mt-4 grid gap-3 lg:grid-cols-2">
-            {storyPackets.map((packet) => (
-              <div
-                key={packet.id}
-                className="rounded-3xl border border-sky-100 bg-white px-4 py-4 shadow-sm"
-              >
+            {storyPackets.map((packet) => {
+              const packetSignal = assessStoryPacketSignal(packet);
+
+              return (
+                <div
+                  key={packet.id}
+                  className="rounded-3xl border border-sky-100 bg-white px-4 py-4 shadow-sm"
+                >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="text-base font-bold text-slate-950">{packet.title}</div>
@@ -966,6 +1127,15 @@ export default function ReporterMonitoredSourcesClient({
                       {packet.sourceCount} source{packet.sourceCount === 1 ? '' : 's'} •{' '}
                       {packet.items.length} item{packet.items.length === 1 ? '' : 's'} • latest{' '}
                       {formatDateTime(packet.latestAt)}
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <AdminChip tone={storySignalTone(packetSignal.level)}>
+                        {storySignalLabel(packetSignal.level)}
+                      </AdminChip>
+                      <span className="text-xs text-slate-500">score {packetSignal.score}</span>
+                    </div>
+                    <div className="mt-2 text-xs text-slate-600">
+                      {packetSignal.reasons.join(' • ')}
                     </div>
                     {packet.matchedKeywords.length ? (
                       <div className="mt-2 flex flex-wrap gap-2">
@@ -1027,7 +1197,8 @@ export default function ReporterMonitoredSourcesClient({
                   ))}
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
         </div>
       ) : null}
@@ -1182,11 +1353,14 @@ export default function ReporterMonitoredSourcesClient({
                               View recent items ({source.ingestionItems.length})
                             </summary>
                             <div className="mt-3 space-y-3">
-                              {source.ingestionItems.map((item) => (
-                                <div
-                                  key={item.id}
-                                  className="rounded-2xl border border-slate-200 bg-white px-3 py-3"
-                                >
+                              {source.ingestionItems.map((item) => {
+                                const itemSignal = itemSignalById.get(item.id);
+
+                                return (
+                                  <div
+                                    key={item.id}
+                                    className="rounded-2xl border border-slate-200 bg-white px-3 py-3"
+                                  >
                                   {suggestedRunsByItemId.get(item.id)?.length ? (
                                     <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2">
                                       <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-800">
@@ -1232,6 +1406,16 @@ export default function ReporterMonitoredSourcesClient({
                                       <div className="mt-1 text-xs text-slate-500">
                                         {item.publisher || source.publisher || 'Unknown publisher'}
                                       </div>
+                                      {itemSignal ? (
+                                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                                          <AdminChip tone={storySignalTone(itemSignal.level)}>
+                                            {storySignalLabel(itemSignal.level)}
+                                          </AdminChip>
+                                          <span className="text-[11px] text-slate-500">
+                                            score {itemSignal.score}
+                                          </span>
+                                        </div>
+                                      ) : null}
                                       {itemKeywordMatchesById.get(item.id)?.length ? (
                                         <div className="mt-2 flex flex-wrap gap-2">
                                           {itemKeywordMatchesById.get(item.id)!.map((keyword) => (
@@ -1258,6 +1442,11 @@ export default function ReporterMonitoredSourcesClient({
                                       {item.excerpt}
                                     </div>
                                   ) : null}
+                                  {itemSignal?.reasons.length ? (
+                                    <div className="mt-2 text-[11px] text-slate-500">
+                                      {itemSignal.reasons.join(' • ')}
+                                    </div>
+                                  ) : null}
                                   <div className="mt-3 flex flex-wrap items-center gap-2">
                                     <button
                                       type="button"
@@ -1277,7 +1466,8 @@ export default function ReporterMonitoredSourcesClient({
                                     </button>
                                   </div>
                                 </div>
-                              ))}
+                              );
+                              })}
                             </div>
                           </details>
                         ) : source._count.ingestionItems > 0 ? (
