@@ -46,6 +46,8 @@ model Community {
   domains                TenantDomain[]
   reporterRuns           ReporterRun[]
   reporterMonitoredSources ReporterMonitoredSource[]
+  reporterStoryCandidates ReporterStoryCandidate[]
+  reporterDailyCoverageGoals ReporterDailyCoverageGoal[]
   categories             Category[]
   memorialPeople         MemorialPerson[]
   memorialPages          MemorialPage[]
@@ -317,6 +319,8 @@ model Place {
   matchedObservedGeos    ObservedGeoLocation[]
   reporterSources        ReporterSource[]        @relation("reporterSourcePlace")
   reporterMonitoredSources ReporterMonitoredSource[]
+  reporterStoryCandidates ReporterStoryCandidate[]
+  reporterDailyCoverageGoals ReporterDailyCoverageGoal[]
 
   @@index([type])
   @@index([countryCode])
@@ -934,6 +938,31 @@ enum ReporterSourceFetchStatus {
   FAILED
 }
 
+enum ReporterStorySignalLevel {
+  LIKELY
+  POSSIBLE
+  LOW
+}
+
+enum ReporterDailyCoverageDecisionOutcome {
+  SELECTED_CANDIDATE
+  NO_PUBLISHABLE_STORY
+}
+
+enum ReporterDailyCoverageAnalysisStatus {
+  GENERATED
+  BLOCKED
+  SKIPPED
+  FAILED
+}
+
+enum ReporterDailyCoverageArticleStatus {
+  GENERATED
+  BLOCKED
+  SKIPPED
+  FAILED
+}
+
 enum ReporterInterviewRequestStatus {
   DRAFT
   INVITED
@@ -1031,6 +1060,8 @@ model ReporterRun {
   agentTasks        ReporterAgentTask[]
   agentTraces       ReporterAgentTrace[]
   claims            ReporterClaim[]
+  storyCandidates   ReporterStoryCandidate[] @relation("reporterStoryCandidateLinkedRun")
+  dailyCoverageDecisions ReporterDailyCoverageDecision[]
   interviewRequests ReporterInterviewRequest[]
 
   @@index([communityId, status])
@@ -1119,6 +1150,8 @@ model ReporterDraft {
   reporterRun       ReporterRun               @relation(fields: [reporterRunId], references: [id], onDelete: Cascade)
   createdBy         User?                     @relation("reporterDraftCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   validationIssues  ReporterValidationIssue[]
+  dailyCoverageAnalysisDecisions ReporterDailyCoverageDecision[] @relation("reporterDailyCoverageDecisionAnalysisDraft")
+  dailyCoverageArticleDecisions ReporterDailyCoverageDecision[] @relation("reporterDailyCoverageDecisionArticleDraft")
 
   @@index([reporterRunId, createdAt])
   @@index([createdByUserId])
@@ -1319,12 +1352,123 @@ model ReporterSourceIngestionItem {
   updatedAt         DateTime @updatedAt
 
   monitoredSource ReporterMonitoredSource @relation(fields: [monitoredSourceId], references: [id], onDelete: Cascade)
+  storyCandidateItems ReporterStoryCandidateItem[]
 
   @@unique([monitoredSourceId, dedupeKey])
   @@index([monitoredSourceId, publishedAt])
   @@index([monitoredSourceId, lastSeenAt])
   @@index([canonicalUrl])
   @@map("reporter_source_ingestion_items")
+}
+
+model ReporterStoryCandidate {
+  id               String                   @id @default(uuid()) @db.Uuid
+  communityId      String                   @db.Uuid
+  placeId          String?                  @db.Uuid
+  linkedReporterRunId String?               @db.Uuid
+  title            String
+  summary          String?
+  signalLevel      ReporterStorySignalLevel
+  score            Int
+  reasons          String[]                 @default([])
+  matchedKeywords  String[]                 @default([])
+  sourceCount      Int                      @default(0)
+  itemCount        Int                      @default(0)
+  recentItemCount  Int                      @default(0)
+  civicSignalCount Int                      @default(0)
+  latestSourceAt   DateTime
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  place     Place?    @relation(fields: [placeId], references: [id], onDelete: SetNull)
+  linkedReporterRun ReporterRun? @relation("reporterStoryCandidateLinkedRun", fields: [linkedReporterRunId], references: [id], onDelete: SetNull)
+  candidateItems ReporterStoryCandidateItem[]
+  dailyCoverageDecisions ReporterDailyCoverageDecision[]
+
+  @@index([communityId, score])
+  @@index([communityId, latestSourceAt])
+  @@index([placeId])
+  @@index([linkedReporterRunId])
+  @@map("reporter_story_candidates")
+}
+
+model ReporterDailyCoverageGoal {
+  id                          String   @id @default(uuid()) @db.Uuid
+  communityId                 String   @db.Uuid
+  placeId                     String?  @db.Uuid
+  label                       String?
+  targetArticleCount          Int      @default(1)
+  minimumCandidateScore       Int      @default(6)
+  freshnessWindowHours        Int      @default(36)
+  allowNeedsReportingFallback Boolean  @default(true)
+  isActive                    Boolean  @default(true)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  place     Place?    @relation(fields: [placeId], references: [id], onDelete: SetNull)
+  decisions ReporterDailyCoverageDecision[]
+
+  @@unique([communityId])
+  @@index([communityId, isActive])
+  @@index([placeId])
+  @@map("reporter_daily_coverage_goals")
+}
+
+model ReporterDailyCoverageDecision {
+  id                          String                               @id @default(uuid()) @db.Uuid
+  reporterDailyCoverageGoalId String                               @db.Uuid
+  reporterStoryCandidateId    String?                              @db.Uuid
+  reporterRunId               String?                              @db.Uuid
+  analysisDraftId             String?                              @db.Uuid
+  articleDraftId              String?                              @db.Uuid
+  decisionDate                DateTime
+  outcome                     ReporterDailyCoverageDecisionOutcome
+  summary                     String
+  reasons                     String[]                             @default([])
+  selectedScore               Int?
+  selectedReadiness           String?
+  analysisStatus              ReporterDailyCoverageAnalysisStatus?
+  analysisSummary             String?
+  analysisIssueCount          Int?
+  analysisHasCriticalIssues   Boolean?
+  articleStatus               ReporterDailyCoverageArticleStatus?
+  articleSummary              String?
+  articleIssueCount           Int?
+  articleHasCriticalIssues    Boolean?
+  createdAt                   DateTime                             @default(now())
+  updatedAt                   DateTime                             @updatedAt
+
+  goal           ReporterDailyCoverageGoal @relation(fields: [reporterDailyCoverageGoalId], references: [id], onDelete: Cascade)
+  storyCandidate ReporterStoryCandidate?  @relation(fields: [reporterStoryCandidateId], references: [id], onDelete: SetNull)
+  reporterRun    ReporterRun?             @relation(fields: [reporterRunId], references: [id], onDelete: SetNull)
+  analysisDraft  ReporterDraft?           @relation("reporterDailyCoverageDecisionAnalysisDraft", fields: [analysisDraftId], references: [id], onDelete: SetNull)
+  articleDraft   ReporterDraft?           @relation("reporterDailyCoverageDecisionArticleDraft", fields: [articleDraftId], references: [id], onDelete: SetNull)
+
+  @@unique([reporterDailyCoverageGoalId, decisionDate])
+  @@index([reporterStoryCandidateId])
+  @@index([reporterRunId])
+  @@index([analysisDraftId])
+  @@index([articleDraftId])
+  @@index([decisionDate])
+  @@map("reporter_daily_coverage_decisions")
+}
+
+model ReporterStoryCandidateItem {
+  id                      String                 @id @default(uuid()) @db.Uuid
+  reporterStoryCandidateId String                @db.Uuid
+  ingestionItemId         String                 @db.Uuid
+  sortOrder               Int                    @default(0)
+  createdAt               DateTime               @default(now())
+
+  reporterStoryCandidate ReporterStoryCandidate @relation(fields: [reporterStoryCandidateId], references: [id], onDelete: Cascade)
+  ingestionItem          ReporterSourceIngestionItem @relation(fields: [ingestionItemId], references: [id], onDelete: Cascade)
+
+  @@unique([reporterStoryCandidateId, ingestionItemId])
+  @@index([ingestionItemId])
+  @@index([reporterStoryCandidateId, sortOrder])
+  @@map("reporter_story_candidate_items")
 }
 
 model ReporterInterviewRequest {
@@ -2678,6 +2822,8 @@ enum ResourceType {
   REPORTER_INTERVIEW_REQUEST
   REPORTER_MONITORED_SOURCE
   REPORTER_SOURCE_FETCH
+  REPORTER_STORY_CANDIDATE
+  REPORTER_DAILY_COVERAGE_DECISION
   RECIPE
   COMMENT
   EVENT

@@ -10,21 +10,17 @@ jest.mock('@/lib/community', () => ({
   getCurrentCommunity: (...args: unknown[]) => getCurrentCommunityMock(...(args as [])),
 }));
 
-const generateReporterDraftWithValidationMock = jest.fn();
-jest.mock('@/lib/reporter/draft-generator', () => ({
-  generateReporterDraftWithValidation: (...args: unknown[]) =>
-    generateReporterDraftWithValidationMock(...(args as [])),
+const loadReporterRunForDraftMock = jest.fn();
+const createReporterDraftForRunMock = jest.fn();
+jest.mock('@/lib/reporter/draft-service', () => ({
+  loadReporterRunForDraft: (...args: unknown[]) => loadReporterRunForDraftMock(...(args as [])),
+  createReporterDraftForRun: (...args: unknown[]) =>
+    createReporterDraftForRunMock(...(args as [])),
 }));
 
 const logActivityMock = jest.fn(() => Promise.resolve());
 jest.mock('@/lib/activity-log', () => ({
   logActivity: (...args: unknown[]) => logActivityMock(...(args as [])),
-}));
-
-const createReporterClaimsFromSourcePacketAnalysisMock = jest.fn(() => Promise.resolve([]));
-jest.mock('@/lib/reporter/claim-service', () => ({
-  createReporterClaimsFromSourcePacketAnalysis: (...args: unknown[]) =>
-    createReporterClaimsFromSourcePacketAnalysisMock(...(args as [])),
 }));
 
 const { POST } = require('@/app/api/reporter/runs/[id]/draft/route') as typeof import('@/app/api/reporter/runs/[id]/draft/route');
@@ -44,7 +40,7 @@ describe('reporter draft route', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (getCurrentCommunityMock as any).mockResolvedValue({ id: 'community-1' });
-    (prismaMock.reporterRun.findUnique as any).mockResolvedValue({
+    (loadReporterRunForDraftMock as any).mockResolvedValue({
       id: 'run-1',
       communityId: 'community-1',
       mode: 'REQUEST',
@@ -75,38 +71,22 @@ describe('reporter draft route', () => {
       ],
       interviewRequests: [],
     });
-    (prismaMock.$transaction as any).mockImplementation(async (callback: any) =>
-      callback(prismaMock)
-    );
-    (prismaMock.reporterDraft.create as any).mockResolvedValue({
-      id: 'draft-1',
-      reporterRunId: 'run-1',
-      headline: 'Bridge Closure Disrupts Morning Traffic',
-      dek: null,
-      body: 'Bridge closure draft body',
-      draftType: 'ARTICLE_DRAFT',
-      status: 'GENERATED',
-      modelProvider: 'anthropic',
-      modelName: 'claude-sonnet',
-      generationNotes: null,
-      createdByUserId: 'staff-1',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    (prismaMock.reporterValidationIssue.createMany as any).mockResolvedValue({ count: 1 });
-    (prismaMock.reporterRun.update as any).mockResolvedValue({ id: 'run-1', status: 'DRAFT_CREATED' });
   });
 
   it('persists draft and validation issues', async () => {
-    (generateReporterDraftWithValidationMock as any).mockResolvedValue({
-      draft: {
+    (createReporterDraftForRunMock as any).mockResolvedValue({
+      persisted: {
+        id: 'draft-1',
+        reporterRunId: 'run-1',
         headline: 'Bridge Closure Disrupts Morning Traffic',
         dek: null,
         body: 'Bridge closure draft body',
         draftType: 'ARTICLE_DRAFT',
+        status: 'GENERATED',
         modelProvider: 'anthropic',
         modelName: 'claude-sonnet',
         generationNotes: null,
+        createdByUserId: 'staff-1',
       },
       validation: {
         hasCriticalIssues: false,
@@ -128,23 +108,14 @@ describe('reporter draft route', () => {
       draft: expect.objectContaining({ id: 'draft-1' }),
       validation: expect.objectContaining({ hasCriticalIssues: false }),
     });
-    expect(prismaMock.reporterDraft.create).toHaveBeenCalled();
-    expect(prismaMock.reporterValidationIssue.createMany).toHaveBeenCalledWith(
+    expect(createReporterDraftForRunMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.arrayContaining([
-          expect.objectContaining({
-            reporterRunId: 'run-1',
-            reporterDraftId: 'draft-1',
-            code: 'HEADLINE_MISSING',
-          }),
-        ]),
+        run: expect.objectContaining({
+          id: 'run-1',
+        }),
+        createdByUserId: 'staff-1',
       })
     );
-    expect(prismaMock.reporterRun.update).toHaveBeenCalledWith({
-      where: { id: 'run-1' },
-      data: { status: 'DRAFT_CREATED' },
-    });
-    expect(createReporterClaimsFromSourcePacketAnalysisMock).not.toHaveBeenCalled();
   });
 
   it('rejects draft generation without permission', async () => {
@@ -164,7 +135,7 @@ describe('reporter draft route', () => {
   });
 
   it('rejects draft generation when completed interview output is unreviewed', async () => {
-    (prismaMock.reporterRun.findUnique as any).mockResolvedValue({
+    (loadReporterRunForDraftMock as any).mockResolvedValue({
       id: 'run-1',
       communityId: 'community-1',
       mode: 'REQUEST',
@@ -188,6 +159,9 @@ describe('reporter draft route', () => {
         },
       ],
     });
+    (createReporterDraftForRunMock as any).mockRejectedValue(
+      new Error('Completed interview output must be reviewed before generating a reporter draft.')
+    );
 
     const response = await POST(buildRequest(), { params: { id: 'run-1' } });
 
@@ -199,15 +173,15 @@ describe('reporter draft route', () => {
   });
 
   it('creates source-packet analysis claims when generating analysis output', async () => {
-    (generateReporterDraftWithValidationMock as any).mockResolvedValue({
-      draft: {
+    (createReporterDraftForRunMock as any).mockResolvedValue({
+      persisted: {
+        id: 'draft-2',
+        reporterRunId: 'run-1',
         headline: 'Reporter Agent Analysis: Bridge closure',
         dek: null,
         body: 'Analysis body',
         draftType: 'SOURCE_PACKET_SUMMARY',
-        modelProvider: 'anthropic',
-        modelName: 'claude-sonnet',
-        generationNotes: null,
+        status: 'GENERATED',
       },
       validation: {
         hasCriticalIssues: false,
@@ -229,11 +203,9 @@ describe('reporter draft route', () => {
     );
 
     expect(response.status).toBe(200);
-    expect(createReporterClaimsFromSourcePacketAnalysisMock).toHaveBeenCalledWith(
+    expect(createReporterDraftForRunMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        reporterRunId: 'run-1',
-        createdByUserId: 'staff-1',
-        sources: expect.any(Array),
+        draftType: 'SOURCE_PACKET_SUMMARY',
       })
     );
   });

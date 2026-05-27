@@ -97,6 +97,8 @@ export default async function AdminReporterPage() {
     }),
   ]);
 
+  const editorReadyRuns = runs.filter((run) => run.status === 'DRAFT_CREATED').slice(0, 5);
+
   return (
     <AdminPage
       title="Reporter"
@@ -187,6 +189,64 @@ export default async function AdminReporterPage() {
                                 minute: '2-digit',
                               })
                             : 'Unscheduled'}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="admin-card">
+        <div className="admin-card-header">
+          <div className="flex items-center gap-0">
+            <div className="admin-card-header-label">Editor Ready Stories</div>
+          </div>
+          <Link href="/admin/reporter?view=editor-ready" className="admin-list-link">
+            Open Full Queue
+          </Link>
+        </div>
+        <div className="admin-card-body">
+          <div className="admin-list">
+            <div className="admin-list-table-wrap">
+              <table className="admin-list-table">
+                <thead className="admin-list-head">
+                  <tr>
+                    <th className="admin-list-header-cell">Story</th>
+                    <th className="admin-list-header-cell">Assignee</th>
+                    <th className="admin-list-header-cell">Updated</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {editorReadyRuns.length === 0 ? (
+                    <tr className="admin-list-row">
+                      <td className="admin-list-empty" colSpan={3}>
+                        No editor-ready reporter stories yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    editorReadyRuns.map((run) => (
+                      <tr key={run.id} className="admin-list-row">
+                        <td className="admin-list-cell">
+                          <Link href={`/admin/reporter/${run.id}?view=drafts`} className="admin-list-link">
+                            {run.title || run.topic}
+                          </Link>
+                          <div className="text-xs text-slate-500">{run.requestType} · {run.mode}</div>
+                        </td>
+                        <td className="admin-list-cell">
+                          {run.assignedTo
+                            ? `${run.assignedTo.firstName} ${run.assignedTo.lastName}`
+                            : 'Unassigned'}
+                        </td>
+                        <td className="admin-list-cell">
+                          {new Date(run.updatedAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
                         </td>
                       </tr>
                     ))

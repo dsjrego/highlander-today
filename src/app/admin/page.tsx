@@ -96,6 +96,8 @@ export default async function AdminDashboard() {
     unpublishedArticles,
     pendingHelpWanted,
     pendingStores,
+    editorReadyReporterCount,
+    editorReadyReporterRuns,
     recentActivity,
   ] = await Promise.all([
     db.user.count(),
@@ -114,6 +116,32 @@ export default async function AdminDashboard() {
     db.article.count({ where: { ...communityWhere, status: 'UNPUBLISHED' } }),
     db.helpWantedPost.count({ where: { ...communityWhere, status: 'PENDING_REVIEW' } }),
     db.store.count({ where: { ...communityWhere, status: 'PENDING_APPROVAL' } }),
+    db.reporterRun.count({
+      where: {
+        ...communityWhere,
+        status: 'DRAFT_CREATED',
+      },
+    }),
+    db.reporterRun.findMany({
+      where: {
+        ...communityWhere,
+        status: 'DRAFT_CREATED',
+      },
+      orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+      take: 5,
+      select: {
+        id: true,
+        topic: true,
+        title: true,
+        updatedAt: true,
+        assignedTo: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    }),
     db.activityLog.findMany({
       orderBy: { createdAt: 'desc' },
       take: 4,
@@ -147,6 +175,12 @@ export default async function AdminDashboard() {
       value: formatCount(totalListings),
       change: `${formatCount(activeListings)} active now`,
       href: '/admin/stores',
+    },
+    {
+      label: 'Editor Ready Stories',
+      value: formatCount(editorReadyReporterCount),
+      change: 'Open reporter draft queue',
+      href: '/admin/reporter?view=editor-ready',
     },
   ];
 
@@ -232,6 +266,7 @@ export default async function AdminDashboard() {
           <Link href="/admin/stores" className="admin-facet">Stores</Link>
           <Link href="/admin/homepage" className="admin-facet">Homepage</Link>
           <Link href="/admin/content-architecture" className="admin-facet">Content Architecture</Link>
+          <Link href="/admin/reporter?view=editor-ready" className="admin-facet">Editor Ready Stories</Link>
         </AdminFilterBar>
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           <Link
@@ -285,6 +320,63 @@ export default async function AdminDashboard() {
             <p className="admin-dashboard-action-title">Content Architecture</p>
             <p className="admin-dashboard-action-copy">Reference section purpose, model boundaries, and category guidance before editing taxonomy</p>
           </Link>
+          <Link
+            href="/admin/reporter?view=editor-ready"
+            className="admin-dashboard-action"
+          >
+            <p className="admin-dashboard-action-title">Editor Ready Stories</p>
+            <p className="admin-dashboard-action-copy">
+              {formatCount(editorReadyReporterCount)} reporter draft
+              {editorReadyReporterCount === 1 ? '' : 's'} waiting for editor review
+            </p>
+          </Link>
+        </div>
+      </div>
+
+      <div className="admin-section-card">
+        <div className="admin-section-card-head">
+          <h2 className="admin-section-card-title">Editor Ready Stories</h2>
+          <Link href="/admin/reporter?view=editor-ready" className="admin-list-link">
+            Open Full Queue
+          </Link>
+        </div>
+        <div className="admin-list">
+          <div className="admin-list-table-wrap">
+            <table className="admin-list-table">
+              <thead className="admin-list-head">
+                <tr>
+                  <th className="admin-list-header-cell">Story</th>
+                  <th className="admin-list-header-cell">Assignee</th>
+                  <th className="admin-list-header-cell">Updated</th>
+                </tr>
+              </thead>
+              <tbody>
+                {editorReadyReporterRuns.length ? (
+                  editorReadyReporterRuns.map((run) => (
+                    <tr key={run.id} className="admin-list-row">
+                      <td className="admin-list-cell">
+                        <Link href={`/admin/reporter/${run.id}?view=drafts`} className="admin-list-link">
+                          {run.title || run.topic}
+                        </Link>
+                      </td>
+                      <td className="admin-list-cell">
+                        {run.assignedTo
+                          ? `${run.assignedTo.firstName} ${run.assignedTo.lastName}`
+                          : 'Unassigned'}
+                      </td>
+                      <td className="admin-list-cell">{formatRelativeTime(run.updatedAt)}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr className="admin-list-row">
+                    <td className="admin-list-empty" colSpan={3}>
+                      No editor-ready reporter stories yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 

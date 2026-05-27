@@ -239,6 +239,14 @@ function inferClaimTypeFromSource(sourceType: string): ReporterClaimType {
   return 'BACKGROUND_CONTEXT';
 }
 
+function inferVerificationStatusFromReliability(
+  reliabilityTier: string
+): ReporterClaimVerificationStatus {
+  return reliabilityTier === 'PRIMARY' || reliabilityTier === 'HIGH'
+    ? 'SUPPORTED'
+    : 'NEEDS_CORROBORATION';
+}
+
 function inferClaimConfidenceFromReliability(reliabilityTier: string): ReporterClaimConfidence {
   switch (reliabilityTier) {
     case 'PRIMARY':
@@ -253,6 +261,48 @@ function inferClaimConfidenceFromReliability(reliabilityTier: string): ReporterC
   }
 }
 
+function cleanClaimText(value: string | null | undefined) {
+  const trimmed = value?.replace(/\s+/g, ' ').trim();
+  return trimmed || null;
+}
+
+function splitClaimSentences(value: string | null | undefined) {
+  const text = cleanClaimText(value);
+  if (!text) {
+    return [];
+  }
+
+  return text
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence.length >= 24)
+    .slice(0, 2);
+}
+
+function buildPublishedAtClaimText(
+  publishedAt: Date | null | undefined,
+  title: string | null,
+  publisher: string | null
+) {
+  if (!publishedAt) {
+    return null;
+  }
+
+  const label = title || publisher || 'This source';
+  const formattedDate = publishedAt.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
+  return `${label} was published on ${formattedDate}.`;
+}
+
+function buildFollowUpClaimText(sourceType: string, title: string | null, publisher: string | null) {
+  const label = title || publisher || sourceType.replace(/_/g, ' ').toLowerCase();
+  return `Corroborate key details from ${label} before treating them as established fact.`;
+}
+
 export async function createReporterClaimsFromSourcePacketAnalysis(params: {
   reporterRunId: string;
   sources: Array<{
@@ -263,39 +313,100 @@ export async function createReporterClaimsFromSourcePacketAnalysis(params: {
     contentText: string | null;
     note: string | null;
     publisher: string | null;
+    publishedAt?: Date | null;
     reliabilityTier: string;
   }>;
   createdByUserId?: string | null;
 }) {
-  const seeds = params.sources
-    .map((source) => {
-      const claimText =
-        source.excerpt?.trim() ||
-        source.note?.trim() ||
-        source.contentText?.trim() ||
-        source.title?.trim() ||
-        '';
+  const seeds = params.sources.flatMap((source) => {
+    const verificationStatus = inferVerificationStatusFromReliability(source.reliabilityTier);
+    const confidence = inferClaimConfidenceFromReliability(source.reliabilityTier);
+    const attribution = source.publisher || source.title || source.sourceType;
+    const sourceExcerpt = source.excerpt || source.contentText || source.note || null;
+    const seedsForSource: Array<{
+      reporterSourceId: string;
+      claimType: ReporterClaimType;
+      claimText: string;
+      sourceExcerpt: string | null;
+      attribution: string | null;
+      confidence: ReporterClaimConfidence;
+      verificationStatus: ReporterClaimVerificationStatus;
+      createdBy: ReporterClaimCreatedBy;
+      createdByUserId?: string | null;
+    }> = [];
 
-      if (!claimText) {
-        return null;
-      }
-
-      return {
+    const normalizedTitle = cleanClaimText(source.title);
+    if (normalizedTitle) {
+      seedsForSource.push({
         reporterSourceId: source.id,
         claimType: inferClaimTypeFromSource(source.sourceType),
-        claimText: claimText.slice(0, 280),
-        sourceExcerpt: source.excerpt || source.contentText || source.note || null,
-        attribution: source.publisher || source.title || source.sourceType,
-        confidence: inferClaimConfidenceFromReliability(source.reliabilityTier),
-        verificationStatus:
-          source.reliabilityTier === 'PRIMARY' || source.reliabilityTier === 'HIGH'
-            ? ('SUPPORTED' as ReporterClaimVerificationStatus)
-            : ('NEEDS_CORROBORATION' as ReporterClaimVerificationStatus),
-        createdBy: 'AGENT' as ReporterClaimCreatedBy,
+        claimText: normalizedTitle.slice(0, 280),
+        sourceExcerpt,
+        attribution,
+        confidence,
+        verificationStatus,
+        createdBy: 'AGENT',
         createdByUserId: params.createdByUserId || null,
-      };
-    })
-    .filter((seed): seed is NonNullable<typeof seed> => Boolean(seed));
+      });
+    }
+
+    for (const sentence of splitClaimSentences(source.excerpt || source.contentText || source.note)) {
+      seedsForSource.push({
+        reporterSourceId: source.id,
+        claimType: inferClaimTypeFromSource(source.sourceType),
+        claimText: sentence.slice(0, 280),
+        sourceExcerpt,
+        attribution,
+        confidence,
+        verificationStatus,
+        createdBy: 'AGENT',
+        createdByUserId: params.createdByUserId || null,
+      });
+    }
+
+    const publishedAtClaimText = buildPublishedAtClaimText(
+      source.publishedAt,
+      normalizedTitle,
+      source.publisher
+    );
+    if (publishedAtClaimText) {
+      seedsForSource.push({
+        reporterSourceId: source.id,
+        claimType: 'DATE_TIME_FACT',
+        claimText: publishedAtClaimText,
+        sourceExcerpt: null,
+        attribution,
+        confidence: confidence === 'UNKNOWN' ? 'MEDIUM' : confidence,
+        verificationStatus,
+        createdBy: 'AGENT',
+        createdByUserId: params.createdByUserId || null,
+      });
+    }
+
+    if (source.reliabilityTier === 'LOW' || source.reliabilityTier === 'UNVERIFIED') {
+      seedsForSource.push({
+        reporterSourceId: source.id,
+        claimType: 'FOLLOW_UP_REQUIREMENT',
+        claimText: buildFollowUpClaimText(source.sourceType, normalizedTitle, source.publisher),
+        sourceExcerpt,
+        attribution,
+        confidence: 'LOW',
+        verificationStatus: 'UNREVIEWED',
+        createdBy: 'AGENT',
+        createdByUserId: params.createdByUserId || null,
+      });
+    }
+
+    const deduped = new Map<string, (typeof seedsForSource)[number]>();
+    for (const seed of seedsForSource) {
+      const key = `${seed.claimType}:${seed.claimText.trim().toLowerCase()}`;
+      if (!deduped.has(key)) {
+        deduped.set(key, seed);
+      }
+    }
+
+    return Array.from(deduped.values());
+  });
 
   return createReporterClaimsFromSeeds(params.reporterRunId, seeds);
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { AdminViewTabs } from '@/components/admin/AdminViewTabs';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
@@ -88,6 +88,8 @@ const CLAIM_VERIFICATION_STATUS_OPTIONS = [
   'REJECTED',
 ] as const;
 
+type ClaimFilterKey = 'all' | 'actionable' | 'supported' | 'follow-up';
+
 const EMPTY_INTERVIEW_FORM = {
   status: 'DRAFT',
   interviewType: 'GENERAL_SOURCE',
@@ -143,6 +145,42 @@ function formatJsonValue(value: unknown) {
   } catch {
     return String(value);
   }
+}
+
+function formatClaimTypeLabel(value: string) {
+  return value
+    .toLowerCase()
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function formatVerificationStatusLabel(value: string) {
+  return value
+    .toLowerCase()
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function formatClaimFilterLabel(value: ClaimFilterKey) {
+  switch (value) {
+    case 'actionable':
+      return 'Actionable';
+    case 'supported':
+      return 'Supported';
+    case 'follow-up':
+      return 'Follow-Up';
+    default:
+      return 'All Claims';
+  }
+}
+
+function parseClaimFilter(value: string | null): ClaimFilterKey {
+  if (value === 'all' || value === 'actionable' || value === 'supported' || value === 'follow-up') {
+    return value;
+  }
+  return 'actionable';
 }
 
 function EditIcon() {
@@ -218,6 +256,7 @@ export default function ReporterRunDetailClient({
   const previewDialogRef = useRef<HTMLDivElement | null>(null);
   const previewDialogCloseRef = useRef<HTMLButtonElement | null>(null);
   const activeTab = (searchParams.get('view') as TabKey) || 'details';
+  const initialClaimFilter = parseClaimFilter(searchParams.get('claimFilter'));
   const [currentRun, setCurrentRun] = useState(run);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -243,6 +282,7 @@ export default function ReporterRunDetailClient({
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
   const [isRunningTriage, setIsRunningTriage] = useState(false);
   const [updatingClaimId, setUpdatingClaimId] = useState<string | null>(null);
+  const [claimFilter, setClaimFilter] = useState<ClaimFilterKey>(initialClaimFilter);
   const [isConvertingDraft, setIsConvertingDraft] = useState<string | null>(null);
   const [previewDialog, setPreviewDialog] = useState<PreviewDialogState>(null);
   const articleDrafts = currentRun.drafts.filter((draft: any) => draft.draftType === 'ARTICLE_DRAFT');
@@ -268,7 +308,7 @@ export default function ReporterRunDetailClient({
   const interviews = currentRun.interviewRequests || [];
   const agentTasks = currentRun.agentTasks || [];
   const agentTraces = currentRun.agentTraces || [];
-  const claims = currentRun.claims || [];
+  const claims = useMemo(() => currentRun.claims || [], [currentRun.claims]);
   const latestTriageTask =
     agentTasks.find((task: any) => task.taskType === 'TRIAGE_REPORTER_RUN') || null;
   const latestTriageTrace =
@@ -290,6 +330,44 @@ export default function ReporterRunDetailClient({
     articleDrafts.find((draft: any) => draft.id === selectedDraftId) || articleDrafts[0] || null;
   const selectedAnalysis =
     analysisDrafts.find((draft: any) => draft.id === selectedAnalysisId) || analysisDrafts[0] || null;
+  const claimSummary = useMemo(() => {
+    const actionable = claims.filter(
+      (claim: any) =>
+        claim.verificationStatus === 'UNREVIEWED' ||
+        claim.verificationStatus === 'NEEDS_CORROBORATION' ||
+        claim.verificationStatus === 'DISPUTED' ||
+        claim.claimType === 'FOLLOW_UP_REQUIREMENT'
+    ).length;
+    const supported = claims.filter((claim: any) => claim.verificationStatus === 'SUPPORTED').length;
+    const followUp = claims.filter((claim: any) => claim.claimType === 'FOLLOW_UP_REQUIREMENT').length;
+
+    return {
+      actionable,
+      supported,
+      followUp,
+    };
+  }, [claims]);
+  const filteredClaims = useMemo(() => {
+    if (claimFilter === 'supported') {
+      return claims.filter((claim: any) => claim.verificationStatus === 'SUPPORTED');
+    }
+
+    if (claimFilter === 'follow-up') {
+      return claims.filter((claim: any) => claim.claimType === 'FOLLOW_UP_REQUIREMENT');
+    }
+
+    if (claimFilter === 'actionable') {
+      return claims.filter(
+        (claim: any) =>
+          claim.verificationStatus === 'UNREVIEWED' ||
+          claim.verificationStatus === 'NEEDS_CORROBORATION' ||
+          claim.verificationStatus === 'DISPUTED' ||
+          claim.claimType === 'FOLLOW_UP_REQUIREMENT'
+      );
+    }
+
+    return claims;
+  }, [claimFilter, claims]);
   const draftGenerationBlockedReason = !hasSources
     ? 'Draft generation is unavailable until the run has source material.'
     : openBlockers.length > 0
@@ -359,6 +437,19 @@ export default function ReporterRunDetailClient({
     const queryString = next.toString();
     router.replace(queryString ? `${pathname}?${queryString}` : pathname);
   }
+
+  function handleClaimFilterChange(filter: ClaimFilterKey) {
+    setClaimFilter(filter);
+    updateSearchParams({
+      view: activeTab === 'agent' ? 'agent' : null,
+      claimFilter: filter === 'actionable' ? 'actionable' : filter,
+    });
+  }
+
+  useEffect(() => {
+    const nextFilter = parseClaimFilter(searchParams.get('claimFilter'));
+    setClaimFilter((current) => (current === nextFilter ? current : nextFilter));
+  }, [searchParams]);
 
   function handleSelectDraft(draftId: string) {
     setSelectedDraftId(draftId);
@@ -2692,6 +2783,92 @@ export default function ReporterRunDetailClient({
                   Run-level editorial claims and verification state.
                 </p>
               </div>
+              <div className="mb-4 grid gap-3 md:grid-cols-4">
+                <button
+                  type="button"
+                  onClick={() => handleClaimFilterChange('actionable')}
+                  className={`rounded-2xl border px-3 py-3 text-left transition ${
+                    claimFilter === 'actionable'
+                      ? 'border-amber-300 bg-amber-50'
+                      : 'border-slate-200 bg-slate-50'
+                  }`}
+                >
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Actionable
+                  </div>
+                  <div className="mt-2 text-sm font-semibold text-slate-900">
+                    {claimSummary.actionable}
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    Needs review, corroboration, or follow-up.
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleClaimFilterChange('supported')}
+                  className={`rounded-2xl border px-3 py-3 text-left transition ${
+                    claimFilter === 'supported'
+                      ? 'border-emerald-300 bg-emerald-50'
+                      : 'border-slate-200 bg-slate-50'
+                  }`}
+                >
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Supported
+                  </div>
+                  <div className="mt-2 text-sm font-semibold text-slate-900">
+                    {claimSummary.supported}
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    Stronger source-backed claims.
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleClaimFilterChange('follow-up')}
+                  className={`rounded-2xl border px-3 py-3 text-left transition ${
+                    claimFilter === 'follow-up'
+                      ? 'border-sky-300 bg-sky-50'
+                      : 'border-slate-200 bg-slate-50'
+                  }`}
+                >
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Follow-Up
+                  </div>
+                  <div className="mt-2 text-sm font-semibold text-slate-900">
+                    {claimSummary.followUp}
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    Explicit reporting gaps to resolve.
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleClaimFilterChange('all')}
+                  className={`rounded-2xl border px-3 py-3 text-left transition ${
+                    claimFilter === 'all'
+                      ? 'border-slate-400 bg-slate-100'
+                      : 'border-slate-200 bg-slate-50'
+                  }`}
+                >
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    All Claims
+                  </div>
+                  <div className="mt-2 text-sm font-semibold text-slate-900">{claims.length}</div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    Full claim ledger for this run.
+                  </div>
+                </button>
+              </div>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                <div>
+                  Showing{' '}
+                  <span className="font-semibold text-slate-700">{filteredClaims.length}</span>{' '}
+                  of <span className="font-semibold text-slate-700">{claims.length}</span> claims.
+                </div>
+                <div>
+                  Filter: <span className="font-semibold text-slate-700">{formatClaimFilterLabel(claimFilter)}</span>
+                </div>
+              </div>
               <div className="admin-list-table-wrap">
                 <table className="admin-list-table">
                   <thead className="admin-list-head">
@@ -2705,14 +2882,16 @@ export default function ReporterRunDetailClient({
                     </tr>
                   </thead>
                   <tbody>
-                    {claims.length === 0 ? (
+                    {filteredClaims.length === 0 ? (
                       <tr className="admin-list-row">
                         <td className="admin-list-empty" colSpan={6}>
-                          No claims yet.
+                          {claims.length === 0
+                            ? 'No claims yet.'
+                            : 'No claims match the current filter.'}
                         </td>
                       </tr>
                     ) : (
-                      claims.map((claim: any) => {
+                      filteredClaims.map((claim: any) => {
                         const attentionTone =
                           claim.verificationStatus === 'SUPPORTED'
                             ? ''
@@ -2738,8 +2917,15 @@ export default function ReporterRunDetailClient({
                                   {claim.sourceExcerpt}
                                 </div>
                               ) : null}
+                              {claim.claimType === 'FOLLOW_UP_REQUIREMENT' ? (
+                                <div className="mt-2 inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-800">
+                                  Follow-up required
+                                </div>
+                              ) : null}
                             </td>
-                            <td className="admin-list-cell">{claim.claimType}</td>
+                            <td className="admin-list-cell">
+                              {formatClaimTypeLabel(claim.claimType)}
+                            </td>
                             <td className="admin-list-cell">
                               {claim.reporterSource ? (
                                 <div className="space-y-1">
@@ -2779,7 +2965,7 @@ export default function ReporterRunDetailClient({
                                   {updatingClaimId === claim.id ? 'Saving…' : 'Internal only'}
                                 </label>
                               ) : (
-                                claim.verificationStatus
+                                formatVerificationStatusLabel(claim.verificationStatus)
                               )}
                             </td>
                             <td className="admin-list-cell">

@@ -11,6 +11,16 @@ function cleanString(value: string | null | undefined): string | null {
   return trimmed ? trimmed : null;
 }
 
+function cleanIsoDateString(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const parsed = new Date(trimmed);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
 function isLikelyUrl(value: string) {
   try {
     const parsed = new URL(value);
@@ -29,6 +39,9 @@ function buildInitialSources(payload: ReporterRunIntakePayload): ReporterSourceS
       sourceType: REPORTER_SOURCE_TYPE.USER_NOTE,
       title: 'What happened',
       url: null,
+      publisher: null,
+      author: null,
+      publishedAt: null,
       contentText: whatHappened,
       excerpt: null,
       note: null,
@@ -42,6 +55,9 @@ function buildInitialSources(payload: ReporterRunIntakePayload): ReporterSourceS
       sourceType: REPORTER_SOURCE_TYPE.USER_NOTE,
       title: 'Additional notes',
       url: null,
+      publisher: null,
+      author: null,
+      publishedAt: null,
       contentText: notes,
       excerpt: null,
       note: null,
@@ -59,6 +75,9 @@ function buildInitialSources(payload: ReporterRunIntakePayload): ReporterSourceS
       sourceType: REPORTER_SOURCE_TYPE.OFFICIAL_URL,
       title: normalizedLink,
       url: normalizedLink,
+      publisher: null,
+      author: null,
+      publishedAt: null,
       contentText: null,
       excerpt: null,
       note: null,
@@ -74,6 +93,9 @@ function buildInitialSources(payload: ReporterRunIntakePayload): ReporterSourceS
     const sourceType = source.sourceType ?? REPORTER_SOURCE_TYPE.STAFF_NOTE;
     const title = cleanString(source.title);
     const url = cleanString(source.url);
+    const publisher = cleanString(source.publisher);
+    const author = cleanString(source.author);
+    const publishedAt = cleanIsoDateString(source.publishedAt);
     const contentText = cleanString(source.contentText);
     const excerpt = cleanString(source.excerpt);
     const note = cleanString(source.note);
@@ -87,6 +109,9 @@ function buildInitialSources(payload: ReporterRunIntakePayload): ReporterSourceS
       sourceType,
       title,
       url: url && isLikelyUrl(url) ? url : null,
+      publisher,
+      author,
+      publishedAt,
       contentText,
       excerpt,
       note,

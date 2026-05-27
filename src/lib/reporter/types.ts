@@ -183,6 +183,9 @@ export interface ReporterSourceSeed {
   sourceType: ReporterSourceTypeValue;
   title: string | null;
   url: string | null;
+  publisher: string | null;
+  author: string | null;
+  publishedAt: string | null;
   contentText: string | null;
   excerpt: string | null;
   note: string | null;
@@ -193,6 +196,9 @@ export interface ReporterSourceSeedInput {
   sourceType?: ReporterSourceTypeValue | null;
   title?: string | null;
   url?: string | null;
+  publisher?: string | null;
+  author?: string | null;
+  publishedAt?: string | null;
   contentText?: string | null;
   excerpt?: string | null;
   note?: string | null;

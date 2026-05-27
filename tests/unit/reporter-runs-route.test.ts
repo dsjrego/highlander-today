@@ -15,6 +15,12 @@ jest.mock('@/lib/activity-log', () => ({
   logActivity: (...args: unknown[]) => logActivityMock(...(args as [])),
 }));
 
+const createReporterClaimsFromSourcePacketAnalysisMock = jest.fn();
+jest.mock('@/lib/reporter/claim-service', () => ({
+  createReporterClaimsFromSourcePacketAnalysis: (...args: unknown[]) =>
+    createReporterClaimsFromSourcePacketAnalysisMock(...(args as [])),
+}));
+
 const { POST, GET } = require('@/app/api/reporter/runs/route') as typeof import('@/app/api/reporter/runs/route');
 
 function buildRequest(method: 'POST' | 'GET', body?: unknown, headers?: Record<string, string>) {
@@ -38,6 +44,7 @@ describe('reporter runs route', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (getCurrentCommunityMock as any).mockResolvedValue({ id: 'community-1' });
+    (createReporterClaimsFromSourcePacketAnalysisMock as any).mockResolvedValue([]);
   });
 
   it('creates a reporter run with normalized initial sources', async () => {
@@ -192,6 +199,98 @@ describe('reporter runs route', () => {
               }),
             ]),
           },
+        }),
+      })
+    );
+  });
+
+  it('links a claimed story candidate to the created reporter run', async () => {
+    (prismaMock.reporterRun.create as any).mockImplementation(async (args: any) => ({
+      id: 'run-candidate-1',
+      status: 'NEW',
+      mode: args.data.mode ?? 'REQUEST',
+      requestType: args.data.requestType ?? 'ARTICLE_REQUEST',
+      topic: args.data.topic,
+      title: args.data.title,
+      subjectName: args.data.subjectName,
+      requesterName: args.data.requesterName,
+      requesterEmail: args.data.requesterEmail,
+      requesterPhone: args.data.requesterPhone,
+      requestSummary: args.data.requestSummary,
+      editorNotes: args.data.editorNotes,
+      publicDescription: args.data.publicDescription,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      sources: args.data.sources.create.map((source: any, index: number) => ({
+        id: `source-candidate-${index + 1}`,
+        sourceType: source.sourceType,
+        title: source.title,
+        url: source.url,
+        publisher: source.publisher,
+        author: source.author,
+        publishedAt: source.publishedAt,
+        contentText: source.contentText,
+        excerpt: source.excerpt,
+        note: source.note,
+        reliabilityTier: source.reliabilityTier,
+        sortOrder: source.sortOrder,
+      })),
+    }));
+    (prismaMock.reporterStoryCandidate.updateMany as any).mockResolvedValue({ count: 1 });
+    (createReporterClaimsFromSourcePacketAnalysisMock as any).mockResolvedValue([
+      { id: 'claim-1' },
+      { id: 'claim-2' },
+    ]);
+
+    const response = await POST(
+      buildRequest('POST', {
+        storyCandidateId: '11111111-1111-4111-8111-111111111111',
+        mode: 'RESEARCH',
+        requestType: 'EDITOR_ASSIGNMENT',
+        topic: 'Budget meeting',
+        initialSources: [
+          {
+            sourceType: 'OFFICIAL_URL',
+            title: 'Official agenda',
+            url: 'https://borough.example/agenda',
+            publisher: 'Borough Council',
+            publishedAt: '2026-05-25T12:00:00.000Z',
+            excerpt: 'Council posted the budget meeting agenda.',
+            reliabilityTier: 'PRIMARY',
+          },
+        ],
+      })
+    );
+
+    expect(response.status).toBe(201);
+    expect(prismaMock.reporterStoryCandidate.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: '11111111-1111-4111-8111-111111111111',
+        communityId: 'community-1',
+      },
+      data: {
+        linkedReporterRunId: 'run-candidate-1',
+      },
+    });
+    expect(createReporterClaimsFromSourcePacketAnalysisMock).toHaveBeenCalledWith({
+      reporterRunId: 'run-candidate-1',
+      createdByUserId: 'staff-1',
+      sources: expect.arrayContaining([
+        expect.objectContaining({
+          sourceType: 'OFFICIAL_URL',
+          title: 'Official agenda',
+          publisher: 'Borough Council',
+          publishedAt: expect.any(Date),
+          excerpt: 'Council posted the budget meeting agenda.',
+          reliabilityTier: 'PRIMARY',
+        }),
+      ]),
+    });
+    expect(logActivityMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          claimCount: 2,
+          storyCandidateId: '11111111-1111-4111-8111-111111111111',
         }),
       })
     );

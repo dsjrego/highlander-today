@@ -43,6 +43,15 @@ interface ReporterRunsClientProps {
   }[];
 }
 
+type ReporterQueueViewKey =
+  | 'all'
+  | 'NEW'
+  | 'NEEDS_REVIEW'
+  | 'READY_FOR_DRAFT'
+  | 'DRAFT_CREATED'
+  | 'BLOCKED'
+  | 'editor-ready';
+
 const STATUS_OPTIONS = [
   'ALL',
   'NEW',
@@ -115,7 +124,7 @@ export default function ReporterRunsClient({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const activeView = searchParams.get('view') ?? 'all';
+  const activeView = (searchParams.get('view') as ReporterQueueViewKey | null) ?? 'all';
   const focus = searchParams.get('focus');
 
   const [rows, setRows] = useState(runs);
@@ -145,8 +154,14 @@ export default function ReporterRunsClient({
   const filteredRuns = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return rows.filter((run) => {
-      if (activeView !== 'all' && run.status !== activeView) {
-        return false;
+      if (activeView !== 'all') {
+        if (activeView === 'editor-ready') {
+          if (run.status !== 'DRAFT_CREATED') {
+            return false;
+          }
+        } else if (run.status !== activeView) {
+          return false;
+        }
       }
       if (statusFilter !== 'ALL' && run.status !== statusFilter) {
         return false;
@@ -266,6 +281,11 @@ export default function ReporterRunsClient({
               key: 'READY_FOR_DRAFT',
               label: 'Ready',
               count: rows.filter((run) => run.status === 'READY_FOR_DRAFT').length,
+            },
+            {
+              key: 'editor-ready',
+              label: 'Editor Ready',
+              count: rows.filter((run) => run.status === 'DRAFT_CREATED').length,
             },
             {
               key: 'BLOCKED',

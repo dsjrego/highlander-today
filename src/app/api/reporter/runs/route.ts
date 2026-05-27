@@ -5,8 +5,10 @@ import { getCurrentCommunity } from '@/lib/community';
 import { logActivity } from '@/lib/activity-log';
 import { canCreateReporterRun, canViewReporterRun } from '@/lib/reporter/permissions';
 import { normalizeReporterRunInput } from '@/lib/reporter/run-normalizer';
+import { createReporterClaimsFromSourcePacketAnalysis } from '@/lib/reporter/claim-service';
 
 const CreateReporterRunSchema = z.object({
+  storyCandidateId: z.string().uuid().optional().nullable(),
   mode: z.enum(['REQUEST', 'INTERVIEW', 'RESEARCH', 'HYBRID']).optional().nullable(),
   requestType: z
     .enum(['ARTICLE_REQUEST', 'STORY_TIP', 'EDITOR_ASSIGNMENT'])
@@ -46,6 +48,9 @@ const CreateReporterRunSchema = z.object({
           .nullable(),
         title: z.string().trim().optional().nullable(),
         url: z.string().trim().optional().nullable(),
+        publisher: z.string().trim().optional().nullable(),
+        author: z.string().trim().optional().nullable(),
+        publishedAt: z.string().trim().optional().nullable(),
         contentText: z.string().trim().optional().nullable(),
         excerpt: z.string().trim().optional().nullable(),
         note: z.string().trim().optional().nullable(),
@@ -199,6 +204,9 @@ export async function POST(request: NextRequest) {
             sourceType: source.sourceType,
             title: source.title,
             url: source.url,
+            publisher: source.publisher,
+            author: source.author,
+            publishedAt: source.publishedAt ? new Date(source.publishedAt) : null,
             contentText: source.contentText,
             excerpt: source.excerpt,
             note: source.note,
@@ -231,13 +239,38 @@ export async function POST(request: NextRequest) {
             sourceType: true,
             title: true,
             url: true,
+            publisher: true,
+            author: true,
+            publishedAt: true,
             contentText: true,
+            excerpt: true,
+            note: true,
             reliabilityTier: true,
             sortOrder: true,
           },
         },
       },
     });
+
+    const seededClaims = payload.storyCandidateId
+      ? await createReporterClaimsFromSourcePacketAnalysis({
+          reporterRunId: createdRun.id,
+          sources: createdRun.sources,
+          createdByUserId: userId || null,
+        })
+      : [];
+
+    if (payload.storyCandidateId) {
+      await db.reporterStoryCandidate.updateMany({
+        where: {
+          id: payload.storyCandidateId,
+          communityId: fallbackCommunity.id,
+        },
+        data: {
+          linkedReporterRunId: createdRun.id,
+        },
+      });
+    }
 
     if (userId) {
       await logActivity({
@@ -250,6 +283,8 @@ export async function POST(request: NextRequest) {
           topic: createdRun.topic,
           requestType: createdRun.requestType,
           sourceCount: createdRun.sources.length,
+          claimCount: seededClaims.length,
+          storyCandidateId: payload.storyCandidateId || null,
         },
       });
     }

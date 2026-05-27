@@ -19,6 +19,8 @@ import {
   findReporterTenantKeywordMatches,
   parseReporterTenantKeywords,
 } from '@/lib/reporter/tenant-keywords';
+import type { ReporterStoryCandidateView } from '@/lib/reporter/story-candidates';
+import type { ReporterDailyCoverageDeskView, ReporterDailyCoverageDecisionView, ReporterDailyCoverageGoalView } from '@/lib/reporter/daily-coverage';
 
 type CoveragePlaceOption = {
   id: string;
@@ -84,7 +86,18 @@ interface ReporterMonitoredSourcesClientProps {
     status: string;
   }>;
   tenantKeywordsText: string;
+  storyCandidates: ReporterStoryCandidateView[];
+  dailyCoverageDesk: ReporterDailyCoverageDeskView;
 }
+
+type DailyCoverageGoalFormState = {
+  placeId: string;
+  label: string;
+  targetArticleCount: string;
+  minimumCandidateScore: string;
+  freshnessWindowHours: string;
+  allowNeedsReportingFallback: boolean;
+};
 
 type AttachDialogState =
   | {
@@ -107,20 +120,13 @@ type MonitoredIngestionStoryItem = {
   sourcePlaceName: string | null;
 };
 
-type StoryPacketCluster = {
-  id: string;
-  title: string;
-  items: MonitoredIngestionStoryItem[];
-  sourceCount: number;
-  latestAt: string | Date;
-  matchedKeywords: string[];
-};
-
 type StorySignalAssessment = {
   level: 'likely' | 'possible' | 'low';
   score: number;
   reasons: string[];
 };
+
+type CandidateFilterKey = 'all' | 'unclaimed' | 'draftable' | 'needs-reporting' | 'blocked';
 
 const STATUS_OPTIONS = ['ALL', ...REPORTER_MONITORED_SOURCE_STATUS_OPTIONS] as const;
 
@@ -281,29 +287,6 @@ function scoreRunSimilarity(
   return overlap + titleBoost;
 }
 
-function scoreItemSimilarity(a: MonitoredIngestionStoryItem, b: MonitoredIngestionStoryItem) {
-  const aTokens = buildStoryTokenSet(`${a.title} ${a.excerpt || ''}`);
-  const bTokens = buildStoryTokenSet(`${b.title} ${b.excerpt || ''}`);
-
-  if (aTokens.size === 0 || bTokens.size === 0) {
-    return 0;
-  }
-
-  let overlap = 0;
-  for (const token of aTokens) {
-    if (bTokens.has(token)) {
-      overlap += 1;
-    }
-  }
-
-  const aTitle = normalizeStoryText(a.title);
-  const bTitle = normalizeStoryText(b.title);
-  const titleBoost =
-    aTitle && bTitle && (aTitle.includes(bTitle) || bTitle.includes(aTitle)) ? 2 : 0;
-
-  return overlap + titleBoost;
-}
-
 function getItemActivityTime(item: MonitoredIngestionStoryItem) {
   return new Date(item.publishedAt || item.lastSeenAt || item.firstSeenAt).getTime();
 }
@@ -369,52 +352,6 @@ function assessStoryItemSignal(item: MonitoredIngestionStoryItem, matchedKeyword
   } satisfies StorySignalAssessment;
 }
 
-function assessStoryPacketSignal(packet: StoryPacketCluster) {
-  let score = 0;
-  const reasons: string[] = [];
-  const civicSignalCount = countCivicSignalTerms(
-    packet.items.map((item) => [item.title, item.excerpt].filter(Boolean).join(' ')).join(' ')
-  );
-  const recentItems = packet.items.filter((item) => {
-    const ageHours = Math.max(0, (Date.now() - getItemActivityTime(item)) / (1000 * 60 * 60));
-    return ageHours <= 72;
-  }).length;
-
-  if (packet.sourceCount >= 2) {
-    score += Math.min(4, packet.sourceCount);
-    reasons.push(`appears across ${packet.sourceCount} sources`);
-  }
-
-  if (packet.matchedKeywords.length > 0) {
-    score += Math.min(3, packet.matchedKeywords.length);
-    reasons.push(`matches ${packet.matchedKeywords.length} tenant term${packet.matchedKeywords.length === 1 ? '' : 's'}`);
-  }
-
-  if (civicSignalCount > 0) {
-    score += Math.min(3, civicSignalCount);
-    reasons.push('contains civic/public-interest language');
-  }
-
-  if (recentItems > 0) {
-    score += 1;
-    reasons.push('has recent activity');
-  }
-
-  if (score >= 7) {
-    return { level: 'likely', score, reasons: reasons.slice(0, 3) } satisfies StorySignalAssessment;
-  }
-
-  if (score >= 4) {
-    return { level: 'possible', score, reasons: reasons.slice(0, 3) } satisfies StorySignalAssessment;
-  }
-
-  return {
-    level: 'low',
-    score,
-    reasons: reasons.length ? reasons.slice(0, 2) : ['weak packet signal'],
-  } satisfies StorySignalAssessment;
-}
-
 function storySignalTone(level: StorySignalAssessment['level']): 'ok' | 'pend' | 'neu' {
   if (level === 'likely') return 'ok';
   if (level === 'possible') return 'pend';
@@ -427,11 +364,123 @@ function storySignalLabel(level: StorySignalAssessment['level']) {
   return 'Low Signal';
 }
 
+function readinessTone(level: ReporterStoryCandidateView['readiness']['level']): 'ok' | 'pend' | 'bad' | 'neu' {
+  if (level === 'draftable') return 'ok';
+  if (level === 'needs-reporting') return 'pend';
+  if (level === 'blocked') return 'bad';
+  return 'neu';
+}
+
+function linkedRunActionLabel(packet: ReporterStoryCandidateView) {
+  if (!packet.linkedReporterRun) {
+    return 'Create Run From Candidate';
+  }
+
+  if (packet.readiness.level === 'draftable') {
+    return 'Open Draftable Run';
+  }
+
+  if (packet.readiness.level === 'blocked') {
+    return 'Review Blocked Run';
+  }
+
+  return 'Continue Reporting';
+}
+
+function linkedRunSecondaryAction(packet: ReporterStoryCandidateView) {
+  if (!packet.linkedReporterRun) {
+    return null;
+  }
+
+  if (packet.readiness.level === 'draftable') {
+    return {
+      href: `/admin/reporter/${packet.linkedReporterRun.id}?view=analysis`,
+      label: 'Open Analysis',
+    };
+  }
+
+  if (packet.readiness.level === 'blocked') {
+    return {
+      href: `/admin/reporter/${packet.linkedReporterRun.id}?view=blockers`,
+      label: 'Open Blockers',
+    };
+  }
+
+  return {
+    href: `/admin/reporter/${packet.linkedReporterRun.id}?view=agent&claimFilter=actionable`,
+    label: 'Open Claims',
+  };
+}
+
+function buildDailyCoverageGoalForm(
+  goal: ReporterDailyCoverageGoalView | null,
+  coveragePlaces: CoveragePlaceOption[]
+): DailyCoverageGoalFormState {
+  return {
+    placeId: goal?.placeId || coveragePlaces[0]?.id || '',
+    label: goal?.label || '',
+    targetArticleCount: String(goal?.targetArticleCount || 1),
+    minimumCandidateScore: String(goal?.minimumCandidateScore || 6),
+    freshnessWindowHours: String(goal?.freshnessWindowHours || 36),
+    allowNeedsReportingFallback: goal?.allowNeedsReportingFallback ?? true,
+  };
+}
+
+function dailyCoverageDecisionTone(
+  decision: ReporterDailyCoverageDecisionView | null
+): 'ok' | 'pend' | 'neu' {
+  if (!decision) {
+    return 'neu';
+  }
+
+  return decision.outcome === 'selected' ? 'ok' : 'pend';
+}
+
+function dailyCoverageAnalysisTone(
+  decision: ReporterDailyCoverageDecisionView | null
+): 'ok' | 'pend' | 'bad' | 'neu' {
+  if (!decision?.analysisStatus) {
+    return 'neu';
+  }
+
+  if (decision.analysisStatus === 'generated') {
+    return 'ok';
+  }
+  if (decision.analysisStatus === 'blocked') {
+    return 'bad';
+  }
+  if (decision.analysisStatus === 'failed') {
+    return 'bad';
+  }
+  return 'pend';
+}
+
+function dailyCoverageArticleTone(
+  decision: ReporterDailyCoverageDecisionView | null
+): 'ok' | 'pend' | 'bad' | 'neu' {
+  if (!decision?.articleStatus) {
+    return 'neu';
+  }
+
+  if (decision.articleStatus === 'generated') {
+    return 'ok';
+  }
+  if (decision.articleStatus === 'blocked') {
+    return 'bad';
+  }
+  if (decision.articleStatus === 'failed') {
+    return 'bad';
+  }
+  return 'pend';
+}
+
 export default function ReporterMonitoredSourcesClient({
   sources,
   coveragePlaces,
   reporterRuns,
   tenantKeywordsText: initialTenantKeywordsText,
+  storyCandidates,
+  dailyCoverageDesk,
 }: ReporterMonitoredSourcesClientProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -439,6 +488,10 @@ export default function ReporterMonitoredSourcesClient({
   const activeView = searchParams.get('view') ?? 'all';
 
   const [rows, setRows] = useState(sources);
+  const [candidateRows, setCandidateRows] = useState(storyCandidates);
+  const [dailyGoal, setDailyGoal] = useState(dailyCoverageDesk.goal);
+  const [dailyDecision, setDailyDecision] = useState(dailyCoverageDesk.decision);
+  const [dailyCoverageDate, setDailyCoverageDate] = useState(dailyCoverageDesk.date);
   const [query, setQuery] = useState('');
   const [tenantKeywordsText, setTenantKeywordsText] = useState(initialTenantKeywordsText);
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_OPTIONS)[number]>('ALL');
@@ -449,6 +502,10 @@ export default function ReporterMonitoredSourcesClient({
   const [updatingSourceId, setUpdatingSourceId] = useState<string | null>(null);
   const [runningFetchSourceId, setRunningFetchSourceId] = useState<string | null>(null);
   const [runningDueSources, setRunningDueSources] = useState(false);
+  const [refreshingCandidates, setRefreshingCandidates] = useState(false);
+  const [candidateFilter, setCandidateFilter] = useState<CandidateFilterKey>('all');
+  const [generatingCandidateAnalysisRunId, setGeneratingCandidateAnalysisRunId] = useState<string | null>(null);
+  const [runningCandidateTriageRunId, setRunningCandidateTriageRunId] = useState<string | null>(null);
   const [creatingRunItemId, setCreatingRunItemId] = useState<string | null>(null);
   const [creatingRunPacketId, setCreatingRunPacketId] = useState<string | null>(null);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
@@ -456,6 +513,11 @@ export default function ReporterMonitoredSourcesClient({
   const [selectedRunId, setSelectedRunId] = useState('');
   const [attachingRunItemId, setAttachingRunItemId] = useState<string | null>(null);
   const [isSavingTenantKeywords, setIsSavingTenantKeywords] = useState(false);
+  const [dailyCoverageGoalForm, setDailyCoverageGoalForm] = useState<DailyCoverageGoalFormState>(
+    buildDailyCoverageGoalForm(dailyCoverageDesk.goal, coveragePlaces)
+  );
+  const [isSavingDailyCoverageGoal, setIsSavingDailyCoverageGoal] = useState(false);
+  const [isEvaluatingDailyCoverage, setIsEvaluatingDailyCoverage] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
@@ -534,51 +596,23 @@ export default function ReporterMonitoredSourcesClient({
     return map;
   }, [reporterRuns, rows]);
 
-  const storyPackets = useMemo<StoryPacketCluster[]>(() => {
-    const remaining = [...recentStoryItems];
-    const clusters: StoryPacketCluster[] = [];
+  const candidateSummary = useMemo(() => {
+    return {
+      all: candidateRows.length,
+      unclaimed: candidateRows.filter((candidate) => candidate.readiness.level === 'unclaimed').length,
+      draftable: candidateRows.filter((candidate) => candidate.readiness.level === 'draftable').length,
+      'needs-reporting': candidateRows.filter((candidate) => candidate.readiness.level === 'needs-reporting').length,
+      blocked: candidateRows.filter((candidate) => candidate.readiness.level === 'blocked').length,
+    };
+  }, [candidateRows]);
 
-    while (remaining.length > 0) {
-      const seed = remaining.shift()!;
-      const clusterItems = [seed];
-
-      for (let index = remaining.length - 1; index >= 0; index -= 1) {
-        const candidate = remaining[index];
-        const score = scoreItemSimilarity(seed, candidate);
-        if (score >= 3) {
-          clusterItems.push(candidate);
-          remaining.splice(index, 1);
-        }
-      }
-
-      const distinctSourceCount = new Set(clusterItems.map((item) => item.sourceId)).size;
-      if (clusterItems.length >= 2 && distinctSourceCount >= 2) {
-        clusterItems.sort((a, b) => getItemActivityTime(b) - getItemActivityTime(a));
-        const matchedKeywords = Array.from(
-          new Set(clusterItems.flatMap((item) => itemKeywordMatchesById.get(item.id) || []))
-        );
-        clusters.push({
-          id: `packet-${seed.id}`,
-          title: clusterItems[0].title,
-          items: clusterItems,
-          sourceCount: distinctSourceCount,
-          latestAt: clusterItems[0].publishedAt || clusterItems[0].lastSeenAt,
-          matchedKeywords,
-        });
-      }
+  const filteredCandidateRows = useMemo(() => {
+    if (candidateFilter === 'all') {
+      return candidateRows;
     }
 
-    return clusters
-      .sort((a, b) => {
-        const aSignal = assessStoryPacketSignal(a);
-        const bSignal = assessStoryPacketSignal(b);
-        if (bSignal.score !== aSignal.score) {
-          return bSignal.score - aSignal.score;
-        }
-        return new Date(b.latestAt).getTime() - new Date(a.latestAt).getTime();
-      })
-      .slice(0, 8);
-  }, [itemKeywordMatchesById, recentStoryItems]);
+    return candidateRows.filter((candidate) => candidate.readiness.level === candidateFilter);
+  }, [candidateFilter, candidateRows]);
 
   function updateSearchParams(updates: Record<string, string | null>) {
     const next = new URLSearchParams(searchParams.toString());
@@ -630,6 +664,119 @@ export default function ReporterMonitoredSourcesClient({
         .some((value) => value!.toLowerCase().includes(normalizedQuery));
     });
   }, [activeView, query, rows, statusFilter, typeFilter]);
+
+  async function refreshStoryCandidatesState(options?: {
+    noticeMessage?: string;
+    emptyNoticeMessage?: string;
+  }) {
+    const response = await fetch('/api/admin/reporter/story-candidates/refresh', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ limit: 12 }),
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to refresh story candidates');
+    }
+
+    setCandidateRows(Array.isArray(data.candidates) ? data.candidates : []);
+
+    if (typeof data.candidateCount === 'number') {
+      setNotice(
+        data.candidateCount > 0
+          ? options?.noticeMessage ||
+              `Refreshed ${data.candidateCount} story candidate${data.candidateCount === 1 ? '' : 's'}.`
+          : options?.emptyNoticeMessage ||
+              'No current story candidates were found from recent monitored-source items.'
+      );
+    }
+  }
+
+  async function handleSaveDailyCoverageGoal(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSavingDailyCoverageGoal(true);
+    setError('');
+    setNotice('');
+
+    try {
+      const response = await fetch('/api/admin/reporter/daily-coverage/goal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          placeId: dailyCoverageGoalForm.placeId || null,
+          label: dailyCoverageGoalForm.label || null,
+          targetArticleCount: Number(dailyCoverageGoalForm.targetArticleCount) || 1,
+          minimumCandidateScore: Number(dailyCoverageGoalForm.minimumCandidateScore) || 6,
+          freshnessWindowHours: Number(dailyCoverageGoalForm.freshnessWindowHours) || 36,
+          allowNeedsReportingFallback: dailyCoverageGoalForm.allowNeedsReportingFallback,
+          isActive: true,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save daily coverage goal');
+      }
+
+      setDailyGoal(data.goal || null);
+      setDailyCoverageGoalForm(buildDailyCoverageGoalForm(data.goal || null, coveragePlaces));
+      setNotice('Daily coverage goal saved.');
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error ? saveError.message : 'Failed to save daily coverage goal'
+      );
+    } finally {
+      setIsSavingDailyCoverageGoal(false);
+    }
+  }
+
+  async function handleEvaluateDailyCoverage() {
+    setIsEvaluatingDailyCoverage(true);
+    setError('');
+    setNotice('');
+
+    try {
+      const response = await fetch('/api/admin/reporter/daily-coverage/evaluate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          date: dailyCoverageDate,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to evaluate daily coverage desk');
+      }
+
+      setDailyGoal(data.goal || null);
+      setDailyDecision(data.decision || null);
+      if (typeof data.date === 'string') {
+        setDailyCoverageDate(data.date);
+      }
+      await refreshStoryCandidatesState({
+        noticeMessage: data.decision?.outcome === 'selected'
+          ? 'Daily desk selected a story and refreshed candidate readiness.'
+          : 'Daily desk recorded that no publishable story cleared the current thresholds.',
+        emptyNoticeMessage: 'Daily desk completed. No current story candidates remain.',
+      });
+    } catch (evaluationError) {
+      setError(
+        evaluationError instanceof Error
+          ? evaluationError.message
+          : 'Failed to evaluate daily coverage desk'
+      );
+    } finally {
+      setIsEvaluatingDailyCoverage(false);
+    }
+  }
 
   async function handleCreateSource(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -777,6 +924,100 @@ export default function ReporterMonitoredSourcesClient({
     }
   }
 
+  async function handleRefreshStoryCandidates() {
+    setRefreshingCandidates(true);
+    setError('');
+    setNotice('');
+
+    try {
+      await refreshStoryCandidatesState();
+    } catch (refreshError) {
+      setError(
+        refreshError instanceof Error
+          ? refreshError.message
+          : 'Failed to refresh story candidates'
+      );
+    } finally {
+      setRefreshingCandidates(false);
+    }
+  }
+
+  async function handleGenerateCandidateAnalysis(packet: ReporterStoryCandidateView) {
+    if (!packet.linkedReporterRun) {
+      return;
+    }
+
+    setGeneratingCandidateAnalysisRunId(packet.linkedReporterRun.id);
+    setError('');
+    setNotice('');
+
+    try {
+      const response = await fetch(`/api/reporter/runs/${packet.linkedReporterRun.id}/draft`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ draftType: 'SOURCE_PACKET_SUMMARY' }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate reporter analysis');
+      }
+
+      await refreshStoryCandidatesState({
+        noticeMessage: 'Reporter analysis generated and candidate readiness refreshed.',
+        emptyNoticeMessage: 'Reporter analysis generated. No current story candidates remain.',
+      });
+    } catch (analysisError) {
+      setError(
+        analysisError instanceof Error
+          ? analysisError.message
+          : 'Failed to generate reporter analysis'
+      );
+    } finally {
+      setGeneratingCandidateAnalysisRunId(null);
+    }
+  }
+
+  async function handleRunCandidateTriage(packet: ReporterStoryCandidateView) {
+    if (!packet.linkedReporterRun) {
+      return;
+    }
+
+    setRunningCandidateTriageRunId(packet.linkedReporterRun.id);
+    setError('');
+    setNotice('');
+
+    try {
+      const response = await fetch('/api/admin/reporter/triage/run', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reporterRunId: packet.linkedReporterRun.id }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to run reporter triage');
+      }
+
+      await refreshStoryCandidatesState({
+        noticeMessage: 'Reporter triage completed and candidate readiness refreshed.',
+        emptyNoticeMessage: 'Reporter triage completed. No current story candidates remain.',
+      });
+    } catch (triageError) {
+      setError(
+        triageError instanceof Error
+          ? triageError.message
+          : 'Failed to run reporter triage'
+      );
+    } finally {
+      setRunningCandidateTriageRunId(null);
+    }
+  }
+
   async function handleSaveTenantKeywords(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSavingTenantKeywords(true);
@@ -874,7 +1115,7 @@ export default function ReporterMonitoredSourcesClient({
     }
   }
 
-  async function handleCreateReporterRunFromPacket(packet: StoryPacketCluster) {
+  async function handleCreateReporterRunFromPacket(packet: ReporterStoryCandidateView) {
     setCreatingRunPacketId(packet.id);
     setError('');
     setNotice('');
@@ -889,6 +1130,7 @@ export default function ReporterMonitoredSourcesClient({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          storyCandidateId: packet.id,
           mode: 'RESEARCH',
           requestType: 'EDITOR_ASSIGNMENT',
           topic: packet.title,
@@ -916,6 +1158,8 @@ export default function ReporterMonitoredSourcesClient({
             sourceType: item.canonicalUrl ? 'NEWS_ARTICLE' : 'STAFF_NOTE',
             title: item.title,
             url: item.canonicalUrl,
+            publisher: item.publisher,
+            publishedAt: item.publishedAt ? new Date(item.publishedAt).toISOString() : null,
             excerpt: item.excerpt,
             contentText: item.excerpt,
             note: `From monitored source: ${item.sourceLabel}`,
@@ -927,6 +1171,16 @@ export default function ReporterMonitoredSourcesClient({
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create reporter run from story packet');
+      }
+
+      try {
+        await refreshStoryCandidatesState({
+          noticeMessage: 'Reporter run created and candidate queue refreshed.',
+          emptyNoticeMessage: 'Reporter run created. No current story candidates remain.',
+        });
+      } catch (refreshError) {
+        console.error('Failed to refresh story candidates after run creation:', refreshError);
+        setNotice('Reporter run created.');
       }
 
       router.push(`/admin/reporter/${data.id}?view=sources`);
@@ -1149,52 +1403,492 @@ export default function ReporterMonitoredSourcesClient({
         </form>
       </div>
 
-      {storyPackets.length > 0 ? (
-        <div className="rounded-[28px] border border-sky-200 bg-[linear-gradient(135deg,rgba(240,249,255,0.95),rgba(248,250,252,0.98))] px-5 py-5 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-700">
-                Story Packets
-              </div>
-              <h2 className="mt-1 text-lg font-black tracking-[-0.03em] text-slate-950">
-                Possible Multi-Source Stories
-              </h2>
-              <p className="mt-1 max-w-3xl text-sm text-slate-600">
-                These clusters group similar recent items across different monitored sources so
-                you can start one reporter run with a fuller source packet.
-              </p>
+      <div className="rounded-[28px] border border-emerald-200 bg-[linear-gradient(135deg,rgba(236,253,245,0.95),rgba(248,250,252,0.98))] px-5 py-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-700">
+              Daily Desk
             </div>
-            <div className="rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-sky-800">
-              {storyPackets.length} packet{storyPackets.length === 1 ? '' : 's'}
-            </div>
+            <h2 className="mt-1 text-lg font-black tracking-[-0.03em] text-slate-950">
+              Daily Coverage Orchestrator
+            </h2>
+            <p className="mt-1 max-w-3xl text-sm text-slate-600">
+              Save the active daily coverage thresholds for this tenant, then evaluate the best
+              candidate for today or record that no publishable story cleared the bar.
+            </p>
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <AdminChip tone={dailyCoverageDecisionTone(dailyDecision)}>
+              {dailyDecision ? dailyDecision.outcomeLabel : 'No Decision Yet'}
+            </AdminChip>
+            <input
+              type="date"
+              value={dailyCoverageDate}
+              onChange={(event) => setDailyCoverageDate(event.target.value)}
+              className="form-input h-10 min-w-[160px]"
+            />
+            <button
+              type="button"
+              className="page-header-action"
+              onClick={() => void handleEvaluateDailyCoverage()}
+              disabled={isEvaluatingDailyCoverage}
+            >
+              <span>{isEvaluatingDailyCoverage ? 'Evaluating…' : 'Evaluate Daily Desk'}</span>
+            </button>
+          </div>
+        </div>
 
-          <div className="mt-4 grid gap-3 lg:grid-cols-2">
-            {storyPackets.map((packet) => {
-              const packetSignal = assessStoryPacketSignal(packet);
-
-              return (
-                <div
-                  key={packet.id}
-                  className="rounded-3xl border border-sky-100 bg-white px-4 py-4 shadow-sm"
+        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+          <form onSubmit={handleSaveDailyCoverageGoal} className="rounded-3xl border border-white/80 bg-white/90 px-4 py-4">
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="space-y-1 text-sm text-slate-700">
+                <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                  Coverage Area
+                </span>
+                <select
+                  value={dailyCoverageGoalForm.placeId}
+                  onChange={(event) =>
+                    setDailyCoverageGoalForm((current) => ({
+                      ...current,
+                      placeId: event.target.value,
+                    }))
+                  }
+                  className="form-input"
                 >
+                  <option value="">All configured areas</option>
+                  {coveragePlaces.map((place) => (
+                    <option key={place.id} value={place.id}>
+                      {place.displayName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-1 text-sm text-slate-700">
+                <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                  Desk Label
+                </span>
+                <input
+                  value={dailyCoverageGoalForm.label}
+                  onChange={(event) =>
+                    setDailyCoverageGoalForm((current) => ({
+                      ...current,
+                      label: event.target.value,
+                    }))
+                  }
+                  className="form-input"
+                  placeholder="Daily desk"
+                />
+              </label>
+              <label className="space-y-1 text-sm text-slate-700">
+                <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                  Min Candidate Score
+                </span>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={dailyCoverageGoalForm.minimumCandidateScore}
+                  onChange={(event) =>
+                    setDailyCoverageGoalForm((current) => ({
+                      ...current,
+                      minimumCandidateScore: event.target.value,
+                    }))
+                  }
+                  className="form-input"
+                />
+              </label>
+              <label className="space-y-1 text-sm text-slate-700">
+                <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                  Freshness Window Hours
+                </span>
+                <input
+                  type="number"
+                  min={6}
+                  max={168}
+                  value={dailyCoverageGoalForm.freshnessWindowHours}
+                  onChange={(event) =>
+                    setDailyCoverageGoalForm((current) => ({
+                      ...current,
+                      freshnessWindowHours: event.target.value,
+                    }))
+                  }
+                  className="form-input"
+                />
+              </label>
+              <label className="space-y-1 text-sm text-slate-700">
+                <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                  Daily Target
+                </span>
+                <input
+                  type="number"
+                  min={1}
+                  max={3}
+                  value={dailyCoverageGoalForm.targetArticleCount}
+                  onChange={(event) =>
+                    setDailyCoverageGoalForm((current) => ({
+                      ...current,
+                      targetArticleCount: event.target.value,
+                    }))
+                  }
+                  className="form-input"
+                />
+              </label>
+              <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={dailyCoverageGoalForm.allowNeedsReportingFallback}
+                  onChange={(event) =>
+                    setDailyCoverageGoalForm((current) => ({
+                      ...current,
+                      allowNeedsReportingFallback: event.target.checked,
+                    }))
+                  }
+                />
+                <span>Allow `Needs Reporting` fallback when no stronger lead is available.</span>
+              </label>
+            </div>
+
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <div className="text-xs text-slate-500">
+                Current area:{' '}
+                <span className="font-semibold text-slate-700">
+                  {dailyGoal?.placeName || 'All configured coverage areas'}
+                </span>
+              </div>
+              <button type="submit" className="page-header-action" disabled={isSavingDailyCoverageGoal}>
+                {isSavingDailyCoverageGoal ? 'Saving…' : 'Save Daily Goal'}
+              </button>
+            </div>
+          </form>
+
+          <div className="rounded-3xl border border-white/80 bg-white/90 px-4 py-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-sm font-semibold text-slate-900">Latest Daily Decision</div>
+              {dailyDecision ? (
+                <div className="text-xs text-slate-500">Updated {formatDateTime(dailyDecision.updatedAt)}</div>
+              ) : null}
+            </div>
+            {dailyDecision ? (
+              <div className="mt-3 space-y-3">
+                <div className="text-sm text-slate-700">{dailyDecision.summary}</div>
+                {dailyDecision.analysisStatusLabel ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <AdminChip tone={dailyCoverageAnalysisTone(dailyDecision)}>
+                      {dailyDecision.analysisStatusLabel}
+                    </AdminChip>
+                    {typeof dailyDecision.analysisIssueCount === 'number' ? (
+                      <span className="text-xs text-slate-500">
+                        {dailyDecision.analysisIssueCount} validation issue
+                        {dailyDecision.analysisIssueCount === 1 ? '' : 's'}
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
+                {dailyDecision.articleStatusLabel ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <AdminChip tone={dailyCoverageArticleTone(dailyDecision)}>
+                      {dailyDecision.articleStatusLabel}
+                    </AdminChip>
+                    {typeof dailyDecision.articleIssueCount === 'number' ? (
+                      <span className="text-xs text-slate-500">
+                        {dailyDecision.articleIssueCount} validation issue
+                        {dailyDecision.articleIssueCount === 1 ? '' : 's'}
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
+                {dailyDecision.reporterRun ? (
+                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-900">
+                    <div className="font-semibold">
+                      {dailyDecision.reporterRun.title || dailyDecision.reporterRun.topic}
+                    </div>
+                    <div className="mt-1 text-xs text-emerald-800">
+                      Run status: {dailyDecision.reporterRun.status}
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-3">
+                      <Link
+                        href={`/admin/reporter/${dailyDecision.reporterRun.id}?view=sources`}
+                        className="inline-flex text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800"
+                      >
+                        Open Selected Run
+                      </Link>
+                      {dailyDecision.analysisDraft ? (
+                        <Link
+                          href={`/admin/reporter/${dailyDecision.reporterRun.id}?view=analysis`}
+                          className="inline-flex text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800"
+                        >
+                          Open Analysis
+                        </Link>
+                      ) : null}
+                      {dailyDecision.articleDraft ? (
+                        <Link
+                          href={`/admin/reporter/${dailyDecision.reporterRun.id}?view=drafts`}
+                          className="inline-flex text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800"
+                        >
+                          Open Draft
+                        </Link>
+                      ) : dailyDecision.analysisStatus === 'blocked' ? (
+                        <Link
+                          href={`/admin/reporter/${dailyDecision.reporterRun.id}?view=blockers`}
+                          className="inline-flex text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800"
+                        >
+                          Review Blockers
+                        </Link>
+                      ) : dailyDecision.analysisStatus === 'skipped' ? (
+                        <Link
+                          href={`/admin/reporter/${dailyDecision.reporterRun.id}?view=agent&claimFilter=actionable`}
+                          className="inline-flex text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800"
+                        >
+                          Open Claims
+                        </Link>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+                {dailyDecision.storyCandidate ? (
+                  <div className="text-xs text-slate-500">
+                    Candidate: <span className="font-semibold text-slate-700">{dailyDecision.storyCandidate.title}</span>
+                  </div>
+                ) : null}
+                {dailyDecision.analysisSummary ? (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                    {dailyDecision.analysisSummary}
+                  </div>
+                ) : null}
+                {dailyDecision.articleSummary ? (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                    {dailyDecision.articleSummary}
+                  </div>
+                ) : null}
+                {dailyDecision.reasons.length ? (
+                  <div className="space-y-2">
+                    {dailyDecision.reasons.map((reason) => (
+                      <div
+                        key={reason}
+                        className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600"
+                      >
+                        {reason}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <div className="mt-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                No daily decision has been recorded for {dailyCoverageDate} yet.
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-[28px] border border-sky-200 bg-[linear-gradient(135deg,rgba(240,249,255,0.95),rgba(248,250,252,0.98))] px-5 py-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-700">
+              Story Candidates
+            </div>
+            <h2 className="mt-1 text-lg font-black tracking-[-0.03em] text-slate-950">
+              Ranked Reporting Leads
+            </h2>
+            <p className="mt-1 max-w-3xl text-sm text-slate-600">
+              Refresh durable story candidates built from recent monitored-source items. These
+              clusters give the reporter a stronger starting packet than one-off source triage.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-sky-800">
+              {candidateRows.length} candidate{candidateRows.length === 1 ? '' : 's'}
+            </div>
+            <button
+              type="button"
+              className="page-header-action"
+              onClick={() => void handleRefreshStoryCandidates()}
+              disabled={refreshingCandidates}
+            >
+              <RefreshCcw className={`h-4 w-4 ${refreshingCandidates ? 'animate-spin' : ''}`} />
+              <span>{refreshingCandidates ? 'Refreshing…' : 'Refresh Candidates'}</span>
+            </button>
+          </div>
+        </div>
+
+        {candidateRows.length === 0 ? (
+          <div className="mt-4 rounded-2xl border border-sky-100 bg-white px-4 py-4 text-sm text-slate-600">
+            No durable story candidates have been materialized yet for this tenant.
+          </div>
+        ) : (
+          <>
+            <div className="mt-4 grid gap-3 md:grid-cols-5">
+              <button
+                type="button"
+                onClick={() => setCandidateFilter('all')}
+                className={`rounded-2xl border px-3 py-3 text-left transition ${
+                  candidateFilter === 'all'
+                    ? 'border-slate-400 bg-slate-100'
+                    : 'border-slate-200 bg-white'
+                }`}
+              >
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  All
+                </div>
+                <div className="mt-2 text-sm font-semibold text-slate-900">{candidateSummary.all}</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCandidateFilter('unclaimed')}
+                className={`rounded-2xl border px-3 py-3 text-left transition ${
+                  candidateFilter === 'unclaimed'
+                    ? 'border-slate-400 bg-slate-100'
+                    : 'border-slate-200 bg-white'
+                }`}
+              >
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  Unclaimed
+                </div>
+                <div className="mt-2 text-sm font-semibold text-slate-900">
+                  {candidateSummary.unclaimed}
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCandidateFilter('draftable')}
+                className={`rounded-2xl border px-3 py-3 text-left transition ${
+                  candidateFilter === 'draftable'
+                    ? 'border-emerald-300 bg-emerald-50'
+                    : 'border-slate-200 bg-white'
+                }`}
+              >
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  Draftable
+                </div>
+                <div className="mt-2 text-sm font-semibold text-slate-900">
+                  {candidateSummary.draftable}
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCandidateFilter('needs-reporting')}
+                className={`rounded-2xl border px-3 py-3 text-left transition ${
+                  candidateFilter === 'needs-reporting'
+                    ? 'border-amber-300 bg-amber-50'
+                    : 'border-slate-200 bg-white'
+                }`}
+              >
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  Needs Reporting
+                </div>
+                <div className="mt-2 text-sm font-semibold text-slate-900">
+                  {candidateSummary['needs-reporting']}
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCandidateFilter('blocked')}
+                className={`rounded-2xl border px-3 py-3 text-left transition ${
+                  candidateFilter === 'blocked'
+                    ? 'border-rose-300 bg-rose-50'
+                    : 'border-slate-200 bg-white'
+                }`}
+              >
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  Blocked
+                </div>
+                <div className="mt-2 text-sm font-semibold text-slate-900">
+                  {candidateSummary.blocked}
+                </div>
+              </button>
+            </div>
+
+            <div className="mt-3 flex items-center justify-between gap-3 text-xs text-slate-500">
+              <div>
+                Showing <span className="font-semibold text-slate-700">{filteredCandidateRows.length}</span>{' '}
+                of <span className="font-semibold text-slate-700">{candidateRows.length}</span>{' '}
+                candidates.
+              </div>
+              <div>
+                Filter:{' '}
+                <span className="font-semibold text-slate-700">
+                  {candidateFilter === 'all'
+                    ? 'All'
+                    : candidateFilter === 'needs-reporting'
+                      ? 'Needs Reporting'
+                      : candidateFilter.charAt(0).toUpperCase() + candidateFilter.slice(1)}
+                </span>
+              </div>
+            </div>
+
+            {filteredCandidateRows.length === 0 ? (
+              <div className="mt-4 rounded-2xl border border-sky-100 bg-white px-4 py-4 text-sm text-slate-600">
+                No story candidates match the current readiness filter.
+              </div>
+            ) : (
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            {filteredCandidateRows.map((packet) => (
+              <div
+                key={packet.id}
+                className="rounded-3xl border border-sky-100 bg-white px-4 py-4 shadow-sm"
+              >
+                {(() => {
+                  const secondaryAction = linkedRunSecondaryAction(packet);
+
+                  return (
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="text-base font-bold text-slate-950">{packet.title}</div>
                     <div className="mt-1 text-xs text-slate-500">
                       {packet.sourceCount} source{packet.sourceCount === 1 ? '' : 's'} •{' '}
-                      {packet.items.length} item{packet.items.length === 1 ? '' : 's'} • latest{' '}
+                      {packet.itemCount} item{packet.itemCount === 1 ? '' : 's'} • latest{' '}
                       {formatDateTime(packet.latestAt)}
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <AdminChip tone={storySignalTone(packetSignal.level)}>
-                        {storySignalLabel(packetSignal.level)}
+                      <AdminChip tone={storySignalTone(packet.signal.level)}>
+                        {storySignalLabel(packet.signal.level)}
                       </AdminChip>
-                      <span className="text-xs text-slate-500">score {packetSignal.score}</span>
+                      <AdminChip tone={readinessTone(packet.readiness.level)}>
+                        {packet.readiness.label}
+                      </AdminChip>
+                      <span className="text-xs text-slate-500">score {packet.signal.score}</span>
                     </div>
                     <div className="mt-2 text-xs text-slate-600">
-                      {packetSignal.reasons.join(' • ')}
+                      {packet.signal.reasons.join(' • ')}
                     </div>
+                    <div className="mt-2 text-xs text-slate-600">{packet.readiness.reason}</div>
+                    {packet.summary ? (
+                      <div className="mt-2 text-xs leading-5 text-slate-600">{packet.summary}</div>
+                    ) : null}
+                    {packet.linkedReporterRun ? (
+                      <div className="mt-2 text-xs text-amber-700">
+                        Linked run: {packet.linkedReporterRun.title || packet.linkedReporterRun.topic} •{' '}
+                        {packet.linkedReporterRun.status}
+                      </div>
+                    ) : null}
+                    {(packet.readiness.actionableClaimCount > 0 ||
+                      packet.readiness.supportedClaimCount > 0 ||
+                      packet.readiness.followUpClaimCount > 0 ||
+                      packet.readiness.blockerCount > 0) ? (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {packet.readiness.supportedClaimCount > 0 ? (
+                          <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-emerald-800">
+                            {packet.readiness.supportedClaimCount} supported
+                          </span>
+                        ) : null}
+                        {packet.readiness.actionableClaimCount > 0 ? (
+                          <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-amber-800">
+                            {packet.readiness.actionableClaimCount} actionable
+                          </span>
+                        ) : null}
+                        {packet.readiness.followUpClaimCount > 0 ? (
+                          <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-sky-800">
+                            {packet.readiness.followUpClaimCount} follow-up
+                          </span>
+                        ) : null}
+                        {packet.readiness.blockerCount > 0 ? (
+                          <span className="inline-flex items-center rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-rose-800">
+                            {packet.readiness.blockerCount} blocker{packet.readiness.blockerCount === 1 ? '' : 's'}
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : null}
                     {packet.matchedKeywords.length ? (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {packet.matchedKeywords.map((keyword) => (
@@ -1208,15 +1902,60 @@ export default function ReporterMonitoredSourcesClient({
                       </div>
                     ) : null}
                   </div>
-                  <button
-                    type="button"
-                    className="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-sky-300 bg-sky-50 px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-700 shadow-sm transition hover:border-sky-600 hover:bg-sky-100 hover:text-sky-800 disabled:cursor-not-allowed disabled:opacity-50"
-                    onClick={() => void handleCreateReporterRunFromPacket(packet)}
-                    disabled={creatingRunPacketId === packet.id}
-                  >
-                    {creatingRunPacketId === packet.id ? 'Creating…' : 'Create Run From Packet'}
-                  </button>
+                  <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                    {packet.linkedReporterRun ? (
+                      <>
+                        <Link
+                          href={`/admin/reporter/${packet.linkedReporterRun.id}?view=sources`}
+                          className="inline-flex h-9 items-center justify-center rounded-full border border-sky-300 bg-sky-50 px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-700 shadow-sm transition hover:border-sky-600 hover:bg-sky-100 hover:text-sky-800"
+                        >
+                          {linkedRunActionLabel(packet)}
+                        </Link>
+                        {packet.readiness.level === 'draftable' ? (
+                          <button
+                            type="button"
+                            className="inline-flex h-9 items-center justify-center rounded-full border border-slate-300 bg-white px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-700 shadow-sm transition hover:border-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                            onClick={() => void handleGenerateCandidateAnalysis(packet)}
+                            disabled={generatingCandidateAnalysisRunId === packet.linkedReporterRun.id}
+                          >
+                            {generatingCandidateAnalysisRunId === packet.linkedReporterRun.id
+                              ? 'Analyzing…'
+                              : 'Generate Analysis'}
+                          </button>
+                        ) : packet.readiness.level === 'needs-reporting' ? (
+                          <button
+                            type="button"
+                            className="inline-flex h-9 items-center justify-center rounded-full border border-slate-300 bg-white px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-700 shadow-sm transition hover:border-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                            onClick={() => void handleRunCandidateTriage(packet)}
+                            disabled={runningCandidateTriageRunId === packet.linkedReporterRun.id}
+                          >
+                            {runningCandidateTriageRunId === packet.linkedReporterRun.id
+                              ? 'Running Triage…'
+                              : 'Run Triage'}
+                          </button>
+                        ) : secondaryAction ? (
+                          <Link
+                            href={secondaryAction.href}
+                            className="inline-flex h-9 items-center justify-center rounded-full border border-slate-300 bg-white px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-700 shadow-sm transition hover:border-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                          >
+                            {secondaryAction.label}
+                          </Link>
+                        ) : null}
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        className="inline-flex h-9 items-center justify-center rounded-full border border-sky-300 bg-sky-50 px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-700 shadow-sm transition hover:border-sky-600 hover:bg-sky-100 hover:text-sky-800 disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={() => void handleCreateReporterRunFromPacket(packet)}
+                        disabled={creatingRunPacketId === packet.id}
+                      >
+                        {creatingRunPacketId === packet.id ? 'Creating…' : linkedRunActionLabel(packet)}
+                      </button>
+                    )}
+                  </div>
                 </div>
+                  );
+                })()}
 
                 <div className="mt-3 space-y-2">
                   {packet.items.slice(0, 4).map((item) => (
@@ -1231,18 +1970,6 @@ export default function ReporterMonitoredSourcesClient({
                             {item.sourceLabel}
                             {item.sourcePlaceName ? ` • ${item.sourcePlaceName}` : ''}
                           </div>
-                          {itemKeywordMatchesById.get(item.id)?.length ? (
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {itemKeywordMatchesById.get(item.id)!.map((keyword) => (
-                                <span
-                                  key={keyword}
-                                  className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-emerald-800"
-                                >
-                                  Match: {keyword}
-                                </span>
-                              ))}
-                            </div>
-                          ) : null}
                         </div>
                         <div className="text-right text-xs text-slate-500">
                           {formatDate(item.publishedAt)}
@@ -1255,11 +1982,12 @@ export default function ReporterMonitoredSourcesClient({
                   ))}
                 </div>
               </div>
-            );
-            })}
+            ))}
           </div>
-        </div>
-      ) : null}
+            )}
+          </>
+        )}
+      </div>
 
       <div className="flex items-center justify-between gap-3">
         <AdminViewTabs

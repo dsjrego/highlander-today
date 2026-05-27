@@ -10,6 +10,8 @@ import { checkPermission } from '@/lib/permissions';
 import { AdminPage } from '@/components/admin/AdminPage';
 import ReporterMonitoredSourcesClient from './ReporterMonitoredSourcesClient';
 import { REPORTER_TENANT_KEYWORDS_SETTING_KEY } from '@/lib/reporter/tenant-keywords';
+import { listReporterStoryCandidates } from '@/lib/reporter/story-candidates';
+import { getReporterDailyCoverageDesk } from '@/lib/reporter/daily-coverage';
 
 export default async function AdminReporterSourcesPage() {
   const session = await getServerSession(authOptions);
@@ -25,7 +27,7 @@ export default async function AdminReporterSourcesPage() {
     redirect('/admin/reporter');
   }
 
-  const [sources, coverageAreas, reporterRuns, tenantKeywordSetting] = await Promise.all([
+  const [sources, coverageAreas, reporterRuns, tenantKeywordSetting, storyCandidates, dailyCoverageDesk] = await Promise.all([
     db.reporterMonitoredSource.findMany({
       where: {
         communityId: currentCommunity.id,
@@ -139,6 +141,13 @@ export default async function AdminReporterSourcesPage() {
         value: true,
       },
     }),
+    listReporterStoryCandidates({
+      communityId: currentCommunity.id,
+      limit: 12,
+    }),
+    getReporterDailyCoverageDesk({
+      communityId: currentCommunity.id,
+    }),
   ]);
 
   return (
@@ -179,6 +188,8 @@ export default async function AdminReporterSourcesPage() {
             coveragePlaces={coverageAreas.map(({ place }) => place)}
             reporterRuns={reporterRuns}
             tenantKeywordsText={tenantKeywordSetting?.value || ''}
+            storyCandidates={storyCandidates}
+            dailyCoverageDesk={dailyCoverageDesk}
           />
         </div>
       </div>
