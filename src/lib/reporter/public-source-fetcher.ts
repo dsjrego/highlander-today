@@ -489,7 +489,7 @@ export async function executeReporterMonitoredSourceFetch(monitoredSourceId: str
   const startedAt = new Date();
   const requestHeaders = new Headers({
     Accept: buildAcceptHeader(source.sourceFormat),
-    'User-Agent': 'HighlanderTodayReporterBot/1.0 (+https://highlander.today)',
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
   });
 
   if (source.lastETag) {
