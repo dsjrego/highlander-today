@@ -2,6 +2,8 @@ import { createHash } from 'crypto';
 import type { Prisma, ReporterSourceFetchStatus } from '@prisma/client';
 import { db } from '@/lib/db';
 
+const REPORTER_INGESTION_RETENTION_DAYS = 7;
+
 type ReporterIngestionItemInput = {
   dedupeKey?: string | null;
   externalId?: string | null;
@@ -84,6 +86,9 @@ export async function recordReporterMonitoredSourceFetch(
   const startedAt = normalizeDate(input.startedAt) || new Date();
   const completedAt = normalizeDate(input.completedAt) || new Date();
   const items = input.items || [];
+  const retentionCutoff = new Date(
+    completedAt.getTime() - REPORTER_INGESTION_RETENTION_DAYS * 24 * 60 * 60 * 1000
+  );
 
   return db.$transaction(async (tx) => {
     const monitoredSource = await tx.reporterMonitoredSource.findUnique({
@@ -225,7 +230,16 @@ export async function recordReporterMonitoredSourceFetch(
               lastErrorAt: null,
               lastErrorMessage: null,
               ...(newItemCount > 0 || changedItemCount > 0 ? { lastChangedAt: completedAt } : {}),
-            }),
+        }),
+      },
+    });
+
+    await tx.reporterSourceIngestionItem.deleteMany({
+      where: {
+        monitoredSourceId: input.monitoredSourceId,
+        lastSeenAt: {
+          lt: retentionCutoff,
+        },
       },
     });
 

@@ -85,6 +85,16 @@ describe('reporter monitored source ingestion service', () => {
         }),
       })
     );
+    expect(prismaMock.reporterSourceIngestionItem.deleteMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          monitoredSourceId: 'source-1',
+          lastSeenAt: expect.objectContaining({
+            lt: expect.any(Date),
+          }),
+        }),
+      })
+    );
     expect(result.summary).toEqual({
       itemCount: 2,
       newItemCount: 1,
