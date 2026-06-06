@@ -33,6 +33,7 @@ export const defaultAdminNavSections = [
       { href: '/admin/reporter', label: 'Reporter' },
       { href: '/admin/recipes', label: 'Recipes' },
       { href: '/admin/events', label: 'Events' },
+      { href: '/admin/locations', label: 'Locations' },
       { href: '/admin/organizations', label: 'Organizations' },
       { href: '/admin/categories', label: 'Navigation' },
     ],

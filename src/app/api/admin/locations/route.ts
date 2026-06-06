@@ -12,6 +12,7 @@ const CreateLocationSchema = z.object({
   state: z.string().trim().min(2).max(80),
   postalCode: z.string().trim().max(20).optional().or(z.literal('')),
   countryCode: z.string().trim().length(2).optional().or(z.literal('')),
+  validationStatus: z.enum(['UNVERIFIED', 'NORMALIZED', 'VERIFIED', 'NEEDS_REVIEW']).optional(),
   forceCreate: z.boolean().optional(),
 });
 
@@ -72,7 +73,14 @@ export async function GET(request: NextRequest) {
         city: true,
         state: true,
         postalCode: true,
+        countryCode: true,
         validationStatus: true,
+        updatedAt: true,
+        _count: {
+          select: {
+            events: true,
+          },
+        },
       },
     });
 
@@ -126,7 +134,14 @@ export async function POST(request: NextRequest) {
         city: true,
         state: true,
         postalCode: true,
+        countryCode: true,
         validationStatus: true,
+        updatedAt: true,
+        _count: {
+          select: {
+            events: true,
+          },
+        },
       },
     });
 
@@ -151,7 +166,7 @@ export async function POST(request: NextRequest) {
         postalCode: validated.postalCode || null,
         countryCode,
         normalizedAddressKey,
-        validationStatus: 'UNVERIFIED',
+        validationStatus: validated.validationStatus || 'UNVERIFIED',
       },
       select: {
         id: true,
@@ -161,7 +176,14 @@ export async function POST(request: NextRequest) {
         city: true,
         state: true,
         postalCode: true,
+        countryCode: true,
         validationStatus: true,
+        updatedAt: true,
+        _count: {
+          select: {
+            events: true,
+          },
+        },
       },
     });
 

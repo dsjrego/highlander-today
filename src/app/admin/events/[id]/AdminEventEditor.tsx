@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Save, Trash2 } from 'lucide-react';
@@ -8,6 +9,10 @@ import { CrudActionButton } from '@/components/shared/CrudAction';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import { formatEventDateInput, formatEventTimeInput } from '@/lib/event-datetime';
 import { formatLocationPrimary, formatLocationSecondary } from '@/lib/location-format';
+
+const TipTapEditor = dynamic(() => import('@/components/articles/TipTapEditor'), {
+  ssr: false,
+});
 
 const SERIES_SCOPE_OPTIONS = [
   { value: 'SINGLE', label: 'This event only' },
@@ -440,12 +445,15 @@ export default function AdminEventEditor({ event, locations }: AdminEventEditorP
 
             <div className="lg:col-span-2">
               <label className="form-label">Description</label>
-              <textarea
-                name="description"
-                value={form.description}
-                onChange={handleInputChange}
-                rows={5}
-                className="form-textarea border-slate-300 bg-white text-slate-950"
+              <TipTapEditor
+                content={form.description}
+                onChange={(description) =>
+                  setForm((current) => ({
+                    ...current,
+                    description,
+                  }))
+                }
+                placeholder="Describe the event, schedule, audience, and any details attendees need."
               />
             </div>
           </div>

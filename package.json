@@ -29,6 +29,8 @@
     "deploy:check-env": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/check-deployment-env.ts",
     "db:push": "prisma db push --schema prisma/schema.prisma",
     "db:studio": "prisma studio --schema prisma/schema.prisma",
+    "reporter:collect:local": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/reporter-local-browser-collector.ts",
+    "reporter:worker:local-browser": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/reporter-local-browser-collector.ts",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down"
   },
@@ -79,6 +81,7 @@
     "eslint": "^8.55.0",
     "eslint-config-next": "^14.0.0",
     "jest": "^29.7.0",
+    "playwright": "^1.60.0",
     "prettier": "^3.1.0",
     "prisma": "^5.7.0",
     "ts-jest": "^29.1.1",

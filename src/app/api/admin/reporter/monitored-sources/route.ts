@@ -1,24 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  ReporterMonitoredSourceFormat,
-  ReporterMonitoredSourceStatus,
-  ReporterMonitoredSourceType,
-} from '@prisma/client';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { getCurrentCommunity } from '@/lib/community';
 import { logActivity } from '@/lib/activity-log';
+import {
+  REPORTER_COVERAGE_SCOPE_OPTIONS,
+  REPORTER_MONITORED_SOURCE_EXECUTION_LANE_OPTIONS,
+  REPORTER_MONITORED_SOURCE_FORMAT_OPTIONS,
+  REPORTER_MONITORED_SOURCE_STATUS_OPTIONS,
+  REPORTER_MONITORED_SOURCE_TYPE_OPTIONS,
+} from '@/lib/reporter/monitored-sources';
 import { canEditReporterRun, canViewReporterRun } from '@/lib/reporter/permissions';
 
 const createMonitoredSourceSchema = z.object({
   label: z.string().trim().min(2).max(160),
-  sourceType: z.nativeEnum(ReporterMonitoredSourceType),
-  sourceFormat: z.nativeEnum(ReporterMonitoredSourceFormat),
+  sourceType: z.enum(REPORTER_MONITORED_SOURCE_TYPE_OPTIONS),
+  sourceFormat: z.enum(REPORTER_MONITORED_SOURCE_FORMAT_OPTIONS),
+  executionLane: z.enum(REPORTER_MONITORED_SOURCE_EXECUTION_LANE_OPTIONS).optional(),
+  coverageScope: z.enum(REPORTER_COVERAGE_SCOPE_OPTIONS).optional(),
   url: z.string().trim().min(3).max(2048),
   publisher: z.string().trim().max(160).optional().or(z.literal('')),
   notes: z.string().trim().max(1000).optional().or(z.literal('')),
   placeId: z.string().uuid().optional().nullable(),
-  status: z.nativeEnum(ReporterMonitoredSourceStatus).optional(),
+  status: z.enum(REPORTER_MONITORED_SOURCE_STATUS_OPTIONS).optional(),
   fetchFrequencyMinutes: z.number().int().min(15).max(10080).optional(),
 });
 
@@ -36,6 +40,8 @@ const monitoredSourceSelect = {
   label: true,
   sourceType: true,
   sourceFormat: true,
+  executionLane: true,
+  coverageScope: true,
   url: true,
   publisher: true,
   notes: true,
@@ -195,6 +201,8 @@ export async function POST(request: NextRequest) {
         label: validated.label,
         sourceType: validated.sourceType,
         sourceFormat: validated.sourceFormat,
+        executionLane: validated.executionLane || 'SERVER_FETCH',
+        coverageScope: validated.coverageScope || 'LOCAL',
         url: normalizeUrl(validated.url),
         publisher: validated.publisher || null,
         notes: validated.notes || null,
@@ -215,6 +223,8 @@ export async function POST(request: NextRequest) {
         communityId: currentCommunity.id,
         sourceType: source.sourceType,
         sourceFormat: source.sourceFormat,
+        executionLane: source.executionLane,
+        coverageScope: source.coverageScope,
         placeId: source.place?.id || null,
       },
     });

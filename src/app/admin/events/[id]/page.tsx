@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
+import type { Prisma } from '@prisma/client';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getCurrentCommunity } from '@/lib/community';
@@ -50,6 +51,17 @@ function getStatusClasses(status: string) {
     default:
       return 'bg-yellow-100 text-yellow-800';
   }
+}
+
+function readEventExtractionSourceUrl(value: Prisma.JsonValue | null | undefined) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  return typeof record.sourceUrl === 'string' && record.sourceUrl.trim()
+    ? record.sourceUrl.trim()
+    : null;
 }
 
 export default async function AdminEventDetailPage({
@@ -110,6 +122,13 @@ export default async function AdminEventDetailPage({
               seriesCount: true,
             },
           },
+        },
+      },
+      reporterStoryCandidate: {
+        select: {
+          id: true,
+          title: true,
+          eventExtractionJson: true,
         },
       },
     },
@@ -195,6 +214,42 @@ export default async function AdminEventDetailPage({
           <p className="mt-1 text-xs text-slate-500">{event.costText || 'No cost details'}</p>
         </div>
       </section>
+
+      {event.reporterStoryCandidate ? (
+        <section className="rounded-xl border border-sky-200 bg-sky-50 px-5 py-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">
+            Reporter Source
+          </p>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">
+                Seeded from reporter story candidate
+              </p>
+              <p className="mt-1 text-sm text-slate-600">
+                {event.reporterStoryCandidate.title}
+              </p>
+              {readEventExtractionSourceUrl(event.reporterStoryCandidate.eventExtractionJson) ? (
+                <p className="mt-2 text-sm">
+                  <a
+                    href={readEventExtractionSourceUrl(event.reporterStoryCandidate.eventExtractionJson) || '#'}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sky-700 underline underline-offset-2"
+                  >
+                    Open original source
+                  </a>
+                </p>
+              ) : null}
+            </div>
+            <Link
+              href={`/admin/reporter/sources?candidate=${event.reporterStoryCandidate.id}`}
+              className="rounded-lg border border-sky-300 bg-white px-4 py-2 text-sm font-medium text-sky-800 transition hover:border-sky-500 hover:bg-sky-100"
+            >
+              Open Reporter Candidate
+            </Link>
+          </div>
+        </section>
+      ) : null}
 
       <AdminEventEditor
         event={{

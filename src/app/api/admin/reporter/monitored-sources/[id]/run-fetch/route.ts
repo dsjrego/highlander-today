@@ -11,6 +11,8 @@ const monitoredSourceSelect = {
   label: true,
   sourceType: true,
   sourceFormat: true,
+  executionLane: true,
+  coverageScope: true,
   url: true,
   publisher: true,
   notes: true,
@@ -89,11 +91,21 @@ export async function POST(
 
     const existing = await db.reporterMonitoredSource.findUnique({
       where: { id: params.id },
-      select: { id: true, communityId: true, label: true },
+      select: { id: true, communityId: true, label: true, executionLane: true },
     });
 
     if (!existing || existing.communityId !== currentCommunity.id) {
       return NextResponse.json({ error: 'Monitored source not found' }, { status: 404 });
+    }
+
+    if (existing.executionLane === 'LOCAL_BROWSER') {
+      return NextResponse.json(
+        {
+          error:
+            'This source is configured for the local browser worker. Run it through the browser-worker automation instead of server fetch.',
+        },
+        { status: 400 }
+      );
     }
 
     const result = await executeReporterMonitoredSourceFetch(params.id);

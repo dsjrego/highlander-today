@@ -297,6 +297,25 @@
     min-width: 300px;
   }
 
+  .dev-theme-switcher.is-collapsed {
+    min-width: 0;
+    width: auto;
+  }
+
+  .dev-theme-switcher-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+  }
+
+  .dev-theme-switcher.is-dragging .dev-theme-switcher-header {
+    cursor: grabbing;
+  }
+
   .dev-theme-switcher-label {
     margin: 0;
     color: var(--menu-panel-muted-text);
@@ -304,6 +323,32 @@
     font-weight: 700;
     letter-spacing: 0.18em;
     text-transform: uppercase;
+  }
+
+  .dev-theme-switcher-toggle {
+    border-radius: var(--radius-pill);
+    border: 1px solid color-mix(in srgb, var(--menu-panel-text) 14%, transparent);
+    background: color-mix(in srgb, var(--menu-panel-bg) 78%, var(--app-bg) 22%);
+    color: var(--menu-panel-text);
+    padding: 0.28rem 0.65rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1;
+    transition:
+      background-color 160ms ease,
+      border-color 160ms ease,
+      color 160ms ease;
+  }
+
+  .dev-theme-switcher-toggle:hover {
+    border-color: color-mix(in srgb, var(--brand-primary) 28%, transparent);
+    background: color-mix(in srgb, var(--brand-primary) 10%, var(--menu-panel-bg) 90%);
+  }
+
+  .dev-theme-switcher-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
   }
 
   .dev-theme-switcher-group {

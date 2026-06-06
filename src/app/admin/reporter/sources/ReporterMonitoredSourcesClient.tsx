@@ -1,14 +1,19 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Plus, RefreshCcw } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { AdminChip } from '@/components/admin/AdminChip';
 import { AdminDrawer } from '@/components/admin/AdminDrawer';
 import { AdminFilterBar } from '@/components/admin/AdminFilterBar';
 import { AdminViewTabs } from '@/components/admin/AdminViewTabs';
+import { formatEventDateInput, formatEventTimeInput } from '@/lib/event-datetime';
+import { formatLocationPrimary, formatLocationSearchLabel, formatLocationSecondary } from '@/lib/location-format';
 import {
+  REPORTER_COVERAGE_SCOPE_OPTIONS,
+  REPORTER_MONITORED_SOURCE_EXECUTION_LANE_OPTIONS,
   REPORTER_MONITORED_SOURCE_FORMAT_OPTIONS,
   REPORTER_MONITORED_SOURCE_STATUS_OPTIONS,
   REPORTER_MONITORED_SOURCE_TYPE_OPTIONS,
@@ -21,6 +26,10 @@ import {
 } from '@/lib/reporter/tenant-keywords';
 import type { ReporterStoryCandidateView } from '@/lib/reporter/story-candidates';
 import type { ReporterDailyCoverageDeskView, ReporterDailyCoverageDecisionView, ReporterDailyCoverageGoalView } from '@/lib/reporter/daily-coverage';
+
+const TipTapEditor = dynamic(() => import('@/components/articles/TipTapEditor'), {
+  ssr: false,
+});
 
 type CoveragePlaceOption = {
   id: string;
@@ -35,6 +44,8 @@ type ReporterMonitoredSourceRow = {
   label: string;
   sourceType: string;
   sourceFormat: string;
+  executionLane: string;
+  coverageScope: string;
   url: string;
   publisher: string | null;
   notes: string | null;
@@ -88,6 +99,20 @@ interface ReporterMonitoredSourcesClientProps {
   tenantKeywordsText: string;
   storyCandidates: ReporterStoryCandidateView[];
   dailyCoverageDesk: ReporterDailyCoverageDeskView;
+  eventLocations: Array<{
+    id: string;
+    name: string | null;
+    addressLine1: string;
+    addressLine2: string | null;
+    city: string;
+    state: string;
+    postalCode: string | null;
+  }>;
+  eventOrganizations: Array<{
+    id: string;
+    name: string;
+    status: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+  }>;
 }
 
 type DailyCoverageGoalFormState = {
@@ -96,6 +121,7 @@ type DailyCoverageGoalFormState = {
   targetArticleCount: string;
   minimumCandidateScore: string;
   freshnessWindowHours: string;
+  priorityCoverageScopes: string[];
   allowNeedsReportingFallback: boolean;
 };
 
@@ -117,6 +143,7 @@ type MonitoredIngestionStoryItem = {
   excerpt: string | null;
   sourceId: string;
   sourceLabel: string;
+  sourceCoverageScope: string;
   sourcePlaceName: string | null;
 };
 
@@ -128,12 +155,30 @@ type StorySignalAssessment = {
 
 type CandidateFilterKey = 'all' | 'unclaimed' | 'draftable' | 'needs-reporting' | 'blocked';
 
+type DraftEventDialogState = {
+  candidateId: string;
+  title: string;
+  description: string;
+  startDate: string;
+  startTime: string;
+  endDate: string;
+  endTime: string;
+  venueLabel: string;
+  imageUrl: string;
+  sourceUrl: string;
+  locationId: string;
+  organizationId: string;
+} | null;
+
 const STATUS_OPTIONS = ['ALL', ...REPORTER_MONITORED_SOURCE_STATUS_OPTIONS] as const;
+const SCOPE_FILTER_OPTIONS = ['ALL', ...REPORTER_COVERAGE_SCOPE_OPTIONS] as const;
 
 const EMPTY_CREATE_FORM = {
   label: '',
   sourceType: 'MUNICIPAL_NOTICES',
   sourceFormat: 'HTML',
+  executionLane: 'SERVER_FETCH',
+  coverageScope: 'LOCAL',
   url: '',
   publisher: '',
   notes: '',
@@ -239,6 +284,38 @@ function healthTone(source: ReporterMonitoredSourceRow): 'ok' | 'pend' | 'bad' |
 
 function healthLabel(source: ReporterMonitoredSourceRow) {
   return formatReporterMonitoredSourceEnumLabel(getReporterMonitoredSourceHealth(source));
+}
+
+function formatApiErrorMessage(data: unknown, fallback: string) {
+  if (!data || typeof data !== 'object') {
+    return fallback;
+  }
+
+  const record = data as {
+    error?: unknown;
+    details?: Array<{ path?: Array<string | number>; message?: unknown }>;
+  };
+
+  const base =
+    typeof record.error === 'string' && record.error.trim() ? record.error.trim() : fallback;
+
+  if (!Array.isArray(record.details) || record.details.length === 0) {
+    return base;
+  }
+
+  const detailText = record.details
+    .map((detail) => {
+      const path = Array.isArray(detail.path) ? detail.path.join('.') : '';
+      const message = typeof detail.message === 'string' ? detail.message.trim() : '';
+      if (path && message) {
+        return `${path}: ${message}`;
+      }
+      return message || path || '';
+    })
+    .filter(Boolean)
+    .join(' | ');
+
+  return detailText ? `${base} (${detailText})` : base;
 }
 
 function normalizeStoryText(value: string | null | undefined) {
@@ -371,6 +448,51 @@ function readinessTone(level: ReporterStoryCandidateView['readiness']['level']):
   return 'neu';
 }
 
+function candidateTypeTone(
+  candidateType: ReporterStoryCandidateView['candidateType']
+): 'ok' | 'pend' | 'neu' {
+  if (candidateType === 'EVENT_AND_ARTICLE') return 'ok';
+  if (candidateType === 'EVENT_ONLY') return 'pend';
+  return 'neu';
+}
+
+function candidateTypeLabel(candidateType: ReporterStoryCandidateView['candidateType']) {
+  switch (candidateType) {
+    case 'ARTICLE_ONLY':
+      return 'Article Only';
+    case 'EVENT_ONLY':
+      return 'Event Only';
+    case 'EVENT_AND_ARTICLE':
+      return 'Event + Article';
+    case 'NEITHER':
+      return 'Neither';
+  }
+}
+
+function eventConfidenceLabel(
+  confidence: NonNullable<ReporterStoryCandidateView['eventExtraction']>['confidence']
+) {
+  if (confidence === 'high') return 'High confidence';
+  if (confidence === 'medium') return 'Medium confidence';
+  return 'Low confidence';
+}
+
+function createdEventTone(
+  status: ReporterStoryCandidateView['createdEvents'][number]['status']
+): 'ok' | 'pend' | 'bad' {
+  if (status === 'PUBLISHED') return 'ok';
+  if (status === 'UNPUBLISHED') return 'bad';
+  return 'pend';
+}
+
+function createdEventLabel(
+  status: ReporterStoryCandidateView['createdEvents'][number]['status']
+) {
+  if (status === 'PUBLISHED') return 'Published Event';
+  if (status === 'UNPUBLISHED') return 'Archived Event';
+  return 'Draft Event';
+}
+
 function linkedRunActionLabel(packet: ReporterStoryCandidateView) {
   if (!packet.linkedReporterRun) {
     return 'Create Run From Candidate';
@@ -422,6 +544,9 @@ function buildDailyCoverageGoalForm(
     targetArticleCount: String(goal?.targetArticleCount || 1),
     minimumCandidateScore: String(goal?.minimumCandidateScore || 6),
     freshnessWindowHours: String(goal?.freshnessWindowHours || 36),
+    priorityCoverageScopes: goal?.priorityCoverageScopes?.length
+      ? goal.priorityCoverageScopes.map(String)
+      : ['LOCAL'],
     allowNeedsReportingFallback: goal?.allowNeedsReportingFallback ?? true,
   };
 }
@@ -481,11 +606,14 @@ export default function ReporterMonitoredSourcesClient({
   tenantKeywordsText: initialTenantKeywordsText,
   storyCandidates,
   dailyCoverageDesk,
+  eventLocations,
+  eventOrganizations,
 }: ReporterMonitoredSourcesClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const activeView = searchParams.get('view') ?? 'all';
+  const focusedCandidateId = searchParams.get('candidate');
 
   const [rows, setRows] = useState(sources);
   const [candidateRows, setCandidateRows] = useState(storyCandidates);
@@ -495,6 +623,7 @@ export default function ReporterMonitoredSourcesClient({
   const [query, setQuery] = useState('');
   const [tenantKeywordsText, setTenantKeywordsText] = useState(initialTenantKeywordsText);
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_OPTIONS)[number]>('ALL');
+  const [scopeFilter, setScopeFilter] = useState<(typeof SCOPE_FILTER_OPTIONS)[number]>('ALL');
   const [typeFilter, setTypeFilter] = useState('all');
   const [createForm, setCreateForm] = useState(EMPTY_CREATE_FORM);
   const [createError, setCreateError] = useState('');
@@ -510,8 +639,11 @@ export default function ReporterMonitoredSourcesClient({
   const [creatingRunPacketId, setCreatingRunPacketId] = useState<string | null>(null);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [attachDialog, setAttachDialog] = useState<AttachDialogState>(null);
+  const [draftEventDialog, setDraftEventDialog] = useState<DraftEventDialogState>(null);
+  const [draftEventLocationQuery, setDraftEventLocationQuery] = useState('');
   const [selectedRunId, setSelectedRunId] = useState('');
   const [attachingRunItemId, setAttachingRunItemId] = useState<string | null>(null);
+  const [creatingDraftEvent, setCreatingDraftEvent] = useState(false);
   const [isSavingTenantKeywords, setIsSavingTenantKeywords] = useState(false);
   const [dailyCoverageGoalForm, setDailyCoverageGoalForm] = useState<DailyCoverageGoalFormState>(
     buildDailyCoverageGoalForm(dailyCoverageDesk.goal, coveragePlaces)
@@ -520,6 +652,7 @@ export default function ReporterMonitoredSourcesClient({
   const [isEvaluatingDailyCoverage, setIsEvaluatingDailyCoverage] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [draftEventError, setDraftEventError] = useState('');
 
   const tenantKeywords = useMemo(
     () => parseReporterTenantKeywords(tenantKeywordsText),
@@ -533,6 +666,7 @@ export default function ReporterMonitoredSourcesClient({
           ...item,
           sourceId: source.id,
           sourceLabel: source.label,
+          sourceCoverageScope: source.coverageScope,
           sourcePlaceName: source.place?.displayName || null,
         }))
       )
@@ -614,6 +748,26 @@ export default function ReporterMonitoredSourcesClient({
     return candidateRows.filter((candidate) => candidate.readiness.level === candidateFilter);
   }, [candidateFilter, candidateRows]);
 
+  useEffect(() => {
+    if (!focusedCandidateId) {
+      return;
+    }
+
+    setCandidateFilter('all');
+
+    const scrollToCandidate = () => {
+      const element = document.getElementById(`candidate-${focusedCandidateId}`);
+      if (!element) {
+        return;
+      }
+
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+
+    const frameId = window.requestAnimationFrame(scrollToCandidate);
+    return () => window.cancelAnimationFrame(frameId);
+  }, [focusedCandidateId, filteredCandidateRows.length]);
+
   function updateSearchParams(updates: Record<string, string | null>) {
     const next = new URLSearchParams(searchParams.toString());
 
@@ -628,6 +782,55 @@ export default function ReporterMonitoredSourcesClient({
     const queryString = next.toString();
     router.replace(queryString ? `${pathname}?${queryString}` : pathname);
   }
+
+  function openDraftEventDialog(candidate: ReporterStoryCandidateView) {
+    const defaultOrganizationId =
+      eventOrganizations.find((organization) => organization.status === 'APPROVED')?.id ||
+      eventOrganizations[0]?.id ||
+      '';
+    const primaryItem = candidate.items[0];
+    const eventExtraction = candidate.eventExtraction;
+
+    setDraftEventError('');
+    setDraftEventLocationQuery(eventExtraction?.location || primaryItem?.sourcePlaceName || '');
+    setDraftEventDialog({
+      candidateId: candidate.id,
+      title: eventExtraction?.title || candidate.title,
+      description: eventExtraction?.summary || candidate.summary || primaryItem?.excerpt || '',
+      startDate: formatEventDateInput(eventExtraction?.startAt ?? primaryItem?.publishedAt ?? null),
+      startTime: formatEventTimeInput(eventExtraction?.startAt ?? primaryItem?.publishedAt ?? null) || '',
+      endDate: formatEventDateInput(eventExtraction?.endAt ?? null),
+      endTime: formatEventTimeInput(eventExtraction?.endAt ?? null) || '',
+      venueLabel: eventExtraction?.location || primaryItem?.sourcePlaceName || '',
+      imageUrl: eventExtraction?.imageUrl || '',
+      sourceUrl: eventExtraction?.sourceUrl || primaryItem?.canonicalUrl || '',
+      locationId: '',
+      organizationId: defaultOrganizationId,
+    });
+    updateSearchParams({ focus: 'draft-event' });
+  }
+
+  const filteredDraftEventLocations = useMemo(() => {
+    const normalizedQuery = draftEventLocationQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return [];
+    }
+
+    const matches = eventLocations.filter((location) => {
+      return formatLocationSearchLabel(location).toLowerCase().includes(normalizedQuery);
+    });
+
+    return matches.slice(0, 20);
+  }, [draftEventLocationQuery, eventLocations]);
+
+  const selectedDraftEventLocation = useMemo(() => {
+    if (!draftEventDialog?.locationId) {
+      return null;
+    }
+
+    return eventLocations.find((location) => location.id === draftEventDialog.locationId) || null;
+  }, [draftEventDialog?.locationId, eventLocations]);
 
   const filteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -647,6 +850,9 @@ export default function ReporterMonitoredSourcesClient({
       if (statusFilter !== 'ALL' && source.status !== statusFilter) {
         return false;
       }
+      if (scopeFilter !== 'ALL' && source.coverageScope !== scopeFilter) {
+        return false;
+      }
       if (typeFilter !== 'all' && source.sourceType !== typeFilter) {
         return false;
       }
@@ -658,12 +864,13 @@ export default function ReporterMonitoredSourcesClient({
         source.label,
         source.publisher,
         source.place?.displayName,
+        formatReporterMonitoredSourceEnumLabel(source.coverageScope),
         source.url,
       ]
         .filter(Boolean)
         .some((value) => value!.toLowerCase().includes(normalizedQuery));
     });
-  }, [activeView, query, rows, statusFilter, typeFilter]);
+  }, [activeView, query, rows, scopeFilter, statusFilter, typeFilter]);
 
   async function refreshStoryCandidatesState(options?: {
     noticeMessage?: string;
@@ -711,6 +918,7 @@ export default function ReporterMonitoredSourcesClient({
           placeId: dailyCoverageGoalForm.placeId || null,
           label: dailyCoverageGoalForm.label || null,
           targetArticleCount: Number(dailyCoverageGoalForm.targetArticleCount) || 1,
+          priorityCoverageScopes: dailyCoverageGoalForm.priorityCoverageScopes,
           minimumCandidateScore: Number(dailyCoverageGoalForm.minimumCandidateScore) || 6,
           freshnessWindowHours: Number(dailyCoverageGoalForm.freshnessWindowHours) || 36,
           allowNeedsReportingFallback: dailyCoverageGoalForm.allowNeedsReportingFallback,
@@ -795,6 +1003,8 @@ export default function ReporterMonitoredSourcesClient({
           label: createForm.label,
           sourceType: createForm.sourceType,
           sourceFormat: createForm.sourceFormat,
+          executionLane: createForm.executionLane,
+          coverageScope: createForm.coverageScope,
           url: createForm.url,
           publisher: createForm.publisher,
           notes: createForm.notes,
@@ -805,7 +1015,7 @@ export default function ReporterMonitoredSourcesClient({
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create monitored source');
+        throw new Error(formatApiErrorMessage(data, 'Failed to create monitored source'));
       }
 
       setRows((current) => [data.source, ...current]);
@@ -847,6 +1057,72 @@ export default function ReporterMonitoredSourcesClient({
     } catch (updateError) {
       setError(
         updateError instanceof Error ? updateError.message : 'Failed to update monitored source'
+      );
+    } finally {
+      setUpdatingSourceId(null);
+    }
+  }
+
+  async function handleCoverageScopeChange(sourceId: string, coverageScope: string) {
+    setUpdatingSourceId(sourceId);
+    setError('');
+    setNotice('');
+
+    try {
+      const response = await fetch(`/api/admin/reporter/monitored-sources/${sourceId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ coverageScope }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update monitored source scope');
+      }
+
+      setRows((current) =>
+        current.map((source) => (source.id === sourceId ? data.source : source))
+      );
+    } catch (updateError) {
+      setError(
+        updateError instanceof Error
+          ? updateError.message
+          : 'Failed to update monitored source scope'
+      );
+    } finally {
+      setUpdatingSourceId(null);
+    }
+  }
+
+  async function handleExecutionLaneChange(sourceId: string, executionLane: string) {
+    setUpdatingSourceId(sourceId);
+    setError('');
+    setNotice('');
+
+    try {
+      const response = await fetch(`/api/admin/reporter/monitored-sources/${sourceId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ executionLane }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update monitored source execution lane');
+      }
+
+      setRows((current) =>
+        current.map((source) => (source.id === sourceId ? data.source : source))
+      );
+    } catch (updateError) {
+      setError(
+        updateError instanceof Error
+          ? updateError.message
+          : 'Failed to update monitored source execution lane'
       );
     } finally {
       setUpdatingSourceId(null);
@@ -1087,6 +1363,7 @@ export default function ReporterMonitoredSourcesClient({
               ? [`Tenant keyword matches: ${itemKeywordMatchesById.get(item.id)!.join(', ')}`]
               : []),
             source.publisher ? `Source publisher: ${source.publisher}` : null,
+            `Source scope: ${formatReporterMonitoredSourceEnumLabel(source.coverageScope)}`,
             item.publisher ? `Item publisher: ${item.publisher}` : null,
             item.publishedAt ? `Published: ${formatDateTime(item.publishedAt)}` : null,
             item.canonicalUrl ? `Original URL: ${item.canonicalUrl}` : null,
@@ -1145,6 +1422,11 @@ export default function ReporterMonitoredSourcesClient({
           requestSummary: `Multi-source story packet detected from ${packet.sourceCount} monitored sources and ${packet.items.length} related items.`,
           editorNotes: [
             'Created from monitored-source story packet.',
+            packet.coverageScopes.length
+              ? `Coverage scopes: ${packet.coverageScopes
+                  .map((scope) => formatReporterMonitoredSourceEnumLabel(String(scope)))
+                  .join(', ')}`
+              : null,
             ...(packet.matchedKeywords.length
               ? [`Tenant keyword matches: ${packet.matchedKeywords.join(', ')}`]
               : []),
@@ -1152,7 +1434,7 @@ export default function ReporterMonitoredSourcesClient({
               (item) =>
                 `${item.sourceLabel}: ${item.title}${item.canonicalUrl ? ` (${item.canonicalUrl})` : ''}`
             ),
-          ].join('\n'),
+          ].filter(Boolean).join('\n'),
           supportingLinks,
           initialSources: packet.items.map((item) => ({
             sourceType: item.canonicalUrl ? 'NEWS_ARTICLE' : 'STAFF_NOTE',
@@ -1162,7 +1444,9 @@ export default function ReporterMonitoredSourcesClient({
             publishedAt: item.publishedAt ? new Date(item.publishedAt).toISOString() : null,
             excerpt: item.excerpt,
             contentText: item.excerpt,
-            note: `From monitored source: ${item.sourceLabel}`,
+            note: `From monitored source: ${item.sourceLabel} (${formatReporterMonitoredSourceEnumLabel(
+              String(item.sourceCoverageScope)
+            )})`,
             reliabilityTier: 'UNVERIFIED',
           })),
         }),
@@ -1312,6 +1596,93 @@ export default function ReporterMonitoredSourcesClient({
     } finally {
       setAttachingRunItemId(null);
     }
+  }
+
+  async function handleCreateDraftEvent(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!draftEventDialog) {
+      return;
+    }
+
+    if (!draftEventDialog.title.trim()) {
+      setDraftEventError('Event title is required.');
+      return;
+    }
+
+    if (!draftEventDialog.startDate) {
+      setDraftEventError('Start date is required.');
+      return;
+    }
+
+    if (!draftEventDialog.locationId) {
+      setDraftEventError('Choose a location for the draft event.');
+      return;
+    }
+
+    if (!draftEventDialog.organizationId) {
+      setDraftEventError('Choose an organization for the draft event.');
+      return;
+    }
+
+    setCreatingDraftEvent(true);
+    setDraftEventError('');
+    setError('');
+    setNotice('');
+
+    try {
+      const response = await fetch(
+        `/api/admin/reporter/story-candidates/${draftEventDialog.candidateId}/create-draft-event`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: draftEventDialog.title,
+            description: draftEventDialog.description || null,
+            startDate: draftEventDialog.startDate,
+            startTime: draftEventDialog.startTime || null,
+            endDate: draftEventDialog.endDate || null,
+            endTime: draftEventDialog.endTime || null,
+            venueLabel: draftEventDialog.venueLabel || null,
+            imageUrl: draftEventDialog.imageUrl || null,
+            locationId: draftEventDialog.locationId,
+            organizationId: draftEventDialog.organizationId,
+          }),
+        }
+      );
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create draft event');
+      }
+
+      setDraftEventDialog(null);
+      updateSearchParams({ focus: null });
+      setNotice(`Draft event created: ${data.event.title}`);
+      router.push(`/admin/events?view=pending&focus=${data.event.id}`);
+      router.refresh();
+    } catch (createError) {
+      setDraftEventError(
+        createError instanceof Error ? createError.message : 'Failed to create draft event'
+      );
+    } finally {
+      setCreatingDraftEvent(false);
+    }
+  }
+
+  function toggleDailyCoverageScope(scope: string, checked: boolean) {
+    setDailyCoverageGoalForm((current) => {
+      const nextScopes = checked
+        ? Array.from(new Set([...current.priorityCoverageScopes, scope]))
+        : current.priorityCoverageScopes.filter((currentScope) => currentScope !== scope);
+
+      return {
+        ...current,
+        priorityCoverageScopes: nextScopes.length ? nextScopes : current.priorityCoverageScopes,
+      };
+    });
   }
 
   const attentionCount = rows.filter((source) =>
@@ -1479,6 +1850,26 @@ export default function ReporterMonitoredSourcesClient({
                   placeholder="Daily desk"
                 />
               </label>
+              <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 md:col-span-2">
+                <div className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                  Priority Scopes
+                </div>
+                <div className="grid gap-2 sm:grid-cols-4">
+                  {REPORTER_COVERAGE_SCOPE_OPTIONS.map((scope) => (
+                    <label
+                      key={scope}
+                      className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={dailyCoverageGoalForm.priorityCoverageScopes.includes(scope)}
+                        onChange={(event) => toggleDailyCoverageScope(scope, event.target.checked)}
+                      />
+                      <span>{formatReporterMonitoredSourceEnumLabel(scope)}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
               <label className="space-y-1 text-sm text-slate-700">
                 <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
                   Min Candidate Score
@@ -1553,6 +1944,12 @@ export default function ReporterMonitoredSourcesClient({
                 Current area:{' '}
                 <span className="font-semibold text-slate-700">
                   {dailyGoal?.placeName || 'All configured coverage areas'}
+                </span>
+                {' '}• Priority scopes:{' '}
+                <span className="font-semibold text-slate-700">
+                  {dailyCoverageGoalForm.priorityCoverageScopes
+                    .map(formatReporterMonitoredSourceEnumLabel)
+                    .join(', ')}
                 </span>
               </div>
               <button type="submit" className="page-header-action" disabled={isSavingDailyCoverageGoal}>
@@ -1826,7 +2223,12 @@ export default function ReporterMonitoredSourcesClient({
             {filteredCandidateRows.map((packet) => (
               <div
                 key={packet.id}
-                className="rounded-3xl border border-sky-100 bg-white px-4 py-4 shadow-sm"
+                id={`candidate-${packet.id}`}
+                className={`rounded-3xl border px-4 py-4 shadow-sm ${
+                  focusedCandidateId === packet.id
+                    ? 'border-sky-400 bg-sky-50/50 ring-2 ring-sky-200'
+                    : 'border-sky-100 bg-white'
+                }`}
               >
                 {(() => {
                   const secondaryAction = linkedRunSecondaryAction(packet);
@@ -1847,14 +2249,107 @@ export default function ReporterMonitoredSourcesClient({
                       <AdminChip tone={readinessTone(packet.readiness.level)}>
                         {packet.readiness.label}
                       </AdminChip>
+                      <AdminChip tone={candidateTypeTone(packet.candidateType)}>
+                        {candidateTypeLabel(packet.candidateType)}
+                      </AdminChip>
                       <span className="text-xs text-slate-500">score {packet.signal.score}</span>
                     </div>
+                    {packet.coverageScopes.length ? (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {packet.coverageScopes.map((scope) => (
+                          <span
+                            key={String(scope)}
+                            className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-700"
+                          >
+                            {formatReporterMonitoredSourceEnumLabel(String(scope))}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
                     <div className="mt-2 text-xs text-slate-600">
                       {packet.signal.reasons.join(' • ')}
                     </div>
                     <div className="mt-2 text-xs text-slate-600">{packet.readiness.reason}</div>
                     {packet.summary ? (
                       <div className="mt-2 text-xs leading-5 text-slate-600">{packet.summary}</div>
+                    ) : null}
+                    {packet.eventExtraction ? (
+                      <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-3 text-xs text-amber-950">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold uppercase tracking-[0.1em] text-amber-800">
+                            Event Extraction
+                          </span>
+                          <span className="rounded-full border border-amber-300 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-800">
+                            {eventConfidenceLabel(packet.eventExtraction.confidence)}
+                          </span>
+                        </div>
+                        <div className="mt-2 grid gap-1 text-slate-700">
+                          <div>
+                            <span className="font-semibold text-slate-900">Title:</span>{' '}
+                            {packet.eventExtraction.title}
+                          </div>
+                          {packet.eventExtraction.startAt ? (
+                            <div>
+                              <span className="font-semibold text-slate-900">Start:</span>{' '}
+                              {formatDateTime(packet.eventExtraction.startAt)}
+                            </div>
+                          ) : null}
+                          {packet.eventExtraction.location ? (
+                            <div>
+                              <span className="font-semibold text-slate-900">Location:</span>{' '}
+                              {packet.eventExtraction.location}
+                            </div>
+                          ) : null}
+                          {packet.eventExtraction.organizer ? (
+                            <div>
+                              <span className="font-semibold text-slate-900">Organizer:</span>{' '}
+                              {packet.eventExtraction.organizer}
+                            </div>
+                          ) : null}
+                          {packet.eventExtraction.recurrenceText ? (
+                            <div>
+                              <span className="font-semibold text-slate-900">Recurrence:</span>{' '}
+                              {packet.eventExtraction.recurrenceText}
+                            </div>
+                          ) : null}
+                          {packet.eventExtraction.missingFields.length ? (
+                            <div>
+                              <span className="font-semibold text-slate-900">Missing:</span>{' '}
+                              {packet.eventExtraction.missingFields.join(', ')}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    ) : null}
+                    {packet.createdEvents.length ? (
+                      <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+                          Created Events
+                        </div>
+                        <div className="mt-2 space-y-2">
+                          {packet.createdEvents.map((createdEvent) => (
+                            <div
+                              key={createdEvent.id}
+                              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2"
+                            >
+                              <div className="min-w-0">
+                                <Link
+                                  href={`/admin/events/${createdEvent.id}`}
+                                  className="text-xs font-semibold text-slate-900 hover:text-sky-700"
+                                >
+                                  {createdEvent.title}
+                                </Link>
+                                <div className="mt-1 text-[11px] text-slate-500">
+                                  {formatDateTime(createdEvent.startDatetime)}
+                                </div>
+                              </div>
+                              <AdminChip tone={createdEventTone(createdEvent.status)}>
+                                {createdEventLabel(createdEvent.status)}
+                              </AdminChip>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     ) : null}
                     {packet.linkedReporterRun ? (
                       <div className="mt-2 text-xs text-amber-700">
@@ -1903,6 +2398,16 @@ export default function ReporterMonitoredSourcesClient({
                     ) : null}
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                    {(packet.eventExtraction || packet.canSeedDraftEvent) &&
+                    packet.createdEvents.length === 0 ? (
+                      <button
+                        type="button"
+                        className="inline-flex h-9 items-center justify-center rounded-full border border-amber-300 bg-amber-50 px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-800 shadow-sm transition hover:border-amber-500 hover:bg-amber-100"
+                        onClick={() => openDraftEventDialog(packet)}
+                      >
+                        {packet.eventExtraction ? 'Create Draft Event' : 'Seed Draft Event'}
+                      </button>
+                    ) : null}
                     {packet.linkedReporterRun ? (
                       <>
                         <Link
@@ -2066,6 +2571,23 @@ export default function ReporterMonitoredSourcesClient({
               </label>
 
               <label className="admin-list-filter">
+                <span className="admin-list-filter-label">Scope</span>
+                <select
+                  value={scopeFilter}
+                  onChange={(event) =>
+                    setScopeFilter(event.target.value as (typeof SCOPE_FILTER_OPTIONS)[number])
+                  }
+                  className="admin-list-cell-select"
+                >
+                  {SCOPE_FILTER_OPTIONS.map((scope) => (
+                    <option key={scope} value={scope}>
+                      {scope === 'ALL' ? 'All scopes' : formatReporterMonitoredSourceEnumLabel(scope)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="admin-list-filter">
                 <span className="admin-list-filter-label">Type</span>
                 <select
                   value={typeFilter}
@@ -2127,10 +2649,25 @@ export default function ReporterMonitoredSourcesClient({
                             type="button"
                             onClick={() => void handleRunFetch(source.id)}
                             className="admin-list-link inline-flex items-center gap-1"
-                            disabled={runningFetchSourceId === source.id || source.status === 'ARCHIVED'}
+                            disabled={
+                              runningFetchSourceId === source.id ||
+                              source.status === 'ARCHIVED' ||
+                              source.executionLane !== 'SERVER_FETCH'
+                            }
+                            title={
+                              source.executionLane !== 'SERVER_FETCH'
+                                ? 'Local browser sources run through the browser worker, not server fetch.'
+                                : undefined
+                            }
                           >
                             <RefreshCcw className={`h-3.5 w-3.5 ${runningFetchSourceId === source.id ? 'animate-spin' : ''}`} />
-                            <span>{runningFetchSourceId === source.id ? 'Fetching…' : 'Fetch now'}</span>
+                            <span>
+                              {source.executionLane !== 'SERVER_FETCH'
+                                ? 'Browser worker'
+                                : runningFetchSourceId === source.id
+                                  ? 'Fetching…'
+                                  : 'Fetch now'}
+                            </span>
                           </button>
                         </div>
                         {source.ingestionItems.length > 0 ? (
@@ -2271,7 +2808,19 @@ export default function ReporterMonitoredSourcesClient({
                         ) : null}
                       </td>
                       <td className="admin-list-cell">
-                        <div className="text-sm text-slate-900">
+                        <select
+                          value={source.coverageScope}
+                          onChange={(event) => void handleCoverageScopeChange(source.id, event.target.value)}
+                          className="admin-list-cell-select min-w-[9rem]"
+                          disabled={updatingSourceId === source.id}
+                        >
+                          {REPORTER_COVERAGE_SCOPE_OPTIONS.map((scope) => (
+                            <option key={scope} value={scope}>
+                              {formatReporterMonitoredSourceEnumLabel(scope)}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="mt-2 text-sm text-slate-900">
                           {source.place?.displayName || 'Tenant-wide'}
                         </div>
                         <div className="mt-1 text-xs text-slate-500">
@@ -2283,6 +2832,18 @@ export default function ReporterMonitoredSourcesClient({
                         <div className="mt-1 text-xs text-slate-500">
                           {formatReporterMonitoredSourceEnumLabel(source.sourceFormat)}
                         </div>
+                        <select
+                          value={source.executionLane}
+                          onChange={(event) => void handleExecutionLaneChange(source.id, event.target.value)}
+                          className="admin-list-cell-select mt-2 min-w-[11rem]"
+                          disabled={updatingSourceId === source.id}
+                        >
+                          {REPORTER_MONITORED_SOURCE_EXECUTION_LANE_OPTIONS.map((lane) => (
+                            <option key={lane} value={lane}>
+                              {formatReporterMonitoredSourceEnumLabel(lane)}
+                            </option>
+                          ))}
+                        </select>
                       </td>
                       <td className="admin-list-cell">
                         <div>{formatCadence(source.fetchFrequencyMinutes)}</div>
@@ -2360,7 +2921,7 @@ export default function ReporterMonitoredSourcesClient({
             />
           </label>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-4">
             <label className="admin-list-filter">
               <span className="admin-list-filter-label">Type</span>
               <select
@@ -2379,6 +2940,23 @@ export default function ReporterMonitoredSourcesClient({
             </label>
 
             <label className="admin-list-filter">
+              <span className="admin-list-filter-label">Scope</span>
+              <select
+                value={createForm.coverageScope}
+                onChange={(event) =>
+                  setCreateForm((current) => ({ ...current, coverageScope: event.target.value }))
+                }
+                className="form-input"
+              >
+                {REPORTER_COVERAGE_SCOPE_OPTIONS.map((scope) => (
+                  <option key={scope} value={scope}>
+                    {formatReporterMonitoredSourceEnumLabel(scope)}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="admin-list-filter">
               <span className="admin-list-filter-label">Format</span>
               <select
                 value={createForm.sourceFormat}
@@ -2390,6 +2968,23 @@ export default function ReporterMonitoredSourcesClient({
                 {REPORTER_MONITORED_SOURCE_FORMAT_OPTIONS.map((format) => (
                   <option key={format} value={format}>
                     {formatReporterMonitoredSourceEnumLabel(format)}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="admin-list-filter">
+              <span className="admin-list-filter-label">Execution Lane</span>
+              <select
+                value={createForm.executionLane}
+                onChange={(event) =>
+                  setCreateForm((current) => ({ ...current, executionLane: event.target.value }))
+                }
+                className="form-input"
+              >
+                {REPORTER_MONITORED_SOURCE_EXECUTION_LANE_OPTIONS.map((lane) => (
+                  <option key={lane} value={lane}>
+                    {formatReporterMonitoredSourceEnumLabel(lane)}
                   </option>
                 ))}
               </select>
@@ -2462,6 +3057,241 @@ export default function ReporterMonitoredSourcesClient({
             {isCreating ? 'Saving…' : 'Create Source'}
           </button>
         </form>
+      </AdminDrawer>
+
+      <AdminDrawer title="Create Draft Event" focusKey="draft-event">
+        {draftEventDialog ? (
+          <form onSubmit={handleCreateDraftEvent} className="space-y-4">
+            {draftEventError ? <div className="admin-list-error">{draftEventError}</div> : null}
+
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
+              This creates a normal `Pending Review` event from the selected reporter candidate.
+            </div>
+
+            <label className="admin-list-filter">
+              <span className="admin-list-filter-label">Title</span>
+              <input
+                type="text"
+                value={draftEventDialog.title}
+                onChange={(event) =>
+                  setDraftEventDialog((current) =>
+                    current ? { ...current, title: event.target.value } : current
+                  )
+                }
+                className="form-input"
+                required
+              />
+            </label>
+
+            <div className="admin-list-filter">
+              <span className="admin-list-filter-label">Description</span>
+              <TipTapEditor
+                content={draftEventDialog.description}
+                onChange={(description) =>
+                  setDraftEventDialog((current) =>
+                    current ? { ...current, description } : current
+                  )
+                }
+                placeholder="Describe the event, schedule, audience, and any details attendees need."
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="admin-list-filter">
+                <span className="admin-list-filter-label">Start Date</span>
+                <input
+                  type="date"
+                  value={draftEventDialog.startDate}
+                  onChange={(event) =>
+                    setDraftEventDialog((current) =>
+                      current ? { ...current, startDate: event.target.value } : current
+                    )
+                  }
+                  className="form-input"
+                  required
+                />
+              </label>
+
+              <label className="admin-list-filter">
+                <span className="admin-list-filter-label">Start Time</span>
+                <input
+                  type="time"
+                  value={draftEventDialog.startTime}
+                  onChange={(event) =>
+                    setDraftEventDialog((current) =>
+                      current ? { ...current, startTime: event.target.value } : current
+                    )
+                  }
+                  className="form-input"
+                />
+              </label>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="admin-list-filter">
+                <span className="admin-list-filter-label">End Date</span>
+                <input
+                  type="date"
+                  value={draftEventDialog.endDate}
+                  onChange={(event) =>
+                    setDraftEventDialog((current) =>
+                      current ? { ...current, endDate: event.target.value } : current
+                    )
+                  }
+                  className="form-input"
+                />
+              </label>
+
+              <label className="admin-list-filter">
+                <span className="admin-list-filter-label">End Time</span>
+                <input
+                  type="time"
+                  value={draftEventDialog.endTime}
+                  onChange={(event) =>
+                    setDraftEventDialog((current) =>
+                      current ? { ...current, endTime: event.target.value } : current
+                    )
+                  }
+                  className="form-input"
+                />
+              </label>
+            </div>
+
+            <label className="admin-list-filter">
+              <span className="admin-list-filter-label">Venue Label</span>
+              <input
+                type="text"
+                value={draftEventDialog.venueLabel}
+                onChange={(event) =>
+                  setDraftEventDialog((current) =>
+                    current ? { ...current, venueLabel: event.target.value } : current
+                  )
+                }
+                className="form-input"
+                placeholder="Borough Building"
+              />
+            </label>
+
+            <label className="admin-list-filter">
+              <span className="admin-list-filter-label">Image URL</span>
+              <input
+                type="url"
+                value={draftEventDialog.imageUrl}
+                onChange={(event) =>
+                  setDraftEventDialog((current) =>
+                    current ? { ...current, imageUrl: event.target.value } : current
+                  )
+                }
+                className="form-input"
+                placeholder="https://example.com/event-image.jpg"
+              />
+            </label>
+
+            {draftEventDialog.sourceUrl ? (
+              <div className="admin-list-filter">
+                <span className="admin-list-filter-label">Original Source</span>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                  <a
+                    href={draftEventDialog.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="break-all text-sky-700 underline underline-offset-2"
+                  >
+                    {draftEventDialog.sourceUrl}
+                  </a>
+                </div>
+              </div>
+            ) : null}
+
+            <label className="admin-list-filter">
+              <span className="admin-list-filter-label">Location</span>
+              <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                <input
+                  type="text"
+                  value={draftEventLocationQuery}
+                  onChange={(event) => setDraftEventLocationQuery(event.target.value)}
+                  className="form-input"
+                  placeholder="Start typing a venue, street, city, or ZIP"
+                />
+
+                <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2">
+                  {filteredDraftEventLocations.length > 0 ? (
+                    filteredDraftEventLocations.map((location) => (
+                      <button
+                        key={location.id}
+                        type="button"
+                        onClick={() =>
+                          setDraftEventDialog((current) =>
+                            current ? { ...current, locationId: location.id } : current
+                          )
+                        }
+                        className={`flex w-full items-start justify-between rounded-lg px-3 py-2 text-left text-sm ${
+                          draftEventDialog.locationId === location.id
+                            ? 'bg-slate-950 text-white'
+                            : 'text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span>
+                          <span className="block font-semibold">{formatLocationPrimary(location)}</span>
+                          <span className="block text-xs opacity-75">{formatLocationSecondary(location)}</span>
+                        </span>
+                      </button>
+                    ))
+                  ) : draftEventLocationQuery.trim() ? (
+                    <div className="rounded-lg px-3 py-2 text-sm text-slate-500">
+                      No locations match that search.
+                    </div>
+                  ) : (
+                    <div className="rounded-lg px-3 py-2 text-sm text-slate-500">
+                      Start typing to search saved locations.
+                    </div>
+                  )}
+                </div>
+
+                {selectedDraftEventLocation ? (
+                  <p className="text-sm text-slate-600">
+                    Selected:{' '}
+                    <span className="font-semibold text-slate-900">
+                      {formatLocationSearchLabel(selectedDraftEventLocation)}
+                    </span>
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-500">
+                    Start typing, then choose one of the matching saved locations.
+                  </p>
+                )}
+              </div>
+            </label>
+
+            <label className="admin-list-filter">
+              <span className="admin-list-filter-label">Organization</span>
+              <select
+                value={draftEventDialog.organizationId}
+                onChange={(event) =>
+                  setDraftEventDialog((current) =>
+                    current ? { ...current, organizationId: event.target.value } : current
+                  )
+                }
+                className="form-input"
+                required
+              >
+                <option value="">Choose an organization…</option>
+                {eventOrganizations.map((organization) => (
+                  <option key={organization.id} value={organization.id}>
+                    {organization.name}
+                    {organization.status === 'APPROVED' ? '' : ' · Pending'}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <button type="submit" className="page-header-action" disabled={creatingDraftEvent}>
+              {creatingDraftEvent ? 'Creating…' : 'Create Draft Event'}
+            </button>
+          </form>
+        ) : (
+          <div className="text-sm text-slate-500">Select an event candidate first.</div>
+        )}
       </AdminDrawer>
 
       <AdminDrawer title="Attach To Existing Reporter Run" focusKey="attach-run">

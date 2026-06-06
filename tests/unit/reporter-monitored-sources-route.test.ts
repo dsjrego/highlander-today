@@ -40,6 +40,7 @@ const runFetchRoute = require('@/app/api/admin/reporter/monitored-sources/[id]/r
 const itemDeleteRoute = require('@/app/api/admin/reporter/monitored-sources/[id]/items/[itemId]/route') as typeof import('@/app/api/admin/reporter/monitored-sources/[id]/items/[itemId]/route');
 const runDueRoute = require('@/app/api/admin/reporter/monitored-sources/run-due/route') as typeof import('@/app/api/admin/reporter/monitored-sources/run-due/route');
 const runDueCommunityRoute = require('@/app/api/admin/reporter/monitored-sources/run-due/[communitySlug]/route') as typeof import('@/app/api/admin/reporter/monitored-sources/run-due/[communitySlug]/route');
+const dueBrowserSourcesRoute = require('@/app/api/admin/reporter/monitored-sources/due-browser-sources/route') as typeof import('@/app/api/admin/reporter/monitored-sources/due-browser-sources/route');
 
 function buildRequest(
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
@@ -64,6 +65,8 @@ describe('reporter monitored source routes', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     delete process.env.CRON_SECRET;
+    delete process.env.REPORTER_SCHEDULER_TOKEN;
+    delete process.env.REPORTER_SOURCE_INGEST_TOKEN;
     (getCurrentCommunityMock as any).mockResolvedValue({
       id: 'community-1',
       name: 'Highlander Today',
@@ -79,6 +82,8 @@ describe('reporter monitored source routes', () => {
       label: 'Borough agendas',
       sourceType: 'MUNICIPAL_AGENDA',
       sourceFormat: 'HTML',
+      executionLane: 'SERVER_FETCH',
+      coverageScope: 'COUNTY',
       url: 'https://borough.example/agendas',
       publisher: 'Borough',
       notes: null,
@@ -110,6 +115,7 @@ describe('reporter monitored source routes', () => {
         label: 'Borough agendas',
         sourceType: 'MUNICIPAL_AGENDA',
         sourceFormat: 'HTML',
+        coverageScope: 'COUNTY',
         url: 'borough.example/agendas',
         placeId: '11111111-1111-4111-8111-111111111111',
       })
@@ -127,11 +133,76 @@ describe('reporter monitored source routes', () => {
         data: expect.objectContaining({
           communityId: 'community-1',
           url: 'https://borough.example/agendas',
+          executionLane: 'SERVER_FETCH',
+          coverageScope: 'COUNTY',
           placeId: '11111111-1111-4111-8111-111111111111',
         }),
       })
     );
     expect(logActivityMock).toHaveBeenCalled();
+  });
+
+  it('creates an event-oriented monitored source type from shared option values', async () => {
+    (prismaMock.reporterMonitoredSource.create as any).mockResolvedValue({
+      id: 'source-event-1',
+      communityId: 'community-1',
+      label: 'LA Studio events',
+      sourceType: 'EVENT_CALENDAR',
+      sourceFormat: 'HTML',
+      executionLane: 'SERVER_FETCH',
+      coverageScope: 'LOCAL',
+      url: 'https://www.lastudio.org/events',
+      publisher: 'LA Studio',
+      notes: 'Local arts event page',
+      status: 'ACTIVE',
+      fetchFrequencyMinutes: 1440,
+      lastFetchedAt: null,
+      lastSuccessfulAt: null,
+      lastChangedAt: null,
+      lastErrorAt: null,
+      lastErrorMessage: null,
+      lastHttpStatus: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      place: null,
+      _count: {
+        fetches: 0,
+        ingestionItems: 0,
+      },
+      fetches: [],
+      ingestionItems: [],
+    });
+
+    const response = await collectionRoute.POST(
+      buildRequest('POST', 'http://localhost/api/admin/reporter/monitored-sources', {
+        label: 'LA Studio events',
+        sourceType: 'EVENT_CALENDAR',
+        sourceFormat: 'HTML',
+        coverageScope: 'LOCAL',
+        url: 'https://www.lastudio.org/events',
+        publisher: 'LA Studio',
+        notes: 'Local arts event page',
+        placeId: null,
+      })
+    );
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toMatchObject({
+      source: expect.objectContaining({
+        id: 'source-event-1',
+        sourceType: 'EVENT_CALENDAR',
+      }),
+    });
+    expect(prismaMock.reporterMonitoredSource.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          sourceType: 'EVENT_CALENDAR',
+          sourceFormat: 'HTML',
+          executionLane: 'SERVER_FETCH',
+          coverageScope: 'LOCAL',
+        }),
+      })
+    );
   });
 
   it('updates a monitored source status', async () => {
@@ -145,6 +216,8 @@ describe('reporter monitored source routes', () => {
       label: 'Borough agendas',
       sourceType: 'MUNICIPAL_AGENDA',
       sourceFormat: 'HTML',
+      executionLane: 'SERVER_FETCH',
+      coverageScope: 'LOCAL',
       url: 'https://borough.example/agendas',
       publisher: null,
       notes: null,
@@ -180,6 +253,64 @@ describe('reporter monitored source routes', () => {
         status: 'PAUSED',
       }),
     });
+  });
+
+  it('updates a monitored source coverage scope', async () => {
+    (prismaMock.reporterMonitoredSource.findUnique as any).mockResolvedValue({
+      id: 'source-1',
+      communityId: 'community-1',
+    });
+    (prismaMock.reporterMonitoredSource.update as any).mockResolvedValue({
+      id: 'source-1',
+      communityId: 'community-1',
+      label: 'County alerts',
+      sourceType: 'COUNTY_UPDATES',
+      sourceFormat: 'RSS',
+      executionLane: 'SERVER_FETCH',
+      coverageScope: 'COUNTY',
+      url: 'https://county.example/rss',
+      publisher: null,
+      notes: null,
+      status: 'ACTIVE',
+      fetchFrequencyMinutes: 1440,
+      lastFetchedAt: null,
+      lastSuccessfulAt: null,
+      lastChangedAt: null,
+      lastErrorAt: null,
+      lastErrorMessage: null,
+      lastHttpStatus: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      place: null,
+      _count: {
+        fetches: 0,
+        ingestionItems: 0,
+      },
+      fetches: [],
+      ingestionItems: [],
+    });
+
+    const response = await itemRoute.PATCH(
+      buildRequest('PATCH', 'http://localhost/api/admin/reporter/monitored-sources/source-1', {
+        coverageScope: 'COUNTY',
+      }),
+      { params: { id: 'source-1' } }
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      source: expect.objectContaining({
+        id: 'source-1',
+        coverageScope: 'COUNTY',
+      }),
+    });
+    expect(prismaMock.reporterMonitoredSource.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          coverageScope: 'COUNTY',
+        }),
+      })
+    );
   });
 
   it('deletes a monitored-source ingestion item', async () => {
@@ -272,12 +403,82 @@ describe('reporter monitored source routes', () => {
     );
   });
 
+  it('records a monitored-source fetch result via machine ingest token', async () => {
+    process.env.REPORTER_SOURCE_INGEST_TOKEN = 'machine-token-1';
+    (prismaMock.reporterMonitoredSource.findUnique as any).mockResolvedValue({
+      id: 'source-1',
+      communityId: 'community-1',
+    });
+    (recordReporterMonitoredSourceFetchMock as any).mockResolvedValue({
+      fetch: {
+        id: 'fetch-machine-1',
+        status: 'SUCCESS',
+      },
+      summary: {
+        itemCount: 2,
+        newItemCount: 2,
+        changedItemCount: 0,
+      },
+    });
+
+    const response = await fetchRoute.POST(
+      buildRequest(
+        'POST',
+        'http://localhost/api/admin/reporter/monitored-sources/source-1/record-fetch',
+        {
+          status: 'SUCCESS',
+          httpStatus: 200,
+          items: [
+            {
+              canonicalUrl: 'https://example.com/events/1',
+              title: 'Open studio night',
+            },
+            {
+              canonicalUrl: 'https://example.com/events/2',
+              title: 'Beginner watercolor workshop',
+            },
+          ],
+        },
+        {
+          authorization: 'Bearer machine-token-1',
+          'x-user-id': '',
+          'x-user-role': '',
+          'x-community-id': '',
+        }
+      ),
+      { params: { id: 'source-1' } }
+    );
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toMatchObject({
+      fetch: expect.objectContaining({
+        id: 'fetch-machine-1',
+      }),
+    });
+    expect(recordReporterMonitoredSourceFetchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        monitoredSourceId: 'source-1',
+        status: 'SUCCESS',
+      })
+    );
+    expect(logActivityMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'reporter-local-collector',
+        metadata: expect.objectContaining({
+          ingestedBy: 'machine-token',
+          itemCount: 2,
+        }),
+      })
+    );
+  });
+
   it('runs an automated public-source fetch and returns the refreshed source row', async () => {
     (prismaMock.reporterMonitoredSource.findUnique as any)
       .mockResolvedValueOnce({
         id: 'source-1',
         communityId: 'community-1',
         label: 'Borough agendas',
+        executionLane: 'SERVER_FETCH',
       })
       .mockResolvedValueOnce({
         id: 'source-1',
@@ -285,6 +486,7 @@ describe('reporter monitored source routes', () => {
         label: 'Borough agendas',
         sourceType: 'MUNICIPAL_AGENDA',
         sourceFormat: 'RSS',
+        executionLane: 'SERVER_FETCH',
         url: 'https://borough.example/rss',
         publisher: 'Borough',
         notes: null,
@@ -324,6 +526,26 @@ describe('reporter monitored source routes', () => {
     expect(executeReporterMonitoredSourceFetchMock).toHaveBeenCalledWith('source-1');
   });
 
+  it('blocks server-side run-fetch for local-browser sources', async () => {
+    (prismaMock.reporterMonitoredSource.findUnique as any).mockResolvedValue({
+      id: 'source-1',
+      communityId: 'community-1',
+      label: 'LA Studio events',
+      executionLane: 'LOCAL_BROWSER',
+    });
+
+    const response = await runFetchRoute.POST(
+      buildRequest('POST', 'http://localhost/api/admin/reporter/monitored-sources/source-1/run-fetch'),
+      { params: { id: 'source-1' } }
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: expect.stringContaining('browser worker'),
+    });
+    expect(executeReporterMonitoredSourceFetchMock).not.toHaveBeenCalled();
+  });
+
   it('runs due monitored sources for the current community', async () => {
     (runDueReporterMonitoredSourcesMock as any).mockResolvedValue({
       attemptedCount: 1,
@@ -351,6 +573,7 @@ describe('reporter monitored source routes', () => {
         label: 'Borough agendas',
         sourceType: 'MUNICIPAL_AGENDA',
         sourceFormat: 'RSS',
+        executionLane: 'SERVER_FETCH',
         url: 'https://borough.example/rss',
         publisher: 'Borough',
         notes: null,
@@ -390,6 +613,71 @@ describe('reporter monitored source routes', () => {
       communityId: 'community-1',
       limit: 5,
     });
+  });
+
+  it('lists due local-browser sources for the worker token path', async () => {
+    process.env.REPORTER_SCHEDULER_TOKEN = 'scheduler-token-1';
+    (prismaMock.reporterMonitoredSource.findMany as any).mockResolvedValue([
+      {
+        id: 'source-browser-1',
+        communityId: 'community-1',
+        label: 'LA Studio events',
+        sourceType: 'EVENT_CALENDAR',
+        sourceFormat: 'HTML',
+        executionLane: 'LOCAL_BROWSER',
+        coverageScope: 'LOCAL',
+        url: 'https://events.example/studio',
+        publisher: 'LA Studio',
+        notes: null,
+        status: 'ACTIVE',
+        fetchFrequencyMinutes: 60,
+        lastFetchedAt: null,
+        lastSuccessfulAt: null,
+        lastErrorAt: null,
+        community: {
+          id: 'community-1',
+          name: 'Highlander Today',
+          slug: 'highlander-today',
+        },
+        place: null,
+      },
+    ]);
+
+    const response = await dueBrowserSourcesRoute.GET(
+      buildRequest(
+        'GET',
+        'http://localhost/api/admin/reporter/monitored-sources/due-browser-sources?limit=5',
+        undefined,
+        {
+          authorization: 'Bearer scheduler-token-1',
+          'x-user-id': '',
+          'x-user-role': '',
+          'x-community-id': '',
+        }
+      )
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      dueCount: 1,
+      sources: [
+        expect.objectContaining({
+          id: 'source-browser-1',
+          executionLane: 'LOCAL_BROWSER',
+          community: expect.objectContaining({
+            slug: 'highlander-today',
+          }),
+        }),
+      ],
+    });
+    expect(prismaMock.reporterMonitoredSource.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: 'ACTIVE',
+          executionLane: 'LOCAL_BROWSER',
+        }),
+      })
+    );
   });
 
   it('runs due monitored sources through the cron-compatible GET path', async () => {

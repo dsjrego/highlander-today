@@ -50,6 +50,7 @@ describe('reporter daily coverage routes', () => {
     (upsertReporterDailyCoverageGoalMock as any).mockResolvedValue({
       id: 'goal-1',
       placeId: '11111111-1111-4111-8111-111111111111',
+      priorityCoverageScopes: ['COUNTY', 'STATE'],
       minimumCandidateScore: 7,
       freshnessWindowHours: 30,
       allowNeedsReportingFallback: false,
@@ -58,6 +59,7 @@ describe('reporter daily coverage routes', () => {
     const response = await goalRoute.POST(
       buildRequest('http://localhost/api/admin/reporter/daily-coverage/goal', {
         placeId: '11111111-1111-4111-8111-111111111111',
+        priorityCoverageScopes: ['COUNTY', 'STATE'],
         minimumCandidateScore: 7,
         freshnessWindowHours: 30,
         allowNeedsReportingFallback: false,
@@ -74,6 +76,7 @@ describe('reporter daily coverage routes', () => {
       expect.objectContaining({
         communityId: 'community-1',
         placeId: '11111111-1111-4111-8111-111111111111',
+        priorityCoverageScopes: ['COUNTY', 'STATE'],
       })
     );
     expect(logActivityMock).toHaveBeenCalledWith(

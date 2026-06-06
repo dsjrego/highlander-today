@@ -1,5 +1,7 @@
 # Reporter Daily Coverage Roadmap
 
+> **Status:** Historical narrower roadmap. Use `REPORTER-AUTONOMOUS-EDITORIAL-ROADMAP.md` as the canonical forward-looking source of truth for reporter autonomy, multi-lane coverage planning, browser-worker architecture, restricted-source handling, and scheduled editorial production. Keep this document as reference for the earlier daily local coverage framing.
+
 ## Purpose
 
 Define the next roadmap beyond the current reporter foundation and the completed Reporter Agent maturity hardening layer.

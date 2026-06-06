@@ -1,24 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  ReporterMonitoredSourceFormat,
-  ReporterMonitoredSourceStatus,
-  ReporterMonitoredSourceType,
-} from '@prisma/client';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { getCurrentCommunity } from '@/lib/community';
 import { logActivity } from '@/lib/activity-log';
+import {
+  REPORTER_COVERAGE_SCOPE_OPTIONS,
+  REPORTER_MONITORED_SOURCE_EXECUTION_LANE_OPTIONS,
+  REPORTER_MONITORED_SOURCE_FORMAT_OPTIONS,
+  REPORTER_MONITORED_SOURCE_STATUS_OPTIONS,
+  REPORTER_MONITORED_SOURCE_TYPE_OPTIONS,
+} from '@/lib/reporter/monitored-sources';
 import { canEditReporterRun } from '@/lib/reporter/permissions';
 
 const updateMonitoredSourceSchema = z.object({
   label: z.string().trim().min(2).max(160).optional(),
-  sourceType: z.nativeEnum(ReporterMonitoredSourceType).optional(),
-  sourceFormat: z.nativeEnum(ReporterMonitoredSourceFormat).optional(),
+  sourceType: z.enum(REPORTER_MONITORED_SOURCE_TYPE_OPTIONS).optional(),
+  sourceFormat: z.enum(REPORTER_MONITORED_SOURCE_FORMAT_OPTIONS).optional(),
+  executionLane: z.enum(REPORTER_MONITORED_SOURCE_EXECUTION_LANE_OPTIONS).optional(),
+  coverageScope: z.enum(REPORTER_COVERAGE_SCOPE_OPTIONS).optional(),
   url: z.string().trim().min(3).max(2048).optional(),
   publisher: z.string().trim().max(160).optional().or(z.literal('')),
   notes: z.string().trim().max(1000).optional().or(z.literal('')),
   placeId: z.string().uuid().optional().nullable(),
-  status: z.nativeEnum(ReporterMonitoredSourceStatus).optional(),
+  status: z.enum(REPORTER_MONITORED_SOURCE_STATUS_OPTIONS).optional(),
   fetchFrequencyMinutes: z.number().int().min(15).max(10080).optional(),
 });
 
@@ -36,6 +40,8 @@ const monitoredSourceSelect = {
   label: true,
   sourceType: true,
   sourceFormat: true,
+  executionLane: true,
+  coverageScope: true,
   url: true,
   publisher: true,
   notes: true,
@@ -148,6 +154,8 @@ export async function PATCH(
         ...(validated.label !== undefined ? { label: validated.label } : {}),
         ...(validated.sourceType !== undefined ? { sourceType: validated.sourceType } : {}),
         ...(validated.sourceFormat !== undefined ? { sourceFormat: validated.sourceFormat } : {}),
+        ...(validated.executionLane !== undefined ? { executionLane: validated.executionLane } : {}),
+        ...(validated.coverageScope !== undefined ? { coverageScope: validated.coverageScope } : {}),
         ...(validated.url !== undefined ? { url: normalizeUrl(validated.url) } : {}),
         ...(validated.publisher !== undefined ? { publisher: validated.publisher || null } : {}),
         ...(validated.notes !== undefined ? { notes: validated.notes || null } : {}),
@@ -169,6 +177,8 @@ export async function PATCH(
       metadata: {
         communityId: currentCommunity.id,
         status: source.status,
+        executionLane: source.executionLane,
+        coverageScope: source.coverageScope,
         fetchFrequencyMinutes: source.fetchFrequencyMinutes,
       },
     });

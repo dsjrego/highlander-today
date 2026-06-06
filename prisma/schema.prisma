@@ -909,6 +909,12 @@ enum ReporterMonitoredSourceType {
   COUNTY_UPDATES
   SCHOOL_BOARD
   SCHOOL_ANNOUNCEMENTS
+  EVENT_CALENDAR
+  COMMUNITY_CALENDAR
+  PARKS_AND_REC
+  LIBRARY_EVENTS
+  SCHOOL_CALENDAR
+  VENUE_CALENDAR
   PUBLIC_SAFETY
   LOCAL_NEWSROOM
   PRESS_RELEASE
@@ -932,6 +938,18 @@ enum ReporterMonitoredSourceStatus {
   ARCHIVED
 }
 
+enum ReporterMonitoredSourceExecutionLane {
+  SERVER_FETCH
+  LOCAL_BROWSER
+}
+
+enum ReporterCoverageScope {
+  LOCAL
+  COUNTY
+  STATE
+  NATIONAL
+}
+
 enum ReporterSourceFetchStatus {
   SUCCESS
   NO_CHANGE
@@ -942,6 +960,13 @@ enum ReporterStorySignalLevel {
   LIKELY
   POSSIBLE
   LOW
+}
+
+enum ReporterCandidateType {
+  ARTICLE_ONLY
+  EVENT_ONLY
+  EVENT_AND_ARTICLE
+  NEITHER
 }
 
 enum ReporterDailyCoverageDecisionOutcome {
@@ -1277,6 +1302,8 @@ model ReporterMonitoredSource {
   label              String
   sourceType         ReporterMonitoredSourceType
   sourceFormat       ReporterMonitoredSourceFormat
+  executionLane      ReporterMonitoredSourceExecutionLane @default(SERVER_FETCH)
+  coverageScope      ReporterCoverageScope        @default(LOCAL)
   url                String
   publisher          String?
   notes              String?
@@ -1301,6 +1328,8 @@ model ReporterMonitoredSource {
   ingestionItems ReporterSourceIngestionItem[]
 
   @@index([communityId, status])
+  @@index([communityId, executionLane, status])
+  @@index([communityId, coverageScope])
   @@index([placeId])
   @@index([organizationId])
   @@index([createdByUserId])
@@ -1369,6 +1398,9 @@ model ReporterStoryCandidate {
   title            String
   summary          String?
   signalLevel      ReporterStorySignalLevel
+  candidateType    ReporterCandidateType    @default(ARTICLE_ONLY)
+  coverageScopes   String[]                 @default([])
+  eventExtractionJson Json?
   score            Int
   reasons          String[]                 @default([])
   matchedKeywords  String[]                 @default([])
@@ -1385,6 +1417,7 @@ model ReporterStoryCandidate {
   linkedReporterRun ReporterRun? @relation("reporterStoryCandidateLinkedRun", fields: [linkedReporterRunId], references: [id], onDelete: SetNull)
   candidateItems ReporterStoryCandidateItem[]
   dailyCoverageDecisions ReporterDailyCoverageDecision[]
+  createdEvents Event[]
 
   @@index([communityId, score])
   @@index([communityId, latestSourceAt])
@@ -1399,6 +1432,7 @@ model ReporterDailyCoverageGoal {
   placeId                     String?  @db.Uuid
   label                       String?
   targetArticleCount          Int      @default(1)
+  priorityCoverageScopes      String[] @default([])
   minimumCandidateScore       Int      @default(6)
   freshnessWindowHours        Int      @default(36)
   allowNeedsReportingFallback Boolean  @default(true)
@@ -2168,6 +2202,7 @@ model Event {
   submittedByUserId String      @db.Uuid
   organizationId    String?     @db.Uuid
   seriesId          String?     @db.Uuid
+  reporterStoryCandidateId String? @db.Uuid
   locationId        String      @db.Uuid
   title             String
   venueLabel        String?
@@ -2190,6 +2225,7 @@ model Event {
   submittedBy  User          @relation(fields: [submittedByUserId], references: [id], onDelete: Cascade)
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   series       EventSeries?  @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  reporterStoryCandidate ReporterStoryCandidate? @relation(fields: [reporterStoryCandidateId], references: [id], onDelete: SetNull)
   location     Location      @relation(fields: [locationId], references: [id], onDelete: Restrict)
   reporterSources ReporterSource[] @relation("reporterSourceEvent")
 
@@ -2197,6 +2233,7 @@ model Event {
   @@index([submittedByUserId])
   @@index([organizationId])
   @@index([seriesId])
+  @@index([reporterStoryCandidateId])
   @@index([locationId])
   @@index([status])
   @@map("events")

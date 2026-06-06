@@ -24,6 +24,8 @@ const monitoredSourceSelect = {
   label: true,
   sourceType: true,
   sourceFormat: true,
+  executionLane: true,
+  coverageScope: true,
   url: true,
   publisher: true,
   notes: true,

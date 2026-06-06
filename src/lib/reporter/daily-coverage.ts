@@ -1,4 +1,6 @@
 import {
+  type ReporterCandidateType,
+  type ReporterCoverageScope,
   ReporterDailyCoverageAnalysisStatus,
   ReporterDailyCoverageArticleStatus,
   ReporterDailyCoverageDecisionOutcome,
@@ -10,6 +12,14 @@ import { normalizeReporterRunInput } from './run-normalizer';
 import { listReporterStoryCandidates, type ReporterStoryCandidateView } from './story-candidates';
 
 const DEFAULT_DAILY_COVERAGE_LIMIT = 20;
+const COVERAGE_SCOPE_LOCAL = 'LOCAL' as ReporterCoverageScope;
+const COVERAGE_SCOPE_COUNTY = 'COUNTY' as ReporterCoverageScope;
+const COVERAGE_SCOPE_STATE = 'STATE' as ReporterCoverageScope;
+const COVERAGE_SCOPE_NATIONAL = 'NATIONAL' as ReporterCoverageScope;
+const CANDIDATE_TYPE_ARTICLE_ONLY = 'ARTICLE_ONLY' as ReporterCandidateType;
+const CANDIDATE_TYPE_EVENT_ONLY = 'EVENT_ONLY' as ReporterCandidateType;
+const CANDIDATE_TYPE_EVENT_AND_ARTICLE = 'EVENT_AND_ARTICLE' as ReporterCandidateType;
+const DEFAULT_PRIORITY_COVERAGE_SCOPES = [COVERAGE_SCOPE_LOCAL];
 
 export type ReporterDailyCoverageGoalView = {
   id: string;
@@ -17,6 +27,7 @@ export type ReporterDailyCoverageGoalView = {
   placeName: string | null;
   label: string | null;
   targetArticleCount: number;
+  priorityCoverageScopes: ReporterCoverageScope[];
   minimumCandidateScore: number;
   freshnessWindowHours: number;
   allowNeedsReportingFallback: boolean;
@@ -125,10 +136,50 @@ function articleStatusLabel(status: ReporterDailyCoverageArticleStatus | null) {
   }
 }
 
+function normalizeCoverageScope(value: ReporterCoverageScope | string | null | undefined) {
+  if (
+    value === COVERAGE_SCOPE_LOCAL ||
+    value === COVERAGE_SCOPE_COUNTY ||
+    value === COVERAGE_SCOPE_STATE ||
+    value === COVERAGE_SCOPE_NATIONAL
+  ) {
+    return value;
+  }
+
+  return COVERAGE_SCOPE_LOCAL;
+}
+
+function normalizeCoverageScopes(values: Array<ReporterCoverageScope | string> | null | undefined) {
+  const scopes = Array.from(new Set((values || []).map(normalizeCoverageScope)));
+  return scopes.length ? scopes : [...DEFAULT_PRIORITY_COVERAGE_SCOPES];
+}
+
+function candidateMatchesPriorityScopes(
+  candidate: ReporterStoryCandidateView,
+  priorityCoverageScopes: ReporterCoverageScope[]
+) {
+  const candidateScopes = normalizeCoverageScopes(candidate.coverageScopes);
+  return candidateScopes.some((scope) => priorityCoverageScopes.includes(scope));
+}
+
+function candidateIsArticleEligible(candidate: ReporterStoryCandidateView) {
+  return (
+    candidate.candidateType === CANDIDATE_TYPE_ARTICLE_ONLY ||
+    candidate.candidateType === CANDIDATE_TYPE_EVENT_AND_ARTICLE
+  );
+}
+
+function formatCoverageScopes(scopes: ReporterCoverageScope[]) {
+  return scopes
+    .map((scope) => scope.charAt(0) + scope.slice(1).toLowerCase())
+    .join(', ');
+}
+
 function mapGoal(goal: {
   id: string;
   label: string | null;
   targetArticleCount: number;
+  priorityCoverageScopes?: Array<ReporterCoverageScope | string> | null;
   minimumCandidateScore: number;
   freshnessWindowHours: number;
   allowNeedsReportingFallback: boolean;
@@ -142,6 +193,7 @@ function mapGoal(goal: {
     placeName: goal.place?.displayName || null,
     label: goal.label,
     targetArticleCount: goal.targetArticleCount,
+    priorityCoverageScopes: normalizeCoverageScopes(goal.priorityCoverageScopes),
     minimumCandidateScore: goal.minimumCandidateScore,
     freshnessWindowHours: goal.freshnessWindowHours,
     allowNeedsReportingFallback: goal.allowNeedsReportingFallback,
@@ -211,6 +263,7 @@ const dailyGoalSelect = {
   placeId: true,
   label: true,
   targetArticleCount: true,
+  priorityCoverageScopes: true,
   minimumCandidateScore: true,
   freshnessWindowHours: true,
   allowNeedsReportingFallback: true,
@@ -305,6 +358,7 @@ async function ensureDailyCoverageGoal(communityId: string) {
       label: primaryCoverageArea?.place?.displayName
         ? `${primaryCoverageArea.place.displayName} daily desk`
         : 'Daily desk',
+      priorityCoverageScopes: [...DEFAULT_PRIORITY_COVERAGE_SCOPES],
       isActive: true,
     },
     select: dailyGoalSelect,
@@ -499,6 +553,7 @@ export async function upsertReporterDailyCoverageGoal(params: {
   placeId?: string | null;
   label?: string | null;
   targetArticleCount?: number;
+  priorityCoverageScopes?: Array<ReporterCoverageScope | string>;
   minimumCandidateScore?: number;
   freshnessWindowHours?: number;
   allowNeedsReportingFallback?: boolean;
@@ -513,6 +568,10 @@ export async function upsertReporterDailyCoverageGoal(params: {
       label: params.label === undefined ? undefined : params.label,
       targetArticleCount:
         params.targetArticleCount === undefined ? undefined : params.targetArticleCount,
+      priorityCoverageScopes:
+        params.priorityCoverageScopes === undefined
+          ? undefined
+          : normalizeCoverageScopes(params.priorityCoverageScopes),
       minimumCandidateScore:
         params.minimumCandidateScore === undefined ? undefined : params.minimumCandidateScore,
       freshnessWindowHours:
@@ -528,6 +587,7 @@ export async function upsertReporterDailyCoverageGoal(params: {
       placeId: params.placeId || null,
       label: params.label || 'Daily desk',
       targetArticleCount: params.targetArticleCount ?? 1,
+      priorityCoverageScopes: normalizeCoverageScopes(params.priorityCoverageScopes),
       minimumCandidateScore: params.minimumCandidateScore ?? 6,
       freshnessWindowHours: params.freshnessWindowHours ?? 36,
       allowNeedsReportingFallback: params.allowNeedsReportingFallback ?? true,
@@ -758,6 +818,7 @@ export async function evaluateReporterDailyCoverage(params: {
   const freshnessCutoff = new Date(
     decisionDate.getTime() - ensuredGoal.freshnessWindowHours * 60 * 60 * 1000
   );
+  const priorityCoverageScopes = normalizeCoverageScopes(ensuredGoal.priorityCoverageScopes);
 
   const candidates = (await listReporterStoryCandidates({
     communityId: params.communityId,
@@ -779,6 +840,22 @@ export async function evaluateReporterDailyCoverage(params: {
   let selectedCandidate: ReporterStoryCandidateView | null = null;
 
   for (const candidate of candidates) {
+    if (!candidateIsArticleEligible(candidate)) {
+      rejectedReasons.push(
+        `${candidate.title}: classified as ${
+          candidate.candidateType === CANDIDATE_TYPE_EVENT_ONLY ? 'event-only' : 'neither article nor event lead'
+        } for the article desk.`
+      );
+      continue;
+    }
+
+    if (!candidateMatchesPriorityScopes(candidate, priorityCoverageScopes)) {
+      rejectedReasons.push(
+        `${candidate.title}: outside priority scope${priorityCoverageScopes.length === 1 ? '' : 's'} ${formatCoverageScopes(priorityCoverageScopes)}.`
+      );
+      continue;
+    }
+
     if (candidate.readiness.level === 'blocked') {
       rejectedReasons.push(`${candidate.title}: linked run is blocked.`);
       continue;
@@ -874,6 +951,11 @@ export async function evaluateReporterDailyCoverage(params: {
       });
 
   const selectionReasons = [
+    `Priority scope match: ${formatCoverageScopes(
+      normalizeCoverageScopes(selectedCandidate.coverageScopes).filter((scope) =>
+        priorityCoverageScopes.includes(scope)
+      )
+    )}.`,
     selectedCandidate.readiness.reason,
     ...selectedCandidate.signal.reasons.slice(0, 3),
   ];

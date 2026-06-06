@@ -39,6 +39,8 @@ export default async function AdminReporterSourcesPage() {
         label: true,
         sourceType: true,
         sourceFormat: true,
+        executionLane: true,
+        coverageScope: true,
         url: true,
         publisher: true,
         notes: true,
@@ -150,6 +152,40 @@ export default async function AdminReporterSourcesPage() {
     }),
   ]);
 
+  const [locations, organizations] = await Promise.all([
+    db.location.findMany({
+      where: {
+        communityId: currentCommunity.id,
+      },
+      select: {
+        id: true,
+        name: true,
+        addressLine1: true,
+        addressLine2: true,
+        city: true,
+        state: true,
+        postalCode: true,
+      },
+      orderBy: [{ name: 'asc' }, { addressLine1: 'asc' }],
+      take: 100,
+    }),
+    db.organization.findMany({
+      where: {
+        communityId: currentCommunity.id,
+        status: {
+          in: ['APPROVED', 'PENDING_APPROVAL'],
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+      },
+      orderBy: [{ status: 'asc' }, { name: 'asc' }],
+      take: 100,
+    }),
+  ]);
+
   return (
     <AdminPage
       title="Reporter Sources"
@@ -190,6 +226,8 @@ export default async function AdminReporterSourcesPage() {
             tenantKeywordsText={tenantKeywordSetting?.value || ''}
             storyCandidates={storyCandidates}
             dailyCoverageDesk={dailyCoverageDesk}
+            eventLocations={locations}
+            eventOrganizations={organizations}
           />
         </div>
       </div>

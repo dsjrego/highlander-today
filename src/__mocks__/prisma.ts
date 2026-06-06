@@ -243,6 +243,7 @@ export const prismaMock = {
   },
   event: {
     create: jest.fn(),
+    findFirst: jest.fn(),
     findUnique: jest.fn(),
     findMany: jest.fn(),
     update: jest.fn(),
@@ -320,6 +321,7 @@ export const prismaMock = {
   },
   organization: {
     create: jest.fn(),
+    findFirst: jest.fn(),
     findUnique: jest.fn(),
     findMany: jest.fn(),
     update: jest.fn(),

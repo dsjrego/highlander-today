@@ -56,6 +56,7 @@ describe('reporter daily coverage service', () => {
         placeId: null,
         title: 'Budget hearing tonight',
         summary: 'Council is discussing the budget.',
+        candidateType: 'ARTICLE_ONLY',
         sourceCount: 2,
         itemCount: 2,
         latestAt: new Date('2026-05-25T13:00:00Z'),
@@ -201,6 +202,7 @@ describe('reporter daily coverage service', () => {
         placeId: null,
         title: 'School board agenda expands',
         summary: 'A new staffing vote was added to tonight’s agenda.',
+        candidateType: 'ARTICLE_ONLY',
         sourceCount: 2,
         itemCount: 2,
         latestAt: new Date('2026-05-25T14:00:00Z'),
@@ -349,6 +351,7 @@ describe('reporter daily coverage service', () => {
         placeId: null,
         title: 'Thin lead',
         summary: null,
+        candidateType: 'ARTICLE_ONLY',
         sourceCount: 1,
         itemCount: 1,
         latestAt: new Date('2026-05-25T10:00:00Z'),
@@ -406,6 +409,242 @@ describe('reporter daily coverage service', () => {
     expect(prismaMock.reporterRun.create).not.toHaveBeenCalled();
   });
 
+  it('skips event-only candidates for the article desk', async () => {
+    (prismaMock.reporterDailyCoverageGoal.findUnique as any).mockResolvedValue({
+      id: 'goal-1',
+      label: 'Daily desk',
+      targetArticleCount: 1,
+      minimumCandidateScore: 5,
+      freshnessWindowHours: 48,
+      allowNeedsReportingFallback: true,
+      isActive: true,
+      updatedAt: new Date('2026-05-25T12:00:00Z'),
+      place: null,
+      placeId: null,
+    });
+    (listReporterStoryCandidatesMock as any).mockResolvedValue([
+      {
+        id: 'candidate-event',
+        placeId: null,
+        title: 'Farmers market opens Saturday',
+        summary: 'Weekly market returns downtown.',
+        candidateType: 'EVENT_ONLY',
+        coverageScopes: ['LOCAL'],
+        sourceCount: 1,
+        itemCount: 1,
+        latestAt: new Date('2026-05-25T11:00:00Z'),
+        matchedKeywords: [],
+        linkedReporterRun: null,
+        readiness: {
+          level: 'unclaimed',
+          label: 'Unclaimed Lead',
+          reason: 'No reporter run is linked yet.',
+          actionableClaimCount: 0,
+          supportedClaimCount: 0,
+          followUpClaimCount: 0,
+          blockerCount: 0,
+        },
+        signal: {
+          level: 'likely',
+          score: 8,
+          reasons: ['calendar listing has strong event details'],
+        },
+        eventExtraction: {
+          title: 'Farmers market opens Saturday',
+          summary: 'Weekly market returns downtown.',
+          startAt: new Date('2026-05-30T14:00:00Z'),
+          endAt: null,
+          location: 'Main Street Plaza',
+          organizer: 'Westmont Market Association',
+          sourceUrl: 'https://example.com/farmers-market',
+          isRecurring: true,
+          recurrenceText: 'weekly',
+          confidence: 'high',
+          missingFields: [],
+        },
+        items: [],
+      },
+    ]);
+    (prismaMock.reporterDailyCoverageDecision.upsert as any).mockResolvedValue({
+      id: 'decision-event-skip',
+      decisionDate: new Date('2026-05-25T12:00:00Z'),
+      outcome: 'NO_PUBLISHABLE_STORY',
+      summary: 'No story candidate cleared the current daily coverage thresholds.',
+      reasons: ['Farmers market opens Saturday: classified as event-only for the article desk.'],
+      selectedScore: null,
+      selectedReadiness: null,
+      analysisStatus: null,
+      analysisSummary: null,
+      analysisIssueCount: null,
+      analysisHasCriticalIssues: null,
+      analysisDraft: null,
+      articleStatus: null,
+      articleSummary: null,
+      articleIssueCount: null,
+      articleHasCriticalIssues: null,
+      articleDraft: null,
+      updatedAt: new Date('2026-05-25T12:30:00Z'),
+      storyCandidate: null,
+      reporterRun: null,
+    });
+
+    const result = await evaluateReporterDailyCoverage({
+      communityId: 'community-1',
+      date: '2026-05-25',
+      createdByUserId: 'editor-1',
+    });
+
+    expect(result.decision).toMatchObject({
+      outcome: 'no-story',
+    });
+    expect(prismaMock.reporterDailyCoverageDecision.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          reasons: expect.arrayContaining([
+            'Farmers market opens Saturday: classified as event-only for the article desk.',
+          ]),
+        }),
+      })
+    );
+  });
+
+  it('skips candidates outside the daily goal priority scopes', async () => {
+    (prismaMock.reporterDailyCoverageGoal.findUnique as any).mockResolvedValue({
+      id: 'goal-1',
+      label: 'State desk',
+      targetArticleCount: 1,
+      priorityCoverageScopes: ['STATE'],
+      minimumCandidateScore: 5,
+      freshnessWindowHours: 48,
+      allowNeedsReportingFallback: true,
+      isActive: true,
+      updatedAt: new Date('2026-05-25T12:00:00Z'),
+      place: null,
+      placeId: null,
+    });
+    (listReporterStoryCandidatesMock as any).mockResolvedValue([
+      {
+        id: 'candidate-county',
+        placeId: null,
+        title: 'County commissioners announce grant',
+        summary: 'County source-rich item.',
+        candidateType: 'ARTICLE_ONLY',
+        coverageScopes: ['COUNTY'],
+        sourceCount: 1,
+        itemCount: 1,
+        latestAt: new Date('2026-05-25T14:00:00Z'),
+        matchedKeywords: [],
+        linkedReporterRun: {
+          id: 'run-county',
+          title: 'County commissioners announce grant',
+          topic: 'County commissioners announce grant',
+          status: 'READY_FOR_DRAFT',
+        },
+        readiness: {
+          level: 'needs-reporting',
+          label: 'Needs Reporting',
+          reason: 'Needs one more claim review.',
+          actionableClaimCount: 1,
+          supportedClaimCount: 0,
+          followUpClaimCount: 0,
+          blockerCount: 0,
+        },
+        signal: {
+          level: 'likely',
+          score: 10,
+          reasons: ['has a direct article link'],
+        },
+        items: [],
+      },
+      {
+        id: 'candidate-state',
+        placeId: null,
+        title: 'State agency posts road funding list',
+        summary: 'State source-rich item.',
+        candidateType: 'ARTICLE_ONLY',
+        coverageScopes: ['STATE'],
+        sourceCount: 1,
+        itemCount: 1,
+        latestAt: new Date('2026-05-25T13:00:00Z'),
+        matchedKeywords: [],
+        linkedReporterRun: {
+          id: 'run-state',
+          title: 'State agency posts road funding list',
+          topic: 'State agency posts road funding list',
+          status: 'READY_FOR_DRAFT',
+        },
+        readiness: {
+          level: 'needs-reporting',
+          label: 'Needs Reporting',
+          reason: 'Needs one more claim review.',
+          actionableClaimCount: 1,
+          supportedClaimCount: 0,
+          followUpClaimCount: 0,
+          blockerCount: 0,
+        },
+        signal: {
+          level: 'possible',
+          score: 6,
+          reasons: ['has a direct article link'],
+        },
+        items: [],
+      },
+    ]);
+    (prismaMock.reporterDailyCoverageDecision.upsert as any).mockResolvedValue({
+      id: 'decision-state',
+      decisionDate: new Date('2026-05-25T12:00:00Z'),
+      outcome: 'SELECTED_CANDIDATE',
+      summary: 'State agency posts road funding list selected for the daily desk.',
+      reasons: ['Priority scope match: State.', 'Needs one more claim review.'],
+      selectedScore: 6,
+      selectedReadiness: 'needs-reporting',
+      analysisStatus: 'SKIPPED',
+      analysisSummary:
+        'Daily desk selected this run, but source-packet analysis was skipped because reporting follow-up is still required.',
+      analysisIssueCount: null,
+      analysisHasCriticalIssues: null,
+      analysisDraft: null,
+      articleStatus: 'SKIPPED',
+      articleSummary:
+        'Article draft generation was skipped because the selected run is not yet draftable.',
+      articleIssueCount: null,
+      articleHasCriticalIssues: null,
+      articleDraft: null,
+      updatedAt: new Date('2026-05-25T12:30:00Z'),
+      storyCandidate: {
+        id: 'candidate-state',
+        title: 'State agency posts road funding list',
+      },
+      reporterRun: {
+        id: 'run-state',
+        title: 'State agency posts road funding list',
+        topic: 'State agency posts road funding list',
+        status: 'READY_FOR_DRAFT',
+      },
+    });
+
+    const result = await evaluateReporterDailyCoverage({
+      communityId: 'community-1',
+      date: '2026-05-25',
+      createdByUserId: 'editor-1',
+    });
+
+    expect(result.decision).toMatchObject({
+      outcome: 'selected',
+      storyCandidate: { id: 'candidate-state' },
+      reporterRun: { id: 'run-state' },
+    });
+    expect(prismaMock.reporterDailyCoverageDecision.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          reporterStoryCandidateId: 'candidate-state',
+          reporterRunId: 'run-state',
+          reasons: expect.arrayContaining(['Priority scope match: State.']),
+        }),
+      })
+    );
+  });
+
   it('skips article drafting when analysis is blocked by critical issues', async () => {
     (prismaMock.reporterDailyCoverageGoal.findUnique as any).mockResolvedValue({
       id: 'goal-1',
@@ -425,6 +664,7 @@ describe('reporter daily coverage service', () => {
         placeId: null,
         title: 'Borough meeting fight',
         summary: 'A strong lead with supported claims.',
+        candidateType: 'ARTICLE_ONLY',
         sourceCount: 2,
         itemCount: 2,
         latestAt: new Date('2026-05-25T15:00:00Z'),
@@ -519,6 +759,7 @@ describe('reporter daily coverage service', () => {
       id: 'goal-4',
       label: 'Westmont desk',
       targetArticleCount: 1,
+      priorityCoverageScopes: ['LOCAL', 'COUNTY'],
       minimumCandidateScore: 7,
       freshnessWindowHours: 30,
       allowNeedsReportingFallback: false,
@@ -536,6 +777,7 @@ describe('reporter daily coverage service', () => {
       label: 'Westmont desk',
       minimumCandidateScore: 7,
       freshnessWindowHours: 30,
+      priorityCoverageScopes: ['LOCAL', 'COUNTY'],
       allowNeedsReportingFallback: false,
     });
 
@@ -544,6 +786,7 @@ describe('reporter daily coverage service', () => {
       placeId: 'place-1',
       minimumCandidateScore: 7,
       freshnessWindowHours: 30,
+      priorityCoverageScopes: expect.arrayContaining(['LOCAL', 'COUNTY']),
     });
     expect(prismaMock.reporterDailyCoverageGoal.upsert).toHaveBeenCalledWith(
       expect.objectContaining({

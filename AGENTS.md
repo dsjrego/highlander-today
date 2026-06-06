@@ -30,7 +30,8 @@ Reporter-system work must follow these documents in this order:
 1. [REPORTER-AGENT-IMPLEMENTATION-PLAN.md](./REPORTER-AGENT-IMPLEMENTATION-PLAN.md)
 2. [REPORTER-AGENT-PHASE-1-SPEC.md](./REPORTER-AGENT-PHASE-1-SPEC.md)
 3. [REPORTER-AGENT-PHASE-1-IMPLEMENTATION-CHECKLIST.md](./REPORTER-AGENT-PHASE-1-IMPLEMENTATION-CHECKLIST.md)
-4. [REPORTER-INTERVIEW-AGENT-PLAN.md](./REPORTER-INTERVIEW-AGENT-PLAN.md) for browser-based interview work
+4. [REPORTER-AUTONOMOUS-EDITORIAL-ROADMAP.md](./REPORTER-AUTONOMOUS-EDITORIAL-ROADMAP.md) for future autonomy, coverage planning, domain-lane, browser-worker, and restricted-source work
+5. [REPORTER-INTERVIEW-AGENT-PLAN.md](./REPORTER-INTERVIEW-AGENT-PLAN.md) for browser-based interview work
 
 When a domain-specific plan exists, treat that plan as the product and workflow authority before inventing a new approach.
 

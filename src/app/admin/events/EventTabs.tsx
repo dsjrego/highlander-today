@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -16,6 +17,10 @@ import {
   ORGANIZATION_TYPE_OPTIONS,
   type OrganizationDirectoryGroup,
 } from '@/lib/organization-taxonomy';
+
+const TipTapEditor = dynamic(() => import('@/components/articles/TipTapEditor'), {
+  ssr: false,
+});
 
 const EVENT_TABS = ['pending', 'approved', 'archived'] as const;
 const EVENT_PAGE_SIZE = 10;
@@ -1241,17 +1246,19 @@ export default function EventTabs({ events, organizations, locations }: EventTab
                 />
               </div>
 
-	              <div className="lg:col-span-2">
-	                <label className="form-label">Description</label>
-	                <textarea
-                  name="description"
-                  value={createForm.description}
-                  onChange={handleCreateInputChange}
-                  rows={5}
-                  className="form-textarea border-slate-300 bg-white text-slate-950"
-	                  placeholder="Describe the event, schedule, audience, and any details attendees need."
-	                />
-	              </div>
+              <div className="lg:col-span-2">
+                <label className="form-label">Description</label>
+                <TipTapEditor
+                  content={createForm.description}
+                  onChange={(description) =>
+                    setCreateForm((current) => ({
+                      ...current,
+                      description,
+                    }))
+                  }
+                  placeholder="Describe the event, schedule, audience, and any details attendees need."
+                />
+              </div>
 
 	              <div className="lg:col-span-2">
 	                <div className="form-card-actions justify-start">

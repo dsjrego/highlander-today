@@ -34,21 +34,35 @@ const recordFetchSchema = z.object({
     .optional(),
 });
 
+function hasValidMachineIngestToken(request: NextRequest) {
+  const configuredToken = process.env.REPORTER_SOURCE_INGEST_TOKEN?.trim();
+  if (!configuredToken) {
+    return false;
+  }
+
+  const authorization = request.headers.get('authorization') || '';
+  const bearerMatch = authorization.match(/^Bearer\s+(.+)$/i);
+  return Boolean(bearerMatch?.[1] && bearerMatch[1].trim() === configuredToken);
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const usingMachineToken = hasValidMachineIngestToken(request);
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
     const ipAddress = request.headers.get('x-client-ip');
 
-    if (!userId || !canEditReporterRun(userRole)) {
+    if (!usingMachineToken && (!userId || !canEditReporterRun(userRole))) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    const currentCommunity = await getCurrentCommunity({ headers: request.headers });
-    if (!currentCommunity) {
+    const currentCommunity = usingMachineToken
+      ? null
+      : await getCurrentCommunity({ headers: request.headers });
+    if (!usingMachineToken && !currentCommunity) {
       return NextResponse.json({ error: 'Community context not found' }, { status: 400 });
     }
 
@@ -57,7 +71,7 @@ export async function POST(
       select: { id: true, communityId: true },
     });
 
-    if (!existing || existing.communityId !== currentCommunity.id) {
+    if (!existing || (!usingMachineToken && existing.communityId !== currentCommunity?.id)) {
       return NextResponse.json({ error: 'Monitored source not found' }, { status: 404 });
     }
 
@@ -77,7 +91,7 @@ export async function POST(
     });
 
     await logActivity({
-      userId,
+      userId: userId || 'reporter-local-collector',
       action: 'CREATE',
       resourceType: 'REPORTER_SOURCE_FETCH',
       resourceId: result.fetch.id,
@@ -88,6 +102,7 @@ export async function POST(
         itemCount: result.summary.itemCount,
         newItemCount: result.summary.newItemCount,
         changedItemCount: result.summary.changedItemCount,
+        ingestedBy: usingMachineToken ? 'machine-token' : 'editor-session',
       },
     });
 

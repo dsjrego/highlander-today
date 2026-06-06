@@ -16,6 +16,7 @@ export async function listDueReporterMonitoredSources(params: RunDueReporterMoni
     where: {
       communityId: params.communityId,
       status: 'ACTIVE',
+      executionLane: 'SERVER_FETCH',
     },
     orderBy: [{ lastFetchedAt: 'asc' }, { createdAt: 'asc' }],
     select: {
