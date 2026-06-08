@@ -29,7 +29,7 @@ export default function LocationCompletionGate() {
 
     const nextPath = pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : '');
     router.replace(
-      `/profile/${sessionUser.id}?tab=account-settings&complete=location&next=${encodeURIComponent(nextPath)}`
+      `/profile/${sessionUser.id}/workspace/account?complete=location&next=${encodeURIComponent(nextPath)}`
     );
   }, [pathname, router, searchParams, sessionUser?.id, sessionUser?.needsLocationCompletion, status]);
 

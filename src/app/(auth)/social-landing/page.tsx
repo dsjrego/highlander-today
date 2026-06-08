@@ -14,7 +14,7 @@ function getSafeReturnTo(value: string | null) {
 
 function getAccountSettingsHref(session: any) {
   const userId = session?.user?.id;
-  return userId ? `/profile/${userId}?tab=account-settings` : "/";
+  return userId ? `/profile/${userId}/workspace/account` : "/";
 }
 
 export default function SocialLandingPage() {

@@ -23,7 +23,16 @@ At the beginning of a new task:
 - Deeper historical/reference ledger: [PROJECT-STATUS-REFERENCE.md](./PROJECT-STATUS-REFERENCE.md)
 - Repo setup and architecture overview: [README.md](./README.md)
 - Shared design-system vocabulary: [DESIGN-SYSTEM-ARCHITECTURE.md](./DESIGN-SYSTEM-ARCHITECTURE.md)
+- Admin & management UI guidelines (forms, fields, tables, buttons, editing, states): [ADMIN-DESIGN-GUIDELINES.md](./ADMIN-DESIGN-GUIDELINES.md)
 - Dense admin list standard: [ADMIN-LIST-DESIGN.md](./ADMIN-LIST-DESIGN.md)
+- Workspace/admin migration execution plan: [WORKSPACE-ADMIN-SURFACE-MIGRATION.md](./WORKSPACE-ADMIN-SURFACE-MIGRATION.md)
+
+Any administration, management, workspace, settings, or otherwise data-heavy surface must follow these design documents in this order:
+
+1. [ADMIN-DESIGN-GUIDELINES.md](./ADMIN-DESIGN-GUIDELINES.md) — the umbrella rules for layout, field types, button hierarchy/placement, editing patterns, and states.
+2. [ADMIN-LIST-DESIGN.md](./ADMIN-LIST-DESIGN.md) — authoritative for the compact list/table pattern.
+3. [WORKSPACE-ADMIN-SURFACE-MIGRATION.md](./WORKSPACE-ADMIN-SURFACE-MIGRATION.md) — execution plan for migrating existing workspace/admin surfaces onto the canonical patterns.
+4. [DESIGN-SYSTEM-ARCHITECTURE.md](./DESIGN-SYSTEM-ARCHITECTURE.md) — shared structural vocabulary and theming/token direction.
 
 Reporter-system work must follow these documents in this order:
 
@@ -56,8 +65,11 @@ When a domain-specific plan exists, treat that plan as the product and workflow 
 ## UI And Design Rules
 
 - Reuse the shared structural vocabulary from [DESIGN-SYSTEM-ARCHITECTURE.md](./DESIGN-SYSTEM-ARCHITECTURE.md): `page-header`, `section-*`, `card-*`, and related semantic classes.
-- Prefer shared semantic theme classes and tokens over route-local hardcoded colors.
-- For admin record-management surfaces, default to the compact `admin-list` table pattern documented in [ADMIN-LIST-DESIGN.md](./ADMIN-LIST-DESIGN.md).
+- For any administration, management, workspace, settings, or data-heavy surface, follow [ADMIN-DESIGN-GUIDELINES.md](./ADMIN-DESIGN-GUIDELINES.md). It is the standing answer for layout, field types and form controls, button hierarchy and placement, editing patterns (inline-expand by default), and empty/loading/error/validation states — build to it instead of asking case by case.
+- For admin record-management surfaces, default to the compact `admin-list` table pattern documented in [ADMIN-LIST-DESIGN.md](./ADMIN-LIST-DESIGN.md). Do not render collections as stacked full-editor cards.
+- When a screenshot, mockup, or reference HTML is provided for a workspace or management surface, treat that artifact as the authority for shell, composition, spacing, and visual hierarchy; apply the generic admin/workspace guidelines inside that structure rather than replacing it.
+- Prefer shared semantic theme classes and tokens over route-local hardcoded colors. Use brand (`--navy` / `--crimson`) and status tokens only; no decorative gradients or oversized radii on tool surfaces.
+- Every form control has a persistent `<label>`; placeholders are example text, not labels. Mark required/optional consistently.
 - When one admin area mixes management and creation, prefer nested secondary tabs such as `List` and `+ Form` rather than one long mixed panel.
 - Keep mobile behavior and accessibility in scope. Shared shell/header/dialog changes should preserve keyboard, focus, and screen-reader behavior.
 

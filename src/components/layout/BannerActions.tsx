@@ -357,12 +357,20 @@ export default function BannerActions() {
                 {session.user.name || 'Profile'}
               </div>
               <Link
-                href={`/profile/${(session.user as any).id}`}
+                href={`/profile/${(session.user as any).id}/workspace`}
                 className="masthead-menu-item block px-4 py-2 text-right text-sm"
                 onClick={() => setDropdownOpen(false)}
                 role="menuitem"
               >
-                Profile
+                Your Workspace
+              </Link>
+              <Link
+                href={`/profile/${(session.user as any).id}/workspace/account`}
+                className="masthead-menu-item block px-4 py-2 text-right text-sm"
+                onClick={() => setDropdownOpen(false)}
+                role="menuitem"
+              >
+                Account Settings
               </Link>
               {showAdmin && (
                 <Link
