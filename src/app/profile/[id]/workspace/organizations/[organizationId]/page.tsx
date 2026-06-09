@@ -202,12 +202,12 @@ export default async function ProfileWorkspaceOrganizationDetailPage({
             </div>
 
             <div className="flex items-center gap-3">
-              <Link href={`/organizations/${membership.organization.slug}`} className="btn btn-secondary rounded-lg">
+              <Link href={`/organizations/${membership.organization.slug}`} className="btn btn-secondary">
                 <ExternalLink className="h-4 w-4" aria-hidden="true" />
                 View Public Page
               </Link>
               {activeView === 'profile' ? (
-                <button type="submit" form="organization-profile-form" className="btn btn-primary rounded-lg">
+                <button type="submit" form="organization-profile-form" className="btn btn-primary">
                   <Save className="h-4 w-4" aria-hidden="true" />
                   Save Changes
                 </button>

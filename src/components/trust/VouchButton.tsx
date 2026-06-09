@@ -40,7 +40,7 @@ export const VouchButton: React.FC<VouchButtonProps> = ({
     return (
       <button
         disabled
-        className="px-4 py-2 bg-gray-300 text-gray-600 rounded-lg font-medium cursor-not-allowed"
+        className="btn btn-neutral opacity-60 cursor-not-allowed"
         title={disabledReason}
       >
         Cannot Vouch
@@ -52,8 +52,7 @@ export const VouchButton: React.FC<VouchButtonProps> = ({
     <>
       <button
         onClick={() => setShowModal(true)}
-        className="px-4 py-2 rounded-lg font-medium transition-colors text-white"
-        style={{ backgroundColor: 'var(--brand-primary)' }}
+        className="btn btn-primary"
       >
         Vouch for {userName}
       </button>

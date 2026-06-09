@@ -2,7 +2,7 @@
 
 import { Fragment, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ChevronDown, ChevronUp, Plus, Save, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Save, Star, Trash2 } from 'lucide-react';
 import { AdminChip } from '@/components/admin/AdminChip';
 import { CrudActionButton } from '@/components/shared/CrudAction';
 import StatusMessage from '@/components/shared/StatusMessage';
@@ -108,18 +108,22 @@ function ToggleField({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex items-start justify-between gap-3 rounded-lg border border-[var(--hl-admin-border)] bg-[var(--hl-admin-surface-muted)] px-4 py-3">
+    <div className="flex items-start justify-between gap-3 rounded-lg border border-[var(--hl-admin-border)] bg-[var(--hl-admin-surface-muted)] px-4 py-3">
       <div className="space-y-1">
-        <span className="text-sm font-medium text-slate-800">{label}</span>
+        <p className="text-sm font-medium text-slate-800">{label}</p>
         <p className="text-xs text-slate-500">{hint}</p>
       </div>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-950 focus:ring-slate-300"
-      />
-    </label>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        onClick={() => onChange(!checked)}
+        className={`form-switch ${checked ? 'is-checked' : ''}`}
+      >
+        <span className="form-switch-thumb" />
+      </button>
+    </div>
   );
 }
 
@@ -521,7 +525,14 @@ export default function WorkspaceOrganizationLocationsManager({
                             </AdminChip>
                           </td>
                           <td className="admin-list-cell">
-                            {location.isPrimary ? <AdminChip tone="role">Primary</AdminChip> : <span className="text-slate-400">-</span>}
+                            {location.isPrimary ? (
+                              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-700">
+                                <Star className="h-4 w-4 fill-current" aria-hidden="true" />
+                                Primary
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">-</span>
+                            )}
                           </td>
                           <td className="admin-list-cell">
                             <div className="flex justify-end">
@@ -572,7 +583,22 @@ export default function WorkspaceOrganizationLocationsManager({
                 ) : (
                   <tr className="admin-list-row">
                     <td className="admin-list-empty" colSpan={6}>
-                      No locations yet. Use “Add Location” to create the first public-facing location for this organization.
+                      <div className="flex flex-col items-center gap-3 text-center">
+                        <p>No locations yet. Add the first public-facing location for this organization.</p>
+                        <CrudActionButton
+                          type="button"
+                          variant="primary"
+                          icon={Plus}
+                          label="Add your first location"
+                          onClick={() => {
+                            setError('');
+                            setSuccess('');
+                            setExpandedLocationId('new');
+                          }}
+                        >
+                          Add Your First Location
+                        </CrudActionButton>
+                      </div>
                     </td>
                   </tr>
                 )}

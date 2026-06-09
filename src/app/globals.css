@@ -2254,6 +2254,7 @@
 
   .admin-list-pagination-button {
     border: 1px solid var(--admin-surface-border);
+    border-radius: var(--radius-pill);
     background: var(--admin-surface-bg);
     color: var(--admin-text);
     font-size: 0.75rem;
@@ -2657,6 +2658,52 @@
     border-color: var(--form-disabled-border, var(--form-border, #64748b));
     background: var(--form-disabled-bg, #e2e8f0);
     color: var(--form-disabled-text, #475569);
+  }
+
+  .form-switch {
+    position: relative;
+    display: inline-flex;
+    height: 1.5rem;
+    width: 2.75rem;
+    flex-shrink: 0;
+    align-items: center;
+    border: 1px solid var(--hl-admin-border);
+    border-radius: 9999px;
+    background: #cbd5e1;
+    padding: 0.125rem;
+    transition:
+      background-color 160ms ease,
+      border-color 160ms ease,
+      box-shadow 160ms ease;
+  }
+
+  .form-switch:hover {
+    border-color: #94a3b8;
+  }
+
+  .form-switch:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(70, 168, 204, 0.28);
+  }
+
+  .form-switch.is-checked {
+    border-color: #0f766e;
+    background: #0f766e;
+  }
+
+  .form-switch-thumb {
+    display: block;
+    height: 1rem;
+    width: 1rem;
+    border-radius: 9999px;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
+    transform: translateX(0);
+    transition: transform 160ms ease;
+  }
+
+  .form-switch.is-checked .form-switch-thumb {
+    transform: translateX(1.2rem);
   }
 
   .btn {

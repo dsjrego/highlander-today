@@ -155,23 +155,44 @@ export default function WorkspaceOrganizationProfileEditor({
       <section className="overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
         <div className="border-b border-slate-200 px-6 py-5">
           <p className="text-[12px] font-semibold uppercase tracking-[0.28em] text-[var(--brand-accent)]">Public Profile</p>
-          <h2 className="mt-2 text-[2rem] font-semibold tracking-[-0.03em] text-slate-800">Organization details</h2>
-          <p className="text-sm text-slate-600">
+          <h2 className="mt-0.5 text-[2rem] font-semibold tracking-[-0.03em] text-slate-800">Organization details</h2>
+          <p className="mt-0.5 text-sm text-slate-600">
             This information appears on your public organization page and in the community directory.
           </p>
         </div>
         <div className="grid gap-5 px-6 py-5 xl:grid-cols-[minmax(0,1fr)_332px]">
           <div className="space-y-4">
-            <fieldset className="space-y-4 rounded-2xl border border-slate-200 p-4">
+            <fieldset className="space-y-3 rounded-2xl border border-slate-200 p-4 pt-3">
               <legend className="px-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Identity</legend>
               <div className="grid gap-4 lg:grid-cols-2">
-                <div>
+                <div className="lg:col-span-2">
                   <label className="form-label text-slate-500">Organization name *</label>
                   <input name="name" value={form.name} onChange={handleInputChange} className="form-input" />
                 </div>
-                <div>
-                  <label className="form-label text-slate-500">Slug</label>
-                  <div className="form-input bg-slate-50 text-slate-500">{organization.slug}</div>
+                <div className="lg:col-span-2">
+                  <label className="form-label text-slate-500">Public URL</label>
+                  <div className="flex overflow-hidden rounded-xl border border-[var(--input-border)] bg-white">
+                    <div className="flex items-center border-r border-slate-200 bg-slate-50 px-4 text-sm text-slate-400 whitespace-nowrap">
+                      highlandertoday.com/orgs/
+                    </div>
+                    <div className="min-h-[3rem] flex-1 px-4 py-3 text-base text-slate-600 bg-slate-50 flex items-center">
+                      {organization.slug}
+                    </div>
+                    <a
+                      href={`/orgs/${organization.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center border-l border-slate-200 px-4 text-slate-400 hover:text-slate-600 transition-colors"
+                      title="View public page"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                        <polyline points="15 3 21 3 21 9"/>
+                        <line x1="10" y1="14" x2="21" y2="3"/>
+                      </svg>
+                    </a>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-400">The address of your public organization page.</p>
                 </div>
                 <div>
                   <label className="form-label text-slate-500">Type *</label>
