@@ -26,7 +26,7 @@ export default async function ProfileWorkspaceLayout({
   const sections = getProfileWorkspaceSections(params.id);
 
   return (
-    <div className="admin-shell -mx-[2px] -mt-[2px] min-h-[calc(100vh-5rem)] overflow-hidden border border-[var(--hl-admin-border)] bg-[#e9edf3] shadow-[0_20px_45px_rgba(15,23,42,0.08)] md:-mx-4 md:mt-0">
+    <div className="admin-shell -mx-[2px] -mt-[2px] min-h-[calc(100vh-5rem)] overflow-hidden border-b border-r border-[var(--hl-admin-border)] bg-[#e9edf3] shadow-[0_20px_45px_rgba(15,23,42,0.08)] md:-mx-4 md:mt-0">
       <div className="grid min-h-[calc(100vh-5rem)] lg:grid-cols-[272px_minmax(0,1fr)]">
         <ProfileWorkspaceSidebar sections={sections} />
         <div className="min-w-0">
