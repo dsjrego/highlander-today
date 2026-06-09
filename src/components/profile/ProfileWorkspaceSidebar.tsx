@@ -32,7 +32,7 @@ export default function ProfileWorkspaceSidebar({
             <Briefcase className="h-5 w-5" aria-hidden="true" />
           </div>
           <div className="flex h-10 items-center">
-            <p className="text-xs font-medium uppercase tracking-[0.22em] leading-none text-white/60">Workspace</p>
+            <p className="mb-0 text-xs font-medium uppercase tracking-[0.22em] leading-none text-white/60">Workspace</p>
           </div>
         </div>
       </div>
