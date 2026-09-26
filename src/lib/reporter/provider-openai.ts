@@ -178,7 +178,7 @@ export class OpenAIReporterProvider implements ReporterProviderAdapter {
   readonly provider = 'openai';
   readonly model: string;
 
-  constructor(model = process.env.REPORTER_MODEL_NAME || 'gpt-5.5') {
+  constructor(model = process.env.REPORTER_MODEL_NAME || 'gpt-5.6') {
     this.model = model;
   }
 

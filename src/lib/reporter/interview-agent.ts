@@ -59,7 +59,7 @@ function getProvider() {
 
 function getModel(provider: string) {
   if (provider === 'openai') {
-    return process.env.REPORTER_MODEL_NAME || 'gpt-5.5';
+    return process.env.REPORTER_MODEL_NAME || 'gpt-5.6';
   }
 
   return process.env.REPORTER_MODEL_NAME || 'claude-sonnet-4-6';
