@@ -39,8 +39,9 @@ async function findDepartment(organizationId: string, departmentId: string) {
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string; departmentId: string } }
+  props: { params: Promise<{ id: string; departmentId: string }> }
 ) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
@@ -142,8 +143,9 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; departmentId: string } }
+  props: { params: Promise<{ id: string; departmentId: string }> }
 ) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';

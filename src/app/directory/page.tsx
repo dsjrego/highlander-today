@@ -105,11 +105,12 @@ function getNextSortDirection(
   return currentDirection === 'asc' ? 'desc' : 'asc';
 }
 
-export default async function DirectoryPage({
-  searchParams,
-}: {
-  searchParams?: Promise<DirectoryPageSearchParams>;
-}) {
+export default async function DirectoryPage(
+  props: {
+    searchParams?: Promise<DirectoryPageSearchParams>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const session = await getServerSession(authOptions);
   const sessionUser = session?.user as { id?: string; trust_level?: string; role?: string } | undefined;
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
@@ -126,7 +127,7 @@ export default async function DirectoryPage({
   const currentPage = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
   const sort = normalizeSortKey(resolvedSearchParams?.sort);
   const dir = normalizeSortDirection(resolvedSearchParams?.dir);
-  const requestHeaders = headers();
+  const requestHeaders = await headers();
   const currentCommunity = await getCurrentCommunity({ headers: requestHeaders });
   const currentUserProfile =
     sessionUser?.id

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { checkPermission } from '@/lib/permissions';
 import { z } from 'zod';
 
 const BanSchema = z.object({
@@ -11,7 +10,7 @@ const BanSchema = z.object({
 /**
  * POST /api/trust/ban — Ban a user permanently
  * Sets trustLevel to SUSPENDED and adds email to BannedEmail table.
- * Requires 'trust:ban' permission (Admin+ role).
+ * Requires the platform SUPER_ADMIN role because trust and bans are global.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -21,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     const userRole = request.headers.get('x-user-role') || '';
-    if (!checkPermission(userRole, 'trust:ban')) {
+    if (userRole !== 'SUPER_ADMIN') {
       return NextResponse.json(
         { error: 'Insufficient permissions' },
         { status: 403 }

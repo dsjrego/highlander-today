@@ -5,6 +5,10 @@ jest.mock('@/lib/db', () => ({
   db: prismaMock,
 }));
 
+jest.mock('@/lib/community', () => ({
+  resolveRequestCommunityId: (jest.fn() as any).mockResolvedValue('community-1'),
+}));
+
 const logActivityMock = jest.fn(() => Promise.resolve());
 
 jest.mock('@/lib/activity-log', () => ({
@@ -24,6 +28,7 @@ function buildRequest(
       'content-type': 'application/json',
       'x-user-id': 'editor-1',
       'x-user-role': 'EDITOR',
+      'x-community-id': 'community-1',
       ...headers,
     },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -68,8 +73,7 @@ describe('event route recurring scope handling', () => {
   });
 
   it('forks FUTURE schedule edits into a new series and cleans up the original series', async () => {
-    (prismaMock.event.findUnique as any)
-      .mockResolvedValueOnce({
+    (prismaMock.event.findFirst as any).mockResolvedValueOnce({
         id: 'event-2',
         title: 'Weekly Yoga',
         submittedByUserId: 'author-1',
@@ -79,8 +83,8 @@ describe('event route recurring scope handling', () => {
         seriesId: 'series-1',
         startDatetime: new Date('2026-06-08T18:00:00.000Z'),
         endDatetime: new Date('2026-06-08T19:00:00.000Z'),
-      })
-      .mockResolvedValueOnce({
+      });
+    (prismaMock.event.findUnique as any).mockResolvedValueOnce({
         id: 'event-2',
         title: 'Weekly Yoga',
         status: 'PUBLISHED',
@@ -150,7 +154,7 @@ describe('event route recurring scope handling', () => {
         endDate: '2026-06-10',
         endTime: '19:30',
       }),
-      { params: { id: 'event-2' } }
+      { params: Promise.resolve({ id: 'event-2' }) }
     );
 
     expect(response.status).toBe(200);
@@ -220,7 +224,7 @@ describe('event route recurring scope handling', () => {
   });
 
   it('deletes only the selected and later events for FUTURE delete scope', async () => {
-    (prismaMock.event.findUnique as any).mockResolvedValueOnce({
+    (prismaMock.event.findFirst as any).mockResolvedValueOnce({
       id: 'event-2',
       title: 'Weekly Yoga',
       submittedByUserId: 'author-1',
@@ -251,7 +255,7 @@ describe('event route recurring scope handling', () => {
 
     const response = await DELETE(
       buildRequest('DELETE', { seriesEditScope: 'FUTURE' }),
-      { params: { id: 'event-2' } }
+      { params: Promise.resolve({ id: 'event-2' }) }
     );
 
     expect(response.status).toBe(200);
@@ -281,7 +285,7 @@ describe('event route recurring scope handling', () => {
   });
 
   it('rejects status changes from non-approvers even when they can edit events', async () => {
-    (prismaMock.event.findUnique as any).mockResolvedValueOnce({
+    (prismaMock.event.findFirst as any).mockResolvedValueOnce({
       id: 'event-2',
       title: 'Weekly Yoga',
       submittedByUserId: 'author-1',
@@ -301,7 +305,7 @@ describe('event route recurring scope handling', () => {
           'x-user-role': 'CONTRIBUTOR',
         }
       ),
-      { params: { id: 'event-2' } }
+      { params: Promise.resolve({ id: 'event-2' }) }
     );
 
     expect(response.status).toBe(403);

@@ -85,7 +85,7 @@ describe('reporter interview session routes', () => {
       buildRequest('http://localhost/api/reporter/interviews/interview-1/session', 'POST', {
         language: 'SPANISH',
       }),
-      { params: { id: 'interview-1' } }
+      { params: Promise.resolve({ id: 'interview-1' }) }
     );
 
     expect(response).toBeDefined();
@@ -196,7 +196,7 @@ describe('reporter interview session routes', () => {
         'POST',
         { answerText: 'I live on the block.' }
       ),
-      { params: { id: 'interview-1' } }
+      { params: Promise.resolve({ id: 'interview-1' }) }
     );
 
     expect(response).toBeDefined();
@@ -355,7 +355,7 @@ describe('reporter interview session routes', () => {
         'POST',
         { answerText: 'Please verify the timeline with the borough manager and keep my name anonymous.' }
       ),
-      { params: { id: 'interview-1' } }
+      { params: Promise.resolve({ id: 'interview-1' }) }
     );
 
     expect(response).toBeDefined();
@@ -428,7 +428,7 @@ describe('reporter interview session routes', () => {
 
     const response = await sessionRoute.POST(
       buildRequest('http://localhost/api/reporter/interviews/interview-1/session', 'POST'),
-      { params: { id: 'interview-1' } }
+      { params: Promise.resolve({ id: 'interview-1' }) }
     );
 
     expect(response).toBeDefined();

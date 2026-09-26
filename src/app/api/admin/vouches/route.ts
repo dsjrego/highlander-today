@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { checkPermission } from '@/lib/permissions';
 
 /**
  * GET /api/admin/vouches — List all vouch records with user details
- * Requires VIEW_AUDIT_LOG permission (Admin+ role).
+ * Requires the platform SUPER_ADMIN role until vouch audit views are tenant-keyed.
  *
  * Query params:
  *   search — filter by voucher or recipient name/email (partial match)
@@ -19,7 +18,7 @@ export async function GET(request: NextRequest) {
     }
 
     const userRole = request.headers.get('x-user-role') || '';
-    if (!checkPermission(userRole, 'audit:view')) {
+    if (userRole !== 'SUPER_ADMIN') {
       return NextResponse.json(
         { error: 'Insufficient permissions' },
         { status: 403 }

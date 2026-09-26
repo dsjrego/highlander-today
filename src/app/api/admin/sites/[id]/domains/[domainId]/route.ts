@@ -110,8 +110,9 @@ async function getSite(id: string) {
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string; domainId: string } }
+  props: { params: Promise<{ id: string; domainId: string }> }
 ) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role');
@@ -194,8 +195,9 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; domainId: string } }
+  props: { params: Promise<{ id: string; domainId: string }> }
 ) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role');

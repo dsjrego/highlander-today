@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/admin/reporter/monitored-sources/run-due/highlander-today",
+      "path": "/api/admin/reporter/daily-coverage/run/highlander-today",
       "schedule": "15 10 * * *"
     }
   ]

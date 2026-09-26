@@ -15,14 +15,14 @@ import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
 
 interface AdminRecipeDetailPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
-  searchParams?: {
+  }>;
+  searchParams?: Promise<{
     tab?: string;
     page?: string;
     scope?: string;
-  };
+  }>;
 }
 
 function formatLongDateTime(value: Date | null) {
@@ -65,10 +65,9 @@ function getStatusClasses(status: string) {
   }
 }
 
-export default async function AdminRecipeDetailPage({
-  params,
-  searchParams,
-}: AdminRecipeDetailPageProps) {
+export default async function AdminRecipeDetailPage(props: AdminRecipeDetailPageProps) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   const userRole = session?.user?.role || '';
 
@@ -77,7 +76,7 @@ export default async function AdminRecipeDetailPage({
   }
 
   const isSuperAdmin = userRole === 'SUPER_ADMIN';
-  const currentCommunity = await getCurrentCommunity({ headers: headers() });
+  const currentCommunity = await getCurrentCommunity({ headers: await headers() });
   const activeTab = parseAdminRecipeTab(searchParams?.tab);
   const activeScope = parseAdminRecipeScope(searchParams?.scope, isSuperAdmin);
 

@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
       select: { id: true, communityId: true, topic: true, title: true },
     });
 
-    if (!existingRun || (currentCommunity && existingRun.communityId !== currentCommunity.id)) {
+    if (!existingRun || (!currentCommunity || existingRun.communityId !== currentCommunity.id)) {
       return NextResponse.json({ error: 'Reporter run not found' }, { status: 404 });
     }
 

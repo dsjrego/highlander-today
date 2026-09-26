@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import { isCloudflareR2Configured, processImage, uploadFile } from '@/lib/upload';
+import { consumeRateLimit } from '@/lib/rate-limit';
 
 /**
  * POST /api/upload
@@ -18,6 +19,17 @@ export async function POST(request: NextRequest) {
     const userId = request.headers.get('x-user-id');
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const uploadLimit = consumeRateLimit(`upload:user:${userId}`, 30, 60 * 60 * 1000);
+    if (!uploadLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Upload limit exceeded. Please try again later.' },
+        {
+          status: 429,
+          headers: { 'Retry-After': String(uploadLimit.retryAfterSeconds) },
+        }
+      );
     }
 
     const formData = await request.formData();

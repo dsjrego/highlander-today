@@ -9,10 +9,8 @@ const GenerateReporterDraftSchema = z.object({
   draftType: z.enum(['ARTICLE_DRAFT', 'SOURCE_PACKET_SUMMARY']).optional(),
 });
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
@@ -29,7 +27,7 @@ export async function POST(
     const currentCommunity = await getCurrentCommunity({ headers: request.headers });
     const run = await loadReporterRunForDraft(params.id);
 
-    if (!run || (currentCommunity && run.communityId !== currentCommunity.id)) {
+    if (!run || (!currentCommunity || run.communityId !== currentCommunity.id)) {
       return NextResponse.json({ error: 'Reporter run not found' }, { status: 404 });
     }
 

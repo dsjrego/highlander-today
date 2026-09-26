@@ -466,15 +466,34 @@ const legacyPermissionMap: Record<string, Action> = {
 
 /**
  * Legacy permission check — takes a role string and a 'resource:action' permission string.
- * Uses TRUSTED trust level since all authenticated API routes require at minimum a trusted user.
+ * Middleware downgrades untrusted privileged memberships to READER. Contributor
+ * is therefore safe to infer as trusted for legacy callers while plain readers
+ * remain registered unless the caller supplies their actual trust level.
  * Prefer canPerformAction() for new code.
  */
-export function checkPermission(userRole: string, permission: string): boolean {
+export function checkPermission(
+  userRole: string,
+  permission: string,
+  trustLevel?: string
+): boolean {
   const action = legacyPermissionMap[permission];
   if (!action) return false;
+  const inferredTrustLevel = trustLevel || (
+    [
+      UserRole.CONTRIBUTOR,
+      UserRole.STAFF_WRITER,
+      UserRole.EDITOR,
+      UserRole.ADMIN,
+      UserRole.SUPER_ADMIN,
+    ].includes(
+      userRole as UserRole
+    )
+      ? TrustLevel.TRUSTED
+      : TrustLevel.REGISTERED
+  );
   const user: PermissionUser = {
     id: '',
-    trust_level: TrustLevel.TRUSTED,
+    trust_level: inferredTrustLevel,
     role: userRole,
   };
   return canPerformAction(user, action);

@@ -5,9 +5,9 @@ import { getArticleSocialImageUrl } from '@/lib/article-images';
 import ArticleDetailClient from './ArticleDetailClient';
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 function buildArticleDescription(excerpt: string | null, body: string) {
@@ -54,8 +54,9 @@ async function getPublishedArticleForMetadata(id: string) {
   });
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const cookieStore = cookies();
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const params = await props.params;
+  const cookieStore = await cookies();
   const article = await getPublishedArticleForMetadata(params.id);
 
   if (!article) {
@@ -108,6 +109,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default function ArticleDetailPage({ params }: PageProps) {
+export default async function ArticleDetailPage(props: PageProps) {
+  const params = await props.params;
   return <ArticleDetailClient articleId={params.id} />;
 }

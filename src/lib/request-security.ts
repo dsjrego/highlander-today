@@ -17,7 +17,59 @@ type TokenLike = {
   trust_level?: string | null;
   email?: string | null;
   name?: string | null;
+  tenantMemberships?: Array<{
+    communityId: string;
+    role: string;
+    domains: string[];
+  }> | null;
+  isPlatformSuperAdmin?: boolean | null;
 };
+
+export type TrustedTenantContext = {
+  communityId: string | null;
+  communityDomain: string;
+  role: string;
+};
+
+export function normalizeRequestHostname(hostname: string) {
+  return hostname.trim().toLowerCase().replace(/^www\./, '').replace(/\.$/, '');
+}
+
+export function resolveTrustedTenantContext(
+  token: TokenLike | null | undefined,
+  hostname: string
+): TrustedTenantContext {
+  const communityDomain = normalizeRequestHostname(hostname);
+  const memberships = Array.isArray(token?.tenantMemberships) ? token.tenantMemberships : [];
+  const membership = memberships.find((candidate) =>
+    candidate.domains.some((domain) => normalizeRequestHostname(domain) === communityDomain)
+  );
+
+  if (membership) {
+    return {
+      communityId: membership.communityId,
+      communityDomain,
+      role: membership.role,
+    };
+  }
+
+  if (
+    (communityDomain === 'localhost' || communityDomain === '127.0.0.1') &&
+    memberships.length > 0
+  ) {
+    return {
+      communityId: memberships[0].communityId,
+      communityDomain,
+      role: memberships[0].role,
+    };
+  }
+
+  return {
+    communityId: null,
+    communityDomain,
+    role: token?.isPlatformSuperAdmin ? 'SUPER_ADMIN' : 'READER',
+  };
+}
 
 export function stripUntrustedForwardedHeaders(headers: Headers) {
   for (const header of FORWARDED_IDENTITY_HEADERS) {
@@ -67,7 +119,24 @@ export function getClientIpFromHeaders(headers: Headers): string {
 
   const forwarded = headers.get('x-forwarded-for');
   if (forwarded) {
-    return forwarded.split(',')[0].trim();
+    // AWS ALB appends the address it observed. The left-most value can be
+    // supplied by a client, so use the right-most hop at this trust boundary.
+    return forwarded.split(',').at(-1)?.trim() || '127.0.0.1';
+  }
+
+  return headers.get('x-real-ip') || '127.0.0.1';
+}
+
+/** Resolve the edge/proxy-provided address without trusting our internal header. */
+export function getProxyClientIp(headers: Headers): string {
+  const vercelForwarded = headers.get('x-vercel-forwarded-for');
+  if (vercelForwarded) {
+    return vercelForwarded.split(',')[0].trim();
+  }
+
+  const forwarded = headers.get('x-forwarded-for');
+  if (forwarded) {
+    return forwarded.split(',').at(-1)?.trim() || '127.0.0.1';
   }
 
   return headers.get('x-real-ip') || '127.0.0.1';

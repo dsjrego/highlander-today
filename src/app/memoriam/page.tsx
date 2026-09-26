@@ -6,7 +6,7 @@ import { getMemoriamFeed, heroSizeFor } from '@/lib/memoriam/feed';
 import MemoriamCard from '@/components/memoriam/MemoriamCard';
 
 interface MemoriamPageProps {
-  searchParams?: { q?: string; type?: string };
+  searchParams?: Promise<{ q?: string; type?: string }>;
 }
 
 const TYPE_FILTERS = [
@@ -28,8 +28,9 @@ function buildHref(type: string, query: string) {
   return qs ? `/memoriam?${qs}` : '/memoriam';
 }
 
-export default async function MemoriamPage({ searchParams }: MemoriamPageProps) {
-  const currentCommunity = await getCurrentCommunity({ headers: headers() });
+export default async function MemoriamPage(props: MemoriamPageProps) {
+  const searchParams = await props.searchParams;
+  const currentCommunity = await getCurrentCommunity({ headers: await headers() });
   const query = searchParams?.q?.trim() || '';
   const type = (TYPE_FILTERS.find((f) => f.key === searchParams?.type)?.key
     ?? 'all') as 'all' | 'death-notices' | 'memorial-pages';

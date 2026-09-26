@@ -14,8 +14,9 @@ const UpdateMembershipSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string; organizationId: string; membershipId: string } }
+  props: { params: Promise<{ id: string; organizationId: string; membershipId: string }> }
 ) {
+  const params = await props.params;
   try {
     const actorUserId = request.headers.get('x-user-id');
     if (!actorUserId) {

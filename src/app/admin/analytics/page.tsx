@@ -110,7 +110,7 @@ export default async function AdminAnalyticsPage() {
     redirect('/');
   }
 
-  const currentCommunity = await getCurrentCommunity({ headers: headers() });
+  const currentCommunity = await getCurrentCommunity({ headers: await headers() });
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const communityFilter = currentCommunity?.id ? { communityId: currentCommunity.id } : {};
   const supportedTypes: SupportedAnalyticsContentType[] = [

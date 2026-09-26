@@ -27,7 +27,7 @@ Current intended production assumptions:
 - production upload CDN/base URL: `https://cdn.highlander.today`
 - active launch auth providers: `credentials` + `Google OAuth`
 - Facebook OAuth: intentionally deferred
-- reporter source scheduler: `Vercel Cron`
+- reporter morning-desk scheduler: `Vercel Cron`
 
 ## Before You Start
 
@@ -120,6 +120,17 @@ Rules:
 - Vercel cron will automatically send `Authorization: Bearer <CRON_SECRET>`
 - `REPORTER_SCHEDULER_TOKEN` is optional for non-Vercel or manual bearer-token calls
 
+### Required For Reporter Analysis And Drafting
+
+```env
+OPENAI_API_KEY=...
+REPORTER_MODEL_PROVIDER=openai
+REPORTER_MODEL_NAME=gpt-5.5
+REPORTER_MODEL_REASONING_EFFORT=medium
+```
+
+These settings apply to reporter source-packet analysis, article drafting, and the model-assisted interview flow. Candidate ingestion, clustering, and scoring remain deterministic.
+
 ## Step-By-Step: Add Or Update Vercel Environment Variables
 
 1. Sign in to `https://vercel.com`.
@@ -208,14 +219,14 @@ then at least one required R2 variable is missing or incorrect in Vercel.
 
 ## Reporter Scheduler / Vercel Cron
 
-Highlander Today now includes a Vercel cron configuration for the reporter monitored-source runner.
+Highlander Today includes a Vercel cron configuration for the complete reporter morning-desk pipeline. One authenticated run fetches due public sources, refreshes durable story candidates, evaluates the daily coverage goal, creates a reporter run for the selected lead, and generates editor-reviewable analysis/article drafts when the source packet already clears the deterministic readiness gates.
 
 ### Current Scheduled Path
 
 The scheduled route is:
 
 ```text
-/api/admin/reporter/monitored-sources/run-due/highlander-today
+/api/admin/reporter/daily-coverage/run/highlander-today
 ```
 
 ### Current Schedule
@@ -239,8 +250,8 @@ This daily cadence was chosen because Vercel Hobby plans only allow daily cron e
 3. Redeploy production so Vercel reads `vercel.json`.
 4. In Vercel, open `Settings`.
 5. Open `Cron Jobs`.
-6. Confirm the cron job appears for `/api/admin/reporter/monitored-sources/run-due/highlander-today`.
-7. After the first scheduled run, verify the results in `/admin/reporter/sources`.
+6. Confirm the cron job appears for `/api/admin/reporter/daily-coverage/run/highlander-today`.
+7. After the first scheduled run, verify the morning decision and ranked candidates in `/admin/reporter` and the full source/candidate detail in `/admin/reporter/sources`.
 
 ### Manual Testing
 
@@ -248,8 +259,8 @@ You do not need to wait for the cron.
 
 You can test the same runner manually:
 
-- by using `Run Due Sources` in `/admin/reporter/sources`
-- or by calling the route directly with bearer auth
+- source fetching alone can still be tested with `Run Due Sources` in `/admin/reporter/sources`
+- the complete morning pipeline can be tested by calling `/api/admin/reporter/daily-coverage/run/highlander-today` with bearer auth
 
 ### If The Cron Job Does Not Appear
 
@@ -361,7 +372,7 @@ When the deployed code depends on new Prisma schema changes, make sure the inten
 These should stay visible:
 
 - Facebook OAuth remains intentionally deferred
-- reporter scheduling is currently a one-pass cron-friendly runner, not a durable background queue
+- reporter scheduling is a bounded one-pass morning pipeline, not a durable background queue; failed runs remain visible through the cron response and reporter source/decision state
 - broader production hardening such as multi-instance persistent rate limiting is still a future concern
 
 ## Troubleshooting Quick Reference

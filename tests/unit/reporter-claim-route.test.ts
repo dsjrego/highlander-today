@@ -53,7 +53,7 @@ describe('reporter claim route', () => {
     });
 
     const response = await claimRoute.PATCH(buildRequest({ verificationStatus: 'SUPPORTED' }), {
-      params: { id: 'claim-1' },
+      params: Promise.resolve({ id: 'claim-1' }),
     });
 
     expect(response.status).toBe(200);
@@ -84,7 +84,7 @@ describe('reporter claim route', () => {
         { verificationStatus: 'SUPPORTED' },
         { 'x-user-role': 'READER' }
       ),
-      { params: { id: 'claim-1' } }
+      { params: Promise.resolve({ id: 'claim-1' }) }
     );
 
     expect(response.status).toBe(403);

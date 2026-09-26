@@ -19,7 +19,7 @@ import {
 } from './reporter-agent-permissions';
 
 export function createReporterProviderAdapter(): ReporterProviderAdapter {
-  const provider = (process.env.REPORTER_MODEL_PROVIDER || 'anthropic').toLowerCase();
+  const provider = (process.env.REPORTER_MODEL_PROVIDER || 'openai').toLowerCase();
 
   if (provider === 'openai') {
     return new OpenAIReporterProvider();
@@ -96,7 +96,7 @@ export async function generateReporterDraftWithValidation(
     await createFailedReporterAgentTrace({
       reporterRunId: packet.runId,
       traceType,
-      provider: (process.env.REPORTER_MODEL_PROVIDER || 'anthropic').toLowerCase(),
+      provider: (process.env.REPORTER_MODEL_PROVIDER || 'openai').toLowerCase(),
       modelName: process.env.REPORTER_MODEL_NAME || null,
       errorMessage:
         error instanceof Error ? error.message : 'Reporter draft generation failed.',

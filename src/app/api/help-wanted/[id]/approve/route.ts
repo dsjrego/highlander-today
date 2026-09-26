@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { ACTIONS, canPerformAction, type PermissionUser } from '@/lib/permissions';
 import { logActivity } from '@/lib/activity-log';
 import { z } from 'zod';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 const ApproveSchema = z.object({
   approved: z.boolean(),
@@ -27,10 +28,8 @@ function buildPermissionUser(request: NextRequest): PermissionUser | null {
   };
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const permissionUser = buildPermissionUser(request);
 
@@ -47,9 +46,13 @@ export async function POST(
 
     const body = await request.json();
     const validated = ApproveSchema.parse(body);
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
 
-    const post = await db.helpWantedPost.findUnique({
-      where: { id: params.id },
+    const post = await db.helpWantedPost.findFirst({
+      where: { id: params.id, communityId },
       include: {
         author: {
           select: {

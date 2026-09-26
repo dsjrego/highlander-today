@@ -5,6 +5,7 @@ import { buildEventDatetime } from '@/lib/event-datetime';
 import { checkPermission } from '@/lib/permissions';
 import { logActivity } from '@/lib/activity-log';
 import { z } from 'zod';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 const RecurrenceSchema = z.object({
   enabled: z.boolean().default(false),
@@ -38,17 +39,16 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
-    const communityId = request.headers.get('x-community-id') || '';
-
-    const community = communityId
-      ? await db.community.findUnique({ where: { id: communityId } })
-      : await db.community.findFirst();
-    if (!community) {
+    const communityId = await resolveRequestCommunityId({
+      headers: request.headers,
+      nextUrl: request.nextUrl,
+    });
+    if (!communityId) {
       return NextResponse.json({ events: [], pagination: { page, limit, total: 0, pages: 0 } });
     }
 
     const where = {
-      communityId: community.id,
+      communityId,
       status: 'PUBLISHED' as const,
       startDatetime: {
         gte: new Date(),
@@ -128,18 +128,18 @@ export async function POST(request: NextRequest) {
     const validated = CreateEventSchema.parse(body);
     const ipAddress = request.headers.get('x-client-ip');
 
-    const communityId = request.headers.get('x-community-id') || '';
-    const community = communityId
-      ? await db.community.findUnique({ where: { id: communityId } })
-      : await db.community.findFirst();
-    if (!community) {
+    const communityId = await resolveRequestCommunityId({
+      headers: request.headers,
+      nextUrl: request.nextUrl,
+    });
+    if (!communityId) {
       return NextResponse.json({ error: 'Community not found' }, { status: 404 });
     }
 
     const location = await db.location.findFirst({
       where: {
         id: validated.locationId,
-        communityId: community.id,
+          communityId,
       },
       select: {
         id: true,
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
     const organization = await db.organization.findFirst({
       where: {
         id: validated.organizationId,
-        communityId: community.id,
+        communityId,
       },
       select: {
         id: true,
@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
       const series = cadence
         ? await tx.eventSeries.create({
             data: {
-              communityId: community.id,
+              communityId,
               createdByUserId: userId,
               organizationId: validated.organizationId,
               title: validated.title,
@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
             contactInfo: validated.contactInfo || null,
             photoUrl: validated.imageUrl || null,
             submittedByUserId: userId,
-            communityId: community.id,
+            communityId,
             organizationId: validated.organizationId,
             status: nextStatus,
             isRecurring: Boolean(series),

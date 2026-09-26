@@ -1,19 +1,23 @@
 import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
-import FacebookProvider from 'next-auth/providers/facebook';
 import bcrypt from 'bcryptjs';
+import { headers } from 'next/headers';
 import { db } from './db';
-
-type SupportedProvider = 'credentials' | 'google' | 'facebook';
+import { recordLoginEvent } from './login-events';
+import { getClientIpFromHeaders } from './request-security';
+import { consumeRateLimit } from './rate-limit';
+import { resolveCommunityIdByDomain } from './tenant';
 
 async function ensureDefaultMembership(userId: string) {
-  const community = await db.community.findFirst({
-    select: { id: true },
-    orderBy: { createdAt: 'asc' },
-  });
+  const requestHeaders = await headers();
+  const explicitCommunityId = requestHeaders.get('x-community-id');
+  const domain = requestHeaders.get('x-community-domain') || requestHeaders.get('host');
+  const communityId =
+    explicitCommunityId ||
+    (domain ? await resolveCommunityIdByDomain(domain) : null);
 
-  if (!community) {
+  if (!communityId) {
     return;
   }
 
@@ -21,20 +25,20 @@ async function ensureDefaultMembership(userId: string) {
     where: {
       userId_communityId: {
         userId,
-        communityId: community.id,
+        communityId,
       },
     },
     update: {},
     create: {
       userId,
-      communityId: community.id,
+      communityId,
       role: 'READER',
     },
   });
 }
 
 async function findOrCreateOauthUser(params: {
-  provider: Exclude<SupportedProvider, 'credentials'>;
+  provider: 'google';
   email: string;
   name?: string | null;
   profile?: Record<string, unknown>;
@@ -45,7 +49,7 @@ async function findOrCreateOauthUser(params: {
 
   if (existing) {
     await ensureDefaultMembership(existing.id);
-    return existing;
+    return { user: existing, isNew: false };
   }
 
   const fallbackName = params.name?.trim().split(/\s+/).filter(Boolean) ?? [];
@@ -76,7 +80,7 @@ async function findOrCreateOauthUser(params: {
   });
 
   await ensureDefaultMembership(user.id);
-  return user;
+  return { user, isNew: true };
 }
 
 async function getUserCompletionState(userId: string) {
@@ -86,8 +90,20 @@ async function getUserCompletionState(userId: string) {
       dateOfBirth: true,
       trustLevel: true,
       memberships: {
-        select: { role: true },
-        take: 1,
+        orderBy: { joinedAt: 'asc' },
+        select: {
+          communityId: true,
+          role: true,
+          community: {
+            select: {
+              domain: true,
+              domains: {
+                where: { status: 'ACTIVE' },
+                select: { domain: true },
+              },
+            },
+          },
+        },
       },
       placeRelationships: {
         where: { isCurrent: true },
@@ -104,6 +120,17 @@ async function getUserCompletionState(userId: string) {
   return {
     trustLevel: user.trustLevel,
     role: user.memberships[0]?.role ?? 'READER',
+    tenantMemberships: user.memberships.map((membership) => ({
+      communityId: membership.communityId,
+      role: membership.role,
+      domains: [
+        membership.community.domain,
+        ...membership.community.domains.map((tenantDomain) => tenantDomain.domain),
+      ].filter((domain): domain is string => Boolean(domain)),
+    })),
+    isPlatformSuperAdmin: user.memberships.some(
+      (membership) => membership.role === 'SUPER_ADMIN'
+    ),
     needsDobCompletion: !user.dateOfBirth,
     needsLocationCompletion: user.placeRelationships.length === 0,
   };
@@ -123,8 +150,22 @@ export function buildAuthOptions(): NextAuthOptions {
             return null;
           }
 
+          const requestHeaders = await headers();
+          const email = credentials.email.trim().toLowerCase();
+          const clientIp = getClientIpFromHeaders(requestHeaders);
+          const ipRateLimit = consumeRateLimit(`login:ip:${clientIp}`, 20, 15 * 60 * 1000);
+          const identityRateLimit = consumeRateLimit(
+            `login:identity:${clientIp}:${email}`,
+            5,
+            15 * 60 * 1000
+          );
+
+          if (!ipRateLimit.allowed || !identityRateLimit.allowed) {
+            return null;
+          }
+
           const user = await db.user.findUnique({
-            where: { email: credentials.email },
+            where: { email },
           });
 
           if (!user?.passwordHash) {
@@ -147,20 +188,20 @@ export function buildAuthOptions(): NextAuthOptions {
         clientId: process.env.GOOGLE_CLIENT_ID || '',
         clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
       }),
-      FacebookProvider({
-        clientId: process.env.FACEBOOK_CLIENT_ID || '',
-        clientSecret: process.env.FACEBOOK_CLIENT_SECRET || '',
-      }),
     ],
     session: { strategy: 'jwt' },
     callbacks: {
       async signIn({ user, account, profile }) {
-        if (!account || !profile?.email) {
+        if (!account) {
           return true;
         }
 
-        if (account.provider === 'google' || account.provider === 'facebook') {
-          const dbUser = await findOrCreateOauthUser({
+        if (account.provider === 'google') {
+          if (!profile?.email) {
+            return false;
+          }
+
+          const { user: dbUser, isNew } = await findOrCreateOauthUser({
             provider: account.provider,
             email: profile.email,
             name: user.name,
@@ -168,6 +209,24 @@ export function buildAuthOptions(): NextAuthOptions {
           });
 
           user.id = dbUser.id;
+          (user as typeof user & { oauthNeedsProfileRedirect?: boolean }).oauthNeedsProfileRedirect =
+            isNew;
+
+          const requestHeaders = await headers();
+          void recordLoginEvent({
+            userId: dbUser.id,
+            ipAddress: getClientIpFromHeaders(requestHeaders),
+            userAgent: requestHeaders.get('user-agent'),
+            provider: 'google',
+          }).catch(() => {});
+        } else if (account.provider === 'credentials' && user.id) {
+          const requestHeaders = await headers();
+          void recordLoginEvent({
+            userId: user.id,
+            ipAddress: getClientIpFromHeaders(requestHeaders),
+            userAgent: requestHeaders.get('user-agent'),
+            provider: 'credentials',
+          }).catch(() => {});
         }
 
         return true;
@@ -175,6 +234,10 @@ export function buildAuthOptions(): NextAuthOptions {
       async jwt({ token, user }) {
         if (user?.id) {
           token.id = user.id;
+          token.oauthNeedsProfileRedirect = Boolean(
+            (user as typeof user & { oauthNeedsProfileRedirect?: boolean })
+              .oauthNeedsProfileRedirect
+          );
 
           const dbUser = await getUserCompletionState(user.id);
 
@@ -183,6 +246,8 @@ export function buildAuthOptions(): NextAuthOptions {
             token.role = dbUser.role;
             token.needsDobCompletion = dbUser.needsDobCompletion;
             token.needsLocationCompletion = dbUser.needsLocationCompletion;
+            token.tenantMemberships = dbUser.tenantMemberships;
+            token.isPlatformSuperAdmin = dbUser.isPlatformSuperAdmin;
           }
         } else if (typeof token.id === 'string') {
           const dbUser = await getUserCompletionState(token.id);
@@ -192,6 +257,8 @@ export function buildAuthOptions(): NextAuthOptions {
             token.role = dbUser.role;
             token.needsDobCompletion = dbUser.needsDobCompletion;
             token.needsLocationCompletion = dbUser.needsLocationCompletion;
+            token.tenantMemberships = dbUser.tenantMemberships;
+            token.isPlatformSuperAdmin = dbUser.isPlatformSuperAdmin;
           }
         }
 
@@ -201,14 +268,17 @@ export function buildAuthOptions(): NextAuthOptions {
         if (session.user) {
           (session.user as { id?: string; role?: string; trust_level?: string }).id =
             typeof token.id === 'string' ? token.id : undefined;
+          const requestRole = (await headers()).get('x-user-role');
           (session.user as { id?: string; role?: string; trust_level?: string }).role =
-            typeof token.role === 'string' ? token.role : undefined;
+            requestRole || (typeof token.role === 'string' ? token.role : undefined);
           (session.user as { id?: string; role?: string; trust_level?: string }).trust_level =
             typeof token.trust_level === 'string' ? token.trust_level : undefined;
           (session.user as { needsDobCompletion?: boolean; needsLocationCompletion?: boolean }).needsDobCompletion =
             Boolean(token.needsDobCompletion);
           (session.user as { needsDobCompletion?: boolean; needsLocationCompletion?: boolean }).needsLocationCompletion =
             Boolean(token.needsLocationCompletion);
+          session.user.tenantMemberships = token.tenantMemberships;
+          session.user.oauthNeedsProfileRedirect = Boolean(token.oauthNeedsProfileRedirect);
         }
 
         return session;
@@ -232,6 +302,12 @@ export interface CustomSession {
     role?: string;
     needsDobCompletion?: boolean;
     needsLocationCompletion?: boolean;
+    oauthNeedsProfileRedirect?: boolean;
+    tenantMemberships?: Array<{
+      communityId: string;
+      role: string;
+      domains: string[];
+    }>;
   };
   expires: string;
 }

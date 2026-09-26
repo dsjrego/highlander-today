@@ -101,8 +101,5 @@ export async function resolveTenantCommunityId(options?: ResolveTenantCommunityO
     return null;
   }
 
-  return (await db.community.findFirst({
-    select: { id: true },
-    orderBy: { createdAt: 'asc' },
-  }))?.id ?? null;
+  return null;
 }

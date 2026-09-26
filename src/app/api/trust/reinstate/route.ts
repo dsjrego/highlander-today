@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { checkPermission } from '@/lib/permissions';
 import { z } from 'zod';
 
 const ReinstateSchema = z.object({
@@ -13,7 +12,7 @@ const ReinstateSchema = z.object({
  * POST /api/trust/reinstate — Reinstate a suspended user
  * Restores trustLevel to TRUSTED (default) or REGISTERED.
  * Does NOT reinstate downstream users — they must be reinstated individually.
- * Requires 'trust:reinstate' permission (Admin+ role).
+ * Requires the platform SUPER_ADMIN role because trust is global.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     const userRole = request.headers.get('x-user-role') || '';
-    if (!checkPermission(userRole, 'trust:reinstate')) {
+    if (userRole !== 'SUPER_ADMIN') {
       return NextResponse.json(
         { error: 'Insufficient permissions' },
         { status: 403 }

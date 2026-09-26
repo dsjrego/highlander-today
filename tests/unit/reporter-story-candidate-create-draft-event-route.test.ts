@@ -105,7 +105,7 @@ describe('reporter story candidate draft event route', () => {
         organizationId: '22222222-2222-4222-8222-222222222222',
         venueLabel: 'Borough Building',
       }),
-      { params: { id: 'candidate-1' } }
+      { params: Promise.resolve({ id: 'candidate-1' }) }
     );
 
     expect(response.status).toBe(201);
@@ -164,7 +164,7 @@ describe('reporter story candidate draft event route', () => {
         locationId: '11111111-1111-4111-8111-111111111111',
         organizationId: '22222222-2222-4222-8222-222222222222',
       }),
-      { params: { id: 'candidate-1' } }
+      { params: Promise.resolve({ id: 'candidate-1' }) }
     );
 
     expect(response.status).toBe(409);
@@ -202,7 +202,7 @@ describe('reporter story candidate draft event route', () => {
         locationId: '11111111-1111-4111-8111-111111111111',
         organizationId: '22222222-2222-4222-8222-222222222222',
       }),
-      { params: { id: 'candidate-1' } }
+      { params: Promise.resolve({ id: 'candidate-1' }) }
     );
 
     expect(response.status).toBe(400);
@@ -270,7 +270,7 @@ describe('reporter story candidate draft event route', () => {
         organizationId: '22222222-2222-4222-8222-222222222222',
         venueLabel: 'LA Studio',
       }),
-      { params: { id: 'candidate-1' } }
+      { params: Promise.resolve({ id: 'candidate-1' }) }
     );
 
     expect(response.status).toBe(201);

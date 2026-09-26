@@ -5,6 +5,12 @@ jest.mock('@/lib/db', () => ({
   db: prismaMock,
 }));
 
+jest.mock('node:dns/promises', () => ({
+  lookup: (jest.fn() as any).mockResolvedValue([
+    { address: '93.184.216.34', family: 4 },
+  ]),
+}));
+
 const recordReporterMonitoredSourceFetchMock = jest.fn();
 jest.mock('@/lib/reporter/monitored-source-ingestion', () => ({
   recordReporterMonitoredSourceFetch: (...args: unknown[]) =>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 /**
  * GET /api/admin/content
@@ -19,10 +20,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+
     const [articles, events, helpWantedPosts, articlePendingCount, eventPendingCount, helpWantedPendingCount, storePendingCount, publishedTodayCount, totalPublished] =
       await Promise.all([
         db.article.findMany({
-          where: { status: 'PENDING_REVIEW' },
+          where: { communityId, status: 'PENDING_REVIEW' },
           include: {
             author: {
               select: {
@@ -43,7 +49,7 @@ export async function GET(request: NextRequest) {
           orderBy: { updatedAt: 'asc' },
         }),
         db.event.findMany({
-          where: { status: 'PENDING_REVIEW' },
+          where: { communityId, status: 'PENDING_REVIEW' },
           include: {
             location: {
               select: {
@@ -68,7 +74,7 @@ export async function GET(request: NextRequest) {
           orderBy: { updatedAt: 'asc' },
         }),
         db.helpWantedPost.findMany({
-          where: { status: 'PENDING_REVIEW' },
+          where: { communityId, status: 'PENDING_REVIEW' },
           include: {
             author: {
               select: {
@@ -82,34 +88,37 @@ export async function GET(request: NextRequest) {
           },
           orderBy: { updatedAt: 'asc' },
         }),
-        db.article.count({ where: { status: 'PENDING_REVIEW' } }),
-        db.event.count({ where: { status: 'PENDING_REVIEW' } }),
-        db.helpWantedPost.count({ where: { status: 'PENDING_REVIEW' } }),
-        db.store.count({ where: { status: 'PENDING_APPROVAL' } }),
+        db.article.count({ where: { communityId, status: 'PENDING_REVIEW' } }),
+        db.event.count({ where: { communityId, status: 'PENDING_REVIEW' } }),
+        db.helpWantedPost.count({ where: { communityId, status: 'PENDING_REVIEW' } }),
+        db.store.count({ where: { communityId, status: 'PENDING_APPROVAL' } }),
         Promise.all([
           db.article.count({
             where: {
               status: 'PUBLISHED',
+              communityId,
               publishedAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
             },
           }),
           db.event.count({
             where: {
               status: 'PUBLISHED',
+              communityId,
               updatedAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
             },
           }),
           db.helpWantedPost.count({
             where: {
               status: 'PUBLISHED',
+              communityId,
               publishedAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
             },
           }),
         ]).then(([articlesToday, eventsToday, helpWantedToday]) => articlesToday + eventsToday + helpWantedToday),
         Promise.all([
-          db.article.count({ where: { status: 'PUBLISHED' } }),
-          db.event.count({ where: { status: 'PUBLISHED' } }),
-          db.helpWantedPost.count({ where: { status: 'PUBLISHED' } }),
+          db.article.count({ where: { communityId, status: 'PUBLISHED' } }),
+          db.event.count({ where: { communityId, status: 'PUBLISHED' } }),
+          db.helpWantedPost.count({ where: { communityId, status: 'PUBLISHED' } }),
         ]).then(([publishedArticles, publishedEvents, publishedHelpWanted]) => publishedArticles + publishedEvents + publishedHelpWanted),
       ]);
 

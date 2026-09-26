@@ -52,7 +52,7 @@ describe('OpenAIReporterProvider', () => {
   it('throws when OPENAI_API_KEY is missing', async () => {
     delete process.env.OPENAI_API_KEY;
 
-    const provider = new OpenAIReporterProvider('gpt-5.4-mini');
+    const provider = new OpenAIReporterProvider('gpt-5.5');
 
     await expect(
       provider.generateDraft({
@@ -76,7 +76,7 @@ describe('OpenAIReporterProvider', () => {
       }),
     })) as any;
 
-    const provider = new OpenAIReporterProvider('gpt-5.4-mini');
+    const provider = new OpenAIReporterProvider('gpt-5.5');
     const result = await provider.generateDraft({
       packet: buildPacket(),
       draftType: REPORTER_DRAFT_TYPE.ARTICLE_DRAFT,
@@ -88,11 +88,11 @@ describe('OpenAIReporterProvider', () => {
       body: 'Officials closed the bridge after an inspection found structural concerns.',
       draftType: 'ARTICLE_DRAFT',
       modelProvider: 'openai',
-      modelName: 'gpt-5.4-mini',
+      modelName: 'gpt-5.5',
       generationNotes: 'Generated from county statement and staff notes.',
       metadata: {
         provider: 'openai',
-        model: 'gpt-5.4-mini',
+        model: 'gpt-5.5',
       },
     });
     expect(global.fetch).toHaveBeenCalledWith(
@@ -104,6 +104,11 @@ describe('OpenAIReporterProvider', () => {
         }),
       })
     );
+    const request = (global.fetch as jest.Mock).mock.calls[0]?.[1] as RequestInit;
+    expect(JSON.parse(String(request.body))).toMatchObject({
+      model: 'gpt-5.5',
+      reasoning: { effort: 'medium' },
+    });
   });
 
   it('parses source-packet analysis from structured output blocks', async () => {
@@ -148,7 +153,7 @@ describe('OpenAIReporterProvider', () => {
       }),
     })) as any;
 
-    const provider = new OpenAIReporterProvider('gpt-5.4-mini');
+    const provider = new OpenAIReporterProvider('gpt-5.5');
     const result = await provider.generateDraft({
       packet: buildPacket(),
       draftType: REPORTER_DRAFT_TYPE.SOURCE_PACKET_SUMMARY,
@@ -174,7 +179,7 @@ describe('OpenAIReporterProvider', () => {
       }),
     })) as any;
 
-    const provider = new OpenAIReporterProvider('gpt-5.4-mini');
+    const provider = new OpenAIReporterProvider('gpt-5.5');
 
     await expect(
       provider.generateDraft({

@@ -23,7 +23,11 @@ const OrganizationFormQuestionSchema = z
     }
   });
 
-export async function POST(request: NextRequest, { params }: { params: { id: string; formId: string } }) {
+export async function POST(
+  request: NextRequest,
+  props: { params: Promise<{ id: string; formId: string }> }
+) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';

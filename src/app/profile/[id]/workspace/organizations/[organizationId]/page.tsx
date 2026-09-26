@@ -23,13 +23,14 @@ function getStatusMeta(status: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'S
   };
 }
 
-export default async function ProfileWorkspaceOrganizationDetailPage({
-  params,
-  searchParams,
-}: {
-  params: { id: string; organizationId: string };
-  searchParams?: { view?: string };
-}) {
+export default async function ProfileWorkspaceOrganizationDetailPage(
+  props: {
+    params: Promise<{ id: string; organizationId: string }>;
+    searchParams?: Promise<{ view?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const membership = await db.organizationMembership.findFirst({
     where: {
       organizationId: params.organizationId,

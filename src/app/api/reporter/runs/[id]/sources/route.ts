@@ -32,10 +32,8 @@ const CreateReporterSourceSchema = z.object({
     .default('UNVERIFIED'),
 });
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
@@ -55,7 +53,7 @@ export async function POST(
       select: { id: true, communityId: true, _count: { select: { sources: true } } },
     });
 
-    if (!existingRun || (currentCommunity && existingRun.communityId !== currentCommunity.id)) {
+    if (!existingRun || (!currentCommunity || existingRun.communityId !== currentCommunity.id)) {
       return NextResponse.json({ error: 'Reporter run not found' }, { status: 404 });
     }
 

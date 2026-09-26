@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { db } from '@/lib/db';
 
-export default async function ProfileWorkspaceArticlesPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default async function ProfileWorkspaceArticlesPage(
+  props: {
+    params: Promise<{ id: string }>;
+  }
+) {
+  const params = await props.params;
   const articles = await db.article.findMany({
     where: {
       authorUserId: params.id,

@@ -31,10 +31,8 @@ function draftBodyToArticleHtml(body: string) {
   return sanitizeArticleHtml(paragraphs.join(''));
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
@@ -61,7 +59,7 @@ export async function POST(
       },
     });
 
-    if (!run || (currentCommunity && run.communityId !== currentCommunity.id)) {
+    if (!run || (!currentCommunity || run.communityId !== currentCommunity.id)) {
       return NextResponse.json({ error: 'Reporter run not found' }, { status: 404 });
     }
 

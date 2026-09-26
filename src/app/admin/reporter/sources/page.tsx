@@ -21,7 +21,7 @@ export default async function AdminReporterSourcesPage() {
     redirect('/');
   }
 
-  const currentCommunity = await getCurrentCommunity({ headers: headers() });
+  const currentCommunity = await getCurrentCommunity({ headers: await headers() });
 
   if (!currentCommunity) {
     redirect('/admin/reporter');

@@ -64,7 +64,7 @@ describe('reporter blocker routes', () => {
         code: 'SOURCE_GAP',
         message: 'Need official meeting minutes',
       }),
-      { params: { id: 'run-1' } }
+      { params: Promise.resolve({ id: 'run-1' }) }
     );
 
     expect(response.status).toBe(201);
@@ -94,7 +94,7 @@ describe('reporter blocker routes', () => {
       buildRequest('PATCH', 'http://localhost/api/reporter/blockers/blocker-1', {
         isResolved: true,
       }),
-      { params: { id: 'blocker-1' } }
+      { params: Promise.resolve({ id: 'blocker-1' }) }
     );
 
     expect(response.status).toBe(200);
@@ -112,7 +112,7 @@ describe('reporter blocker routes', () => {
         { isResolved: true },
         { 'x-user-role': 'READER' }
       ),
-      { params: { id: 'blocker-1' } }
+      { params: Promise.resolve({ id: 'blocker-1' }) }
     );
 
     expect(response.status).toBe(403);

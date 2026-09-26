@@ -11,10 +11,8 @@ const UpdateReporterBlockerSchema = z.object({
   message: z.string().trim().min(3).max(500).optional(),
 });
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
@@ -36,7 +34,7 @@ export async function PATCH(
 
     if (
       !existing ||
-      (currentCommunity && existing.reporterRun.communityId !== currentCommunity.id)
+      (!currentCommunity || existing.reporterRun.communityId !== currentCommunity.id)
     ) {
       return NextResponse.json({ error: 'Blocker not found' }, { status: 404 });
     }

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { buildNormalizedAddressKey } from '@/lib/location-normalization';
 import { checkPermission } from '@/lib/permissions';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 const CreateLocationSchema = z.object({
   name: z.string().trim().max(160).optional().or(z.literal('')),
@@ -17,18 +18,7 @@ const CreateLocationSchema = z.object({
 });
 
 async function resolveCommunityId(request: NextRequest) {
-  const headerCommunityId = request.headers.get('x-community-id');
-
-  if (headerCommunityId) {
-    return headerCommunityId;
-  }
-
-  const community = await db.community.findFirst({
-    select: { id: true },
-    orderBy: { createdAt: 'asc' },
-  });
-
-  return community?.id ?? null;
+  return resolveRequestCommunityId({ headers: request.headers, nextUrl: request.nextUrl });
 }
 
 function hasLocationAdminAccess(userRole: string) {

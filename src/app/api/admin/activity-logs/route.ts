@@ -41,9 +41,9 @@ type ResourceType =
  *   offset        — pagination offset
  */
 export async function GET(request: NextRequest) {
-  // Auth check: require ADMIN or SUPER_ADMIN role
+  // Activity logs are not tenant-keyed yet, so only the platform role may view them.
   const role = request.headers.get('x-user-role');
-  if (!role || !['ADMIN', 'SUPER_ADMIN'].includes(role)) {
+  if (role !== 'SUPER_ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

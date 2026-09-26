@@ -54,12 +54,12 @@ export interface InterviewStepDecision {
 }
 
 function getProvider() {
-  return (process.env.REPORTER_MODEL_PROVIDER || 'anthropic').toLowerCase();
+  return (process.env.REPORTER_MODEL_PROVIDER || 'openai').toLowerCase();
 }
 
 function getModel(provider: string) {
   if (provider === 'openai') {
-    return process.env.REPORTER_MODEL_NAME || 'gpt-5.4-mini';
+    return process.env.REPORTER_MODEL_NAME || 'gpt-5.5';
   }
 
   return process.env.REPORTER_MODEL_NAME || 'claude-sonnet-4-6';
@@ -202,7 +202,9 @@ async function requestOpenAIInterviewDecision(params: {
     },
     body: JSON.stringify({
       model,
-      temperature: 0.4,
+      reasoning: {
+        effort: process.env.REPORTER_MODEL_REASONING_EFFORT || 'medium',
+      },
       max_output_tokens: 350,
       input: [
         {

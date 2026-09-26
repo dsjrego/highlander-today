@@ -17,7 +17,7 @@ export default async function AdminOrganizationsPage() {
     redirect('/');
   }
 
-  const currentCommunity = await getCurrentCommunity({ headers: headers() });
+  const currentCommunity = await getCurrentCommunity({ headers: await headers() });
 
   const organizations = await db.organization.findMany({
     where: currentCommunity?.id ? { communityId: currentCommunity.id } : undefined,

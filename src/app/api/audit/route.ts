@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { type Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
-import { checkPermission } from '@/lib/permissions';
 
 /**
  * GET /api/audit
@@ -26,7 +25,7 @@ export async function GET(request: NextRequest) {
   try {
     // Auth: check role from middleware headers
     const userRole = request.headers.get('x-user-role') || '';
-    if (!checkPermission(userRole, 'audit:view')) {
+    if (userRole !== 'SUPER_ADMIN') {
       return NextResponse.json(
         { error: 'Insufficient permissions' },
         { status: 403 }

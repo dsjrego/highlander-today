@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { getClientIpFromHeaders } from '@/lib/request-security';
 import { consumeRateLimit } from '@/lib/rate-limit';
+import { getCurrentCommunity } from '@/lib/community';
 
 const RegisterSchema = z.object({
   firstName: z.string().trim().min(1).max(255),
@@ -14,7 +15,6 @@ const RegisterSchema = z.object({
 });
 
 const DEFAULT_ALLOW_REGISTRATION = true;
-const DEFAULT_COMMUNITY_SLUG = 'highlander-today';
 
 function parseBoolean(value: string | null | undefined, fallback: boolean) {
   if (value === null || value === undefined) {
@@ -46,14 +46,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const community =
-      (await db.community.findUnique({
-        where: { slug: DEFAULT_COMMUNITY_SLUG },
-        select: { id: true },
-      })) ||
-      (await db.community.findFirst({
-        select: { id: true },
-      }));
+    const community = await getCurrentCommunity({
+      headers: request.headers,
+      nextUrl: request.nextUrl,
+    });
 
     if (!community) {
       return NextResponse.json(

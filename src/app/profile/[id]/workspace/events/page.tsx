@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { db } from '@/lib/db';
 
-export default async function ProfileWorkspaceEventsPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default async function ProfileWorkspaceEventsPage(
+  props: {
+    params: Promise<{ id: string }>;
+  }
+) {
+  const params = await props.params;
   const events = await db.event.findMany({
     where: {
       submittedByUserId: params.id,

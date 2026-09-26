@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
 import { hasTrustedAccess } from '@/lib/trust-access';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 const SYSTEM_USER_EMAIL = 'system@highlander.today';
 
@@ -78,10 +79,8 @@ async function sendMissingDobSystemMessage(params: {
  * if they are currently REGISTERED.
  * Requires 'users:vouch' permission.
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const actorId = request.headers.get('x-user-id');
     if (!actorId) {
@@ -89,7 +88,8 @@ export async function POST(
     }
 
     const userRole = request.headers.get('x-user-role') || '';
-    if (!checkPermission(userRole, 'users:vouch')) {
+    const userTrustLevel = request.headers.get('x-user-trust-level') || '';
+    if (!checkPermission(userRole, 'users:vouch', userTrustLevel)) {
       return NextResponse.json(
         { error: 'Insufficient permissions' },
         { status: 403 }
@@ -97,6 +97,10 @@ export async function POST(
     }
 
     const targetId = params.id;
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
 
     // Cannot vouch for self
     if (actorId === targetId) {
@@ -107,8 +111,11 @@ export async function POST(
     }
 
     // Get target user
-    const targetUser = await db.user.findUnique({
-      where: { id: targetId },
+    const targetUser = await db.user.findFirst({
+      where: {
+        id: targetId,
+        memberships: { some: { communityId } },
+      },
       select: { id: true, trustLevel: true, email: true, firstName: true, lastName: true, dateOfBirth: true },
     });
 
@@ -125,8 +132,8 @@ export async function POST(
         firstName: true,
         lastName: true,
         memberships: {
+          where: { communityId },
           select: { role: true },
-          take: 1,
         },
       },
     });

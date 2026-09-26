@@ -58,8 +58,9 @@ async function findContact(organizationId: string, contactId: string) {
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string; organizationId: string; contactId: string } }
+  props: { params: Promise<{ id: string; organizationId: string; contactId: string }> }
 ) {
+  const params = await props.params;
   try {
     const actorUserId = request.headers.get('x-user-id');
     if (!actorUserId) {
@@ -135,8 +136,9 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; organizationId: string; contactId: string } }
+  props: { params: Promise<{ id: string; organizationId: string; contactId: string }> }
 ) {
+  const params = await props.params;
   try {
     const actorUserId = request.headers.get('x-user-id');
     if (!actorUserId) {

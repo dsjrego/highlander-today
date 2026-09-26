@@ -3,16 +3,15 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { logActivity } from '@/lib/activity-log';
 import { checkPermission } from '@/lib/permissions';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 const UpdateOrganizationStatusSchema = z.object({
   status: z.enum(['APPROVED', 'REJECTED', 'SUSPENDED']),
   reason: z.string().trim().max(1000).optional(),
 });
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
@@ -30,9 +29,13 @@ export async function PATCH(
 
     const body = await request.json();
     const validated = UpdateOrganizationStatusSchema.parse(body);
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
 
-    const organization = await db.organization.findUnique({
-      where: { id: params.id },
+    const organization = await db.organization.findFirst({
+      where: { id: params.id, communityId },
       select: {
         id: true,
         status: true,

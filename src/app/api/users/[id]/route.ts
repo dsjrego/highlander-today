@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
+import { getCurrentCommunity } from '@/lib/community';
 
 /**
  * GET /api/users/[id] — View any user's public profile
  * Requires authentication and 'users:view' permission.
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     if (!userId) {
@@ -24,18 +23,28 @@ export async function GET(
       );
     }
 
-    const user = await db.user.findUnique({
-      where: { id: params.id },
+    const community = await getCurrentCommunity({
+      headers: request.headers,
+      nextUrl: request.nextUrl,
+    });
+    if (!community) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+
+    const user = await db.user.findFirst({
+      where: {
+        id: params.id,
+        memberships: { some: { communityId: community.id } },
+      },
       select: {
         id: true,
         firstName: true,
         lastName: true,
-        email: true,
         bio: true,
         profilePhotoUrl: true,
-        trustLevel: true,
         createdAt: true,
         memberships: {
+          where: { communityId: community.id },
           select: {
             role: true,
             community: {
@@ -48,9 +57,9 @@ export async function GET(
         },
         _count: {
           select: {
-            articles: true,
-            eventsSubmitted: true,
-            marketplaceListings: true,
+            articles: { where: { communityId: community.id } },
+            eventsSubmitted: { where: { communityId: community.id } },
+            marketplaceListings: { where: { communityId: community.id } },
           },
         },
       },
@@ -61,7 +70,7 @@ export async function GET(
     }
 
     const role = user.memberships?.[0]?.role ?? 'READER';
-    const community = user.memberships?.[0]?.community ?? null;
+    const profileCommunity = user.memberships?.[0]?.community ?? null;
     const totalPosts =
       user._count.articles +
       user._count.eventsSubmitted +
@@ -71,12 +80,10 @@ export async function GET(
       id: user.id,
       firstName: user.firstName,
       lastName: user.lastName,
-      email: user.email,
       bio: user.bio,
       profilePhotoUrl: user.profilePhotoUrl,
-      trustLevel: user.trustLevel,
       role,
-      community,
+      community: profileCommunity,
       createdAt: user.createdAt,
       vouchCount: user.vouchesReceived.length,
       postCount: totalPosts,

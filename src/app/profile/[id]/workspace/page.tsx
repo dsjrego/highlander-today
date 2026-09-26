@@ -5,11 +5,12 @@ function cardClassName() {
   return `overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(241,245,249,0.94))] shadow-[0_24px_55px_rgba(15,23,42,0.16)] backdrop-blur`;
 }
 
-export default async function ProfileWorkspacePage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default async function ProfileWorkspacePage(
+  props: {
+    params: Promise<{ id: string }>;
+  }
+) {
+  const params = await props.params;
   const user = await db.user.findUnique({
     where: { id: params.id },
     select: {

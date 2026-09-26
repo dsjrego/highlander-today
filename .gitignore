@@ -55,7 +55,6 @@ Thumbs.db
 ._*
 
 # Prisma
-prisma/migrations/
 
 # Optional npm cache directory
 .npm

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { getCurrentCommunity } from '@/lib/community';
 
 const RoleUpdateSchema = z.object({
   role: z.enum(['READER', 'CONTRIBUTOR', 'STAFF_WRITER', 'EDITOR', 'ADMIN', 'SUPER_ADMIN']),
@@ -10,10 +11,8 @@ const RoleUpdateSchema = z.object({
  * PATCH /api/admin/users/[id]/role — Update a user's community role
  * Requires MANAGE_USERS permission (Editor+ role).
  */
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const actorId = request.headers.get('x-user-id');
     if (!actorId) {
@@ -21,8 +20,9 @@ export async function PATCH(
     }
 
     const actorRole = request.headers.get('x-user-role') || '';
+    const actorTrustLevel = request.headers.get('x-user-trust-level') || '';
     // Only admins can change roles
-    if (!['ADMIN', 'SUPER_ADMIN'].includes(actorRole)) {
+    if (actorTrustLevel !== 'TRUSTED' || !['ADMIN', 'SUPER_ADMIN'].includes(actorRole)) {
       return NextResponse.json(
         { error: 'Only admins can change user roles' },
         { status: 403 }
@@ -33,6 +33,13 @@ export async function PATCH(
     const validated = RoleUpdateSchema.parse(body);
 
     const targetId = params.id;
+    const community = await getCurrentCommunity({
+      headers: request.headers,
+      nextUrl: request.nextUrl,
+    });
+    if (!community) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
 
     // Prevent changing own role
     if (actorId === targetId) {
@@ -51,8 +58,13 @@ export async function PATCH(
     }
 
     // Find the user's membership
-    const membership = await db.userCommunityMembership.findFirst({
-      where: { userId: targetId },
+    const membership = await db.userCommunityMembership.findUnique({
+      where: {
+        userId_communityId: {
+          userId: targetId,
+          communityId: community.id,
+        },
+      },
     });
 
     if (!membership) {

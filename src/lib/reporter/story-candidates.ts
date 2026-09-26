@@ -933,6 +933,7 @@ export async function listReporterStoryCandidates(params: {
   const rows = await db.reporterStoryCandidate.findMany({
     where: {
       communityId: params.communityId,
+      isActive: true,
     },
     orderBy: [{ score: 'desc' }, { latestSourceAt: 'desc' }],
     take: params.limit || DEFAULT_MAX_CANDIDATES,
@@ -1046,7 +1047,7 @@ export async function materializeReporterStoryCandidates(params: {
   const limit = params.limit || DEFAULT_MAX_CANDIDATES;
   const lookbackCutoff = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
 
-  const [tenantKeywordSetting, ingestionRows] = await Promise.all([
+  const [tenantKeywordSetting, ingestionRows, existingCandidateItems] = await Promise.all([
     db.siteSetting.findUnique({
       where: {
         communityId_key: {
@@ -1106,6 +1107,19 @@ export async function materializeReporterStoryCandidates(params: {
               },
             },
           },
+        },
+      },
+    }),
+    db.reporterStoryCandidateItem.findMany({
+      where: {
+        reporterStoryCandidate: {
+          communityId: params.communityId,
+        },
+      },
+      select: {
+        ingestionItemId: true,
+        reporterStoryCandidate: {
+          select: { id: true },
         },
       },
     }),
@@ -1248,47 +1262,75 @@ export async function materializeReporterStoryCandidates(params: {
     })
     .slice(0, limit);
 
+  const existingCandidateIdsByItemId = new Map<string, string>();
+  for (const row of existingCandidateItems || []) {
+    existingCandidateIdsByItemId.set(row.ingestionItemId, row.reporterStoryCandidate.id);
+  }
+
+  const claimedCandidateIds = new Set<string>();
+  const materializedAt = new Date();
+
   await db.$transaction(async (tx) => {
-    await tx.reporterStoryCandidateItem.deleteMany({
-      where: {
-        reporterStoryCandidate: {
-          communityId: params.communityId,
-        },
-      },
-    });
-    await tx.reporterStoryCandidate.deleteMany({
-      where: {
-        communityId: params.communityId,
-      },
+    await tx.reporterStoryCandidate.updateMany({
+      where: { communityId: params.communityId },
+      data: { isActive: false },
     });
 
     for (const cluster of clusters) {
-      await tx.reporterStoryCandidate.create({
-        data: {
-          communityId: params.communityId,
-          placeId: cluster.placeId,
-          title: cluster.title,
-          summary: cluster.summary,
-          signalLevel: cluster.signalLevel,
-          candidateType: cluster.candidateType,
-          coverageScopes: cluster.coverageScopes,
-          eventExtractionJson: serializeEventExtraction(cluster.eventExtraction),
-          score: cluster.signal.score,
-          reasons: cluster.signal.reasons,
-          matchedKeywords: cluster.matchedKeywords,
-          sourceCount: cluster.sourceCount,
-          itemCount: cluster.itemCount,
-          recentItemCount: cluster.recentItemCount,
-          civicSignalCount: cluster.civicSignalCount,
-          latestSourceAt: cluster.latestSourceAt,
-          candidateItems: {
-            create: cluster.candidateItems.map((item, index) => ({
-              ingestionItemId: item.id,
-              sortOrder: index,
-            })),
+      const matchingCandidateId = cluster.candidateItems
+        .map((item) => existingCandidateIdsByItemId.get(item.id) || null)
+        .find((candidateId): candidateId is string =>
+          Boolean(candidateId && !claimedCandidateIds.has(candidateId))
+        );
+      const candidateData = {
+        placeId: cluster.placeId,
+        title: cluster.title,
+        summary: cluster.summary,
+        signalLevel: cluster.signalLevel,
+        candidateType: cluster.candidateType,
+        coverageScopes: cluster.coverageScopes,
+        eventExtractionJson: serializeEventExtraction(cluster.eventExtraction),
+        score: cluster.signal.score,
+        reasons: cluster.signal.reasons,
+        matchedKeywords: cluster.matchedKeywords,
+        sourceCount: cluster.sourceCount,
+        itemCount: cluster.itemCount,
+        recentItemCount: cluster.recentItemCount,
+        civicSignalCount: cluster.civicSignalCount,
+        latestSourceAt: cluster.latestSourceAt,
+        isActive: true,
+        lastMaterializedAt: materializedAt,
+      };
+
+      if (matchingCandidateId) {
+        claimedCandidateIds.add(matchingCandidateId);
+        await tx.reporterStoryCandidate.update({
+          where: { id: matchingCandidateId },
+          data: {
+            ...candidateData,
+            candidateItems: {
+              deleteMany: {},
+              create: cluster.candidateItems.map((item, index) => ({
+                ingestionItemId: item.id,
+                sortOrder: index,
+              })),
+            },
           },
-        },
-      });
+        });
+      } else {
+        await tx.reporterStoryCandidate.create({
+          data: {
+            communityId: params.communityId,
+            ...candidateData,
+            candidateItems: {
+              create: cluster.candidateItems.map((item, index) => ({
+                ingestionItemId: item.id,
+                sortOrder: index,
+              })),
+            },
+          },
+        });
+      }
     }
   });
 

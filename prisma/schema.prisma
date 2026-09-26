@@ -1409,6 +1409,8 @@ model ReporterStoryCandidate {
   recentItemCount  Int                      @default(0)
   civicSignalCount Int                      @default(0)
   latestSourceAt   DateTime
+  isActive         Boolean                  @default(true)
+  lastMaterializedAt DateTime               @default(now())
   createdAt        DateTime                 @default(now())
   updatedAt        DateTime                 @updatedAt
 
@@ -1420,6 +1422,7 @@ model ReporterStoryCandidate {
   createdEvents Event[]
 
   @@index([communityId, score])
+  @@index([communityId, isActive, score])
   @@index([communityId, latestSourceAt])
   @@index([placeId])
   @@index([linkedReporterRunId])

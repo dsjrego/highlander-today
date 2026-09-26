@@ -71,8 +71,9 @@ async function findLocation(organizationId: string, locationId: string) {
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string; organizationId: string; locationId: string } }
+  props: { params: Promise<{ id: string; organizationId: string; locationId: string }> }
 ) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
 
@@ -154,8 +155,9 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; organizationId: string; locationId: string } }
+  props: { params: Promise<{ id: string; organizationId: string; locationId: string }> }
 ) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, use } from "react";
 import VouchProfileButton from "@/app/profile/[id]/VouchProfileButton";
 
 interface ApiParticipant {
@@ -33,12 +33,13 @@ interface ConversationResponse {
 }
 
 interface PageProps {
-  params: {
+  params: Promise<{
     conversationId: string;
-  };
+  }>;
 }
 
-export default function MessageThreadPage({ params }: PageProps) {
+export default function MessageThreadPage(props: PageProps) {
+  const params = use(props.params);
   const [participant, setParticipant] = useState<ApiParticipant | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [messages, setMessages] = useState<ApiMessage[]>([]);

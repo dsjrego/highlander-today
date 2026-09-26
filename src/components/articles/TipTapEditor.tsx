@@ -1,6 +1,7 @@
 'use client';
 
-import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
@@ -206,7 +207,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
   // Sync external content changes (e.g. loading a draft)
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content, false);
+      editor.commands.setContent(content, { emitUpdate: false });
     }
     // Only react to content prop changes, not editor updates
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -296,7 +297,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
 
     const normalizedHtml = normalizeImportedHtml(htmlImportValue);
     const nextContent = normalizedHtml.length > 0 ? normalizedHtml : '<p></p>';
-    editor.commands.setContent(nextContent, true);
+    editor.commands.setContent(nextContent, { emitUpdate: true });
     onChange(editor.getHTML());
     setIsImportHtmlOpen(false);
   }, [editor, htmlImportValue, onChange]);
@@ -453,7 +454,7 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
       </div>
 
       {/* ── Bubble menu (selection toolbar) ─────────────────────── */}
-      <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
+      <BubbleMenu editor={editor}>
         <div className="flex items-center gap-1 bg-white shadow-lg rounded-lg border border-gray-200 px-2 py-1">
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBold().run()}

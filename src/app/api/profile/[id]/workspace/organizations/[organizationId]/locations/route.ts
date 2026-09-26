@@ -59,8 +59,9 @@ async function getAuthorizedOrganization(userId: string, profileId: string, orga
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string; organizationId: string } }
+  props: { params: Promise<{ id: string; organizationId: string }> }
 ) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
 

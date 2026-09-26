@@ -12,9 +12,9 @@ import { checkPermission } from '@/lib/permissions';
 import AdminEventEditor from './AdminEventEditor';
 
 interface AdminEventDetailPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 function formatLongDateTime(value: Date | null) {
@@ -64,9 +64,8 @@ function readEventExtractionSourceUrl(value: Prisma.JsonValue | null | undefined
     : null;
 }
 
-export default async function AdminEventDetailPage({
-  params,
-}: AdminEventDetailPageProps) {
+export default async function AdminEventDetailPage(props: AdminEventDetailPageProps) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   const userRole = session?.user?.role || '';
 
@@ -74,7 +73,7 @@ export default async function AdminEventDetailPage({
     redirect('/');
   }
 
-  const currentCommunity = await getCurrentCommunity({ headers: headers() });
+  const currentCommunity = await getCurrentCommunity({ headers: await headers() });
 
   const event = await db.event.findUnique({
     where: { id: params.id },

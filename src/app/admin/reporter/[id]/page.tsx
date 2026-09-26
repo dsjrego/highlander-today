@@ -11,10 +11,11 @@ import { AdminPage } from '@/components/admin/AdminPage';
 import ReporterRunDetailClient from './ReporterRunDetailClient';
 
 interface PageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
-export default async function AdminReporterDetailPage({ params }: PageProps) {
+export default async function AdminReporterDetailPage(props: PageProps) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   const userRole = session?.user?.role || '';
 
@@ -22,7 +23,7 @@ export default async function AdminReporterDetailPage({ params }: PageProps) {
     redirect('/');
   }
 
-  const currentCommunity = await getCurrentCommunity({ headers: headers() });
+  const currentCommunity = await getCurrentCommunity({ headers: await headers() });
 
   const [run, assignees] = await Promise.all([
     db.reporterRun.findUnique({

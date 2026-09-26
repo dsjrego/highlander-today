@@ -101,7 +101,7 @@ describe('reporter draft route', () => {
       },
     });
 
-    const response = await POST(buildRequest(), { params: { id: 'run-1' } });
+    const response = await POST(buildRequest(), { params: Promise.resolve({ id: 'run-1' }) });
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
@@ -128,7 +128,7 @@ describe('reporter draft route', () => {
           'x-community-id': 'community-1',
         },
       }) as any,
-      { params: { id: 'run-1' } }
+      { params: Promise.resolve({ id: 'run-1' }) }
     );
 
     expect(response.status).toBe(403);
@@ -163,7 +163,7 @@ describe('reporter draft route', () => {
       new Error('Completed interview output must be reviewed before generating a reporter draft.')
     );
 
-    const response = await POST(buildRequest(), { params: { id: 'run-1' } });
+    const response = await POST(buildRequest(), { params: Promise.resolve({ id: 'run-1' }) });
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
@@ -199,7 +199,7 @@ describe('reporter draft route', () => {
         },
         body: JSON.stringify({ draftType: 'SOURCE_PACKET_SUMMARY' }),
       }) as any,
-      { params: { id: 'run-1' } }
+      { params: Promise.resolve({ id: 'run-1' }) }
     );
 
     expect(response.status).toBe(200);

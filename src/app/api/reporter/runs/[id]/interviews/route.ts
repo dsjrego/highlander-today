@@ -35,10 +35,8 @@ const CreateReporterInterviewSchema = z.object({
   scheduledFor: z.string().datetime().optional().nullable().or(z.literal('')),
 });
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userRole = request.headers.get('x-user-role') || '';
 
@@ -55,7 +53,7 @@ export async function GET(
       },
     });
 
-    if (!run || (currentCommunity && run.communityId !== currentCommunity.id)) {
+    if (!run || (!currentCommunity || run.communityId !== currentCommunity.id)) {
       return NextResponse.json({ error: 'Reporter run not found' }, { status: 404 });
     }
 
@@ -85,10 +83,8 @@ export async function GET(
   }
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
@@ -111,7 +107,7 @@ export async function POST(
       },
     });
 
-    if (!run || (currentCommunity && run.communityId !== currentCommunity.id)) {
+    if (!run || (!currentCommunity || run.communityId !== currentCommunity.id)) {
       return NextResponse.json({ error: 'Reporter run not found' }, { status: 404 });
     }
 

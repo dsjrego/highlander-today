@@ -21,7 +21,8 @@ function isSuperAdmin(request: NextRequest) {
   return request.headers.get('x-user-role') === 'SUPER_ADMIN';
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     if (!isSuperAdmin(request)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });

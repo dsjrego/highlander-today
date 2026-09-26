@@ -15,8 +15,9 @@ const SubmissionSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { slug: string; formSlug: string } }
+  props: { params: Promise<{ slug: string; formSlug: string }> }
 ) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';

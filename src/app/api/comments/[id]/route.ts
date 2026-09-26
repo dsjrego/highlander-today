@@ -3,15 +3,14 @@ import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
 import { logActivity } from '@/lib/activity-log';
 import { z } from 'zod';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 const UpdateCommentSchema = z.object({
   status: z.enum(['APPROVED', 'HIDDEN']),
 });
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
@@ -29,9 +28,13 @@ export async function PATCH(
 
     const body = await request.json();
     const validated = UpdateCommentSchema.parse(body);
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
 
-    const comment = await db.comment.findUnique({
-      where: { id: params.id },
+    const comment = await db.comment.findFirst({
+      where: { id: params.id, article: { communityId } },
     });
 
     if (!comment) {
@@ -83,10 +86,8 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
@@ -95,8 +96,13 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const comment = await db.comment.findUnique({
-      where: { id: params.id },
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+
+    const comment = await db.comment.findFirst({
+      where: { id: params.id, article: { communityId } },
     });
 
     if (!comment) {

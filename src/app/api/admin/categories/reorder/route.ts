@@ -3,6 +3,7 @@ import { revalidateTag } from 'next/cache';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 const ReorderPayloadSchema = z.object({
   updates: z.array(
@@ -23,15 +24,29 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const validated = ReorderPayloadSchema.parse(body);
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
 
     const ids = validated.updates.map((update) => update.id);
     const categories = await db.category.findMany({
-      where: { id: { in: ids } },
-      select: { id: true, parentCategoryId: true },
+      where: {
+        id: { in: ids },
+        OR: [{ communityId }, { communityId: null }],
+      },
+      select: { id: true, parentCategoryId: true, communityId: true },
     });
 
     if (categories.length !== ids.length) {
       return NextResponse.json({ error: 'One or more categories were not found' }, { status: 404 });
+    }
+
+    if (categories.some((category) => !category.communityId) && userRole !== 'SUPER_ADMIN') {
+      return NextResponse.json(
+        { error: 'Only Super Admins can reorder global categories' },
+        { status: 403 }
+      );
     }
 
     const parentIds = new Set(categories.map((category) => category.parentCategoryId ?? 'root'));

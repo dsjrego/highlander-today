@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { checkPermission } from '@/lib/permissions';
 
 /**
  * GET /api/trust/graph — Get the trust/vouching graph for visualization
  * Returns nodes (users) and edges (vouch relationships).
- * Requires 'trust:graph' permission (Admin+ role).
+ * Requires the platform SUPER_ADMIN role until trust records are tenant-keyed.
  *
  * Query params:
  *   userId — (optional) center the graph on a specific user
@@ -19,7 +18,7 @@ export async function GET(request: NextRequest) {
     }
 
     const userRole = request.headers.get('x-user-role') || '';
-    if (!checkPermission(userRole, 'trust:graph')) {
+    if (userRole !== 'SUPER_ADMIN') {
       return NextResponse.json(
         { error: 'Insufficient permissions' },
         { status: 403 }

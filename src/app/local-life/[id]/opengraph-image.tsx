@@ -107,8 +107,8 @@ function OpenGraphMark({
 }
 
 export default async function ArticleOpenGraphImage({ params }: PageProps) {
-  const requestHeaders = headers();
-  const cookieStore = cookies();
+  const requestHeaders = await headers();
+  const cookieStore = await cookies();
   const currentCommunity = await getCurrentCommunity({ headers: requestHeaders });
   const previewTenantSlug =
     process.env.NODE_ENV === 'development'

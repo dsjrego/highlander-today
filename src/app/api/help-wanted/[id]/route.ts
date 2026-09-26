@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { ACTIONS, canPerformAction, isAdmin, type PermissionUser } from '@/lib/permissions';
 import { logActivity } from '@/lib/activity-log';
 import { z } from 'zod';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 const UPDATE_STATUSES = [
   'DRAFT',
@@ -119,13 +120,15 @@ function getAllowedAuthorStatusTransitions(currentStatus: string) {
   return transitions[currentStatus] || [];
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
-    const post = await db.helpWantedPost.findUnique({
-      where: { id: params.id },
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+    const post = await db.helpWantedPost.findFirst({
+      where: { id: params.id, communityId },
       include: {
         author: {
           select: {
@@ -163,10 +166,8 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const permissionUser = buildPermissionUser(request);
 
@@ -181,8 +182,13 @@ export async function PATCH(
       );
     }
 
-    const post = await db.helpWantedPost.findUnique({
-      where: { id: params.id },
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+
+    const post = await db.helpWantedPost.findFirst({
+      where: { id: params.id, communityId },
       select: {
         id: true,
         authorUserId: true,
@@ -333,10 +339,8 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const permissionUser = buildPermissionUser(request);
 
@@ -351,8 +355,13 @@ export async function DELETE(
       );
     }
 
-    const post = await db.helpWantedPost.findUnique({
-      where: { id: params.id },
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+
+    const post = await db.helpWantedPost.findFirst({
+      where: { id: params.id, communityId },
       select: {
         id: true,
         authorUserId: true,

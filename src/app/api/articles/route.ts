@@ -4,6 +4,7 @@ import { checkPermission } from '@/lib/permissions';
 import { logActivity } from '@/lib/activity-log';
 import { sanitizeArticleHtml } from '@/lib/sanitize';
 import { z } from 'zod';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 const CreateArticleSchema = z.object({
   title: z.string().min(3).max(255),
@@ -32,13 +33,31 @@ export async function GET(request: NextRequest) {
     // For author's own articles (drafts, pending, etc.)
     const authorId = searchParams.get('authorId');
     const statusFilter = searchParams.get('status');
+    const communityId = await resolveRequestCommunityId({
+      headers: request.headers,
+      nextUrl: request.nextUrl,
+    });
+
+    if (!communityId) {
+      return NextResponse.json({
+        articles: [],
+        pagination: { page, limit, total: 0, pages: 0 },
+      });
+    }
 
     const where: any = {
+      communityId,
       status: 'PUBLISHED',
     };
 
     // If requesting own articles, allow filtering by status instead
     if (authorId && statusFilter) {
+      const requestingUserId = request.headers.get('x-user-id');
+      const requestingUserRole = request.headers.get('x-user-role') || '';
+      const canReview = checkPermission(requestingUserRole, 'articles:approve');
+      if (!requestingUserId || (requestingUserId !== authorId && !canReview)) {
+        return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+      }
       where.authorUserId = authorId;
       where.status = statusFilter;
     }
@@ -148,11 +167,11 @@ export async function POST(request: NextRequest) {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '');
 
-    const communityId = request.headers.get('x-community-id') || '';
-    const community = communityId
-      ? await db.community.findUnique({ where: { id: communityId } })
-      : await db.community.findFirst();
-    if (!community) {
+    const communityId = await resolveRequestCommunityId({
+      headers: request.headers,
+      nextUrl: request.nextUrl,
+    });
+    if (!communityId) {
       return NextResponse.json(
         { error: 'Community not found' },
         { status: 500 }
@@ -161,7 +180,7 @@ export async function POST(request: NextRequest) {
 
     // Ensure slug uniqueness within community
     const existingSlug = await db.article.findUnique({
-      where: { communityId_slug: { communityId: community.id, slug: baseSlug } },
+      where: { communityId_slug: { communityId, slug: baseSlug } },
     });
     const slug = existingSlug
       ? `${baseSlug}-${Date.now().toString(36)}`
@@ -192,7 +211,7 @@ export async function POST(request: NextRequest) {
         status: validated.status,
         categoryId: validated.categoryId,
         authorUserId: userId,
-        communityId: community.id,
+        communityId,
         tags: {
           create: tagConnections,
         },

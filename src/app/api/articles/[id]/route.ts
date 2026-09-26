@@ -5,6 +5,7 @@ import { logActivity } from '@/lib/activity-log';
 import { type ContentReactionType } from '@/lib/analytics/types';
 import { sanitizeArticleHtml } from '@/lib/sanitize';
 import { z } from 'zod';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 const UpdateArticleSchema = z.object({
   title: z.string().min(3).max(255).optional(),
@@ -22,14 +23,16 @@ const UpdateArticleSchema = z.object({
  * Fetch a single article by ID. Public users only see PUBLISHED articles.
  * Authors and Editors can see their own DRAFT / PENDING_REVIEW articles.
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
-    const article = await db.article.findUnique({
-      where: { id: params.id },
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+    const article = await db.article.findFirst({
+      where: { id: params.id, communityId },
       include: {
         author: {
           select: {
@@ -135,10 +138,8 @@ export async function GET(
  * Editors+ can edit any article.
  * Editing a PENDING_REVIEW or PUBLISHED article (by author) resets it to DRAFT.
  */
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
@@ -147,8 +148,13 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const article = await db.article.findUnique({
-      where: { id: params.id },
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+
+    const article = await db.article.findFirst({
+      where: { id: params.id, communityId },
     });
 
     if (!article) {
@@ -168,6 +174,19 @@ export async function PATCH(
 
     const body = await request.json();
     const validated = UpdateArticleSchema.parse(body);
+
+    if (validated.categoryId) {
+      const category = await db.category.findFirst({
+        where: {
+          id: validated.categoryId,
+          OR: [{ communityId }, { communityId: null }],
+        },
+        select: { id: true },
+      });
+      if (!category) {
+        return NextResponse.json({ error: 'Invalid category' }, { status: 400 });
+      }
+    }
 
     // Build update data
     const updateData: any = {};
@@ -265,10 +284,8 @@ export async function PATCH(
  * DELETE /api/articles/[id]
  * Delete an article. Author can delete own drafts. Editors+ can delete any.
  */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
@@ -277,8 +294,13 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const article = await db.article.findUnique({
-      where: { id: params.id },
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+
+    const article = await db.article.findFirst({
+      where: { id: params.id, communityId },
     });
 
     if (!article) {

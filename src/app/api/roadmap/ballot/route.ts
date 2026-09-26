@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { logActivity } from '@/lib/activity-log';
 import { ACTIONS, canPerformAction, type PermissionUser } from '@/lib/permissions';
 import { MAX_ROADMAP_BALLOT_SIZE } from '@/lib/roadmap-ranking';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 const SaveBallotSchema = z.object({
   ideaIds: z
@@ -33,18 +34,7 @@ function buildPermissionUser(request: NextRequest): PermissionUser | null {
 }
 
 async function resolveCommunityId(request: NextRequest) {
-  const headerCommunityId = request.headers.get('x-community-id');
-
-  if (headerCommunityId) {
-    return headerCommunityId;
-  }
-
-  const community = await db.community.findFirst({
-    select: { id: true },
-    orderBy: { createdAt: 'asc' },
-  });
-
-  return community?.id ?? null;
+  return resolveRequestCommunityId({ headers: request.headers, nextUrl: request.nextUrl });
 }
 
 export async function GET(request: NextRequest) {

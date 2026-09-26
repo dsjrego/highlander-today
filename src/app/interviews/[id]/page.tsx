@@ -12,12 +12,13 @@ import { getReporterInterviewAccessState } from '@/lib/reporter/interview';
 import InterviewSessionClient from './InterviewSessionClient';
 
 interface PageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
-export default async function InterviewSessionPage({ params }: PageProps) {
+export default async function InterviewSessionPage(props: PageProps) {
+  const params = await props.params;
   const session = (await getServerSession(authOptions)) as CustomSession | null;
-  const requestHeaders = headers();
+  const requestHeaders = await headers();
   const currentCommunity = await getCurrentCommunity({ headers: requestHeaders });
   const interview = await db.reporterInterviewRequest.findUnique({
     where: { id: params.id },

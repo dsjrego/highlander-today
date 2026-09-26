@@ -106,8 +106,8 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const session = await getServerSession(authOptions);
-  const requestHeaders = headers();
-  const cookieStore = cookies();
+  const requestHeaders = await headers();
+  const cookieStore = await cookies();
   const currentCommunity = await getCurrentCommunity({ headers: requestHeaders });
   const previewTenantSlug = process.env.NODE_ENV === 'development'
     ? cookieStore.get('theme-tenant-preview')?.value ?? null

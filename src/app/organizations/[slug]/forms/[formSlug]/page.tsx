@@ -17,10 +17,10 @@ import { sanitizeArticleHtml } from '@/lib/sanitize';
 import OrganizationPublicForm from './OrganizationPublicForm';
 
 interface PageProps {
-  params: {
+  params: Promise<{
     slug: string;
     formSlug: string;
-  };
+  }>;
 }
 
 async function getPublicOrganizationForm(params: { communityId: string; organizationSlug: string; formSlug: string }) {
@@ -111,8 +111,9 @@ function hasMinimumFormAccess(minimumTrustLevel: TrustLevelValue, session: Custo
   return hasTrustedAccess({ trustLevel, role });
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const currentCommunity = await getCurrentCommunity({ headers: headers() });
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const params = await props.params;
+  const currentCommunity = await getCurrentCommunity({ headers: await headers() });
 
   if (!currentCommunity) {
     return {
@@ -141,8 +142,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function OrganizationFormPage({ params }: PageProps) {
-  const requestHeaders = headers();
+export default async function OrganizationFormPage(props: PageProps) {
+  const params = await props.params;
+  const requestHeaders = await headers();
   const currentCommunity = await getCurrentCommunity({ headers: requestHeaders });
 
   if (!currentCommunity) {

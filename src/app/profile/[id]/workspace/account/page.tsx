@@ -1,11 +1,12 @@
 import { db } from '@/lib/db';
 import AccountSettingsPanel from '../../AccountSettingsPanel';
 
-export default async function ProfileWorkspaceAccountPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default async function ProfileWorkspaceAccountPage(
+  props: {
+    params: Promise<{ id: string }>;
+  }
+) {
+  const params = await props.params;
   const user = await db.user.findUnique({
     where: { id: params.id },
     select: {

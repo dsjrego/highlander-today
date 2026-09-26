@@ -29,10 +29,8 @@ const UpdateReporterRunSchema = z.object({
     .optional(),
 });
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userRole = request.headers.get('x-user-role') || '';
     if (!canViewReporterRun(userRole)) {
@@ -134,7 +132,7 @@ export async function GET(
       },
     });
 
-    if (!run || (currentCommunity && run.communityId !== currentCommunity.id)) {
+    if (!run || (!currentCommunity || run.communityId !== currentCommunity.id)) {
       return NextResponse.json({ error: 'Reporter run not found' }, { status: 404 });
     }
 
@@ -145,10 +143,8 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
@@ -168,7 +164,7 @@ export async function PATCH(
       select: { id: true, communityId: true, status: true },
     });
 
-    if (!existing || (currentCommunity && existing.communityId !== currentCommunity.id)) {
+    if (!existing || (!currentCommunity || existing.communityId !== currentCommunity.id)) {
       return NextResponse.json({ error: 'Reporter run not found' }, { status: 404 });
     }
 

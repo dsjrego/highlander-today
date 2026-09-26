@@ -5,7 +5,7 @@ import { getCurrentCommunity } from '@/lib/community';
 import { getMemoriamFeed } from '@/lib/memoriam/feed';
 
 export default async function RecentlyRemembered() {
-  const c = await getCurrentCommunity({ headers: headers() });
+  const c = await getCurrentCommunity({ headers: await headers() });
   const feed = await getMemoriamFeed({ communityId: c?.id, limit: 12 });
   const items = feed.filter((p) => p.heroImageUrl).slice(0, 3);
   if (items.length === 0) return null;

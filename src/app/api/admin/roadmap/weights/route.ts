@@ -9,6 +9,7 @@ import {
   ROADMAP_WEIGHT_DOMAIN,
   UpdateRoadmapWeightSchema,
 } from '@/lib/roadmap-weighting';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 function buildPermissionUser(request: NextRequest): PermissionUser | null {
   const userId = request.headers.get('x-user-id');
@@ -29,18 +30,7 @@ function buildPermissionUser(request: NextRequest): PermissionUser | null {
 }
 
 async function resolveCommunityId(request: NextRequest) {
-  const headerCommunityId = request.headers.get('x-community-id');
-
-  if (headerCommunityId) {
-    return headerCommunityId;
-  }
-
-  const community = await db.community.findFirst({
-    select: { id: true },
-    orderBy: { createdAt: 'asc' },
-  });
-
-  return community?.id ?? null;
+  return resolveRequestCommunityId({ headers: request.headers, nextUrl: request.nextUrl });
 }
 
 export async function GET(request: NextRequest) {

@@ -14,7 +14,7 @@ function EmptyHomepageState({ message }: { message: string }) {
 }
 
 export default async function Home() {
-  const requestHeaders = headers();
+  const requestHeaders = await headers();
   const communityId = await resolveHomepageCommunityId({
     preferredCommunityId: requestHeaders.get('x-community-id') || undefined,
     preferredDomain: requestHeaders.get('x-community-domain') || undefined,

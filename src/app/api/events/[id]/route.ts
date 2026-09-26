@@ -10,6 +10,7 @@ import {
   updateEventAndSeries,
 } from '@/lib/event-series-mutations';
 import { z } from 'zod';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 const UpdateEventSchema = z.object({
   title: z.string().min(3).max(255).optional(),
@@ -34,13 +35,15 @@ const UpdateEventSchema = z.object({
   seriesEditScope: z.enum([SERIES_EDIT_SCOPE.SINGLE, SERIES_EDIT_SCOPE.FUTURE, SERIES_EDIT_SCOPE.SERIES]).optional(),
 });
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
-    const event = await db.event.findUnique({
-      where: { id: params.id },
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+    const event = await db.event.findFirst({
+      where: { id: params.id, communityId },
       include: {
         series: {
           select: {
@@ -122,10 +125,8 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
@@ -134,8 +135,13 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const event = await db.event.findUnique({
-      where: { id: params.id },
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+
+    const event = await db.event.findFirst({
+      where: { id: params.id, communityId },
     });
 
     if (!event) {
@@ -251,10 +257,8 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
@@ -263,8 +267,13 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const event = await db.event.findUnique({
-      where: { id: params.id },
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+
+    const event = await db.event.findFirst({
+      where: { id: params.id, communityId },
     });
 
     if (!event) {

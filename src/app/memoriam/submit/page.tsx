@@ -4,7 +4,7 @@ import { getCurrentCommunity } from '@/lib/community';
 import MemoriamSubmitClient from './MemoriamSubmitClient';
 
 export default async function MemoriamSubmitPage() {
-  const currentCommunity = await getCurrentCommunity({ headers: headers() });
+  const currentCommunity = await getCurrentCommunity({ headers: await headers() });
 
   const categories = await db.category.findMany({
     where: {

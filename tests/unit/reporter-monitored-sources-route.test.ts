@@ -243,7 +243,7 @@ describe('reporter monitored source routes', () => {
       buildRequest('PATCH', 'http://localhost/api/admin/reporter/monitored-sources/source-1', {
         status: 'PAUSED',
       }),
-      { params: { id: 'source-1' } }
+      { params: Promise.resolve({ id: 'source-1' }) }
     );
 
     expect(response.status).toBe(200);
@@ -294,7 +294,7 @@ describe('reporter monitored source routes', () => {
       buildRequest('PATCH', 'http://localhost/api/admin/reporter/monitored-sources/source-1', {
         coverageScope: 'COUNTY',
       }),
-      { params: { id: 'source-1' } }
+      { params: Promise.resolve({ id: 'source-1' }) }
     );
 
     expect(response.status).toBe(200);
@@ -332,7 +332,7 @@ describe('reporter monitored source routes', () => {
         'DELETE',
         'http://localhost/api/admin/reporter/monitored-sources/source-1/items/item-1'
       ),
-      { params: { id: 'source-1', itemId: 'item-1' } }
+      { params: Promise.resolve({ id: 'source-1', itemId: 'item-1' }) }
     );
 
     expect(response.status).toBe(200);
@@ -381,7 +381,7 @@ describe('reporter monitored source routes', () => {
           ],
         }
       ),
-      { params: { id: 'source-1' } }
+      { params: Promise.resolve({ id: 'source-1' }) }
     );
 
     expect(response.status).toBe(201);
@@ -446,7 +446,7 @@ describe('reporter monitored source routes', () => {
           'x-community-id': '',
         }
       ),
-      { params: { id: 'source-1' } }
+      { params: Promise.resolve({ id: 'source-1' }) }
     );
 
     expect(response.status).toBe(201);
@@ -511,7 +511,7 @@ describe('reporter monitored source routes', () => {
 
     const response = await runFetchRoute.POST(
       buildRequest('POST', 'http://localhost/api/admin/reporter/monitored-sources/source-1/run-fetch'),
-      { params: { id: 'source-1' } }
+      { params: Promise.resolve({ id: 'source-1' }) }
     );
 
     expect(response.status).toBe(200);
@@ -536,7 +536,7 @@ describe('reporter monitored source routes', () => {
 
     const response = await runFetchRoute.POST(
       buildRequest('POST', 'http://localhost/api/admin/reporter/monitored-sources/source-1/run-fetch'),
-      { params: { id: 'source-1' } }
+      { params: Promise.resolve({ id: 'source-1' }) }
     );
 
     expect(response.status).toBe(400);
@@ -708,7 +708,7 @@ describe('reporter monitored source routes', () => {
           'x-user-role': '',
         }
       ),
-      { params: { communitySlug: 'highlander-today' } }
+      { params: Promise.resolve({ communitySlug: 'highlander-today' }) }
     );
 
     expect(response.status).toBe(200);

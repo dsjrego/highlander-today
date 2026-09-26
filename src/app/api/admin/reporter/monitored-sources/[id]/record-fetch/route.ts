@@ -45,10 +45,8 @@ function hasValidMachineIngestToken(request: NextRequest) {
   return Boolean(bearerMatch?.[1] && bearerMatch[1].trim() === configuredToken);
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const usingMachineToken = hasValidMachineIngestToken(request);
     const userId = request.headers.get('x-user-id');

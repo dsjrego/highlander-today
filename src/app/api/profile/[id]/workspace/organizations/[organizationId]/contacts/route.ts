@@ -51,8 +51,9 @@ async function ensureOrganizationRelationIds(organizationId: string, locationId?
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string; organizationId: string } }
+  props: { params: Promise<{ id: string; organizationId: string }> }
 ) {
+  const params = await props.params;
   try {
     const actorUserId = request.headers.get('x-user-id');
     if (!actorUserId) {

@@ -8,12 +8,13 @@ import { checkPermission } from '@/lib/permissions';
 import OrganizationDetailEditor from './OrganizationDetailEditor';
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
-export default async function AdminOrganizationDetailPage({ params }: PageProps) {
+export default async function AdminOrganizationDetailPage(props: PageProps) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   const userRole = session?.user?.role || '';
 

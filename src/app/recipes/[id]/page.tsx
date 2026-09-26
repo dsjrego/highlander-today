@@ -1,11 +1,12 @@
 import RecipeDetailClient from './RecipeDetailClient';
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
-export default function RecipeDetailPage({ params }: PageProps) {
+export default async function RecipeDetailPage(props: PageProps) {
+  const params = await props.params;
   return <RecipeDetailClient recipeId={params.id} />;
 }

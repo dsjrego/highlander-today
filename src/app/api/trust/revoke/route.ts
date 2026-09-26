@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { checkPermission } from '@/lib/permissions';
 import { z } from 'zod';
 
 const RevokeSchema = z.object({
@@ -12,7 +11,7 @@ const RevokeSchema = z.object({
  * POST /api/trust/revoke — Revoke a user's TRUSTED status
  * Sets trustLevel to SUSPENDED. Cascades suspension to all downstream
  * users in the vouching chain (BFS traversal).
- * Requires 'trust:revoke' permission (Admin+ role).
+ * Requires the platform SUPER_ADMIN role because trust is global.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -22,7 +21,7 @@ export async function POST(request: NextRequest) {
     }
 
     const userRole = request.headers.get('x-user-role') || '';
-    if (!checkPermission(userRole, 'trust:revoke')) {
+    if (userRole !== 'SUPER_ADMIN') {
       return NextResponse.json(
         { error: 'Insufficient permissions' },
         { status: 403 }

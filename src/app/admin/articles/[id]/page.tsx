@@ -15,14 +15,14 @@ import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
 
 interface AdminArticleDetailPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
-  searchParams?: {
+  }>;
+  searchParams?: Promise<{
     tab?: string;
     page?: string;
     scope?: string;
-  };
+  }>;
 }
 
 function formatLongDateTime(value: Date | null) {
@@ -65,10 +65,9 @@ function getStatusClasses(status: string) {
   }
 }
 
-export default async function AdminArticleDetailPage({
-  params,
-  searchParams,
-}: AdminArticleDetailPageProps) {
+export default async function AdminArticleDetailPage(props: AdminArticleDetailPageProps) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   const userRole = session?.user?.role || '';
 
@@ -77,7 +76,7 @@ export default async function AdminArticleDetailPage({
   }
 
   const isSuperAdmin = userRole === 'SUPER_ADMIN';
-  const currentCommunity = await getCurrentCommunity({ headers: headers() });
+  const currentCommunity = await getCurrentCommunity({ headers: await headers() });
   const activeTab = parseAdminArticleTab(searchParams?.tab);
   const activeScope = parseAdminArticleScope(searchParams?.scope, isSuperAdmin);
 

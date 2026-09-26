@@ -66,7 +66,7 @@ describe('reporter source routes', () => {
         url: 'https://example.com/agenda',
         reliabilityTier: 'HIGH',
       }),
-      { params: { id: 'run-1' } }
+      { params: Promise.resolve({ id: 'run-1' }) }
     );
 
     expect(response.status).toBe(201);
@@ -94,7 +94,7 @@ describe('reporter source routes', () => {
         title: 'Updated title',
         reliabilityTier: 'PRIMARY',
       }),
-      { params: { id: 'source-1' } }
+      { params: Promise.resolve({ id: 'source-1' }) }
     );
 
     expect(response.status).toBe(200);
@@ -114,7 +114,7 @@ describe('reporter source routes', () => {
 
     const response = await sourceItemRoute.DELETE(
       buildRequest('DELETE', 'http://localhost/api/reporter/sources/source-1'),
-      { params: { id: 'source-1' } }
+      { params: Promise.resolve({ id: 'source-1' }) }
     );
 
     expect(response.status).toBe(200);
@@ -135,7 +135,7 @@ describe('reporter source routes', () => {
         },
         { 'x-user-role': 'READER' }
       ),
-      { params: { id: 'run-1' } }
+      { params: Promise.resolve({ id: 'run-1' }) }
     );
 
     expect(response.status).toBe(403);

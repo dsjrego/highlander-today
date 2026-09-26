@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { isValidOrganizationType } from '@/lib/organization-taxonomy';
 import { checkPermission } from '@/lib/permissions';
 import { sanitizeArticleHtml } from '@/lib/sanitize';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 function hasValidPhoneDigits(value: string) {
   const digits = value.replace(/\D/g, '');
@@ -39,18 +40,7 @@ const CreateOrganizationSchema = z.object({
 });
 
 async function resolveCommunityId(request: NextRequest) {
-  const headerCommunityId = request.headers.get('x-community-id');
-
-  if (headerCommunityId) {
-    return headerCommunityId;
-  }
-
-  const community = await db.community.findFirst({
-    select: { id: true },
-    orderBy: { createdAt: 'asc' },
-  });
-
-  return community?.id ?? null;
+  return resolveRequestCommunityId({ headers: request.headers, nextUrl: request.nextUrl });
 }
 
 function createBaseSlug(name: string) {

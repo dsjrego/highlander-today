@@ -174,6 +174,13 @@ export async function getCurrentCommunity(request: {
   return null;
 }
 
+export async function resolveRequestCommunityId(request: {
+  headers?: Headers | Map<string, string> | Record<string, string | undefined>;
+  nextUrl?: { searchParams: URLSearchParams };
+}) {
+  return (await getCurrentCommunity(request))?.id ?? null;
+}
+
 export function getAllCommunities(): Promise<CommunitySummary[]> {
   return db.community
     .findMany({

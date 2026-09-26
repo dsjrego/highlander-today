@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import FormCard from "@/components/shared/FormCard";
@@ -26,9 +26,9 @@ interface ListingDetail {
 }
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 const CATEGORY_OPTIONS = [
@@ -48,7 +48,8 @@ const LISTING_TYPE_OPTIONS = [
   { value: "SERVICE", label: "Service" },
 ] as const;
 
-export default function EditListingPage({ params }: PageProps) {
+export default function EditListingPage(props: PageProps) {
+  const params = use(props.params);
   const router = useRouter();
   const [listing, setListing] = useState<ListingDetail | null>(null);
   const [formData, setFormData] = useState({

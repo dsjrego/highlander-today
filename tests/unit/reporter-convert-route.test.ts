@@ -70,7 +70,7 @@ describe('reporter convert-to-article route', () => {
   });
 
   it('creates an article draft and links the run', async () => {
-    const response = await POST(buildRequest(), { params: { id: 'run-1' } });
+    const response = await POST(buildRequest(), { params: Promise.resolve({ id: 'run-1' }) });
 
     expect(response.status).toBe(201);
     await expect(response.json()).resolves.toMatchObject({
@@ -111,7 +111,7 @@ describe('reporter convert-to-article route', () => {
           'x-community-id': 'community-1',
         },
       }) as any,
-      { params: { id: 'run-1' } }
+      { params: Promise.resolve({ id: 'run-1' }) }
     );
 
     expect(response.status).toBe(403);

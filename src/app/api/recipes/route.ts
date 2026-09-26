@@ -11,6 +11,7 @@ import {
   serializeRecipe,
 } from '@/lib/recipes';
 import { getRecipeVideoProvider } from '@/lib/recipe-media';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,13 +21,12 @@ export async function GET(request: NextRequest) {
     const categorySlug = searchParams.get('category');
     const authorId = searchParams.get('authorId');
     const statusFilter = searchParams.get('status') as RecipeStatus | null;
-    const communityId = request.headers.get('x-community-id') || '';
+    const communityId = await resolveRequestCommunityId({
+      headers: request.headers,
+      nextUrl: request.nextUrl,
+    });
 
-    const community = communityId
-      ? await db.community.findUnique({ where: { id: communityId } })
-      : await db.community.findFirst();
-
-    if (!community) {
+    if (!communityId) {
       return NextResponse.json({
         recipes: [],
         pagination: { page, limit, total: 0, pages: 0 },
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     }
 
     const where: Prisma.RecipeWhereInput = {
-      communityId: community.id,
+      communityId,
       status: RecipeStatus.PUBLISHED,
     };
 
@@ -139,12 +139,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const communityId = request.headers.get('x-community-id') || '';
-    const community = communityId
-      ? await db.community.findUnique({ where: { id: communityId } })
-      : await db.community.findFirst();
+    const communityId = await resolveRequestCommunityId({
+      headers: request.headers,
+      nextUrl: request.nextUrl,
+    });
 
-    if (!community) {
+    if (!communityId) {
       return NextResponse.json({ error: 'Community not found' }, { status: 404 });
     }
 
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
       const category = await db.category.findFirst({
         where: {
           id: validated.categoryId,
-          OR: [{ communityId: community.id }, { communityId: null }],
+          OR: [{ communityId }, { communityId: null }],
         },
         select: { id: true },
       });
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
 
     const baseSlug = buildRecipeSlug(validated.title);
     const existingSlug = await db.recipe.findUnique({
-      where: { communityId_slug: { communityId: community.id, slug: baseSlug } },
+      where: { communityId_slug: { communityId, slug: baseSlug } },
       select: { id: true },
     });
     const slug = existingSlug ? `${baseSlug}-${Date.now().toString(36)}` : baseSlug;
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
     const created = await db.$transaction(async (tx) => {
       const recipe = await tx.recipe.create({
         data: {
-          communityId: community.id,
+        communityId,
           authorUserId: userId,
           title: validated.title,
           slug,

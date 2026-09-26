@@ -10,11 +10,11 @@ import {
 } from '@/lib/search';
 
 type SearchPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     q?: string | string[];
     type?: string | string[];
     page?: string | string[];
-  };
+  }>;
 };
 
 type ResultFilter = 'all' | SearchResultType;
@@ -131,13 +131,14 @@ function SearchResultCard({ result }: { result: SearchResult }) {
   );
 }
 
-export default async function SearchPage({ searchParams }: SearchPageProps) {
+export default async function SearchPage(props: SearchPageProps) {
+  const searchParams = await props.searchParams;
   const query = getSingleParam(searchParams?.q).trim();
   const selectedFilter = normalizeFilter(getSingleParam(searchParams?.type));
   const rawPage = Number.parseInt(getSingleParam(searchParams?.page) || '1', 10);
   const currentPage = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
 
-  const headerList = headers();
+  const headerList = await headers();
   const communityId = await resolveSearchCommunityId({
     communityId: headerList.get('x-community-id'),
     communityDomain: headerList.get('x-community-domain'),

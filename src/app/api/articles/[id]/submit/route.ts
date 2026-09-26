@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { logActivity } from '@/lib/activity-log';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 /**
  * POST /api/articles/[id]/submit
  * Submit a DRAFT article for review. Only the author can submit their own drafts.
  * Transitions DRAFT → PENDING_REVIEW.
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
 
@@ -18,8 +17,13 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const article = await db.article.findUnique({
-      where: { id: params.id },
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+
+    const article = await db.article.findFirst({
+      where: { id: params.id, communityId },
     });
 
     if (!article) {

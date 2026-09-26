@@ -25,7 +25,7 @@ export default async function AdminMemoriamPage() {
     redirect('/');
   }
 
-  const currentCommunity = await getCurrentCommunity({ headers: headers() });
+  const currentCommunity = await getCurrentCommunity({ headers: await headers() });
 
   const [memoriamCategories, submissions, memorialPages, memories, assigneeMemberships] = await Promise.all([
     db.category.findMany({

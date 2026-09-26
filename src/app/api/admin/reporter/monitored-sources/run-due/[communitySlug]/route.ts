@@ -8,8 +8,9 @@ const pathRunDueSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { communitySlug: string } }
+  props: { params: Promise<{ communitySlug: string }> }
 ) {
+  const params = await props.params;
   try {
     const searchParams = new URL(request.url).searchParams;
     const payload = pathRunDueSchema.parse({

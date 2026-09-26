@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import FormCard from '@/components/shared/FormCard';
 import ImageUpload from '@/components/shared/ImageUpload';
@@ -21,9 +21,9 @@ interface HelpWantedDetail {
 }
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 const POSTING_TYPE_OPTIONS = [
@@ -41,7 +41,8 @@ const COMPENSATION_TYPE_OPTIONS = [
   { value: 'VOLUNTEER', label: 'Volunteer' },
 ] as const;
 
-export default function EditHelpWantedPage({ params }: PageProps) {
+export default function EditHelpWantedPage(props: PageProps) {
+  const params = use(props.params);
   const router = useRouter();
   const [post, setPost] = useState<HelpWantedDetail | null>(null);
   const [formData, setFormData] = useState({

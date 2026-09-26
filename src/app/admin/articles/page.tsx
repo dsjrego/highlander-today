@@ -17,7 +17,7 @@ export default async function AdminArticlesPage() {
     redirect('/');
   }
 
-  const currentCommunity = await getCurrentCommunity({ headers: headers() });
+  const currentCommunity = await getCurrentCommunity({ headers: await headers() });
 
   const articles = await db.article.findMany({
     where: {

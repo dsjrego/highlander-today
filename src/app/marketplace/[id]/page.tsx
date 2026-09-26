@@ -3,7 +3,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, use } from "react";
 import { useSession } from "next-auth/react";
 import SendMessageButton from "@/app/profile/[id]/SendMessageButton";
 import TrackedLink from "@/components/analytics/TrackedLink";
@@ -59,9 +59,9 @@ interface ListingSummary {
 }
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 const LISTING_TYPE_LABELS = {
@@ -95,7 +95,8 @@ function formatDate(value: string) {
   });
 }
 
-export default function ListingDetailPage({ params }: PageProps) {
+export default function ListingDetailPage(props: PageProps) {
+  const params = use(props.params);
   const { data: session, status: sessionStatus } = useSession();
   const [listing, setListing] = useState<ListingDetail | null>(null);
   const [relatedListings, setRelatedListings] = useState<ListingSummary[]>([]);

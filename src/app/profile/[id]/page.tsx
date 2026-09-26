@@ -1,8 +1,10 @@
 import { Metadata } from "next";
 import { getServerSession } from "next-auth";
+import { headers } from "next/headers";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { authOptions } from "@/lib/auth";
+import { getCurrentCommunity } from "@/lib/community";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import InternalPageHeader from "@/components/shared/InternalPageHeader";
@@ -14,20 +16,23 @@ import VouchProfileButton from "./VouchProfileButton";
 import VouchSection from "./VouchSection";
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
-  searchParams?: {
+  }>;
+  searchParams?: Promise<{
     tab?: string;
-  };
+  }>;
 }
 
-async function getUserProfile(id: string, includeOwnerArticleStatuses: boolean) {
+async function getUserProfile(
+  id: string,
+  includeOwnerArticleStatuses: boolean,
+  communityId: string
+) {
   const userProfileSelect = Prisma.validator<Prisma.UserSelect>()({
     id: true,
     firstName: true,
     lastName: true,
-    email: true,
     bio: true,
     profilePhotoUrl: true,
     isDirectoryListed: true,
@@ -35,6 +40,7 @@ async function getUserProfile(id: string, includeOwnerArticleStatuses: boolean) 
     dateOfBirth: true,
     createdAt: true,
     memberships: {
+      where: { communityId },
       select: {
         role: true,
         community: {
@@ -63,9 +69,12 @@ async function getUserProfile(id: string, includeOwnerArticleStatuses: boolean) 
       },
     },
     articles: {
-      where: includeOwnerArticleStatuses
-        ? { status: { in: ["DRAFT", "PENDING_REVIEW", "PUBLISHED", "UNPUBLISHED"] } }
-        : { status: "PUBLISHED" },
+      where: {
+        communityId,
+        ...(includeOwnerArticleStatuses
+          ? { status: { in: ["DRAFT", "PENDING_REVIEW", "PUBLISHED", "UNPUBLISHED"] } }
+          : { status: "PUBLISHED" }),
+      },
       orderBy: { createdAt: "desc" },
       take: includeOwnerArticleStatuses ? 10 : 3,
       select: {
@@ -77,7 +86,7 @@ async function getUserProfile(id: string, includeOwnerArticleStatuses: boolean) 
       },
     },
     marketplaceListings: {
-      where: { status: "ACTIVE" },
+      where: { communityId, status: "ACTIVE" },
       orderBy: { createdAt: "desc" },
       take: 3,
       select: {
@@ -87,7 +96,7 @@ async function getUserProfile(id: string, includeOwnerArticleStatuses: boolean) 
       },
     },
     eventsSubmitted: {
-      where: { status: "PUBLISHED" },
+      where: { communityId, status: "PUBLISHED" },
       orderBy: { createdAt: "desc" },
       take: 3,
       select: {
@@ -97,7 +106,10 @@ async function getUserProfile(id: string, includeOwnerArticleStatuses: boolean) 
       },
     },
     helpWantedPosts: {
-      where: { status: { in: ["PUBLISHED", "FILLED", "CLOSED"] } },
+      where: {
+        communityId,
+        status: { in: ["PUBLISHED", "FILLED", "CLOSED"] },
+      },
       orderBy: { createdAt: "desc" },
       take: 3,
       select: {
@@ -109,17 +121,19 @@ async function getUserProfile(id: string, includeOwnerArticleStatuses: boolean) 
     },
   });
 
-  const user = await db.user.findUnique({
-    where: { id },
+  const user = await db.user.findFirst({
+    where: { id, memberships: { some: { communityId } } },
     select: userProfileSelect,
   });
 
   return user;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const user = await getUserProfile(params.id, false);
-  if (!user) {
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const params = await props.params;
+  const community = await getCurrentCommunity({ headers: await headers() });
+  const user = community ? await getUserProfile(params.id, false, community.id) : null;
+  if (!user || !user.isDirectoryListed) {
     return { title: "User Not Found" };
   }
 
@@ -216,23 +230,34 @@ function ProfileOwnerCard({
   );
 }
 
-export default async function UserProfilePage({ params, searchParams }: PageProps) {
+export default async function UserProfilePage(props: PageProps) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   const viewerId = (session?.user as { id?: string } | undefined)?.id;
   const isOwnProfile = viewerId === params.id;
-  const profile = await getUserProfile(params.id, isOwnProfile);
+  const currentCommunity = await getCurrentCommunity({ headers: await headers() });
+  if (!currentCommunity) {
+    notFound();
+  }
+  const profile = await getUserProfile(params.id, isOwnProfile, currentCommunity.id);
 
   if (!profile) {
     notFound();
   }
 
   const isSuperAdmin = (session?.user as { role?: string } | undefined)?.role === "SUPER_ADMIN";
+  if (!profile.isDirectoryListed && !isOwnProfile && !isSuperAdmin) {
+    notFound();
+  }
 
   const community = profile.memberships?.[0]?.community?.name ?? null;
   const lastSeenAt = profile.loginEvents[0]?.createdAt ?? null;
   const headerDescriptionParts = [
     community,
-    lastSeenAt ? `Last seen: ${new Date(lastSeenAt).toLocaleDateString()}` : null,
+    (isOwnProfile || isSuperAdmin) && lastSeenAt
+      ? `Last seen: ${new Date(lastSeenAt).toLocaleDateString()}`
+      : null,
   ].filter(Boolean);
   const headerIcon = (
     <PageHeaderAvatarDialog

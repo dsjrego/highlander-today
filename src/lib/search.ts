@@ -113,7 +113,7 @@ export async function resolveSearchCommunityId(
     }
   }
 
-  return getFallbackCommunityId();
+  return undefined;
 }
 
 function buildTextRelevance(query: string, fields: Array<string | null | undefined>): number {
@@ -395,7 +395,9 @@ export async function searchContentPage(
   const page = Math.max(1, options.page ?? 1);
   const appliedType = options.type ?? null;
 
-  if (!trimmedQuery) {
+  // Search is always tenant-scoped. An unresolved host must never silently
+  // turn into a cross-community query.
+  if (!trimmedQuery || !options.communityId) {
     return {
       query: trimmedQuery,
       results: [],

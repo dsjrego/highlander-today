@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { CategoryContentModel, TrustLevel } from '@prisma/client';
 import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 const CreateCategorySchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -22,15 +23,6 @@ function slugify(value: string) {
     .replace(/^-|-$/g, '');
 }
 
-async function getDefaultCommunityId() {
-  const community = await db.community.findFirst({
-    orderBy: { createdAt: 'asc' },
-    select: { id: true },
-  });
-
-  return community?.id ?? null;
-}
-
 export async function GET(request: NextRequest) {
   try {
     const userRole = request.headers.get('x-user-role') || '';
@@ -40,8 +32,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
+    const communityId = await resolveRequestCommunityId({
+      headers: request.headers,
+      nextUrl: request.nextUrl,
+    });
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+
     const categories = await db.category.findMany({
-      where: includeArchived ? undefined : { isArchived: false },
+      where: {
+        OR: [{ communityId }, { communityId: null }],
+        ...(includeArchived ? {} : { isArchived: false }),
+      },
       orderBy: [{ parentCategoryId: 'asc' }, { sortOrder: 'asc' }, { name: 'asc' }],
       select: {
         id: true,
@@ -90,8 +93,19 @@ export async function POST(request: NextRequest) {
       slug: slugify(body.slug || body.name || ''),
     });
 
+    const communityId = await resolveRequestCommunityId({
+      headers: request.headers,
+      nextUrl: request.nextUrl,
+    });
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+
     const existing = await db.category.findFirst({
-      where: { slug: validated.slug },
+      where: {
+        slug: validated.slug,
+        OR: [{ communityId }, { communityId: null }],
+      },
       select: { id: true },
     });
 
@@ -116,11 +130,6 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-    }
-
-    const communityId = await getDefaultCommunityId();
-    if (!communityId) {
-      return NextResponse.json({ error: 'Community not found' }, { status: 500 });
     }
 
     let sortOrder = validated.sortOrder;

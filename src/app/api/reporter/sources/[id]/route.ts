@@ -32,10 +32,8 @@ const UpdateReporterSourceSchema = z.object({
   sortOrder: z.number().int().min(0).optional(),
 });
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
@@ -57,7 +55,7 @@ export async function PATCH(
 
     if (
       !existing ||
-      (currentCommunity && existing.reporterRun.communityId !== currentCommunity.id)
+      (!currentCommunity || existing.reporterRun.communityId !== currentCommunity.id)
     ) {
       return NextResponse.json({ error: 'Source not found' }, { status: 404 });
     }
@@ -107,10 +105,8 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
@@ -132,7 +128,7 @@ export async function DELETE(
 
     if (
       !existing ||
-      (currentCommunity && existing.reporterRun.communityId !== currentCommunity.id)
+      (!currentCommunity || existing.reporterRun.communityId !== currentCommunity.id)
     ) {
       return NextResponse.json({ error: 'Source not found' }, { status: 404 });
     }

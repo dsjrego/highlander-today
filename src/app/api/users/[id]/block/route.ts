@@ -2,33 +2,36 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getUserBlockStatus } from '@/lib/blocks';
 import { logUserBlockAction } from '@/lib/activity-log';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 function getUserId(request: NextRequest) {
   return request.headers.get('x-user-id');
 }
 
-async function getTargetRole(userId: string) {
+async function getTargetRole(userId: string, communityId: string) {
   const membership = await db.userCommunityMembership.findFirst({
-    where: { userId },
-    orderBy: { joinedAt: 'asc' },
+    where: { userId, communityId },
     select: { role: true },
   });
 
   return membership?.role ?? null;
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const actorUserId = getUserId(request);
     if (!actorUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const targetUser = await db.user.findUnique({
-      where: { id: params.id },
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+
+    const targetUser = await db.user.findFirst({
+      where: { id: params.id, memberships: { some: { communityId } } },
       select: { id: true },
     });
 
@@ -36,7 +39,7 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const targetRole = await getTargetRole(params.id);
+    const targetRole = await getTargetRole(params.id, communityId);
     const canBlock =
       actorUserId !== params.id &&
       !['EDITOR', 'ADMIN', 'SUPER_ADMIN'].includes(targetRole ?? '');
@@ -57,10 +60,8 @@ export async function GET(
   }
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const actorUserId = getUserId(request);
     if (!actorUserId) {
@@ -74,8 +75,13 @@ export async function POST(
       );
     }
 
-    const targetUser = await db.user.findUnique({
-      where: { id: params.id },
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+
+    const targetUser = await db.user.findFirst({
+      where: { id: params.id, memberships: { some: { communityId } } },
       select: { id: true },
     });
 
@@ -83,7 +89,7 @@ export async function POST(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const targetRole = await getTargetRole(params.id);
+    const targetRole = await getTargetRole(params.id, communityId);
     if (targetRole === 'EDITOR' || targetRole === 'ADMIN' || targetRole === 'SUPER_ADMIN') {
       return NextResponse.json(
         { error: 'Cannot block staff members' },
@@ -131,10 +137,8 @@ export async function POST(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const actorUserId = getUserId(request);
     if (!actorUserId) {

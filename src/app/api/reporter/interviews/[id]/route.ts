@@ -37,10 +37,8 @@ const UpdateReporterInterviewSchema = z.object({
   scheduledFor: z.string().datetime().optional().nullable().or(z.literal('')),
 });
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userRole = request.headers.get('x-user-role') || '';
 
@@ -86,7 +84,7 @@ export async function GET(
 
     if (
       !interview ||
-      (currentCommunity && interview.reporterRun.communityId !== currentCommunity.id)
+      (!currentCommunity || interview.reporterRun.communityId !== currentCommunity.id)
     ) {
       return NextResponse.json({ error: 'Reporter interview not found' }, { status: 404 });
     }
@@ -101,10 +99,8 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
@@ -130,7 +126,7 @@ export async function PATCH(
 
     if (
       !existing ||
-      (currentCommunity && existing.reporterRun.communityId !== currentCommunity.id)
+      (!currentCommunity || existing.reporterRun.communityId !== currentCommunity.id)
     ) {
       return NextResponse.json({ error: 'Reporter interview not found' }, { status: 404 });
     }
@@ -268,10 +264,8 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
@@ -297,7 +291,7 @@ export async function DELETE(
 
     if (
       !existing ||
-      (currentCommunity && existing.reporterRun.communityId !== currentCommunity.id)
+      (!currentCommunity || existing.reporterRun.communityId !== currentCommunity.id)
     ) {
       return NextResponse.json({ error: 'Reporter interview not found' }, { status: 404 });
     }

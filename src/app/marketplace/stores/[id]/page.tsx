@@ -3,7 +3,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, use } from "react";
 
 interface StoreDetail {
   id: string;
@@ -50,9 +50,9 @@ interface StoreListingsResponse {
 }
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 const LISTING_TYPE_LABELS = {
@@ -102,7 +102,8 @@ function formatDate(value: string) {
   });
 }
 
-export default function StorefrontPage({ params }: PageProps) {
+export default function StorefrontPage(props: PageProps) {
+  const params = use(props.params);
   const [store, setStore] = useState<StoreDetail | null>(null);
   const [listings, setListings] = useState<StoreListing[]>([]);
   const [isLoading, setIsLoading] = useState(true);

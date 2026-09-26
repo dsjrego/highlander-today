@@ -42,7 +42,7 @@ export function assertReporterRunReadyForDraft(run: NonNullable<Awaited<ReturnTy
 
 export async function createReporterDraftForRun(params: {
   run: NonNullable<Awaited<ReturnType<typeof loadReporterRunForDraft>>>;
-  createdByUserId: string;
+  createdByUserId: string | null;
   draftType?: ReporterDraftTypeValue;
 }) {
   assertReporterRunReadyForDraft(params.run);

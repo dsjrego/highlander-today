@@ -8,13 +8,14 @@ import { db } from '@/lib/db';
 import MemorialManageClient from './MemorialManageClient';
 
 interface PageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
-export default async function MemorialManagePage({ params }: PageProps) {
+export default async function MemorialManagePage(props: PageProps) {
+  const params = await props.params;
   const [session, community] = await Promise.all([
     getServerSession(authOptions),
-    getCurrentCommunity({ headers: headers() }),
+    getCurrentCommunity({ headers: await headers() }),
   ]);
 
   const sessionUser = session?.user as

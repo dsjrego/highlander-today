@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Prisma } from '@prisma/client';
+import { MembershipRole, Prisma, TrustLevel } from '@prisma/client';
 import { db } from '@/lib/db';
-import { checkPermission } from '@/lib/permissions';
+import { ACTIONS, canPerformAction, type PermissionUser } from '@/lib/permissions';
+import { getCurrentCommunity } from '@/lib/community';
 
 /**
  * GET /api/admin/users — List all users with search, filter, and pagination
@@ -25,11 +26,25 @@ export async function GET(request: NextRequest) {
     }
 
     const userRole = request.headers.get('x-user-role') || '';
-    if (!checkPermission(userRole, 'users:view')) {
+    const permissionUser: PermissionUser = {
+      id: userId,
+      role: userRole,
+      trust_level: request.headers.get('x-user-trust-level') || '',
+      community_id: request.headers.get('x-community-id') || undefined,
+    };
+    if (!canPerformAction(permissionUser, ACTIONS.MANAGE_USERS)) {
       return NextResponse.json(
         { error: 'Insufficient permissions' },
         { status: 403 }
       );
+    }
+
+    const community = await getCurrentCommunity({
+      headers: request.headers,
+      nextUrl: request.nextUrl,
+    });
+    if (!community) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -43,7 +58,9 @@ export async function GET(request: NextRequest) {
     const order = searchParams.get('order') === 'desc' ? 'desc' : 'asc';
 
     // Build where clause
-    const where: any = {};
+    const where: Prisma.UserWhereInput = {
+      memberships: { some: { communityId: community.id } },
+    };
 
     if (search) {
       where.OR = [
@@ -54,13 +71,13 @@ export async function GET(request: NextRequest) {
     }
 
     if (trustLevel && ['ANONYMOUS', 'REGISTERED', 'TRUSTED', 'SUSPENDED'].includes(trustLevel)) {
-      where.trustLevel = trustLevel;
+      where.trustLevel = trustLevel as TrustLevel;
     }
 
     // Role filter requires joining through memberships
     if (role && ['READER', 'CONTRIBUTOR', 'STAFF_WRITER', 'EDITOR', 'ADMIN', 'SUPER_ADMIN'].includes(role)) {
       where.memberships = {
-        some: { role },
+        some: { communityId: community.id, role: role as MembershipRole },
       };
     }
 
@@ -94,6 +111,7 @@ export async function GET(request: NextRequest) {
           isIdentityLocked: true,
           createdAt: true,
           memberships: {
+            where: { communityId: community.id },
             select: {
               role: true,
               communityId: true,
@@ -163,10 +181,10 @@ export async function GET(request: NextRequest) {
 
     // Also fetch aggregate stats for the page header
     const [totalUsers, trustedCount, registeredCount, suspendedCount] = await Promise.all([
-      db.user.count(),
-      db.user.count({ where: { trustLevel: 'TRUSTED' } }),
-      db.user.count({ where: { trustLevel: 'REGISTERED' } }),
-      db.user.count({ where: { trustLevel: 'SUSPENDED' } }),
+      db.user.count({ where: { memberships: { some: { communityId: community.id } } } }),
+      db.user.count({ where: { trustLevel: 'TRUSTED', memberships: { some: { communityId: community.id } } } }),
+      db.user.count({ where: { trustLevel: 'REGISTERED', memberships: { some: { communityId: community.id } } } }),
+      db.user.count({ where: { trustLevel: 'SUSPENDED', memberships: { some: { communityId: community.id } } } }),
     ]);
 
     return NextResponse.json({

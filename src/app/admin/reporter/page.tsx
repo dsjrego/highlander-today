@@ -7,6 +7,8 @@ import { authOptions } from '@/lib/auth';
 import { getCurrentCommunity } from '@/lib/community';
 import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
+import { getReporterDailyCoverageDesk } from '@/lib/reporter/daily-coverage';
+import { listReporterStoryCandidates } from '@/lib/reporter/story-candidates';
 import { AdminPage } from '@/components/admin/AdminPage';
 import ReporterRunsClient from './ReporterRunsClient';
 
@@ -18,9 +20,9 @@ export default async function AdminReporterPage() {
     redirect('/');
   }
 
-  const currentCommunity = await getCurrentCommunity({ headers: headers() });
+  const currentCommunity = await getCurrentCommunity({ headers: await headers() });
 
-  const [runs, assignees, interviewQueue] = await Promise.all([
+  const [runs, assignees, interviewQueue, morningDesk, storyCandidates] = await Promise.all([
     db.reporterRun.findMany({
       where: {
         ...(currentCommunity?.id ? { communityId: currentCommunity.id } : {}),
@@ -95,6 +97,15 @@ export default async function AdminReporterPage() {
       ],
       take: 25,
     }),
+    currentCommunity?.id
+      ? getReporterDailyCoverageDesk({ communityId: currentCommunity.id })
+      : Promise.resolve(null),
+    currentCommunity?.id
+      ? listReporterStoryCandidates({
+          communityId: currentCommunity.id,
+          limit: 5,
+        })
+      : Promise.resolve([]),
   ]);
 
   const editorReadyRuns = runs.filter((run) => run.status === 'DRAFT_CREATED').slice(0, 5);
@@ -113,6 +124,88 @@ export default async function AdminReporterPage() {
         </div>
       }
     >
+      <div className="admin-card">
+        <div className="admin-card-header">
+          <div className="flex items-center gap-0">
+            <div className="admin-card-header-label">Morning Reporter Desk</div>
+          </div>
+          <Link href="/admin/reporter/sources" className="admin-list-link">
+            Open Source Monitor
+          </Link>
+        </div>
+        <div className="admin-card-body space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                Today&apos;s automated decision
+              </div>
+              <div className="mt-1 text-sm font-semibold text-slate-900">
+                {morningDesk?.decision?.summary ||
+                  'The morning pipeline has not recorded a decision yet.'}
+              </div>
+              {morningDesk?.decision?.reasons?.[0] ? (
+                <div className="mt-1 text-xs text-slate-600">{morningDesk.decision.reasons[0]}</div>
+              ) : null}
+            </div>
+            {morningDesk?.decision?.reporterRun ? (
+              <Link
+                href={`/admin/reporter/${morningDesk.decision.reporterRun.id}?view=${morningDesk.decision.articleDraft ? 'drafts' : 'sources'}`}
+                className="page-header-action"
+              >
+                {morningDesk.decision.articleDraft ? 'Review Draft' : 'Open Selected Run'}
+              </Link>
+            ) : null}
+          </div>
+
+          <div className="admin-list">
+            <div className="admin-list-table-wrap">
+              <table className="admin-list-table">
+                <thead className="admin-list-head">
+                  <tr>
+                    <th className="admin-list-header-cell">Candidate</th>
+                    <th className="admin-list-header-cell">Readiness</th>
+                    <th className="admin-list-header-cell">Score</th>
+                    <th className="admin-list-header-cell">Sources</th>
+                    <th className="admin-list-header-cell">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {storyCandidates.length ? (
+                    storyCandidates.map((candidate) => (
+                      <tr key={candidate.id} className="admin-list-row">
+                        <td className="admin-list-cell">
+                          <div className="font-medium text-slate-900">{candidate.title}</div>
+                          <div className="text-xs text-slate-500">
+                            {candidate.candidateType.replace(/_/g, ' ')}
+                          </div>
+                        </td>
+                        <td className="admin-list-cell">{candidate.readiness.label}</td>
+                        <td className="admin-list-cell">{candidate.signal.score}</td>
+                        <td className="admin-list-cell">{candidate.sourceCount}</td>
+                        <td className="admin-list-cell">
+                          <Link
+                            href={`/admin/reporter/sources?candidate=${candidate.id}`}
+                            className="admin-list-link"
+                          >
+                            Review Lead
+                          </Link>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr className="admin-list-row">
+                      <td className="admin-list-empty" colSpan={5}>
+                        No active story candidates are available yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="admin-card">
         <div className="admin-card-header">
           <div className="flex items-center gap-0">

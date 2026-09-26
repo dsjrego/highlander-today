@@ -4,6 +4,7 @@ import { checkPermission } from '@/lib/permissions';
 import { logActivity } from '@/lib/activity-log';
 import { createAnalyticsEvent } from '@/lib/analytics/server';
 import { z } from 'zod';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 const CreateCommentSchema = z.object({
   articleId: z.string().uuid(),
@@ -21,6 +22,19 @@ export async function GET(request: NextRequest) {
         { error: 'articleId is required' },
         { status: 400 }
       );
+    }
+
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+
+    const article = await db.article.findFirst({
+      where: { id: articleId, communityId, status: 'PUBLISHED' },
+      select: { id: true },
+    });
+    if (!article) {
+      return NextResponse.json({ error: 'Article not found' }, { status: 404 });
     }
 
     const comments = await db.comment.findMany({
@@ -94,9 +108,13 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const validated = CreateCommentSchema.parse(body);
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
 
-    const article = await db.article.findUnique({
-      where: { id: validated.articleId },
+    const article = await db.article.findFirst({
+      where: { id: validated.articleId, communityId },
       select: { id: true, status: true, communityId: true },
     });
 

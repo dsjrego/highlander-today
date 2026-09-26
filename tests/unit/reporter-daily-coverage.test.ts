@@ -196,35 +196,56 @@ describe('reporter daily coverage service', () => {
       place: null,
       placeId: null,
     });
-    (listReporterStoryCandidatesMock as any).mockResolvedValue([
-      {
-        id: 'candidate-2',
-        placeId: null,
-        title: 'School board agenda expands',
-        summary: 'A new staffing vote was added to tonight’s agenda.',
-        candidateType: 'ARTICLE_ONLY',
-        sourceCount: 2,
-        itemCount: 2,
-        latestAt: new Date('2026-05-25T14:00:00Z'),
-        matchedKeywords: ['school board'],
-        linkedReporterRun: null,
-        readiness: {
-          level: 'unclaimed',
-          label: 'Unclaimed Lead',
-          reason: 'No reporter run is linked yet.',
-          actionableClaimCount: 0,
-          supportedClaimCount: 0,
-          followUpClaimCount: 0,
-          blockerCount: 0,
-        },
-        signal: {
-          level: 'likely',
-          score: 7,
-          reasons: ['matches a tenant term'],
-        },
-        items: [],
+    const unclaimedCandidate = {
+      id: 'candidate-2',
+      placeId: null,
+      title: 'School board agenda expands',
+      summary: 'A new staffing vote was added to tonight’s agenda.',
+      candidateType: 'ARTICLE_ONLY',
+      coverageScopes: ['LOCAL'],
+      sourceCount: 2,
+      itemCount: 2,
+      latestAt: new Date('2026-05-25T14:00:00Z'),
+      matchedKeywords: ['school board'],
+      linkedReporterRun: null,
+      readiness: {
+        level: 'unclaimed',
+        label: 'Unclaimed Lead',
+        reason: 'No reporter run is linked yet.',
+        actionableClaimCount: 0,
+        supportedClaimCount: 0,
+        followUpClaimCount: 0,
+        blockerCount: 0,
       },
-    ]);
+      signal: {
+        level: 'likely',
+        score: 7,
+        reasons: ['matches a tenant term'],
+      },
+      items: [],
+    };
+    (listReporterStoryCandidatesMock as any)
+      .mockResolvedValueOnce([unclaimedCandidate])
+      .mockResolvedValueOnce([
+        {
+          ...unclaimedCandidate,
+          linkedReporterRun: {
+            id: 'run-2',
+            title: 'School board agenda expands',
+            topic: 'School board agenda expands',
+            status: 'READY_FOR_DRAFT',
+          },
+          readiness: {
+            level: 'draftable',
+            label: 'Draftable',
+            reason: 'Linked run has supported claims.',
+            actionableClaimCount: 0,
+            supportedClaimCount: 1,
+            followUpClaimCount: 0,
+            blockerCount: 0,
+          },
+        },
+      ]);
     (prismaMock.reporterStoryCandidate.findUnique as any).mockResolvedValue({
       id: 'candidate-2',
       communityId: 'community-1',
@@ -244,6 +265,7 @@ describe('reporter daily coverage service', () => {
             contentText: 'A new staffing vote was added.',
             monitoredSource: {
               label: 'District agenda',
+              sourceType: 'SCHOOL_BOARD',
             },
           },
         },
@@ -257,7 +279,7 @@ describe('reporter daily coverage service', () => {
       sources: [
         {
           id: 'source-1',
-          sourceType: 'NEWS_ARTICLE',
+          sourceType: 'OFFICIAL_URL',
           title: 'School board agenda expands',
           url: 'https://example.com/agenda',
           publisher: 'District',
@@ -266,7 +288,7 @@ describe('reporter daily coverage service', () => {
           contentText: 'A new staffing vote was added.',
           excerpt: 'A new staffing vote was added.',
           note: 'Seeded from monitored source: District agenda',
-          reliabilityTier: 'UNVERIFIED',
+          reliabilityTier: 'PRIMARY',
           sortOrder: 0,
         },
       ],
@@ -279,19 +301,17 @@ describe('reporter daily coverage service', () => {
       summary: 'School board agenda expands selected for the daily desk.',
       reasons: ['No reporter run is linked yet.', 'matches a tenant term'],
       selectedScore: 7,
-      selectedReadiness: 'unclaimed',
-      analysisStatus: 'SKIPPED',
-      analysisSummary:
-        'Daily desk selected this run without auto-generating source-packet analysis.',
-      analysisIssueCount: null,
-      analysisHasCriticalIssues: null,
-      analysisDraft: null,
-      articleStatus: 'SKIPPED',
-      articleSummary:
-        'Article draft generation was skipped because the selected run is not yet draftable.',
-      articleIssueCount: null,
-      articleHasCriticalIssues: null,
-      articleDraft: null,
+      selectedReadiness: 'draftable',
+      analysisStatus: 'GENERATED',
+      analysisSummary: 'Source-packet analysis was generated for the selected daily desk run.',
+      analysisIssueCount: 0,
+      analysisHasCriticalIssues: false,
+      analysisDraft: { id: 'draft-2', draftType: 'SOURCE_PACKET_SUMMARY' },
+      articleStatus: 'GENERATED',
+      articleSummary: 'Article draft was generated for the selected daily desk run.',
+      articleIssueCount: 0,
+      articleHasCriticalIssues: false,
+      articleDraft: { id: 'draft-article-2', draftType: 'ARTICLE_DRAFT' },
       updatedAt: new Date('2026-05-25T12:30:00Z'),
       storyCandidate: {
         id: 'candidate-2',
@@ -305,19 +325,47 @@ describe('reporter daily coverage service', () => {
       },
     });
 
+    (loadReporterRunForDraftMock as any).mockResolvedValue({ id: 'run-2' });
+    (createReporterDraftForRunMock as any)
+      .mockResolvedValueOnce({
+        persisted: { id: 'draft-2' },
+        validation: { hasCriticalIssues: false, issues: [] },
+      })
+      .mockResolvedValueOnce({
+        persisted: { id: 'draft-article-2' },
+        validation: { hasCriticalIssues: false, issues: [] },
+      });
+
     const result = await evaluateReporterDailyCoverage({
       communityId: 'community-1',
       date: '2026-05-25',
-      createdByUserId: 'editor-1',
+      createdByUserId: null,
     });
 
     expect(result.decision).toMatchObject({
       outcome: 'selected',
       reporterRun: { id: 'run-2' },
-      analysisStatus: 'skipped',
-      articleStatus: 'skipped',
+      analysisStatus: 'generated',
+      articleStatus: 'generated',
     });
-    expect(prismaMock.reporterRun.create).toHaveBeenCalled();
+    expect(prismaMock.reporterRun.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          createdByUserId: null,
+          sources: {
+            create: expect.arrayContaining([
+              expect.objectContaining({
+                sourceType: 'OFFICIAL_URL',
+                reliabilityTier: 'PRIMARY',
+              }),
+            ]),
+          },
+        }),
+      })
+    );
+    expect(createReporterDraftForRunMock).toHaveBeenCalledWith(
+      expect.objectContaining({ createdByUserId: null, draftType: 'ARTICLE_DRAFT' })
+    );
     expect(createReporterClaimsFromSourcePacketAnalysisMock).toHaveBeenCalledWith(
       expect.objectContaining({
         reporterRunId: 'run-2',

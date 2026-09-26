@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { checkPermission } from '@/lib/permissions';
 
 /**
  * GET /api/admin/bans — List all banned emails with details
- * Requires BAN_USER permission (Admin+ role).
+ * Requires the platform SUPER_ADMIN role until bans are tenant-keyed.
  *
  * Query params:
  *   search — filter by email (partial match)
@@ -19,7 +18,7 @@ export async function GET(request: NextRequest) {
     }
 
     const userRole = request.headers.get('x-user-role') || '';
-    if (!checkPermission(userRole, 'trust:ban')) {
+    if (userRole !== 'SUPER_ADMIN') {
       return NextResponse.json(
         { error: 'Insufficient permissions' },
         { status: 403 }

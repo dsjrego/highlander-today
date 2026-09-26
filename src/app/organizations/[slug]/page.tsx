@@ -17,9 +17,9 @@ import { formatLocationPrimary, formatLocationSecondary } from '@/lib/location-f
 import { sanitizeArticleHtml } from '@/lib/sanitize';
 
 interface PageProps {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 }
 
 function formatEventDateRange(startDatetime: Date, endDatetime: Date | null) {
@@ -98,8 +98,9 @@ function InfoCard({
   );
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const requestHeaders = headers();
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const params = await props.params;
+  const requestHeaders = await headers();
   const currentCommunity = await getCurrentCommunity({ headers: requestHeaders });
 
   if (!currentCommunity) {
@@ -130,8 +131,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function OrganizationProfilePage({ params }: PageProps) {
-  const requestHeaders = headers();
+export default async function OrganizationProfilePage(props: PageProps) {
+  const params = await props.params;
+  const requestHeaders = await headers();
   const currentCommunity = await getCurrentCommunity({ headers: requestHeaders });
 
   if (!currentCommunity) {

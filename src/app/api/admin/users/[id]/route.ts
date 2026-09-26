@@ -7,10 +7,8 @@ import { logActivity } from '@/lib/activity-log';
  * Requires SUPER_ADMIN role.
  * Cascade deletes are handled by Prisma schema (onDelete: Cascade).
  */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const actorId = request.headers.get('x-user-id');
     if (!actorId) {
@@ -68,9 +66,12 @@ export async function DELETE(
     }
 
     const targetRole = targetUser.memberships[0]?.role || 'READER';
+    const isTargetSuperAdmin = targetUser.memberships.some(
+      (membership) => membership.role === 'SUPER_ADMIN'
+    );
 
     // Prevent deleting other Super Admins
-    if (targetRole === 'SUPER_ADMIN') {
+    if (isTargetSuperAdmin) {
       return NextResponse.json(
         { error: 'Cannot delete a Super Admin. Demote them first.' },
         { status: 403 }

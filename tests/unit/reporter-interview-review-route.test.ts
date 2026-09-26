@@ -81,7 +81,7 @@ describe('reporter interview review route', () => {
     });
 
     const response = await reviewRoute.POST(buildRequest(), {
-      params: { id: 'session-1' },
+      params: Promise.resolve({ id: 'session-1' }),
     });
 
     expect(response.status).toBe(200);
@@ -125,7 +125,7 @@ describe('reporter interview review route', () => {
     });
 
     const response = await reviewRoute.POST(buildRequest(), {
-      params: { id: 'session-1' },
+      params: Promise.resolve({ id: 'session-1' }),
     });
 
     expect(response.status).toBe(400);

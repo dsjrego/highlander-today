@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 const STORE_STATUSES = ['PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'SUSPENDED'] as const;
 
@@ -16,13 +17,18 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
     const status = searchParams.get('status')?.trim().toUpperCase();
     const query = searchParams.get('q')?.trim();
 
     const where: {
+      communityId: string;
       status?: (typeof STORE_STATUSES)[number];
       OR?: Array<Record<string, unknown>>;
-    } = {};
+    } = { communityId };
 
     if (status && STORE_STATUSES.includes(status as (typeof STORE_STATUSES)[number])) {
       where.status = status as (typeof STORE_STATUSES)[number];
@@ -72,10 +78,10 @@ export async function GET(request: NextRequest) {
         ],
       }),
       Promise.all([
-        db.store.count({ where: { status: 'PENDING_APPROVAL' } }),
-        db.store.count({ where: { status: 'APPROVED' } }),
-        db.store.count({ where: { status: 'REJECTED' } }),
-        db.store.count({ where: { status: 'SUSPENDED' } }),
+        db.store.count({ where: { communityId, status: 'PENDING_APPROVAL' } }),
+        db.store.count({ where: { communityId, status: 'APPROVED' } }),
+        db.store.count({ where: { communityId, status: 'REJECTED' } }),
+        db.store.count({ where: { communityId, status: 'SUSPENDED' } }),
       ]),
     ]);
 

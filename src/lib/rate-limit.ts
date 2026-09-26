@@ -13,6 +13,9 @@ declare global {
   var __highlanderRateLimitStore: Map<string, RateLimitState> | undefined;
 }
 
+const MAX_RATE_LIMIT_KEYS = 10_000;
+let operationsSinceSweep = 0;
+
 function getStore() {
   if (!global.__highlanderRateLimitStore) {
     global.__highlanderRateLimitStore = new Map<string, RateLimitState>();
@@ -24,6 +27,22 @@ function getStore() {
 export function consumeRateLimit(key: string, limit: number, windowMs: number): RateLimitResult {
   const now = Date.now();
   const store = getStore();
+  operationsSinceSweep += 1;
+
+  if (operationsSinceSweep >= 100 || store.size >= MAX_RATE_LIMIT_KEYS) {
+    operationsSinceSweep = 0;
+    for (const [storedKey, state] of store) {
+      if (state.resetAt <= now) {
+        store.delete(storedKey);
+      }
+    }
+
+    while (store.size >= MAX_RATE_LIMIT_KEYS) {
+      const oldestKey = store.keys().next().value as string | undefined;
+      if (!oldestKey) break;
+      store.delete(oldestKey);
+    }
+  }
   const current = store.get(key);
 
   if (!current || current.resetAt <= now) {

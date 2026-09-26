@@ -1,6 +1,7 @@
 import { inflateSync } from 'zlib';
 import type { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
+import { fetchPublicHttpUrl, readResponseBytes } from '@/lib/security/safe-fetch';
 import { recordReporterMonitoredSourceFetch } from './monitored-source-ingestion';
 
 type ParsedIngestionItem = {
@@ -1402,10 +1403,9 @@ export async function executeReporterMonitoredSourceFetch(monitoredSourceId: str
   let response: Response;
 
   try {
-    response = await fetch(source.url, {
+    response = await fetchPublicHttpUrl(source.url, {
       method: 'GET',
       headers: requestHeaders,
-      redirect: 'follow',
       signal: AbortSignal.timeout(20_000),
       cache: 'no-store',
     });
@@ -1451,7 +1451,7 @@ export async function executeReporterMonitoredSourceFetch(monitoredSourceId: str
   }
 
   try {
-    const bodyBytes = new Uint8Array(await response.arrayBuffer());
+    const bodyBytes = await readResponseBytes(response, 10 * 1024 * 1024);
     const bodyText =
       source.sourceFormat === 'PDF' ? undefined : Buffer.from(bodyBytes).toString('utf-8');
     const items = parseResponseItems({

@@ -14,8 +14,9 @@ const UpdateMembershipSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string; membershipId: string } }
+  props: { params: Promise<{ id: string; membershipId: string }> }
 ) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';

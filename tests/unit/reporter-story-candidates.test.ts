@@ -36,6 +36,12 @@ describe('reporter story candidate service', () => {
         publishedAt: new Date('2026-05-20T12:00:00Z'),
       },
     ]);
+    (prismaMock.reporterStoryCandidateItem.findMany as any).mockResolvedValue([
+      {
+        ingestionItemId: 'item-1',
+        reporterStoryCandidate: { id: 'candidate-existing' },
+      },
+    ]);
     (prismaMock.reporterSourceIngestionItem.findMany as any).mockResolvedValue([
       {
         id: 'item-1',
@@ -211,15 +217,16 @@ describe('reporter story candidate service', () => {
       limit: 12,
     });
 
-    expect(prismaMock.reporterStoryCandidateItem.deleteMany).toHaveBeenCalled();
-    expect(prismaMock.reporterStoryCandidate.deleteMany).toHaveBeenCalledWith({
+    expect(prismaMock.reporterStoryCandidate.updateMany).toHaveBeenCalledWith({
       where: { communityId: 'community-1' },
+      data: { isActive: false },
     });
-    expect(prismaMock.reporterStoryCandidate.create).toHaveBeenCalledTimes(2);
-    expect(prismaMock.reporterStoryCandidate.create).toHaveBeenCalledWith(
+    expect(prismaMock.reporterStoryCandidateItem.deleteMany).not.toHaveBeenCalled();
+    expect(prismaMock.reporterStoryCandidate.deleteMany).not.toHaveBeenCalled();
+    expect(prismaMock.reporterStoryCandidate.update).toHaveBeenCalledWith(
       expect.objectContaining({
+        where: { id: 'candidate-existing' },
         data: expect.objectContaining({
-          communityId: 'community-1',
           signalLevel: 'LIKELY',
           candidateType: 'EVENT_AND_ARTICLE',
           sourceCount: 2,
@@ -227,6 +234,7 @@ describe('reporter story candidate service', () => {
           coverageScopes: expect.arrayContaining(['LOCAL', 'COUNTY']),
           matchedKeywords: expect.arrayContaining(['school board', 'budget']),
           candidateItems: {
+            deleteMany: {},
             create: expect.arrayContaining([
               expect.objectContaining({ ingestionItemId: 'item-1' }),
               expect.objectContaining({ ingestionItemId: 'item-2' }),
@@ -235,6 +243,7 @@ describe('reporter story candidate service', () => {
         }),
       })
     );
+    expect(prismaMock.reporterStoryCandidate.create).toHaveBeenCalledTimes(1);
     expect(result).toMatchObject({
       candidateCount: 2,
       candidates: expect.arrayContaining([

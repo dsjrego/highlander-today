@@ -84,7 +84,7 @@ describe('reporter interview routes', () => {
         inviteEmail: 'jane@example.com',
         purpose: 'Clarify what she saw at the borough meeting.',
       }),
-      { params: { id: 'run-1' } }
+      { params: Promise.resolve({ id: 'run-1' }) }
     );
 
     expect(response.status).toBe(201);
@@ -144,7 +144,7 @@ describe('reporter interview routes', () => {
         priority: 'URGENT',
         purpose: 'Need chronology confirmation before deadline.',
       }),
-      { params: { id: 'interview-1' } }
+      { params: Promise.resolve({ id: 'interview-1' }) }
     );
 
     expect(response.status).toBe(200);
@@ -200,7 +200,7 @@ describe('reporter interview routes', () => {
 
     const response = await inviteRoute.POST(
       buildRequest('http://localhost/api/reporter/interviews/interview-1/invite', 'POST'),
-      { params: { id: 'interview-1' } }
+      { params: Promise.resolve({ id: 'interview-1' }) }
     );
 
     expect(response).toBeDefined();
@@ -240,7 +240,7 @@ describe('reporter interview routes', () => {
 
     const response = await reopenRoute.POST(
       buildRequest('http://localhost/api/reporter/interviews/interview-1/reopen', 'POST'),
-      { params: { id: 'interview-1' } }
+      { params: Promise.resolve({ id: 'interview-1' }) }
     );
 
     expect(response).toBeDefined();

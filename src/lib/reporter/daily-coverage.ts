@@ -1,4 +1,5 @@
 import {
+  type ReporterMonitoredSourceType,
   type ReporterCandidateType,
   type ReporterCoverageScope,
   ReporterDailyCoverageAnalysisStatus,
@@ -20,6 +21,46 @@ const CANDIDATE_TYPE_ARTICLE_ONLY = 'ARTICLE_ONLY' as ReporterCandidateType;
 const CANDIDATE_TYPE_EVENT_ONLY = 'EVENT_ONLY' as ReporterCandidateType;
 const CANDIDATE_TYPE_EVENT_AND_ARTICLE = 'EVENT_AND_ARTICLE' as ReporterCandidateType;
 const DEFAULT_PRIORITY_COVERAGE_SCOPES = [COVERAGE_SCOPE_LOCAL];
+
+const PRIMARY_MONITORED_SOURCE_TYPES = new Set<ReporterMonitoredSourceType>([
+  'MUNICIPAL_AGENDA',
+  'MUNICIPAL_MINUTES',
+  'MUNICIPAL_NOTICES',
+  'COUNTY_UPDATES',
+  'SCHOOL_BOARD',
+  'SCHOOL_ANNOUNCEMENTS',
+  'PUBLIC_SAFETY',
+]);
+
+const HIGH_CONFIDENCE_MONITORED_SOURCE_TYPES = new Set<ReporterMonitoredSourceType>([
+  'EVENT_CALENDAR',
+  'COMMUNITY_CALENDAR',
+  'PARKS_AND_REC',
+  'LIBRARY_EVENTS',
+  'SCHOOL_CALENDAR',
+  'VENUE_CALENDAR',
+  'PRESS_RELEASE',
+]);
+
+function sourceProfileForMonitoredSource(sourceType: ReporterMonitoredSourceType) {
+  if (PRIMARY_MONITORED_SOURCE_TYPES.has(sourceType)) {
+    return { sourceType: 'OFFICIAL_URL' as const, reliabilityTier: 'PRIMARY' as const };
+  }
+
+  if (HIGH_CONFIDENCE_MONITORED_SOURCE_TYPES.has(sourceType)) {
+    return { sourceType: 'OFFICIAL_URL' as const, reliabilityTier: 'HIGH' as const };
+  }
+
+  if (sourceType === 'LOCAL_NEWSROOM') {
+    return { sourceType: 'NEWS_ARTICLE' as const, reliabilityTier: 'MEDIUM' as const };
+  }
+
+  if (sourceType === 'COMMUNITY_BULLETIN') {
+    return { sourceType: 'NEWS_ARTICLE' as const, reliabilityTier: 'LOW' as const };
+  }
+
+  return { sourceType: 'NEWS_ARTICLE' as const, reliabilityTier: 'UNVERIFIED' as const };
+}
 
 export type ReporterDailyCoverageGoalView = {
   id: string;
@@ -417,6 +458,7 @@ async function ensureReporterRunForCandidate(params: {
               monitoredSource: {
                 select: {
                   label: true,
+                  sourceType: true,
                 },
               },
             },
@@ -450,20 +492,26 @@ async function ensureReporterRunForCandidate(params: {
     ]
       .filter(Boolean)
       .join('\n'),
-    initialSources: candidate.candidateItems.map(({ ingestionItem }) => ({
-      sourceType: 'NEWS_ARTICLE',
-      title: ingestionItem.title,
-      url: ingestionItem.canonicalUrl,
-      publisher: ingestionItem.publisher,
-      author: null,
-      publishedAt: ingestionItem.publishedAt?.toISOString() || null,
-      contentText: ingestionItem.contentText,
-      excerpt: ingestionItem.excerpt,
-      note: ingestionItem.monitoredSource.label
-        ? `Seeded from monitored source: ${ingestionItem.monitoredSource.label}`
-        : null,
-      reliabilityTier: 'UNVERIFIED',
-    })),
+    initialSources: candidate.candidateItems.map(({ ingestionItem }) => {
+      const sourceProfile = sourceProfileForMonitoredSource(
+        ingestionItem.monitoredSource.sourceType
+      );
+
+      return {
+        sourceType: sourceProfile.sourceType,
+        title: ingestionItem.title,
+        url: ingestionItem.canonicalUrl,
+        publisher: ingestionItem.publisher,
+        author: null,
+        publishedAt: ingestionItem.publishedAt?.toISOString() || null,
+        contentText: ingestionItem.contentText,
+        excerpt: ingestionItem.excerpt,
+        note: ingestionItem.monitoredSource.label
+          ? `Seeded from monitored source: ${ingestionItem.monitoredSource.label}`
+          : null,
+        reliabilityTier: sourceProfile.reliabilityTier,
+      };
+    }),
   });
 
   const createdRun = await db.reporterRun.create({
@@ -640,16 +688,6 @@ async function maybeGenerateDailyCoverageAnalysis(params: {
   existingAnalysisIssueCount?: number | null;
   existingAnalysisHasCriticalIssues?: boolean | null;
 }) {
-  if (!params.createdByUserId) {
-    return {
-      analysisDraftId: null,
-      analysisStatus: ReporterDailyCoverageAnalysisStatus.FAILED,
-      analysisSummary: 'Daily desk selection could not generate analysis without an authenticated editor context.',
-      analysisIssueCount: null,
-      analysisHasCriticalIssues: null,
-    };
-  }
-
   if (params.existingAnalysisDraftId) {
     return {
       analysisDraftId: params.existingAnalysisDraftId,
@@ -746,16 +784,6 @@ async function maybeGenerateDailyCoverageArticleDraft(params: {
     };
   }
 
-  if (!params.createdByUserId) {
-    return {
-      articleDraftId: null,
-      articleStatus: ReporterDailyCoverageArticleStatus.FAILED,
-      articleSummary: 'Article draft generation requires an authenticated editor context.',
-      articleIssueCount: null,
-      articleHasCriticalIssues: null,
-    };
-  }
-
   try {
     const run = await loadReporterRunForDraft(params.reporterRunId);
     if (!run) {
@@ -819,6 +847,50 @@ export async function evaluateReporterDailyCoverage(params: {
     decisionDate.getTime() - ensuredGoal.freshnessWindowHours * 60 * 60 * 1000
   );
   const priorityCoverageScopes = normalizeCoverageScopes(ensuredGoal.priorityCoverageScopes);
+
+  if (!ensuredGoal.isActive) {
+    const decision = await db.reporterDailyCoverageDecision.upsert({
+      where: {
+        reporterDailyCoverageGoalId_decisionDate: {
+          reporterDailyCoverageGoalId: ensuredGoal.id,
+          decisionDate,
+        },
+      },
+      update: {
+        reporterStoryCandidateId: null,
+        reporterRunId: null,
+        outcome: ReporterDailyCoverageDecisionOutcome.NO_PUBLISHABLE_STORY,
+        summary: 'The daily coverage desk is inactive.',
+        reasons: ['Activate the daily coverage goal before running the desk.'],
+        selectedScore: null,
+        selectedReadiness: null,
+        analysisDraftId: null,
+        analysisStatus: null,
+        analysisSummary: null,
+        analysisIssueCount: null,
+        analysisHasCriticalIssues: null,
+        articleDraftId: null,
+        articleStatus: null,
+        articleSummary: null,
+        articleIssueCount: null,
+        articleHasCriticalIssues: null,
+      },
+      create: {
+        reporterDailyCoverageGoalId: ensuredGoal.id,
+        decisionDate,
+        outcome: ReporterDailyCoverageDecisionOutcome.NO_PUBLISHABLE_STORY,
+        summary: 'The daily coverage desk is inactive.',
+        reasons: ['Activate the daily coverage goal before running the desk.'],
+      },
+      select: dailyDecisionSelect,
+    });
+
+    return {
+      date: dateKey,
+      goal: mapGoal(ensuredGoal),
+      decision: mapDecision(decision),
+    } satisfies ReporterDailyCoverageDeskView;
+  }
 
   const candidates = (await listReporterStoryCandidates({
     communityId: params.communityId,
@@ -901,10 +973,10 @@ export async function evaluateReporterDailyCoverage(params: {
         outcome: ReporterDailyCoverageDecisionOutcome.NO_PUBLISHABLE_STORY,
         summary:
           candidates.length === 0
-            ? 'No current story candidates are available for the daily desk.'
+            ? 'No recent monitored-source items produced an active story candidate.'
             : 'No story candidate cleared the current daily coverage thresholds.',
         reasons: candidates.length === 0
-          ? ['Refresh monitored-source story candidates before evaluating the daily desk.']
+          ? ['No active candidate met the desk after the monitored-source refresh.']
           : rejectedReasons.slice(0, 5),
         selectedScore: null,
         selectedReadiness: null,
@@ -925,10 +997,10 @@ export async function evaluateReporterDailyCoverage(params: {
         outcome: ReporterDailyCoverageDecisionOutcome.NO_PUBLISHABLE_STORY,
         summary:
           candidates.length === 0
-            ? 'No current story candidates are available for the daily desk.'
+            ? 'No recent monitored-source items produced an active story candidate.'
             : 'No story candidate cleared the current daily coverage thresholds.',
         reasons: candidates.length === 0
-          ? ['Refresh monitored-source story candidates before evaluating the daily desk.']
+          ? ['No active candidate met the desk after the monitored-source refresh.']
           : rejectedReasons.slice(0, 5),
       },
       select: dailyDecisionSelect,
@@ -941,6 +1013,7 @@ export async function evaluateReporterDailyCoverage(params: {
     } satisfies ReporterDailyCoverageDeskView;
   }
 
+  const hadLinkedReporterRun = Boolean(selectedCandidate.linkedReporterRun);
   const reporterRun = selectedCandidate.linkedReporterRun
     ? selectedCandidate.linkedReporterRun
     : await ensureReporterRunForCandidate({
@@ -950,18 +1023,29 @@ export async function evaluateReporterDailyCoverage(params: {
         decisionDateKey: dateKey,
       });
 
+  let productionCandidate = selectedCandidate;
+  if (!hadLinkedReporterRun) {
+    const refreshedCandidates = await listReporterStoryCandidates({
+      communityId: params.communityId,
+      limit: DEFAULT_DAILY_COVERAGE_LIMIT,
+    });
+    productionCandidate =
+      refreshedCandidates.find((candidate) => candidate.id === selectedCandidate.id) ||
+      selectedCandidate;
+  }
+
   const selectionReasons = [
     `Priority scope match: ${formatCoverageScopes(
-      normalizeCoverageScopes(selectedCandidate.coverageScopes).filter((scope) =>
+      normalizeCoverageScopes(productionCandidate.coverageScopes).filter((scope) =>
         priorityCoverageScopes.includes(scope)
       )
     )}.`,
-    selectedCandidate.readiness.reason,
-    ...selectedCandidate.signal.reasons.slice(0, 3),
+    productionCandidate.readiness.reason,
+    ...productionCandidate.signal.reasons.slice(0, 3),
   ];
 
   const analysisResult =
-    selectedCandidate.readiness.level === 'draftable'
+    productionCandidate.readiness.level === 'draftable'
       ? await maybeGenerateDailyCoverageAnalysis({
           reporterRunId: reporterRun.id,
           createdByUserId: params.createdByUserId,
@@ -993,7 +1077,7 @@ export async function evaluateReporterDailyCoverage(params: {
               : null,
           analysisStatus: ReporterDailyCoverageAnalysisStatus.SKIPPED,
           analysisSummary:
-            selectedCandidate.readiness.level === 'needs-reporting'
+            productionCandidate.readiness.level === 'needs-reporting'
               ? 'Daily desk selected this run, but source-packet analysis was skipped because reporting follow-up is still required.'
               : 'Daily desk selected this run without auto-generating source-packet analysis.',
           analysisIssueCount: null,
@@ -1001,7 +1085,7 @@ export async function evaluateReporterDailyCoverage(params: {
         };
 
   const articleResult =
-    selectedCandidate.readiness.level === 'draftable'
+    productionCandidate.readiness.level === 'draftable'
       ? await maybeGenerateDailyCoverageArticleDraft({
           reporterRunId: reporterRun.id,
           createdByUserId: params.createdByUserId,
@@ -1052,8 +1136,8 @@ export async function evaluateReporterDailyCoverage(params: {
       outcome: ReporterDailyCoverageDecisionOutcome.SELECTED_CANDIDATE,
       summary: `${selectedCandidate.title} selected for the daily desk.`,
       reasons: selectionReasons,
-      selectedScore: selectedCandidate.signal.score,
-      selectedReadiness: selectedCandidate.readiness.level,
+      selectedScore: productionCandidate.signal.score,
+      selectedReadiness: productionCandidate.readiness.level,
       analysisDraftId: analysisResult.analysisDraftId,
       analysisStatus: analysisResult.analysisStatus,
       analysisSummary: analysisResult.analysisSummary,
@@ -1073,8 +1157,8 @@ export async function evaluateReporterDailyCoverage(params: {
       outcome: ReporterDailyCoverageDecisionOutcome.SELECTED_CANDIDATE,
       summary: `${selectedCandidate.title} selected for the daily desk.`,
       reasons: selectionReasons,
-      selectedScore: selectedCandidate.signal.score,
-      selectedReadiness: selectedCandidate.readiness.level,
+      selectedScore: productionCandidate.signal.score,
+      selectedReadiness: productionCandidate.readiness.level,
       analysisDraftId: analysisResult.analysisDraftId,
       analysisStatus: analysisResult.analysisStatus,
       analysisSummary: analysisResult.analysisSummary,

@@ -12,11 +12,12 @@ function getRoleTone(role: string) {
   return 'neu' as const;
 }
 
-export default async function ProfileWorkspaceOrganizationsPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default async function ProfileWorkspaceOrganizationsPage(
+  props: {
+    params: Promise<{ id: string }>;
+  }
+) {
+  const params = await props.params;
   const memberships = await db.organizationMembership.findMany({
     where: {
       userId: params.id,
@@ -27,21 +28,19 @@ export default async function ProfileWorkspaceOrganizationsPage({
       id: true,
       role: true,
       status: true,
-      title: true,
       organization: {
         select: {
           id: true,
           name: true,
           slug: true,
           status: true,
-          organizationType: true,
         },
       },
     },
   });
 
   return (
-    <section className="admin-card">
+    <section className="admin-card w-full">
       <div className="admin-card-header">
         <div className="admin-card-header-label">Organizations</div>
         <div className="admin-card-header-actions">
@@ -76,16 +75,10 @@ export default async function ProfileWorkspaceOrganizationsPage({
               status: membership.status,
             });
 
-            return (
+                return (
               <tr key={membership.id} className="admin-list-row">
                 <td className="admin-list-cell">
-                  <div className="space-y-1">
-                    <div className="font-semibold text-slate-950">{membership.organization.name}</div>
-                    <div className="text-sm text-slate-500">
-                      {formatOrganizationTypeLabel(membership.organization.organizationType)}
-                      {membership.title ? ` · ${membership.title}` : ''}
-                    </div>
-                  </div>
+                  <div className="font-semibold text-slate-950">{membership.organization.name}</div>
                 </td>
                 <td className="admin-list-cell">
                   <AdminChip tone={getRoleTone(membership.role)}>{formatOrganizationTypeLabel(membership.role)}</AdminChip>

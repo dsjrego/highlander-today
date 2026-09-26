@@ -8,6 +8,7 @@ import {
   SELLER_STATUS_TRANSITIONS,
 } from '@/lib/marketplace-status';
 import { z } from 'zod';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 const UPDATE_STATUSES = ['DRAFT', 'PENDING', 'ACTIVE', 'SOLD', 'ARCHIVED', 'REMOVED'] as const;
 const LISTING_TYPES = ['PRODUCT', 'FOOD', 'SERVICE'] as const;
@@ -111,13 +112,15 @@ function canSeeSellerContact(request: NextRequest, listing: Parameters<typeof ca
   );
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
-    const listing = await db.marketplaceListing.findUnique({
-      where: { id: params.id },
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+    const listing = await db.marketplaceListing.findFirst({
+      where: { id: params.id, communityId },
       include: {
         photos: {
           orderBy: { sortOrder: 'asc' },
@@ -188,10 +191,8 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const permissionUser = buildPermissionUser(request);
 
@@ -206,8 +207,13 @@ export async function PATCH(
       );
     }
 
-    const listing = await db.marketplaceListing.findUnique({
-      where: { id: params.id },
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+
+    const listing = await db.marketplaceListing.findFirst({
+      where: { id: params.id, communityId },
       include: {
         store: {
           select: {
@@ -353,10 +359,8 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const permissionUser = buildPermissionUser(request);
 
@@ -371,8 +375,13 @@ export async function DELETE(
       );
     }
 
-    const listing = await db.marketplaceListing.findUnique({
-      where: { id: params.id },
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+
+    const listing = await db.marketplaceListing.findFirst({
+      where: { id: params.id, communityId },
       include: {
         photos: true,
         store: {

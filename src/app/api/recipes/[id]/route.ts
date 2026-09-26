@@ -3,14 +3,17 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
 import { serializeRecipe } from '@/lib/recipes';
+import { resolveRequestCommunityId } from '@/lib/community';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
-    const recipe = await db.recipe.findUnique({
-      where: { id: params.id },
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+    const recipe = await db.recipe.findFirst({
+      where: { id: params.id, communityId },
       include: {
         author: {
           select: {
@@ -79,10 +82,8 @@ const UpdateRecipeSchema = z
     message: 'At least one field must be provided.',
   });
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
@@ -91,9 +92,14 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const recipe = await db.recipe.findUnique({
-      where: { id: params.id },
-      select: { id: true, authorUserId: true, status: true },
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+
+    const recipe = await db.recipe.findFirst({
+      where: { id: params.id, communityId },
+      select: { id: true, authorUserId: true, status: true, communityId: true },
     });
 
     if (!recipe) {
@@ -129,20 +135,11 @@ export async function PATCH(
       }
 
       if (validated.categoryId) {
-        const currentRecipe = await db.recipe.findUnique({
-          where: { id: params.id },
-          select: { communityId: true },
-        });
-
-        if (!currentRecipe) {
-          return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
-        }
-
         const category = await db.category.findFirst({
           where: {
             id: validated.categoryId,
             contentModel: 'RECIPE',
-            OR: [{ communityId: currentRecipe.communityId }, { communityId: null }],
+            OR: [{ communityId: recipe.communityId }, { communityId: null }],
           },
           select: { id: true },
         });

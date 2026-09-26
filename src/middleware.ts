@@ -3,15 +3,28 @@ import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import {
   applyTrustedIdentityHeaders,
-  getClientIpFromHeaders,
+  getProxyClientIp,
+  resolveTrustedTenantContext,
   stripUntrustedForwardedHeaders,
 } from '@/lib/request-security';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const token = await getToken({ req: request });
-  const isSuperAdmin = token?.role === 'SUPER_ADMIN';
+  let token = null;
+  try {
+    token = await getToken({ req: request });
+  } catch {
+    token = null;
+  }
+
+  const tenantContext = resolveTrustedTenantContext(token as any, request.nextUrl.hostname);
+  const isSuspended = token?.trust_level === 'SUSPENDED';
+  const isTrusted = token?.trust_level === 'TRUSTED';
+  // A privileged membership never overrides the account trust boundary. This
+  // also protects older/stale JWTs after an account is demoted or suspended.
+  const effectiveRole = isSuspended ? '' : isTrusted ? tenantContext.role : 'READER';
+  const isSuperAdmin = effectiveRole === 'SUPER_ADMIN';
   const isRoadmapUiRoute =
     pathname === '/roadmap' ||
     pathname.startsWith('/roadmap/') ||
@@ -37,10 +50,18 @@ export async function middleware(request: NextRequest) {
   const protectedPaths = ['/admin', '/messages', '/help-us-grow', '/local-life/submit', '/local-life/drafts', '/marketplace/create', '/marketplace/stores', '/marketplace/stores/create'];
   const isProtected = protectedPaths.some((path) => pathname.startsWith(path));
 
-  if (isProtected && !token) {
+  const adminRoles = new Set(['CONTRIBUTOR', 'STAFF_WRITER', 'EDITOR', 'ADMIN', 'SUPER_ADMIN']);
+  const hasAdminSurfaceAccess =
+    token?.trust_level === 'TRUSTED' && adminRoles.has(effectiveRole);
+
+  if (isProtected && (!token || isSuspended)) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  if (pathname.startsWith('/admin') && !hasAdminSurfaceAccess) {
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   // Forward user context as headers so API route handlers can read them
@@ -48,10 +69,18 @@ export async function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   stripUntrustedForwardedHeaders(requestHeaders);
 
-  applyTrustedIdentityHeaders(requestHeaders, token as any);
+  applyTrustedIdentityHeaders(
+    requestHeaders,
+    token && !isSuspended ? ({ ...token, role: effectiveRole } as any) : null
+  );
+
+  requestHeaders.set('x-community-domain', tenantContext.communityDomain);
+  if (tenantContext.communityId) {
+    requestHeaders.set('x-community-id', tenantContext.communityId);
+  }
 
   // Forward client IP for activity logging and forensic trail.
-  const clientIp = getClientIpFromHeaders(request.headers);
+  const clientIp = getProxyClientIp(request.headers);
   requestHeaders.set('x-client-ip', clientIp);
 
   return NextResponse.next({ request: { headers: requestHeaders } });

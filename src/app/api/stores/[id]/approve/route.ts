@@ -3,16 +3,15 @@ import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
 import { logActivity } from '@/lib/activity-log';
 import { z } from 'zod';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 const ApproveStoreSchema = z.object({
   approved: z.boolean(),
   rejectionReason: z.string().trim().max(1000).optional(),
 });
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role') || '';
@@ -30,9 +29,13 @@ export async function POST(
 
     const body = await request.json();
     const validated = ApproveStoreSchema.parse(body);
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
 
-    const store = await db.store.findUnique({
-      where: { id: params.id },
+    const store = await db.store.findFirst({
+      where: { id: params.id, communityId },
       include: {
         owner: {
           select: {

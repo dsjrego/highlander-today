@@ -91,10 +91,8 @@ function getOpenTurn(session: { turns?: Array<any> } | null | undefined) {
   return session.turns.find((turn) => !turn.answeredAt) || null;
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const result = await getAuthorizedInterview(request, params.id);
     if ('error' in result) {
@@ -142,10 +140,8 @@ export async function GET(
   }
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const result = await getAuthorizedInterview(request, params.id);
     if ('error' in result) {

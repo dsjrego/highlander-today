@@ -12,11 +12,27 @@ import {
 } from '@/lib/admin-navigation';
 import { getCurrentCommunity } from '@/lib/community';
 import { db } from '@/lib/db';
+import { redirect } from 'next/navigation';
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const session = await getServerSession(authOptions);
+  const adminSurfaceRoles = new Set([
+    'CONTRIBUTOR',
+    'STAFF_WRITER',
+    'EDITOR',
+    'ADMIN',
+    'SUPER_ADMIN',
+  ]);
+  if (
+    !session?.user?.id ||
+    session.user.trust_level !== 'TRUSTED' ||
+    !session.user.role ||
+    !adminSurfaceRoles.has(session.user.role)
+  ) {
+    redirect('/');
+  }
   const isSuperAdmin = session?.user?.role === 'SUPER_ADMIN';
-  const currentCommunity = await getCurrentCommunity({ headers: headers() });
+  const currentCommunity = await getCurrentCommunity({ headers: await headers() });
   const sidebarOrderSetting = currentCommunity
     ? await db.siteSetting.findUnique({
         where: {

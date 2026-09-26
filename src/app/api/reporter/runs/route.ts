@@ -84,6 +84,9 @@ export async function GET(request: NextRequest) {
     }
 
     const currentCommunity = await getCurrentCommunity({ headers: request.headers });
+    if (!currentCommunity) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get('status')?.trim() || undefined;
     const assignedTo = searchParams.get('assignedTo')?.trim() || undefined;
@@ -91,7 +94,7 @@ export async function GET(request: NextRequest) {
 
     const runs = await db.reporterRun.findMany({
       where: {
-        ...(currentCommunity?.id ? { communityId: currentCommunity.id } : {}),
+        communityId: currentCommunity.id,
         ...(status ? { status: status as never } : {}),
         ...(assignedTo ? { assignedToUserId: assignedTo } : {}),
         ...(query
@@ -171,12 +174,7 @@ export async function POST(request: NextRequest) {
 
     const normalized = normalizeReporterRunInput(payload);
     const currentCommunity = await getCurrentCommunity({ headers: request.headers });
-    const fallbackCommunity = currentCommunity
-      ? currentCommunity
-      : await db.community.findFirst({
-          select: { id: true, name: true, slug: true, domain: true },
-          orderBy: { createdAt: 'asc' },
-        });
+    const fallbackCommunity = currentCommunity;
 
     if (!fallbackCommunity) {
       return NextResponse.json({ error: 'Community not found' }, { status: 500 });

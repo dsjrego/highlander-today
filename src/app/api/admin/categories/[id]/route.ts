@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { CategoryContentModel, TrustLevel } from '@prisma/client';
 import { db } from '@/lib/db';
 import { checkPermission } from '@/lib/permissions';
+import { resolveRequestCommunityId } from '@/lib/community';
 
 const UpdateCategorySchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
@@ -23,10 +24,8 @@ function slugify(value: string) {
     .replace(/^-|-$/g, '');
 }
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userRole = request.headers.get('x-user-role') || '';
 
@@ -34,13 +33,34 @@ export async function PATCH(
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    const existingCategory = await db.category.findUnique({
-      where: { id: params.id },
-      select: { id: true, slug: true, parentCategoryId: true, contentModel: true, minTrustLevel: true },
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+
+    const existingCategory = await db.category.findFirst({
+      where: {
+        id: params.id,
+        OR: [{ communityId }, { communityId: null }],
+      },
+      select: {
+        id: true,
+        slug: true,
+        parentCategoryId: true,
+        contentModel: true,
+        minTrustLevel: true,
+        communityId: true,
+      },
     });
 
     if (!existingCategory) {
       return NextResponse.json({ error: 'Category not found' }, { status: 404 });
+    }
+    if (!existingCategory.communityId && userRole !== 'SUPER_ADMIN') {
+      return NextResponse.json(
+        { error: 'Only Super Admins can edit global categories' },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();
@@ -53,6 +73,7 @@ export async function PATCH(
       const duplicate = await db.category.findFirst({
         where: {
           slug: validated.slug,
+          communityId: existingCategory.communityId,
           NOT: { id: params.id },
         },
         select: { id: true },
@@ -68,13 +89,30 @@ export async function PATCH(
     }
 
     if (validated.parentCategoryId) {
+      const parent = await db.category.findFirst({
+        where: {
+          id: validated.parentCategoryId,
+          communityId: existingCategory.communityId,
+        },
+        select: { id: true },
+      });
+      if (!parent) {
+        return NextResponse.json(
+          { error: 'Parent category must belong to the same community' },
+          { status: 400 }
+        );
+      }
+
       const descendants = new Set<string>();
       const queue = [params.id];
 
       while (queue.length > 0) {
         const currentId = queue.shift()!;
         const children = await db.category.findMany({
-          where: { parentCategoryId: currentId },
+          where: {
+            parentCategoryId: currentId,
+            communityId: existingCategory.communityId,
+          },
           select: { id: true },
         });
 
@@ -132,10 +170,8 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userRole = request.headers.get('x-user-role') || '';
 
@@ -143,13 +179,27 @@ export async function DELETE(
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    const existingCategory = await db.category.findUnique({
-      where: { id: params.id },
-      select: { id: true, name: true, slug: true },
+    const communityId = await resolveRequestCommunityId(request);
+    if (!communityId) {
+      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+    }
+
+    const existingCategory = await db.category.findFirst({
+      where: {
+        id: params.id,
+        OR: [{ communityId }, { communityId: null }],
+      },
+      select: { id: true, name: true, slug: true, communityId: true },
     });
 
     if (!existingCategory) {
       return NextResponse.json({ error: 'Category not found' }, { status: 404 });
+    }
+    if (!existingCategory.communityId && userRole !== 'SUPER_ADMIN') {
+      return NextResponse.json(
+        { error: 'Only Super Admins can delete global categories' },
+        { status: 403 }
+      );
     }
 
     await db.category.delete({

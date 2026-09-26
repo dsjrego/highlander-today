@@ -9,7 +9,7 @@ import { getCurrentCommunity } from '@/lib/community';
 import { db } from '@/lib/db';
 import MemorialMemoryForm from './MemorialMemoryForm';
 
-interface PageProps { params: { slug: string } }
+interface PageProps { params: Promise<{ slug: string }> }
 
 function fmtLong(d: Date | null) {
   if (!d) return null;
@@ -91,8 +91,9 @@ async function getPage(slug: string, communityId?: string) {
   });
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const c = await getCurrentCommunity({ headers: headers() });
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const params = await props.params;
+  const c = await getCurrentCommunity({ headers: await headers() });
   const page = await getPage(params.slug, c?.id);
   if (!page) return { title: 'Memoriam' };
   const desc = page.shortSummary?.trim()
@@ -106,9 +107,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function MemorialDetailPage({ params }: PageProps) {
+export default async function MemorialDetailPage(props: PageProps) {
+  const params = await props.params;
   const [c, session] = await Promise.all([
-    getCurrentCommunity({ headers: headers() }),
+    getCurrentCommunity({ headers: await headers() }),
     getServerSession(authOptions),
   ]);
   const page = await getPage(params.slug, c?.id);

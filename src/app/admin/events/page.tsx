@@ -17,7 +17,7 @@ export default async function AdminEventsPage() {
     redirect('/');
   }
 
-  const currentCommunity = await getCurrentCommunity({ headers: headers() });
+  const currentCommunity = await getCurrentCommunity({ headers: await headers() });
 
   const events = await db.event.findMany({
     where: {

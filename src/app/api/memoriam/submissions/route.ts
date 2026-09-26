@@ -116,16 +116,7 @@ async function makeUniqueSlug(
 }
 
 async function resolveCommunity(request: NextRequest) {
-  const currentCommunity = await getCurrentCommunity({ headers: request.headers });
-
-  if (currentCommunity) {
-    return currentCommunity;
-  }
-
-  return db.community.findFirst({
-    select: { id: true, name: true, slug: true, domain: true },
-    orderBy: { createdAt: 'asc' },
-  });
+  return getCurrentCommunity({ headers: request.headers, nextUrl: request.nextUrl });
 }
 
 export async function GET(request: NextRequest) {
