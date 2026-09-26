@@ -93,3 +93,5 @@ build/
 
 # Uploaded files (dev)
 public/uploads/
+.vercel
+.env*
