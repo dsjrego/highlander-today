@@ -173,6 +173,15 @@ export const prismaMock = {
     update: jest.fn(),
     deleteMany: jest.fn(),
   },
+  reporterDailyCoverageItem: {
+    create: jest.fn(),
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    upsert: jest.fn(),
+    update: jest.fn(),
+    deleteMany: jest.fn(),
+  },
   reporterInterviewRequest: {
     create: jest.fn(),
     findUnique: jest.fn(),

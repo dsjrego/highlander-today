@@ -9,7 +9,7 @@ import { upsertReporterDailyCoverageGoal } from '@/lib/reporter/daily-coverage';
 const ReporterDailyCoverageGoalSchema = z.object({
   placeId: z.string().uuid().optional().nullable(),
   label: z.string().trim().max(120).optional().nullable(),
-  targetArticleCount: z.number().int().min(1).max(3).optional(),
+  targetArticleCount: z.number().int().min(1).max(5).optional(),
   priorityCoverageScopes: z.array(z.nativeEnum(ReporterCoverageScope)).min(1).optional(),
   minimumCandidateScore: z.number().int().min(1).max(20).optional(),
   freshnessWindowHours: z.number().int().min(6).max(168).optional(),
@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
       metadata: {
         communityId: currentCommunity.id,
         placeId: goal.placeId,
+        targetArticleCount: goal.targetArticleCount,
         priorityCoverageScopes: goal.priorityCoverageScopes,
         minimumCandidateScore: goal.minimumCandidateScore,
         freshnessWindowHours: goal.freshnessWindowHours,

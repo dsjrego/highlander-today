@@ -802,6 +802,146 @@ describe('reporter daily coverage service', () => {
     expect(createReporterDraftForRunMock).toHaveBeenCalledTimes(1);
   });
 
+  it('produces an editor-ready slate up to the configured article target', async () => {
+    (prismaMock.reporterDailyCoverageGoal.findUnique as any).mockResolvedValue({
+      id: 'goal-slate',
+      label: 'Morning desk',
+      targetArticleCount: 2,
+      priorityCoverageScopes: ['LOCAL'],
+      minimumCandidateScore: 6,
+      freshnessWindowHours: 48,
+      allowNeedsReportingFallback: true,
+      isActive: true,
+      updatedAt: new Date('2026-05-25T12:00:00Z'),
+      place: null,
+      placeId: null,
+    });
+    const candidate = (id: string, title: string, score: number) => ({
+      id,
+      placeId: null,
+      title,
+      summary: `${title} summary`,
+      candidateType: 'ARTICLE_ONLY',
+      coverageScopes: ['LOCAL'],
+      sourceCount: 2,
+      itemCount: 2,
+      latestAt: new Date('2026-05-25T15:00:00Z'),
+      matchedKeywords: [],
+      linkedReporterRun: {
+        id: `run-${id}`,
+        title,
+        topic: title,
+        status: 'READY_FOR_DRAFT',
+      },
+      readiness: {
+        level: 'draftable',
+        label: 'Draftable',
+        reason: 'Linked run has supported claims.',
+        actionableClaimCount: 0,
+        supportedClaimCount: 2,
+        followUpClaimCount: 0,
+        blockerCount: 0,
+      },
+      signal: { level: 'likely', score, reasons: ['fresh civic signal'] },
+      items: [],
+    });
+    (listReporterStoryCandidatesMock as any).mockResolvedValue([
+      candidate('candidate-a', 'Council budget advances', 10),
+      candidate('candidate-b', 'School vote scheduled', 9),
+      candidate('candidate-c', 'Road work announced', 8),
+    ]);
+    (loadReporterRunForDraftMock as any).mockImplementation(({ id }: { id: string }) =>
+      Promise.resolve({ id })
+    );
+    (createReporterDraftForRunMock as any)
+      .mockResolvedValueOnce({ persisted: { id: 'analysis-a' }, validation: { hasCriticalIssues: false, issues: [] } })
+      .mockResolvedValueOnce({ persisted: { id: 'article-a' }, validation: { hasCriticalIssues: false, issues: [] } })
+      .mockResolvedValueOnce({ persisted: { id: 'analysis-b' }, validation: { hasCriticalIssues: false, issues: [] } })
+      .mockResolvedValueOnce({ persisted: { id: 'article-b' }, validation: { hasCriticalIssues: false, issues: [] } });
+    (prismaMock.reporterDailyCoverageDecision.upsert as any).mockResolvedValue({
+      id: 'decision-slate',
+      decisionDate: new Date('2026-05-25T12:00:00Z'),
+      outcome: 'SELECTED_CANDIDATE',
+      summary: '2 of 2 morning drafts ready for editor review.',
+      reasons: [],
+      selectedScore: 10,
+      selectedReadiness: 'draftable',
+      analysisStatus: 'GENERATED',
+      analysisSummary: 'Generated.',
+      analysisIssueCount: 0,
+      analysisHasCriticalIssues: false,
+      analysisDraft: { id: 'analysis-a', draftType: 'SOURCE_PACKET_SUMMARY' },
+      articleStatus: 'GENERATED',
+      articleSummary: 'Generated.',
+      articleIssueCount: 0,
+      articleHasCriticalIssues: false,
+      articleDraft: { id: 'article-a', draftType: 'ARTICLE_DRAFT' },
+      updatedAt: new Date('2026-05-25T16:00:00Z'),
+      storyCandidate: { id: 'candidate-a', title: 'Council budget advances' },
+      reporterRun: { id: 'run-candidate-a', title: 'Council budget advances', topic: 'Council budget advances', status: 'READY_FOR_DRAFT' },
+      items: [],
+    });
+
+    const result = await evaluateReporterDailyCoverage({
+      communityId: 'community-1',
+      date: '2026-05-25',
+      createdByUserId: 'editor-1',
+    });
+
+    expect(result.decision).toMatchObject({ readyCount: 2, attemptedCount: 2 });
+    expect(result.decision?.items).toHaveLength(2);
+    expect(prismaMock.reporterDailyCoverageItem.upsert).toHaveBeenCalledTimes(2);
+    expect(createReporterDraftForRunMock).toHaveBeenCalledTimes(4);
+  });
+
+  it('continues to the next candidate when a higher-ranked story is blocked', async () => {
+    (prismaMock.reporterDailyCoverageGoal.findUnique as any).mockResolvedValue({
+      id: 'goal-fallback', label: 'Morning desk', targetArticleCount: 1,
+      priorityCoverageScopes: ['LOCAL'], minimumCandidateScore: 6,
+      freshnessWindowHours: 48, allowNeedsReportingFallback: true, isActive: true,
+      updatedAt: new Date('2026-05-25T12:00:00Z'), place: null, placeId: null,
+    });
+    const candidates = ['blocked', 'clean'].map((suffix, index) => ({
+      id: `candidate-${suffix}`, placeId: null, title: `${suffix} story`, summary: null,
+      candidateType: 'ARTICLE_ONLY', coverageScopes: ['LOCAL'], sourceCount: 2, itemCount: 2,
+      latestAt: new Date('2026-05-25T15:00:00Z'), matchedKeywords: [],
+      linkedReporterRun: { id: `run-${suffix}`, title: `${suffix} story`, topic: `${suffix} story`, status: 'READY_FOR_DRAFT' },
+      readiness: { level: 'draftable', label: 'Draftable', reason: 'Supported.', actionableClaimCount: 0, supportedClaimCount: 2, followUpClaimCount: 0, blockerCount: 0 },
+      signal: { level: 'likely', score: 10 - index, reasons: ['fresh'] }, items: [],
+    }));
+    (listReporterStoryCandidatesMock as any).mockResolvedValue(candidates);
+    (loadReporterRunForDraftMock as any).mockResolvedValue({ id: 'run' });
+    (createReporterDraftForRunMock as any)
+      .mockResolvedValueOnce({ persisted: { id: 'analysis-blocked' }, validation: { hasCriticalIssues: true, issues: [{ code: 'UNSUPPORTED' }] } })
+      .mockResolvedValueOnce({ persisted: { id: 'analysis-clean' }, validation: { hasCriticalIssues: false, issues: [] } })
+      .mockResolvedValueOnce({ persisted: { id: 'article-clean' }, validation: { hasCriticalIssues: false, issues: [] } });
+    (prismaMock.reporterDailyCoverageDecision.upsert as any).mockResolvedValue({
+      id: 'decision-fallback', decisionDate: new Date('2026-05-25T12:00:00Z'), outcome: 'SELECTED_CANDIDATE',
+      summary: '1 of 1 morning draft ready for editor review.', reasons: [], selectedScore: 9,
+      selectedReadiness: 'draftable', analysisStatus: 'GENERATED', analysisSummary: 'Generated.',
+      analysisIssueCount: 0, analysisHasCriticalIssues: false,
+      analysisDraft: { id: 'analysis-clean', draftType: 'SOURCE_PACKET_SUMMARY' },
+      articleStatus: 'GENERATED', articleSummary: 'Generated.', articleIssueCount: 0,
+      articleHasCriticalIssues: false, articleDraft: { id: 'article-clean', draftType: 'ARTICLE_DRAFT' },
+      updatedAt: new Date('2026-05-25T16:00:00Z'),
+      storyCandidate: { id: 'candidate-clean', title: 'clean story' },
+      reporterRun: { id: 'run-clean', title: 'clean story', topic: 'clean story', status: 'READY_FOR_DRAFT' },
+      items: [],
+    });
+
+    const result = await evaluateReporterDailyCoverage({
+      communityId: 'community-1', date: '2026-05-25', createdByUserId: 'editor-1',
+    });
+
+    expect(result.decision).toMatchObject({ readyCount: 1, blockedCount: 1, attemptedCount: 2 });
+    expect(prismaMock.reporterDailyCoverageItem.upsert).toHaveBeenNthCalledWith(
+      1, expect.objectContaining({ create: expect.objectContaining({ status: 'BLOCKED' }) })
+    );
+    expect(prismaMock.reporterDailyCoverageItem.upsert).toHaveBeenNthCalledWith(
+      2, expect.objectContaining({ create: expect.objectContaining({ status: 'READY_FOR_EDITOR' }) })
+    );
+  });
+
   it('upserts the community daily coverage goal', async () => {
     (prismaMock.reporterDailyCoverageGoal.upsert as any).mockResolvedValue({
       id: 'goal-4',

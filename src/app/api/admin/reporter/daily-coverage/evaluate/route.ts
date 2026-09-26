@@ -52,6 +52,15 @@ export async function POST(request: NextRequest) {
           analysisDraftId: desk.decision.analysisDraft?.id || null,
           articleStatus: desk.decision.articleStatus,
           articleDraftId: desk.decision.articleDraft?.id || null,
+          readyCount: desk.decision.readyCount,
+          attemptedCount: desk.decision.attemptedCount,
+          blockedCount: desk.decision.blockedCount,
+          editionItems: desk.decision.items?.map((item) => ({
+            candidateId: item.storyCandidate?.id || null,
+            reporterRunId: item.reporterRun?.id || null,
+            articleDraftId: item.articleDraft?.id || null,
+            status: item.status,
+          })) || [],
         },
       });
     }

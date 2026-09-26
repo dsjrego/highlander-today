@@ -137,7 +137,7 @@ export default async function AdminReporterPage() {
           <div className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
             <div>
               <div className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-                Today&apos;s automated decision
+                Today&apos;s morning edition
               </div>
               <div className="mt-1 text-sm font-semibold text-slate-900">
                 {morningDesk?.decision?.summary ||
@@ -146,15 +146,23 @@ export default async function AdminReporterPage() {
               {morningDesk?.decision?.reasons?.[0] ? (
                 <div className="mt-1 text-xs text-slate-600">{morningDesk.decision.reasons[0]}</div>
               ) : null}
+              {morningDesk?.decision ? (
+                <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-600">
+                  <span>{morningDesk.decision.readyCount} ready</span>
+                  <span aria-hidden="true">•</span>
+                  <span>{morningDesk.decision.attemptedCount} attempted</span>
+                  {morningDesk.decision.blockedCount ? (
+                    <>
+                      <span aria-hidden="true">•</span>
+                      <span>{morningDesk.decision.blockedCount} blocked or failed</span>
+                    </>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
-            {morningDesk?.decision?.reporterRun ? (
-              <Link
-                href={`/admin/reporter/${morningDesk.decision.reporterRun.id}?view=${morningDesk.decision.articleDraft ? 'drafts' : 'sources'}`}
-                className="page-header-action"
-              >
-                {morningDesk.decision.articleDraft ? 'Review Draft' : 'Open Selected Run'}
-              </Link>
-            ) : null}
+            <div className="text-right text-xs text-slate-500">
+              Target: {morningDesk?.goal?.targetArticleCount || 3} clean drafts
+            </div>
           </div>
 
           <div className="admin-list">
@@ -162,45 +170,100 @@ export default async function AdminReporterPage() {
               <table className="admin-list-table">
                 <thead className="admin-list-head">
                   <tr>
-                    <th className="admin-list-header-cell">Candidate</th>
-                    <th className="admin-list-header-cell">Readiness</th>
+                    <th className="admin-list-header-cell">Morning story</th>
+                    <th className="admin-list-header-cell">Production status</th>
                     <th className="admin-list-header-cell">Score</th>
-                    <th className="admin-list-header-cell">Sources</th>
+                    <th className="admin-list-header-cell">Validation</th>
                     <th className="admin-list-header-cell">Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {storyCandidates.length ? (
-                    storyCandidates.map((candidate) => (
-                      <tr key={candidate.id} className="admin-list-row">
+                  {morningDesk?.decision?.items.length ? (
+                    morningDesk.decision.items.map((item) => (
+                      <tr key={item.id} className="admin-list-row">
                         <td className="admin-list-cell">
-                          <div className="font-medium text-slate-900">{candidate.title}</div>
+                          <div className="font-medium text-slate-900">
+                            {item.storyCandidate?.title || item.reporterRun?.title || 'Untitled story'}
+                          </div>
                           <div className="text-xs text-slate-500">
-                            {candidate.candidateType.replace(/_/g, ' ')}
+                            Draft {item.rank} · {item.selectedReadiness?.replace(/-/g, ' ') || 'selected'}
                           </div>
                         </td>
-                        <td className="admin-list-cell">{candidate.readiness.label}</td>
-                        <td className="admin-list-cell">{candidate.signal.score}</td>
-                        <td className="admin-list-cell">{candidate.sourceCount}</td>
                         <td className="admin-list-cell">
-                          <Link
-                            href={`/admin/reporter/sources?candidate=${candidate.id}`}
-                            className="admin-list-link"
-                          >
-                            Review Lead
-                          </Link>
+                          <span className="font-medium text-slate-800">{item.statusLabel}</span>
+                        </td>
+                        <td className="admin-list-cell">{item.selectedScore ?? '—'}</td>
+                        <td className="admin-list-cell">
+                          {typeof item.articleIssueCount === 'number'
+                            ? `${item.articleIssueCount} issue${item.articleIssueCount === 1 ? '' : 's'}`
+                            : item.analysisStatusLabel || 'Not run'}
+                        </td>
+                        <td className="admin-list-cell">
+                          {item.reporterRun ? (
+                            <Link
+                              href={`/admin/reporter/${item.reporterRun.id}?view=${item.articleDraft ? 'drafts' : item.status === 'blocked' ? 'blockers' : 'sources'}`}
+                              className="admin-list-link"
+                            >
+                              {item.articleDraft ? 'Review Draft' : 'Open Run'}
+                            </Link>
+                          ) : (
+                            <span className="text-xs text-slate-500">Unavailable</span>
+                          )}
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr className="admin-list-row">
                       <td className="admin-list-empty" colSpan={5}>
-                        No active story candidates are available yet.
+                        The overnight desk has not produced an edition for this date yet.
                       </td>
                     </tr>
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+              Candidate queue
+            </div>
+            <div className="admin-list">
+              <div className="admin-list-table-wrap">
+                <table className="admin-list-table">
+                  <thead className="admin-list-head">
+                    <tr>
+                      <th className="admin-list-header-cell">Candidate</th>
+                      <th className="admin-list-header-cell">Readiness</th>
+                      <th className="admin-list-header-cell">Score</th>
+                      <th className="admin-list-header-cell">Sources</th>
+                      <th className="admin-list-header-cell">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {storyCandidates.length ? storyCandidates.map((candidate) => (
+                      <tr key={candidate.id} className="admin-list-row">
+                        <td className="admin-list-cell">
+                          <div className="font-medium text-slate-900">{candidate.title}</div>
+                          <div className="text-xs text-slate-500">{candidate.candidateType.replace(/_/g, ' ')}</div>
+                        </td>
+                        <td className="admin-list-cell">{candidate.readiness.label}</td>
+                        <td className="admin-list-cell">{candidate.signal.score}</td>
+                        <td className="admin-list-cell">{candidate.sourceCount}</td>
+                        <td className="admin-list-cell">
+                          <Link href={`/admin/reporter/sources?candidate=${candidate.id}`} className="admin-list-link">
+                            Review Lead
+                          </Link>
+                        </td>
+                      </tr>
+                    )) : (
+                      <tr className="admin-list-row">
+                        <td className="admin-list-empty" colSpan={5}>No active story candidates are available yet.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>

@@ -988,6 +988,14 @@ enum ReporterDailyCoverageArticleStatus {
   FAILED
 }
 
+enum ReporterDailyCoverageItemStatus {
+  SELECTED
+  READY_FOR_EDITOR
+  NEEDS_REPORTING
+  BLOCKED
+  FAILED
+}
+
 enum ReporterInterviewRequestStatus {
   DRAFT
   INVITED
@@ -1087,6 +1095,7 @@ model ReporterRun {
   claims            ReporterClaim[]
   storyCandidates   ReporterStoryCandidate[] @relation("reporterStoryCandidateLinkedRun")
   dailyCoverageDecisions ReporterDailyCoverageDecision[]
+  dailyCoverageItems ReporterDailyCoverageItem[]
   interviewRequests ReporterInterviewRequest[]
 
   @@index([communityId, status])
@@ -1177,6 +1186,8 @@ model ReporterDraft {
   validationIssues  ReporterValidationIssue[]
   dailyCoverageAnalysisDecisions ReporterDailyCoverageDecision[] @relation("reporterDailyCoverageDecisionAnalysisDraft")
   dailyCoverageArticleDecisions ReporterDailyCoverageDecision[] @relation("reporterDailyCoverageDecisionArticleDraft")
+  dailyCoverageAnalysisItems ReporterDailyCoverageItem[] @relation("reporterDailyCoverageItemAnalysisDraft")
+  dailyCoverageArticleItems ReporterDailyCoverageItem[] @relation("reporterDailyCoverageItemArticleDraft")
 
   @@index([reporterRunId, createdAt])
   @@index([createdByUserId])
@@ -1419,6 +1430,7 @@ model ReporterStoryCandidate {
   linkedReporterRun ReporterRun? @relation("reporterStoryCandidateLinkedRun", fields: [linkedReporterRunId], references: [id], onDelete: SetNull)
   candidateItems ReporterStoryCandidateItem[]
   dailyCoverageDecisions ReporterDailyCoverageDecision[]
+  dailyCoverageItems ReporterDailyCoverageItem[]
   createdEvents Event[]
 
   @@index([communityId, score])
@@ -1434,7 +1446,7 @@ model ReporterDailyCoverageGoal {
   communityId                 String   @db.Uuid
   placeId                     String?  @db.Uuid
   label                       String?
-  targetArticleCount          Int      @default(1)
+  targetArticleCount          Int      @default(3)
   priorityCoverageScopes      String[] @default([])
   minimumCandidateScore       Int      @default(6)
   freshnessWindowHours        Int      @default(36)
@@ -1482,6 +1494,7 @@ model ReporterDailyCoverageDecision {
   reporterRun    ReporterRun?             @relation(fields: [reporterRunId], references: [id], onDelete: SetNull)
   analysisDraft  ReporterDraft?           @relation("reporterDailyCoverageDecisionAnalysisDraft", fields: [analysisDraftId], references: [id], onDelete: SetNull)
   articleDraft   ReporterDraft?           @relation("reporterDailyCoverageDecisionArticleDraft", fields: [articleDraftId], references: [id], onDelete: SetNull)
+  items          ReporterDailyCoverageItem[]
 
   @@unique([reporterDailyCoverageGoalId, decisionDate])
   @@index([reporterStoryCandidateId])
@@ -1490,6 +1503,46 @@ model ReporterDailyCoverageDecision {
   @@index([articleDraftId])
   @@index([decisionDate])
   @@map("reporter_daily_coverage_decisions")
+}
+
+model ReporterDailyCoverageItem {
+  id                              String   @id @default(uuid()) @db.Uuid
+  reporterDailyCoverageDecisionId String   @db.Uuid
+  reporterStoryCandidateId        String   @db.Uuid
+  reporterRunId                   String?  @db.Uuid
+  analysisDraftId                 String?  @db.Uuid
+  articleDraftId                  String?  @db.Uuid
+  rank                            Int
+  status                          ReporterDailyCoverageItemStatus
+  summary                         String
+  reasons                         String[] @default([])
+  selectedScore                   Int?
+  selectedReadiness               String?
+  analysisStatus                  ReporterDailyCoverageAnalysisStatus?
+  analysisSummary                 String?
+  analysisIssueCount              Int?
+  analysisHasCriticalIssues       Boolean?
+  articleStatus                   ReporterDailyCoverageArticleStatus?
+  articleSummary                  String?
+  articleIssueCount               Int?
+  articleHasCriticalIssues        Boolean?
+  createdAt                       DateTime @default(now())
+  updatedAt                       DateTime @updatedAt
+
+  decision       ReporterDailyCoverageDecision @relation(fields: [reporterDailyCoverageDecisionId], references: [id], onDelete: Cascade)
+  storyCandidate ReporterStoryCandidate        @relation(fields: [reporterStoryCandidateId], references: [id], onDelete: Cascade)
+  reporterRun    ReporterRun?                   @relation(fields: [reporterRunId], references: [id], onDelete: SetNull)
+  analysisDraft  ReporterDraft?                 @relation("reporterDailyCoverageItemAnalysisDraft", fields: [analysisDraftId], references: [id], onDelete: SetNull)
+  articleDraft   ReporterDraft?                 @relation("reporterDailyCoverageItemArticleDraft", fields: [articleDraftId], references: [id], onDelete: SetNull)
+
+  @@unique([reporterDailyCoverageDecisionId, reporterStoryCandidateId])
+  @@index([reporterDailyCoverageDecisionId, rank])
+  @@index([reporterStoryCandidateId])
+  @@index([reporterRunId])
+  @@index([analysisDraftId])
+  @@index([articleDraftId])
+  @@index([status])
+  @@map("reporter_daily_coverage_items")
 }
 
 model ReporterStoryCandidateItem {

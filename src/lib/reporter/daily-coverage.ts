@@ -13,6 +13,8 @@ import { normalizeReporterRunInput } from './run-normalizer';
 import { listReporterStoryCandidates, type ReporterStoryCandidateView } from './story-candidates';
 
 const DEFAULT_DAILY_COVERAGE_LIMIT = 20;
+const DEFAULT_DAILY_ARTICLE_TARGET = 3;
+const MAX_DAILY_PRODUCTION_ATTEMPTS = 8;
 const COVERAGE_SCOPE_LOCAL = 'LOCAL' as ReporterCoverageScope;
 const COVERAGE_SCOPE_COUNTY = 'COUNTY' as ReporterCoverageScope;
 const COVERAGE_SCOPE_STATE = 'STATE' as ReporterCoverageScope;
@@ -113,6 +115,36 @@ export type ReporterDailyCoverageDecisionView = {
     topic: string;
     status: string;
   } | null;
+  items: ReporterDailyCoverageItemView[];
+  readyCount: number;
+  blockedCount: number;
+  attemptedCount: number;
+  updatedAt: Date;
+};
+
+export type ReporterDailyCoverageItemView = {
+  id: string;
+  rank: number;
+  status: 'ready-for-editor' | 'blocked' | 'needs-reporting' | 'failed' | 'selected';
+  statusLabel: string;
+  summary: string;
+  reasons: string[];
+  selectedScore: number | null;
+  selectedReadiness: string | null;
+  analysisStatus: ReporterDailyCoverageDecisionView['analysisStatus'];
+  analysisStatusLabel: string | null;
+  analysisSummary: string | null;
+  analysisIssueCount: number | null;
+  analysisHasCriticalIssues: boolean | null;
+  analysisDraft: ReporterDailyCoverageDecisionView['analysisDraft'];
+  articleStatus: ReporterDailyCoverageDecisionView['articleStatus'];
+  articleStatusLabel: string | null;
+  articleSummary: string | null;
+  articleIssueCount: number | null;
+  articleHasCriticalIssues: boolean | null;
+  articleDraft: ReporterDailyCoverageDecisionView['articleDraft'];
+  storyCandidate: ReporterDailyCoverageDecisionView['storyCandidate'];
+  reporterRun: ReporterDailyCoverageDecisionView['reporterRun'];
   updatedAt: Date;
 };
 
@@ -174,6 +206,21 @@ function articleStatusLabel(status: ReporterDailyCoverageArticleStatus | null) {
       return 'Article Draft Skipped';
     case ReporterDailyCoverageArticleStatus.FAILED:
       return 'Article Draft Failed';
+  }
+}
+
+function itemStatusLabel(status: string) {
+  switch (status) {
+    case 'READY_FOR_EDITOR':
+      return 'Ready for Editor';
+    case 'BLOCKED':
+      return 'Blocked';
+    case 'NEEDS_REPORTING':
+      return 'Needs Reporting';
+    case 'FAILED':
+      return 'Failed';
+    default:
+      return 'Selected';
   }
 }
 
@@ -243,6 +290,45 @@ function mapGoal(goal: {
   };
 }
 
+type DailyCoverageItemRecord = {
+  id: string;
+  rank: number;
+  status: string;
+  summary: string;
+  reasons: string[];
+  selectedScore: number | null;
+  selectedReadiness: string | null;
+  analysisStatus: ReporterDailyCoverageAnalysisStatus | null;
+  analysisSummary: string | null;
+  analysisIssueCount: number | null;
+  analysisHasCriticalIssues: boolean | null;
+  analysisDraft: { id: string; draftType: string } | null;
+  articleStatus: ReporterDailyCoverageArticleStatus | null;
+  articleSummary: string | null;
+  articleIssueCount: number | null;
+  articleHasCriticalIssues: boolean | null;
+  articleDraft: { id: string; draftType: string } | null;
+  updatedAt: Date;
+  storyCandidate: { id: string; title: string } | null;
+  reporterRun: { id: string; title: string | null; topic: string; status: string } | null;
+};
+
+function mapCoverageItem(item: DailyCoverageItemRecord): ReporterDailyCoverageItemView {
+  return {
+    ...item,
+    status: item.status.toLowerCase().replace(/_/g, '-') as ReporterDailyCoverageItemView['status'],
+    statusLabel: itemStatusLabel(item.status),
+    analysisStatus: item.analysisStatus
+      ? item.analysisStatus.toLowerCase() as ReporterDailyCoverageDecisionView['analysisStatus']
+      : null,
+    analysisStatusLabel: analysisStatusLabel(item.analysisStatus),
+    articleStatus: item.articleStatus
+      ? item.articleStatus.toLowerCase() as ReporterDailyCoverageDecisionView['articleStatus']
+      : null,
+    articleStatusLabel: articleStatusLabel(item.articleStatus),
+  };
+}
+
 function mapDecision(decision: {
   id: string;
   decisionDate: Date;
@@ -264,7 +350,46 @@ function mapDecision(decision: {
   updatedAt: Date;
   storyCandidate: { id: string; title: string } | null;
   reporterRun: { id: string; title: string | null; topic: string; status: string } | null;
+  items?: DailyCoverageItemRecord[];
 }): ReporterDailyCoverageDecisionView {
+  const items = decision.items?.map(mapCoverageItem) || [];
+  const compatibilityItems = items.length || !decision.storyCandidate
+    ? items
+    : [mapCoverageItem({
+        id: `${decision.id}-lead`,
+        rank: 1,
+        status:
+          decision.articleStatus === ReporterDailyCoverageArticleStatus.GENERATED &&
+          !decision.articleHasCriticalIssues
+            ? 'READY_FOR_EDITOR'
+            : decision.analysisStatus === ReporterDailyCoverageAnalysisStatus.BLOCKED ||
+                decision.articleStatus === ReporterDailyCoverageArticleStatus.BLOCKED
+              ? 'BLOCKED'
+              : decision.analysisStatus === ReporterDailyCoverageAnalysisStatus.FAILED ||
+                  decision.articleStatus === ReporterDailyCoverageArticleStatus.FAILED
+                ? 'FAILED'
+                : decision.selectedReadiness === 'needs-reporting'
+                  ? 'NEEDS_REPORTING'
+                  : 'SELECTED',
+        summary: decision.summary,
+        reasons: decision.reasons,
+        selectedScore: decision.selectedScore,
+        selectedReadiness: decision.selectedReadiness,
+        analysisStatus: decision.analysisStatus,
+        analysisSummary: decision.analysisSummary,
+        analysisIssueCount: decision.analysisIssueCount,
+        analysisHasCriticalIssues: decision.analysisHasCriticalIssues,
+        analysisDraft: decision.analysisDraft,
+        articleStatus: decision.articleStatus,
+        articleSummary: decision.articleSummary,
+        articleIssueCount: decision.articleIssueCount,
+        articleHasCriticalIssues: decision.articleHasCriticalIssues,
+        articleDraft: decision.articleDraft,
+        storyCandidate: decision.storyCandidate,
+        reporterRun: decision.reporterRun,
+        updatedAt: decision.updatedAt,
+      })];
+
   return {
     id: decision.id,
     decisionDate: buildLocalDateKey(decision.decisionDate),
@@ -295,6 +420,12 @@ function mapDecision(decision: {
     articleDraft: decision.articleDraft,
     storyCandidate: decision.storyCandidate,
     reporterRun: decision.reporterRun,
+    items: compatibilityItems,
+    readyCount: compatibilityItems.filter((item) => item.status === 'ready-for-editor').length,
+    blockedCount: compatibilityItems.filter((item) =>
+      item.status === 'blocked' || item.status === 'failed'
+    ).length,
+    attemptedCount: compatibilityItems.length,
     updatedAt: decision.updatedAt,
   };
 }
@@ -361,6 +492,33 @@ const dailyDecisionSelect = {
       status: true,
     },
   },
+  items: {
+    orderBy: { rank: 'asc' as const },
+    select: {
+      id: true,
+      rank: true,
+      status: true,
+      summary: true,
+      reasons: true,
+      selectedScore: true,
+      selectedReadiness: true,
+      analysisStatus: true,
+      analysisSummary: true,
+      analysisIssueCount: true,
+      analysisHasCriticalIssues: true,
+      articleStatus: true,
+      articleSummary: true,
+      articleIssueCount: true,
+      articleHasCriticalIssues: true,
+      updatedAt: true,
+      analysisDraft: { select: { id: true, draftType: true } },
+      articleDraft: { select: { id: true, draftType: true } },
+      storyCandidate: { select: { id: true, title: true } },
+      reporterRun: {
+        select: { id: true, title: true, topic: true, status: true },
+      },
+    },
+  },
 } as const;
 
 async function ensureDailyCoverageGoal(communityId: string) {
@@ -399,6 +557,7 @@ async function ensureDailyCoverageGoal(communityId: string) {
       label: primaryCoverageArea?.place?.displayName
         ? `${primaryCoverageArea.place.displayName} daily desk`
         : 'Daily desk',
+      targetArticleCount: DEFAULT_DAILY_ARTICLE_TARGET,
       priorityCoverageScopes: [...DEFAULT_PRIORITY_COVERAGE_SCOPES],
       isActive: true,
     },
@@ -634,7 +793,7 @@ export async function upsertReporterDailyCoverageGoal(params: {
       communityId: params.communityId,
       placeId: params.placeId || null,
       label: params.label || 'Daily desk',
-      targetArticleCount: params.targetArticleCount ?? 1,
+      targetArticleCount: params.targetArticleCount ?? DEFAULT_DAILY_ARTICLE_TARGET,
       priorityCoverageScopes: normalizeCoverageScopes(params.priorityCoverageScopes),
       minimumCandidateScore: params.minimumCandidateScore ?? 6,
       freshnessWindowHours: params.freshnessWindowHours ?? 36,
@@ -909,7 +1068,7 @@ export async function evaluateReporterDailyCoverage(params: {
     });
 
   const rejectedReasons: string[] = [];
-  let selectedCandidate: ReporterStoryCandidateView | null = null;
+  const eligibleCandidates: ReporterStoryCandidateView[] = [];
 
   for (const candidate of candidates) {
     if (!candidateIsArticleEligible(candidate)) {
@@ -955,11 +1114,10 @@ export async function evaluateReporterDailyCoverage(params: {
       continue;
     }
 
-    selectedCandidate = candidate;
-    break;
+    eligibleCandidates.push(candidate);
   }
 
-  if (!selectedCandidate) {
+  if (!eligibleCandidates.length) {
     const decision = await db.reporterDailyCoverageDecision.upsert({
       where: {
         reporterDailyCoverageGoalId_decisionDate: {
@@ -1013,115 +1171,295 @@ export async function evaluateReporterDailyCoverage(params: {
     } satisfies ReporterDailyCoverageDeskView;
   }
 
-  const hadLinkedReporterRun = Boolean(selectedCandidate.linkedReporterRun);
-  const reporterRun = selectedCandidate.linkedReporterRun
-    ? selectedCandidate.linkedReporterRun
-    : await ensureReporterRunForCandidate({
-        communityId: params.communityId,
-        candidateId: selectedCandidate.id,
-        createdByUserId: params.createdByUserId,
-        decisionDateKey: dateKey,
-      });
+  const firstCandidate = eligibleCandidates[0];
+  const edition = await db.reporterDailyCoverageDecision.upsert({
+    where: {
+      reporterDailyCoverageGoalId_decisionDate: {
+        reporterDailyCoverageGoalId: ensuredGoal.id,
+        decisionDate,
+      },
+    },
+    update: {
+      reporterStoryCandidateId: firstCandidate.id,
+      outcome: ReporterDailyCoverageDecisionOutcome.SELECTED_CANDIDATE,
+      summary: `Producing up to ${ensuredGoal.targetArticleCount} morning drafts.`,
+      reasons: rejectedReasons.slice(0, 5),
+    },
+    create: {
+      reporterDailyCoverageGoalId: ensuredGoal.id,
+      reporterStoryCandidateId: firstCandidate.id,
+      decisionDate,
+      outcome: ReporterDailyCoverageDecisionOutcome.SELECTED_CANDIDATE,
+      summary: `Producing up to ${ensuredGoal.targetArticleCount} morning drafts.`,
+      reasons: rejectedReasons.slice(0, 5),
+    },
+    select: dailyDecisionSelect,
+  });
 
-  let productionCandidate = selectedCandidate;
-  if (!hadLinkedReporterRun) {
-    const refreshedCandidates = await listReporterStoryCandidates({
-      communityId: params.communityId,
-      limit: DEFAULT_DAILY_COVERAGE_LIMIT,
-    });
-    productionCandidate =
-      refreshedCandidates.find((candidate) => candidate.id === selectedCandidate.id) ||
-      selectedCandidate;
-  }
+  type AnalysisProductionResult = {
+    analysisDraftId: string | null;
+    analysisStatus: ReporterDailyCoverageAnalysisStatus;
+    analysisSummary: string;
+    analysisIssueCount: number | null;
+    analysisHasCriticalIssues: boolean | null;
+  };
+  type ArticleProductionResult = {
+    articleDraftId: string | null;
+    articleStatus: ReporterDailyCoverageArticleStatus;
+    articleSummary: string;
+    articleIssueCount: number | null;
+    articleHasCriticalIssues: boolean | null;
+  };
+  type ProductionAttempt = {
+    candidate: ReporterStoryCandidateView;
+    reporterRun: ReporterDailyCoverageDecisionView['reporterRun'];
+    reasons: string[];
+    status: 'READY_FOR_EDITOR' | 'BLOCKED' | 'NEEDS_REPORTING' | 'FAILED' | 'SELECTED';
+    analysisResult: AnalysisProductionResult;
+    articleResult: ArticleProductionResult;
+  };
 
-  const selectionReasons = [
-    `Priority scope match: ${formatCoverageScopes(
-      normalizeCoverageScopes(productionCandidate.coverageScopes).filter((scope) =>
-        priorityCoverageScopes.includes(scope)
-      )
-    )}.`,
-    productionCandidate.readiness.reason,
-    ...productionCandidate.signal.reasons.slice(0, 3),
-  ];
+  const attempts: ProductionAttempt[] = [];
+  let readyCount = 0;
+  const candidatesToAttempt = eligibleCandidates.slice(0, MAX_DAILY_PRODUCTION_ATTEMPTS);
 
-  const analysisResult =
-    productionCandidate.readiness.level === 'draftable'
-      ? await maybeGenerateDailyCoverageAnalysis({
-          reporterRunId: reporterRun.id,
+  for (const [index, selectedCandidate] of candidatesToAttempt.entries()) {
+    if (readyCount >= ensuredGoal.targetArticleCount) {
+      break;
+    }
+
+    const existingItem = existingDecision?.items?.find(
+      (item) => item.storyCandidate?.id === selectedCandidate.id
+    );
+    let reporterRun: ReporterDailyCoverageDecisionView['reporterRun'] =
+      selectedCandidate.linkedReporterRun;
+    let productionCandidate = selectedCandidate;
+
+    try {
+      if (!reporterRun) {
+        reporterRun = await ensureReporterRunForCandidate({
+          communityId: params.communityId,
+          candidateId: selectedCandidate.id,
           createdByUserId: params.createdByUserId,
-          existingAnalysisDraftId:
-            existingDecision?.reporterRun?.id === reporterRun.id
-              ? existingDecision.analysisDraft?.id || null
-              : null,
-          existingAnalysisStatus:
-            existingDecision?.reporterRun?.id === reporterRun.id
-              ? existingDecision.analysisStatus || null
-              : null,
-          existingAnalysisSummary:
-            existingDecision?.reporterRun?.id === reporterRun.id
-              ? existingDecision.analysisSummary || null
-              : null,
-          existingAnalysisIssueCount:
-            existingDecision?.reporterRun?.id === reporterRun.id
-              ? existingDecision.analysisIssueCount ?? null
-              : null,
-          existingAnalysisHasCriticalIssues:
-            existingDecision?.reporterRun?.id === reporterRun.id
-              ? existingDecision.analysisHasCriticalIssues ?? null
-              : null,
-        })
-      : {
-          analysisDraftId:
-            existingDecision?.reporterRun?.id === reporterRun.id
-              ? existingDecision.analysisDraft?.id || null
-              : null,
-          analysisStatus: ReporterDailyCoverageAnalysisStatus.SKIPPED,
-          analysisSummary:
-            productionCandidate.readiness.level === 'needs-reporting'
-              ? 'Daily desk selected this run, but source-packet analysis was skipped because reporting follow-up is still required.'
-              : 'Daily desk selected this run without auto-generating source-packet analysis.',
+          decisionDateKey: dateKey,
+        });
+        const refreshedCandidates = await listReporterStoryCandidates({
+          communityId: params.communityId,
+          limit: DEFAULT_DAILY_COVERAGE_LIMIT,
+        });
+        productionCandidate =
+          refreshedCandidates.find((candidate) => candidate.id === selectedCandidate.id) ||
+          selectedCandidate;
+      }
+    } catch (error) {
+      const summary = error instanceof Error ? error.message : 'Failed to prepare the reporter run.';
+      await db.reporterDailyCoverageItem.upsert({
+        where: {
+          reporterDailyCoverageDecisionId_reporterStoryCandidateId: {
+            reporterDailyCoverageDecisionId: edition.id,
+            reporterStoryCandidateId: selectedCandidate.id,
+          },
+        },
+        update: { rank: index + 1, status: 'FAILED', summary },
+        create: {
+          reporterDailyCoverageDecisionId: edition.id,
+          reporterStoryCandidateId: selectedCandidate.id,
+          rank: index + 1,
+          status: 'FAILED',
+          summary,
+          selectedScore: selectedCandidate.signal.score,
+          selectedReadiness: selectedCandidate.readiness.level,
+        },
+      });
+      attempts.push({
+        candidate: selectedCandidate,
+        reporterRun: null,
+        reasons: [summary],
+        status: 'FAILED',
+        analysisResult: {
+          analysisDraftId: null,
+          analysisStatus: ReporterDailyCoverageAnalysisStatus.FAILED,
+          analysisSummary: summary,
           analysisIssueCount: null,
           analysisHasCriticalIssues: null,
-        };
-
-  const articleResult =
-    productionCandidate.readiness.level === 'draftable'
-      ? await maybeGenerateDailyCoverageArticleDraft({
-          reporterRunId: reporterRun.id,
-          createdByUserId: params.createdByUserId,
-          existingArticleDraftId:
-            existingDecision?.reporterRun?.id === reporterRun.id
-              ? existingDecision.articleDraft?.id || null
-              : null,
-          existingArticleStatus:
-            existingDecision?.reporterRun?.id === reporterRun.id
-              ? existingDecision.articleStatus || null
-              : null,
-          existingArticleSummary:
-            existingDecision?.reporterRun?.id === reporterRun.id
-              ? existingDecision.articleSummary || null
-              : null,
-          existingArticleIssueCount:
-            existingDecision?.reporterRun?.id === reporterRun.id
-              ? existingDecision.articleIssueCount ?? null
-              : null,
-          existingArticleHasCriticalIssues:
-            existingDecision?.reporterRun?.id === reporterRun.id
-              ? existingDecision.articleHasCriticalIssues ?? null
-              : null,
-          analysisResult,
-        })
-      : {
-          articleDraftId:
-            existingDecision?.reporterRun?.id === reporterRun.id
-              ? existingDecision.articleDraft?.id || null
-              : null,
+        },
+        articleResult: {
+          articleDraftId: null,
           articleStatus: ReporterDailyCoverageArticleStatus.SKIPPED,
-          articleSummary:
-            'Article draft generation was skipped because the selected run is not yet draftable.',
+          articleSummary: 'Article generation was skipped because the reporter run could not be prepared.',
           articleIssueCount: null,
           articleHasCriticalIssues: null,
-        };
+        },
+      });
+      continue;
+    }
+
+    if (!reporterRun) {
+      continue;
+    }
+
+    const selectionReasons = [
+      `Priority scope match: ${formatCoverageScopes(
+        normalizeCoverageScopes(productionCandidate.coverageScopes).filter((scope) =>
+          priorityCoverageScopes.includes(scope)
+        )
+      )}.`,
+      productionCandidate.readiness.reason,
+      ...productionCandidate.signal.reasons.slice(0, 3),
+    ];
+
+    const legacyItemMatchesRun = existingDecision?.reporterRun?.id === reporterRun.id;
+    const analysisResult =
+      productionCandidate.readiness.level === 'draftable'
+        ? await maybeGenerateDailyCoverageAnalysis({
+            reporterRunId: reporterRun.id,
+            createdByUserId: params.createdByUserId,
+            existingAnalysisDraftId:
+              existingItem?.analysisDraft?.id ||
+              (legacyItemMatchesRun ? existingDecision?.analysisDraft?.id : null),
+            existingAnalysisStatus:
+              existingItem?.analysisStatus ||
+              (legacyItemMatchesRun ? existingDecision?.analysisStatus : null),
+            existingAnalysisSummary:
+              existingItem?.analysisSummary ||
+              (legacyItemMatchesRun ? existingDecision?.analysisSummary : null),
+            existingAnalysisIssueCount:
+              existingItem?.analysisIssueCount ??
+              (legacyItemMatchesRun ? existingDecision?.analysisIssueCount : null),
+            existingAnalysisHasCriticalIssues:
+              existingItem?.analysisHasCriticalIssues ??
+              (legacyItemMatchesRun ? existingDecision?.analysisHasCriticalIssues : null),
+          })
+        : {
+            analysisDraftId: existingItem?.analysisDraft?.id || null,
+            analysisStatus: ReporterDailyCoverageAnalysisStatus.SKIPPED,
+            analysisSummary:
+              productionCandidate.readiness.level === 'needs-reporting'
+                ? 'Reporting follow-up is still required before this story can be drafted.'
+                : 'Source-packet analysis was not generated because this run is not draftable.',
+            analysisIssueCount: null,
+            analysisHasCriticalIssues: null,
+          };
+
+    const articleResult =
+      productionCandidate.readiness.level === 'draftable'
+        ? await maybeGenerateDailyCoverageArticleDraft({
+            reporterRunId: reporterRun.id,
+            createdByUserId: params.createdByUserId,
+            existingArticleDraftId:
+              existingItem?.articleDraft?.id ||
+              (legacyItemMatchesRun ? existingDecision?.articleDraft?.id : null),
+            existingArticleStatus:
+              existingItem?.articleStatus ||
+              (legacyItemMatchesRun ? existingDecision?.articleStatus : null),
+            existingArticleSummary:
+              existingItem?.articleSummary ||
+              (legacyItemMatchesRun ? existingDecision?.articleSummary : null),
+            existingArticleIssueCount:
+              existingItem?.articleIssueCount ??
+              (legacyItemMatchesRun ? existingDecision?.articleIssueCount : null),
+            existingArticleHasCriticalIssues:
+              existingItem?.articleHasCriticalIssues ??
+              (legacyItemMatchesRun ? existingDecision?.articleHasCriticalIssues : null),
+            analysisResult,
+          })
+        : {
+            articleDraftId: existingItem?.articleDraft?.id || null,
+            articleStatus: ReporterDailyCoverageArticleStatus.SKIPPED,
+            articleSummary: 'Article generation was skipped because this run needs more reporting.',
+            articleIssueCount: null,
+            articleHasCriticalIssues: null,
+          };
+
+    const status: ProductionAttempt['status'] =
+      articleResult.articleStatus === ReporterDailyCoverageArticleStatus.GENERATED &&
+      !articleResult.articleHasCriticalIssues
+        ? 'READY_FOR_EDITOR'
+        : analysisResult.analysisStatus === ReporterDailyCoverageAnalysisStatus.BLOCKED ||
+            articleResult.articleStatus === ReporterDailyCoverageArticleStatus.BLOCKED
+          ? 'BLOCKED'
+          : analysisResult.analysisStatus === ReporterDailyCoverageAnalysisStatus.FAILED ||
+              articleResult.articleStatus === ReporterDailyCoverageArticleStatus.FAILED
+            ? 'FAILED'
+            : productionCandidate.readiness.level === 'needs-reporting'
+              ? 'NEEDS_REPORTING'
+              : 'SELECTED';
+
+    const summary = status === 'READY_FOR_EDITOR'
+      ? `${productionCandidate.title} is ready for editor review.`
+      : status === 'NEEDS_REPORTING'
+        ? `${productionCandidate.title} needs more reporting.`
+        : `${productionCandidate.title} did not produce a clean editor-ready draft.`;
+
+    await db.reporterDailyCoverageItem.upsert({
+      where: {
+        reporterDailyCoverageDecisionId_reporterStoryCandidateId: {
+          reporterDailyCoverageDecisionId: edition.id,
+          reporterStoryCandidateId: selectedCandidate.id,
+        },
+      },
+      update: {
+        reporterRunId: reporterRun.id,
+        rank: index + 1,
+        status,
+        summary,
+        reasons: selectionReasons,
+        selectedScore: productionCandidate.signal.score,
+        selectedReadiness: productionCandidate.readiness.level,
+        analysisDraftId: analysisResult.analysisDraftId,
+        analysisStatus: analysisResult.analysisStatus,
+        analysisSummary: analysisResult.analysisSummary,
+        analysisIssueCount: analysisResult.analysisIssueCount,
+        analysisHasCriticalIssues: analysisResult.analysisHasCriticalIssues,
+        articleDraftId: articleResult.articleDraftId,
+        articleStatus: articleResult.articleStatus,
+        articleSummary: articleResult.articleSummary,
+        articleIssueCount: articleResult.articleIssueCount,
+        articleHasCriticalIssues: articleResult.articleHasCriticalIssues,
+      },
+      create: {
+        reporterDailyCoverageDecisionId: edition.id,
+        reporterStoryCandidateId: selectedCandidate.id,
+        reporterRunId: reporterRun.id,
+        rank: index + 1,
+        status,
+        summary,
+        reasons: selectionReasons,
+        selectedScore: productionCandidate.signal.score,
+        selectedReadiness: productionCandidate.readiness.level,
+        analysisDraftId: analysisResult.analysisDraftId,
+        analysisStatus: analysisResult.analysisStatus,
+        analysisSummary: analysisResult.analysisSummary,
+        analysisIssueCount: analysisResult.analysisIssueCount,
+        analysisHasCriticalIssues: analysisResult.analysisHasCriticalIssues,
+        articleDraftId: articleResult.articleDraftId,
+        articleStatus: articleResult.articleStatus,
+        articleSummary: articleResult.articleSummary,
+        articleIssueCount: articleResult.articleIssueCount,
+        articleHasCriticalIssues: articleResult.articleHasCriticalIssues,
+      },
+    });
+
+    attempts.push({
+      candidate: productionCandidate,
+      reporterRun,
+      reasons: selectionReasons,
+      status,
+      analysisResult,
+      articleResult,
+    });
+    if (status === 'READY_FOR_EDITOR') {
+      readyCount += 1;
+    }
+  }
+
+  const leadAttempt = attempts.find((attempt) => attempt.status === 'READY_FOR_EDITOR') || attempts[0];
+  const blockedCount = attempts.filter(
+    (attempt) => attempt.status === 'BLOCKED' || attempt.status === 'FAILED'
+  ).length;
+  const finalSummary = readyCount
+    ? `${readyCount} of ${ensuredGoal.targetArticleCount} morning draft${readyCount === 1 ? '' : 's'} ready for editor review.`
+    : `${attempts.length} candidate${attempts.length === 1 ? '' : 's'} attempted; no clean draft is ready for publication review.`;
 
   const decision = await db.reporterDailyCoverageDecision.upsert({
     where: {
@@ -1131,51 +1469,86 @@ export async function evaluateReporterDailyCoverage(params: {
       },
     },
     update: {
-      reporterStoryCandidateId: selectedCandidate.id,
-      reporterRunId: reporterRun.id,
+      reporterStoryCandidateId: leadAttempt?.candidate.id || firstCandidate.id,
+      reporterRunId: leadAttempt?.reporterRun?.id || null,
       outcome: ReporterDailyCoverageDecisionOutcome.SELECTED_CANDIDATE,
-      summary: `${selectedCandidate.title} selected for the daily desk.`,
-      reasons: selectionReasons,
-      selectedScore: productionCandidate.signal.score,
-      selectedReadiness: productionCandidate.readiness.level,
-      analysisDraftId: analysisResult.analysisDraftId,
-      analysisStatus: analysisResult.analysisStatus,
-      analysisSummary: analysisResult.analysisSummary,
-      analysisIssueCount: analysisResult.analysisIssueCount,
-      analysisHasCriticalIssues: analysisResult.analysisHasCriticalIssues,
-      articleDraftId: articleResult.articleDraftId,
-      articleStatus: articleResult.articleStatus,
-      articleSummary: articleResult.articleSummary,
-      articleIssueCount: articleResult.articleIssueCount,
-      articleHasCriticalIssues: articleResult.articleHasCriticalIssues,
+      summary: finalSummary,
+      reasons: leadAttempt?.reasons || rejectedReasons.slice(0, 5),
+      selectedScore: leadAttempt?.candidate.signal.score || null,
+      selectedReadiness: leadAttempt?.candidate.readiness.level || null,
+      analysisDraftId: leadAttempt?.analysisResult.analysisDraftId || null,
+      analysisStatus: leadAttempt?.analysisResult.analysisStatus || null,
+      analysisSummary: leadAttempt?.analysisResult.analysisSummary || null,
+      analysisIssueCount: leadAttempt?.analysisResult.analysisIssueCount ?? null,
+      analysisHasCriticalIssues: leadAttempt?.analysisResult.analysisHasCriticalIssues ?? null,
+      articleDraftId: leadAttempt?.articleResult.articleDraftId || null,
+      articleStatus: leadAttempt?.articleResult.articleStatus || null,
+      articleSummary: leadAttempt?.articleResult.articleSummary || null,
+      articleIssueCount: leadAttempt?.articleResult.articleIssueCount ?? null,
+      articleHasCriticalIssues: leadAttempt?.articleResult.articleHasCriticalIssues ?? null,
     },
     create: {
       reporterDailyCoverageGoalId: ensuredGoal.id,
-      reporterStoryCandidateId: selectedCandidate.id,
-      reporterRunId: reporterRun.id,
+      reporterStoryCandidateId: leadAttempt?.candidate.id || firstCandidate.id,
+      reporterRunId: leadAttempt?.reporterRun?.id || null,
       decisionDate,
       outcome: ReporterDailyCoverageDecisionOutcome.SELECTED_CANDIDATE,
-      summary: `${selectedCandidate.title} selected for the daily desk.`,
-      reasons: selectionReasons,
-      selectedScore: productionCandidate.signal.score,
-      selectedReadiness: productionCandidate.readiness.level,
-      analysisDraftId: analysisResult.analysisDraftId,
-      analysisStatus: analysisResult.analysisStatus,
-      analysisSummary: analysisResult.analysisSummary,
-      analysisIssueCount: analysisResult.analysisIssueCount,
-      analysisHasCriticalIssues: analysisResult.analysisHasCriticalIssues,
-      articleDraftId: articleResult.articleDraftId,
-      articleStatus: articleResult.articleStatus,
-      articleSummary: articleResult.articleSummary,
-      articleIssueCount: articleResult.articleIssueCount,
-      articleHasCriticalIssues: articleResult.articleHasCriticalIssues,
+      summary: finalSummary,
+      reasons: leadAttempt?.reasons || rejectedReasons.slice(0, 5),
+      selectedScore: leadAttempt?.candidate.signal.score || null,
+      selectedReadiness: leadAttempt?.candidate.readiness.level || null,
+      analysisDraftId: leadAttempt?.analysisResult.analysisDraftId || null,
+      analysisStatus: leadAttempt?.analysisResult.analysisStatus || null,
+      analysisSummary: leadAttempt?.analysisResult.analysisSummary || null,
+      analysisIssueCount: leadAttempt?.analysisResult.analysisIssueCount ?? null,
+      analysisHasCriticalIssues: leadAttempt?.analysisResult.analysisHasCriticalIssues ?? null,
+      articleDraftId: leadAttempt?.articleResult.articleDraftId || null,
+      articleStatus: leadAttempt?.articleResult.articleStatus || null,
+      articleSummary: leadAttempt?.articleResult.articleSummary || null,
+      articleIssueCount: leadAttempt?.articleResult.articleIssueCount ?? null,
+      articleHasCriticalIssues: leadAttempt?.articleResult.articleHasCriticalIssues ?? null,
     },
     select: dailyDecisionSelect,
   });
 
+  const mappedDecision = mapDecision(decision);
+  if (!decision.items?.length && attempts.length > 1) {
+    mappedDecision.items = attempts.map((attempt, index) => mapCoverageItem({
+      id: `${decision.id}-${attempt.candidate.id}`,
+      rank: index + 1,
+      status: attempt.status,
+      summary: attempt.status === 'READY_FOR_EDITOR'
+        ? `${attempt.candidate.title} is ready for editor review.`
+        : `${attempt.candidate.title} did not produce a clean editor-ready draft.`,
+      reasons: attempt.reasons,
+      selectedScore: attempt.candidate.signal.score,
+      selectedReadiness: attempt.candidate.readiness.level,
+      analysisStatus: attempt.analysisResult.analysisStatus,
+      analysisSummary: attempt.analysisResult.analysisSummary,
+      analysisIssueCount: attempt.analysisResult.analysisIssueCount,
+      analysisHasCriticalIssues: attempt.analysisResult.analysisHasCriticalIssues,
+      analysisDraft: attempt.analysisResult.analysisDraftId
+        ? { id: attempt.analysisResult.analysisDraftId, draftType: 'SOURCE_PACKET_SUMMARY' }
+        : null,
+      articleStatus: attempt.articleResult.articleStatus,
+      articleSummary: attempt.articleResult.articleSummary,
+      articleIssueCount: attempt.articleResult.articleIssueCount,
+      articleHasCriticalIssues: attempt.articleResult.articleHasCriticalIssues,
+      articleDraft: attempt.articleResult.articleDraftId
+        ? { id: attempt.articleResult.articleDraftId, draftType: 'ARTICLE_DRAFT' }
+        : null,
+      storyCandidate: { id: attempt.candidate.id, title: attempt.candidate.title },
+      reporterRun: attempt.reporterRun,
+      updatedAt: decision.updatedAt,
+    }));
+    mappedDecision.readyCount = readyCount;
+    mappedDecision.blockedCount = blockedCount;
+    mappedDecision.attemptedCount = attempts.length;
+  }
+
   return {
     date: dateKey,
     goal: mapGoal(ensuredGoal),
-    decision: mapDecision(decision),
+    decision: mappedDecision,
   } satisfies ReporterDailyCoverageDeskView;
 }

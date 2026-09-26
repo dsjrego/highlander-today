@@ -541,7 +541,7 @@ function buildDailyCoverageGoalForm(
   return {
     placeId: goal?.placeId || coveragePlaces[0]?.id || '',
     label: goal?.label || '',
-    targetArticleCount: String(goal?.targetArticleCount || 1),
+    targetArticleCount: String(goal?.targetArticleCount || 3),
     minimumCandidateScore: String(goal?.minimumCandidateScore || 6),
     freshnessWindowHours: String(goal?.freshnessWindowHours || 36),
     priorityCoverageScopes: goal?.priorityCoverageScopes?.length
@@ -1785,7 +1785,8 @@ export default function ReporterMonitoredSourcesClient({
             </h2>
             <p className="mt-1 max-w-3xl text-sm text-slate-600">
               Save the active daily coverage thresholds for this tenant, then evaluate the best
-              candidate for today or record that no publishable story cleared the bar.
+              candidates, produce the configured number of clean drafts, and leave every blocked
+              attempt visible for the morning editor.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -1913,7 +1914,7 @@ export default function ReporterMonitoredSourcesClient({
                 <input
                   type="number"
                   min={1}
-                  max={3}
+                  max={5}
                   value={dailyCoverageGoalForm.targetArticleCount}
                   onChange={(event) =>
                     setDailyCoverageGoalForm((current) => ({
@@ -1968,6 +1969,41 @@ export default function ReporterMonitoredSourcesClient({
             {dailyDecision ? (
               <div className="mt-3 space-y-3">
                 <div className="text-sm text-slate-700">{dailyDecision.summary}</div>
+                {dailyDecision.items.length > 1 ? (
+                  <div className="admin-list">
+                    <div className="admin-list-table-wrap">
+                      <table className="admin-list-table">
+                        <thead className="admin-list-head">
+                          <tr>
+                            <th className="admin-list-header-cell">Story</th>
+                            <th className="admin-list-header-cell">Status</th>
+                            <th className="admin-list-header-cell">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {dailyDecision.items.map((item) => (
+                            <tr key={item.id} className="admin-list-row">
+                              <td className="admin-list-cell">
+                                {item.storyCandidate?.title || item.reporterRun?.title || 'Untitled story'}
+                              </td>
+                              <td className="admin-list-cell">{item.statusLabel}</td>
+                              <td className="admin-list-cell">
+                                {item.reporterRun ? (
+                                  <Link
+                                    href={`/admin/reporter/${item.reporterRun.id}?view=${item.articleDraft ? 'drafts' : 'sources'}`}
+                                    className="admin-list-link"
+                                  >
+                                    {item.articleDraft ? 'Review Draft' : 'Open Run'}
+                                  </Link>
+                                ) : '—'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : null}
                 {dailyDecision.analysisStatusLabel ? (
                   <div className="flex flex-wrap items-center gap-2">
                     <AdminChip tone={dailyCoverageAnalysisTone(dailyDecision)}>
