@@ -13,6 +13,7 @@ import { AdminPage } from '@/components/admin/AdminPage';
 import ReporterRunsClient from './ReporterRunsClient';
 import ReporterPageTabs from './ReporterPageTabs';
 import AssignStoryButton from './AssignStoryButton';
+import ArchiveStoryButton from './ArchiveStoryButton';
 
 export default async function AdminReporterPage() {
   const session = await getServerSession(authOptions);
@@ -359,12 +360,17 @@ export default async function AdminReporterPage() {
                                 )}
                               </td>
                               <td className="admin-list-cell">
-                                <Link
-                                  href={`/admin/reporter/${run.id}/review`}
-                                  className="admin-list-link"
-                                >
-                                  Review &amp; Publish
-                                </Link>
+                                <div className="flex flex-wrap items-center gap-3">
+                                  <Link
+                                    href={`/admin/reporter/${run.id}/review`}
+                                    className="admin-list-link"
+                                  >
+                                    Review &amp; Publish
+                                  </Link>
+                                  {checkPermission(userRole, 'reporter:edit') ? (
+                                    <ArchiveStoryButton runId={run.id} />
+                                  ) : null}
+                                </div>
                               </td>
                             </tr>
                           ))
