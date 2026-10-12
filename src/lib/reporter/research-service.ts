@@ -6,8 +6,8 @@ import { assertReporterAgentActionAllowed, REPORTER_AGENT_ACTION, REPORTER_AGENT
 import type { ReporterSourcePacket, ReporterSourcePacketItem } from './types';
 import { hashReporterJson } from './prompt-loader';
 import { validatePublicHttpUrl } from '@/lib/security/safe-fetch';
+import { REPORTER_PUBLIC_SOURCE_TYPES as PUBLIC_SOURCE_TYPES, reporterStoryRelevance, selectReporterResearchSeeds } from './research-source-selection';
 
-const PUBLIC_SOURCE_TYPES = new Set(['NEWS_ARTICLE', 'OFFICIAL_URL', 'DOCUMENT']);
 const MAX_DOCUMENTS = 8;
 const CACHE_MS = 60 * 60 * 1000;
 
@@ -18,8 +18,22 @@ export class ReporterNeedsReportingError extends Error {
 function normalizedText(value: string) { return value.replace(/\s+/g, ' ').trim(); }
 
 function assessmentPacketHash(packet: ReporterSourcePacket) {
-  return hashReporterJson({ policy: 'research-evidence-v3', topic: packet.topic, title: packet.title, sources: packet.sources,
+  return hashReporterJson({ policy: 'research-evidence-v4', topic: packet.topic, title: packet.title, sources: packet.sources,
     disputedClaims: packet.supportedClaims.filter((claim) => ['DISPUTED', 'REJECTED'].includes(claim.verificationStatus)) });
+}
+
+function claimEvidenceGaps(claim: ReporterEvidenceAssessment['claims'][number], packet: ReporterSourcePacket): string[] {
+  const gaps: string[] = [];
+  if (!['supported', 'attributed'].includes(claim.status)) return gaps;
+  if (claim.status === 'attributed' && !claim.attribution?.trim()) gaps.push(`Missing attribution: ${claim.text}`);
+  if (!claim.evidence.length) gaps.push(`No evidence recorded for: ${claim.text}`);
+  for (const evidence of claim.evidence) {
+    const source = packet.sources.find((candidate) => candidate.id === evidence.sourceId);
+    if (!source?.contentText || !normalizedText(source.contentText).includes(normalizedText(evidence.quote))) {
+      gaps.push(`Supporting passage was not found in the retrieved source for: ${claim.text}`);
+    }
+  }
+  return gaps;
 }
 
 /** Quote existence is a grounding check; semantic support is assessed separately. */
@@ -30,15 +44,7 @@ export function validateReporterEvidence(assessment: ReporterEvidenceAssessment,
   if (!central.length) gaps.push('Research did not identify a supported central claim.');
   for (const claim of assessment.claims) {
     if (claim.central && ['unresolved', 'disputed'].includes(claim.status)) gaps.push(`Unresolved central claim: ${claim.text}`);
-    if (!['supported', 'attributed'].includes(claim.status)) continue;
-    if (claim.status === 'attributed' && !claim.attribution?.trim()) gaps.push(`Missing attribution: ${claim.text}`);
-    if (!claim.evidence.length) gaps.push(`No evidence recorded for: ${claim.text}`);
-    for (const evidence of claim.evidence) {
-      const source = packet.sources.find((candidate) => candidate.id === evidence.sourceId);
-      if (!source?.contentText || !normalizedText(source.contentText).includes(normalizedText(evidence.quote))) {
-        gaps.push(`Supporting passage was not found in the retrieved source for: ${claim.text}`);
-      }
-    }
+    gaps.push(...claimEvidenceGaps(claim, packet));
   }
   return [...new Set(gaps)];
 }
@@ -59,6 +65,7 @@ export async function prepareReporterResearch(params: {
   const visited = new Set<string>();
   const documents: ReporterPublicDocument[] = [];
   const failures: Array<{ url: string; reason: string }> = [];
+  const seeds = selectReporterResearchSeeds(packet);
   let attempts = 0;
 
   const retrieve = async (url: string, existing?: ReporterSourcePacketItem) => {
@@ -66,6 +73,7 @@ export async function prepareReporterResearch(params: {
     if (!normalized || visited.has(normalized) || attempts >= MAX_DOCUMENTS || signal.aborted) return;
     visited.add(normalized);
     attempts += 1;
+    existing ||= packet.sources.find((source) => source.url && normalizeReporterPublicUrl(source.url) === normalized);
     try {
       const document = await fetchReporterPublicDocument(normalized, signal);
       if (documents.some((existingDocument) => normalizedText(existingDocument.text) === normalizedText(document.text))) {
@@ -102,9 +110,9 @@ export async function prepareReporterResearch(params: {
     }
   };
 
-  for (const source of packet.sources) {
-    if (!source.url || !PUBLIC_SOURCE_TYPES.has(source.sourceType)) { sources.push(source); continue; }
-    const url = normalizeReporterPublicUrl(source.url);
+  sources.push(...packet.sources.filter((source) => !source.url || !PUBLIC_SOURCE_TYPES.has(source.sourceType)));
+  for (const source of seeds) {
+    const url = normalizeReporterPublicUrl(source.url!);
     if (!url || visited.has(url)) continue;
     if (!params.forceRefresh && source.retrievedAt && Date.now() - Date.parse(source.retrievedAt) < CACHE_MS && source.contentText) {
       visited.add(url); sources.push(source); continue;
@@ -114,14 +122,13 @@ export async function prepareReporterResearch(params: {
 
   // Follow citations from article bodies, prioritizing public agencies and topic
   // matches. This is one bounded hop, never a recursive crawler.
-  const topicWords = packet.topic.toLowerCase().match(/[a-z]{5,}/g) || [];
   const links = documents.flatMap((document) => document.links).filter((link) => !visited.has(link.url));
   links.sort((left, right) => {
     const score = (link: typeof left) => (/\.gov\b|\.edu\b/.test(new URL(link.url).hostname) ? 10 : 0) +
-      topicWords.filter((word) => `${link.label} ${link.url}`.toLowerCase().includes(word)).length;
+      reporterStoryRelevance(packet, link.label, link.url);
     return score(right) - score(left);
   });
-  for (const link of links.slice(0, 3)) await retrieve(link.url);
+  for (const link of links.slice(0, 2)) await retrieve(link.url);
 
   let workingPacket = { ...packet, sources };
   const previousTrace = params.forceRefresh ? null : await db.reporterAgentTrace.findFirst({ where: { reporterRunId: packet.runId, provider: 'research-workflow', inputHash: assessmentPacketHash(workingPacket),
@@ -140,7 +147,13 @@ export async function prepareReporterResearch(params: {
     await assertReporterAgentActionAllowed({ actor: REPORTER_AGENT_ACTOR.RESEARCH_AGENT, action: REPORTER_AGENT_ACTION.SEARCH_PUBLIC_EVIDENCE, reporterRunId: packet.runId });
     try {
       const publicPacket = { ...workingPacket, sources: publicSearchSources };
-      for (const url of await discoverReporterEvidence(publicPacket, signal)) await retrieve(url);
+      const urls = await discoverReporterEvidence(publicPacket, signal);
+      urls.sort((left, right) => reporterStoryRelevance(packet, null, right) - reporterStoryRelevance(packet, null, left));
+      // Leave one attempt for a different source if assessment finds a gap.
+      for (const url of urls) {
+        if (attempts >= MAX_DOCUMENTS - 1) break;
+        await retrieve(url);
+      }
     } catch (error) {
       failures.push({ url: 'public-search', reason: error instanceof Error ? error.message : 'Search unavailable.' });
     }
@@ -152,7 +165,8 @@ export async function prepareReporterResearch(params: {
     const cached = params.forceRefresh ? null : await db.reporterAgentTrace.findFirst({ where: { reporterRunId: packet.runId, provider: 'research-workflow', inputHash: assessmentHash,
       wasSuccessful: true, createdAt: { gte: new Date(Date.now() - CACHE_MS) } }, orderBy: { createdAt: 'desc' } });
     const cachedResult = ReporterEvidenceAssessmentSchema.safeParse(cached?.parsedOutputJson);
-    assessment = cachedResult.success ? cachedResult.data : await assessReporterEvidence(workingPacket, signal);
+    assessment = cachedResult.success && validateReporterEvidence(cachedResult.data, workingPacket).length === 0
+      ? cachedResult.data : await assessReporterEvidence(workingPacket, signal);
   } catch {
     await db.reporterRun.updateMany({ where: { id: packet.runId, communityId: params.communityId, status: { not: 'ARCHIVED' } }, data: { status: 'BLOCKED' } });
     throw new ReporterNeedsReportingError('Research could not complete its evidence check. Retry reporting before preparing an article.');
@@ -180,9 +194,42 @@ export async function prepareReporterResearch(params: {
       failures.push({ url: 'public-search-follow-up', reason: error instanceof Error ? error.message : 'Follow-up research unavailable.' });
     }
   }
+  let citationRepairAttempted = false;
+  const omittedInvalidClaims: string[] = [];
+  if (assessment.claims.some((claim) => claimEvidenceGaps(claim, workingPacket).length) && !signal.aborted) {
+    citationRepairAttempted = true;
+    try {
+      const corrected = await assessReporterEvidence(workingPacket, signal, { previousAssessment: assessment, validationGaps: gaps });
+      assessment = { ...assessment, claims: assessment.claims.map((claim) => {
+        if (!claimEvidenceGaps(claim, workingPacket).length) return claim;
+        const replacement = corrected.claims.find((candidate) => candidate.text === claim.text);
+        if (!claim.central && replacement && ['unresolved', 'disputed'].includes(replacement.status)) {
+          omittedInvalidClaims.push(`${claim.text} (Omitted: citation correction could not establish support.)`);
+        }
+        // Correction can repair evidence or withdraw support, never erase/change
+        // a central premise or promote another claim to replace it.
+        return replacement ? { ...claim, evidence: replacement.evidence, attribution: replacement.attribution, status: replacement.status } : claim;
+      }) };
+      gaps = validateReporterEvidence(assessment, workingPacket);
+    } catch (error) {
+      failures.push({ url: 'evidence-correction', reason: error instanceof Error ? error.message : 'Evidence correction unavailable.' });
+    }
+  }
+  // A malformed incidental citation must never enter copy or prevent an otherwise
+  // supported brief. Essential claims and explicit reporting obstacles still block.
+  assessment = { ...assessment, claims: assessment.claims.map((claim) => {
+    const issues = claimEvidenceGaps(claim, workingPacket);
+    if (claim.central || !issues.length) return claim;
+    omittedInvalidClaims.push(`${claim.text} (Omitted: ${issues.join(' ')})`);
+    return { ...claim, status: 'unresolved' as const, evidence: [] };
+  }), omittedClaims: [...assessment.omittedClaims] };
+  assessment.omittedClaims.push(...omittedInvalidClaims);
+  gaps = validateReporterEvidence(assessment, workingPacket);
   assessmentHash = assessmentPacketHash(workingPacket);
   await createSuccessfulReporterAgentTrace({ reporterRunId: packet.runId, traceType: 'SOURCE_PACKET_ANALYSIS', provider: 'research-workflow',
-    inputHash: assessmentHash, parsedOutputJson: assessment, validationJson: { ready: gaps.length === 0, gaps, failures, documentAttempts: attempts },
+    inputHash: assessmentHash, parsedOutputJson: assessment, validationJson: { ready: gaps.length === 0, gaps, failures, documentAttempts: attempts,
+      citationRepairAttempted, omittedInvalidClaims, selectedSeedIds: seeds.map((source) => source.id),
+      excludedPublicSourceCount: packet.sources.filter((source) => source.url && PUBLIC_SOURCE_TYPES.has(source.sourceType)).length - seeds.length },
     inputSnapshotJson: { sources: sources.map((source) => ({ id: source.id, url: source.url, retrievedAt: source.retrievedAt })) } });
   if (gaps.length && params.requireReady !== false) {
     await db.reporterRun.updateMany({ where: { id: packet.runId, communityId: params.communityId, status: { not: 'ARCHIVED' } }, data: { status: 'BLOCKED' } });

@@ -113,11 +113,15 @@ export async function discoverReporterEvidence(packet: ReporterSourcePacket, sig
   return result ? DiscoverySchema.parse(result).urls : [];
 }
 
-export async function assessReporterEvidence(packet: ReporterSourcePacket, signal: AbortSignal): Promise<ReporterEvidenceAssessment> {
+export async function assessReporterEvidence(packet: ReporterSourcePacket, signal: AbortSignal, correction?: {
+  previousAssessment: ReporterEvidenceAssessment;
+  validationGaps: string[];
+}): Promise<ReporterEvidenceAssessment> {
   const result = await requestReporterResearch({ packet, promptKey: 'research-assessment', signal, input: {
     topic: packet.topic, title: packet.title, sources: packet.sources,
     // Human disputed/rejected claims remain explicit constraints on assessment.
     disputedClaims: packet.supportedClaims.filter((claim) => ['DISPUTED', 'REJECTED'].includes(claim.verificationStatus)),
+    ...(correction ? { correction } : {}),
   } });
   return ReporterEvidenceAssessmentSchema.parse(result);
 }

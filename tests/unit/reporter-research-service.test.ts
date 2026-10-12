@@ -69,7 +69,7 @@ test('keeps unresolved research available for internal analysis without allowing
 
 test('a failed fetch cannot promote a feed excerpt into retrieved evidence', async () => {
   (fetchReporterPublicDocument as any).mockRejectedValue(new Error('HTTP 403'));
-  (assessReporterEvidence as any).mockResolvedValue({ ready: false, summary: 'Source body inaccessible.', gaps: [], claims: [] });
+  (assessReporterEvidence as any).mockResolvedValue({ ready: false, summary: 'Source body inaccessible.', headline: null, omittedClaims: [], gaps: [], claims: [] });
   const input = packet(); input.sources[0].contentText = 'A headline-only feed excerpt';
   await expect(prepareReporterResearch({ packet: input, communityId: 'tenant-1', createdByUserId: null })).rejects.toThrow('incomplete');
   expect(assessReporterEvidence).toHaveBeenCalledWith(expect.objectContaining({ sources: [expect.objectContaining({ contentText: null, excerpt: null })] }), expect.any(AbortSignal));
@@ -110,4 +110,99 @@ test('an explicit re-run retrieves evidence and reassesses it despite recent cac
   expect(discoverReporterEvidence).toHaveBeenCalled();
   expect(assessReporterEvidence).toHaveBeenCalledWith(expect.objectContaining({ sources: [expect.objectContaining({ contentText: quote })] }), expect.any(AbortSignal));
   expect(result.sources[0].contentText).toBe(quote);
+});
+
+const wildfire = 'Improve wildfire planning, coordination, and recovery, including the use of virtual fencing;';
+const nepa = 'Improve National Environmental Policy Act efficiencies; and';
+function grazingAssessment(central = false): ReporterEvidenceAssessment {
+  return { ...assessment(), claims: [...assessment().claims, { text: 'The directive lists wildfire planning and NEPA efficiencies.', central, status: 'attributed', attribution: 'USDA announcement', asOf: null,
+    evidence: [{ sourceId: 'cdc', quote: `${wildfire} and\n\n${nepa.replace('; and', ';')}` }] }] };
+}
+function grazingSource() {
+  (fetchReporterPublicDocument as any).mockImplementation(async (url: string) => ({ url, title: 'Public report', text: url.includes('cdc.gov') ? `${quote}\n\n${wildfire}\n\n${nepa}` : `News article cites agency report: ${quote}`, retrievedAt: new Date().toISOString(), links: url.includes('stateline') ? [{ url: 'https://www.cdc.gov/measles/report', label: 'CDC report' }] : [] }));
+}
+
+test('repairs joined action-list quotes with separate exact passages before drafting', async () => {
+  grazingSource(); const corrected = grazingAssessment();
+  corrected.claims[1].evidence = [{ sourceId: 'cdc', quote: wildfire }, { sourceId: 'cdc', quote: nepa }];
+  (assessReporterEvidence as any).mockResolvedValueOnce(grazingAssessment()).mockResolvedValueOnce(corrected);
+  const result = await prepareReporterResearch({ packet: packet(), communityId: 'tenant-1', createdByUserId: null });
+  expect(assessReporterEvidence).toHaveBeenCalledTimes(2);
+  expect(assessReporterEvidence).toHaveBeenLastCalledWith(expect.anything(), expect.any(AbortSignal), expect.objectContaining({ validationGaps: [expect.stringContaining('Supporting passage')] }));
+  expect(result.supportedClaims).toHaveLength(2);
+  expect(result.supportedClaims[1].sourceExcerpt).toContain(nepa);
+  expect(result.researchNotes).not.toContain('Omitted');
+});
+
+test('omits an unrepairable incidental citation internally while retaining supported central facts', async () => {
+  grazingSource(); (assessReporterEvidence as any).mockResolvedValue(grazingAssessment());
+  const result = await prepareReporterResearch({ packet: packet(), communityId: 'tenant-1', createdByUserId: null });
+  expect(assessReporterEvidence).toHaveBeenCalledTimes(2);
+  expect(result.supportedClaims).toHaveLength(1);
+  expect(result.researchNotes).toContain('Omitted unsupported claims: The directive lists wildfire');
+  expect(result.editorNotes).not.toContain('Reporting gaps:');
+});
+
+test('keeps a central quotation failure blocking after one unsuccessful correction', async () => {
+  grazingSource(); (assessReporterEvidence as any).mockResolvedValue(grazingAssessment(true));
+  await expect(prepareReporterResearch({ packet: packet(), communityId: 'tenant-1', createdByUserId: null })).rejects.toThrow('Supporting passage');
+  expect(assessReporterEvidence).toHaveBeenCalledTimes(2);
+});
+
+test('correction cannot erase or demote a failing central premise', async () => {
+  grazingSource(); const demoted = grazingAssessment(false); demoted.claims[1].status = 'unresolved';
+  (assessReporterEvidence as any).mockResolvedValueOnce(grazingAssessment(true)).mockResolvedValueOnce(demoted);
+  await expect(prepareReporterResearch({ packet: packet(), communityId: 'tenant-1', createdByUserId: null })).rejects.toThrow('Unresolved central claim');
+  (assessReporterEvidence as any).mockResolvedValueOnce(grazingAssessment(true)).mockResolvedValueOnce(assessment());
+  await expect(prepareReporterResearch({ packet: packet(), communityId: 'tenant-1', createdByUserId: null })).rejects.toThrow('Supporting passage');
+});
+
+test('an unavailable correction never bypasses central grounding', async () => {
+  grazingSource(); (assessReporterEvidence as any).mockResolvedValueOnce(grazingAssessment(true)).mockRejectedValueOnce(new Error('Provider timeout'));
+  await expect(prepareReporterResearch({ packet: packet(), communityId: 'tenant-1', createdByUserId: null })).rejects.toThrow('Supporting passage');
+});
+
+test('does not reuse a cached assessment whose quotation fails validation', async () => {
+  (db.reporterAgentTrace.findFirst as any).mockResolvedValue({ parsedOutputJson: grazingAssessment(true) });
+  const result = await prepareReporterResearch({ packet: packet(), communityId: 'tenant-1', createdByUserId: null });
+  expect(assessReporterEvidence).toHaveBeenCalledTimes(1);
+  expect(result.supportedClaims).toHaveLength(1);
+});
+
+test('26 attached leads cannot crowd out the story or its discovered primary document', async () => {
+  const input = packet(); input.sources = Array.from({ length: 25 }, (_, i) => ({ ...source(`unrelated-${i}`, `https://news.example/sports-betting-${i}`), title: 'Sports betting and gambling' }));
+  input.sources.push(source('story', 'https://stateline.org/measles-cases'));
+  (fetchReporterPublicDocument as any).mockImplementation(async (url: string) => ({ url, title: 'Report', text: url.includes('cdc.gov') ? quote : `News reports ${quote}`, links: [], retrievedAt: new Date().toISOString() }));
+  (discoverReporterEvidence as any).mockResolvedValue(['https://www.cdc.gov/measles/report']);
+  const result = await prepareReporterResearch({ packet: input, communityId: 'tenant-1', createdByUserId: null, forceRefresh: true });
+  expect(fetchReporterPublicDocument).toHaveBeenCalledTimes(2);
+  expect(result.sources.map((item) => item.id)).toEqual(['story', 'cdc']);
+  expect(discoverReporterEvidence).toHaveBeenCalledWith(expect.objectContaining({ sources: [expect.objectContaining({ id: 'story' })] }), expect.any(AbortSignal));
+});
+
+test('reserves a final fetch for evidence follow-up within the eight-attempt total', async () => {
+  const input = packet(); input.sources = [1, 2, 3].map(i => source(`story-${i}`, `https://news.example/measles-${i}`));
+  (fetchReporterPublicDocument as any).mockImplementation(async (url: string) => ({ url, title: 'Report', text: `${url}: ${quote}`, retrievedAt: new Date().toISOString(), links: url.includes('news.example') ? [1, 2].map(i => ({ url: `https://agency.gov/measles-link-${i}`, label: 'Measles data' })) : [] }));
+  (discoverReporterEvidence as any).mockResolvedValueOnce([1, 2, 3, 4].map(i => `https://agency.gov/measles-search-${i}`)).mockResolvedValueOnce(['https://agency.gov/measles-followup']);
+  const incomplete = { ...assessment(), ready: false, gaps: ['Reporting period unresolved'], claims: [] };
+  const supported = assessment(); supported.claims[0].evidence[0].sourceId = 'story-1';
+  (assessReporterEvidence as any).mockResolvedValueOnce(incomplete).mockResolvedValueOnce(supported);
+  await prepareReporterResearch({ packet: input, communityId: 'tenant-1', createdByUserId: null });
+  expect(fetchReporterPublicDocument).toHaveBeenCalledTimes(8);
+  expect(fetchReporterPublicDocument).toHaveBeenLastCalledWith('https://agency.gov/measles-followup', expect.any(AbortSignal));
+});
+
+test('retrieving an attached primary URL updates its existing source instead of adding a duplicate', async () => {
+  const input = packet(); input.sources.push({ ...source('cdc', 'https://www.cdc.gov/measles/report'), title: 'Agency report' });
+  await prepareReporterResearch({ packet: input, communityId: 'tenant-1', createdByUserId: null });
+  expect(db.reporterSource.create).not.toHaveBeenCalled();
+  expect(db.reporterSource.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ id: 'cdc' }) }));
+});
+
+test('records an incidental claim withdrawn by citation correction in internal omissions', async () => {
+  grazingSource(); const withdrawn = grazingAssessment(); withdrawn.claims[1].status = 'unresolved'; withdrawn.claims[1].evidence = [];
+  (assessReporterEvidence as any).mockResolvedValueOnce(grazingAssessment()).mockResolvedValueOnce(withdrawn);
+  const result = await prepareReporterResearch({ packet: packet(), communityId: 'tenant-1', createdByUserId: null });
+  expect(result.supportedClaims).toHaveLength(1);
+  expect(result.researchNotes).toContain('citation correction could not establish support');
 });

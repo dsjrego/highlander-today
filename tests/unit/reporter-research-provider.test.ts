@@ -47,3 +47,13 @@ test('fails closed when evidence assessment output is malformed', async () => {
   (global.fetch as any).mockResolvedValueOnce(respond({ ready: true }));
   await expect(assessReporterEvidence(packet(), AbortSignal.timeout(1000))).rejects.toThrow();
 });
+
+test('passes correction feedback to traced assessment without enabling public search', async () => {
+  const previousAssessment = { ready: true, summary: 'An attributed brief', headline: null, omittedClaims: [], gaps: [], claims: [{ text: 'The agency lists two actions.', central: true, status: 'attributed' as const, attribution: 'Agency', asOf: null, evidence: [{ sourceId: 'public', quote: 'A joined passage that failed validation.' }] }] };
+  (global.fetch as any).mockResolvedValue(respond(previousAssessment));
+  await assessReporterEvidence(packet(), AbortSignal.timeout(1000), { previousAssessment, validationGaps: ['Supporting passage was not found'] });
+  const body = JSON.parse((global.fetch as any).mock.calls[0][1].body);
+  expect(body.tools).toBeUndefined();
+  expect(body).toMatchObject({ model: 'gpt-6-luna', reasoning: { effort: 'medium' } });
+  expect(JSON.parse(body.input[1].content).correction).toMatchObject({ previousAssessment, validationGaps: ['Supporting passage was not found'] });
+});
