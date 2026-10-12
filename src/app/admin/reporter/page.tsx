@@ -117,9 +117,6 @@ export default async function AdminReporterPage() {
           <div className="flex items-center gap-0">
             <div className="admin-card-header-label">Morning Reporter Desk</div>
           </div>
-          <Link href="/admin/reporter/sources" className="admin-list-link">
-            Open Source Monitor
-          </Link>
         </div>
         <div className="admin-card-body space-y-4">
           <div className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
@@ -263,7 +260,7 @@ export default async function AdminReporterPage() {
             <div className="admin-card-header-icon" aria-hidden="true">
               <FileSearch className="h-4 w-4" />
             </div>
-            <div className="admin-card-header-label">Reporter</div>
+            <div className="admin-card-header-label">Assigned Stories</div>
           </div>
         </div>
         <div className="admin-card-body">

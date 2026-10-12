@@ -265,3 +265,5 @@ When in doubt, open `design/admin/Organization Management.html` and match it.
 ### Reporter navigation — 2026-10-12
 
 Source Monitor and Public Intake are nested sidebar links beneath Reporter, replacing its header buttons. Child links stay attached when Reporter is reordered.
+
+Reporter follow-up (2026-10-12): remove the redundant Morning Reporter Desk Source Monitor link and label the reporting-run section “Assigned Stories.” Owner intends default staff-reporter assignment; AI versus human assignee identity remains unresolved, so this release changes presentation only.
