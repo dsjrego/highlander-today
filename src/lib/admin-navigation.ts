@@ -1,6 +1,7 @@
 export type AdminNavItem = {
   href: string;
   label: string;
+  children?: ReadonlyArray<{ href: string; label: string }>;
 };
 
 export type AdminNavSection = {
@@ -30,7 +31,14 @@ export const defaultAdminNavSections = [
       { href: '/admin/content', label: 'Content Approvals' },
       { href: '/admin/articles', label: 'Articles' },
       { href: '/admin/memoriam', label: 'Memoriam' },
-      { href: '/admin/reporter', label: 'Reporter' },
+      {
+        href: '/admin/reporter',
+        label: 'Reporter',
+        children: [
+          { href: '/admin/reporter/sources', label: 'Source Monitor' },
+          { href: '/report-a-story', label: 'Public Intake' },
+        ],
+      },
       { href: '/admin/recipes', label: 'Recipes' },
       { href: '/admin/events', label: 'Events' },
       { href: '/admin/locations', label: 'Locations' },

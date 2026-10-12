@@ -5,15 +5,7 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { ChevronDown, ChevronUp, GripVertical } from 'lucide-react';
 
-type AdminNavItem = {
-  href: string;
-  label: string;
-};
-
-type AdminNavSection = {
-  title: string;
-  items: ReadonlyArray<AdminNavItem>;
-};
+import type { AdminNavSection } from '@/lib/admin-navigation';
 
 const SIDEBAR_SECTION_STATE_KEY = 'hl-admin-sidebar-sections';
 
@@ -83,7 +75,9 @@ export function AdminSidebarNav({
   return (
     <nav className="admin-sidebar-nav" aria-label="Admin navigation">
       {sections.map((section) => {
-        const hasActiveItem = section.items.some((item) => isActivePath(pathname, item.href));
+        const hasActiveItem = section.items.some((item) =>
+          isActivePath(pathname, item.href) || item.children?.some((child) => isActivePath(pathname, child.href))
+        );
         const isSectionCollapsed = !collapsed && !hasActiveItem && collapsedSections[section.title] === true;
 
         return (
@@ -149,45 +143,66 @@ export function AdminSidebarNav({
                 className="admin-sidebar-section-list"
               >
                 {section.items.map((item) => {
-                  const isActive = isActivePath(pathname, item.href);
+                  const hasActiveChild = item.children?.some((child) => isActivePath(pathname, child.href));
+                  const isActive = isActivePath(pathname, item.href) && !hasActiveChild;
                   const isDragged = draggedHref === item.href;
 
                   return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      draggable={draggable}
-                      onDragStart={() => onDragStart?.(item.href)}
-                      onDragEnd={() => onDragEnd?.()}
-                      onDragOver={(event) => {
-                        if (!draggable || !draggedHref || draggedHref === item.href) {
-                          return;
-                        }
+                    <div key={item.href} className="admin-sidebar-item">
+                      <Link
+                        href={item.href}
+                        draggable={draggable}
+                        onDragStart={() => onDragStart?.(item.href)}
+                        onDragEnd={() => onDragEnd?.()}
+                        onDragOver={(event) => {
+                          if (!draggable || !draggedHref || draggedHref === item.href) {
+                            return;
+                          }
 
-                        event.preventDefault();
-                      }}
-                      onDrop={(event) => {
-                        if (!draggable || !draggedHref || draggedHref === item.href) {
-                          return;
-                        }
+                          event.preventDefault();
+                        }}
+                        onDrop={(event) => {
+                          if (!draggable || !draggedHref || draggedHref === item.href) {
+                            return;
+                          }
 
-                        event.preventDefault();
-                        event.stopPropagation();
-                        onMoveItem?.(draggedHref, item.href, section.title);
-                        setDragOverSection(null);
-                        onDragEnd?.();
-                      }}
-                      className={`admin-sidebar-link ${isActive ? 'is-active' : ''} ${isDragged ? 'is-dragged' : ''}`}
-                      aria-current={isActive ? 'page' : undefined}
-                      title={collapsed ? item.label : undefined}
-                    >
-                      {draggable ? (
-                        <span className="admin-sidebar-link-grip" aria-hidden="true">
-                          <GripVertical className="h-3.5 w-3.5" />
-                        </span>
+                          event.preventDefault();
+                          event.stopPropagation();
+                          onMoveItem?.(draggedHref, item.href, section.title);
+                          setDragOverSection(null);
+                          onDragEnd?.();
+                        }}
+                        className={`admin-sidebar-link ${isActive ? 'is-active' : ''} ${isDragged ? 'is-dragged' : ''}`}
+                        aria-current={isActive ? 'page' : undefined}
+                        title={collapsed ? item.label : undefined}
+                      >
+                        {draggable ? (
+                          <span className="admin-sidebar-link-grip" aria-hidden="true">
+                            <GripVertical className="h-3.5 w-3.5" />
+                          </span>
+                        ) : null}
+                        <span className="admin-sidebar-link-label">{item.label}</span>
+                      </Link>
+                      {item.children?.length ? (
+                        <ul className="admin-sidebar-submenu" aria-label={`${item.label} submenu`}>
+                          {item.children.map((child) => {
+                            const isChildActive = isActivePath(pathname, child.href);
+                            return (
+                              <li key={child.href}>
+                                <Link
+                                  href={child.href}
+                                  className={`admin-sidebar-link admin-sidebar-sublink ${isChildActive ? 'is-active' : ''}`}
+                                  aria-current={isChildActive ? 'page' : undefined}
+                                  title={collapsed ? child.label : undefined}
+                                >
+                                  <span className="admin-sidebar-link-label">{child.label}</span>
+                                </Link>
+                              </li>
+                            );
+                          })}
+                        </ul>
                       ) : null}
-                      <span className="admin-sidebar-link-label">{item.label}</span>
-                    </Link>
+                    </div>
                   );
                 })}
               </div>

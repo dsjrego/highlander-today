@@ -111,19 +111,7 @@ export default async function AdminReporterPage() {
   const editorReadyRuns = runs.filter((run) => run.status === 'DRAFT_CREATED').slice(0, 5);
 
   return (
-    <AdminPage
-      title="Reporter"
-      actions={
-        <div className="flex flex-wrap gap-2">
-          <Link href="/admin/reporter/sources" className="page-header-action">
-            Source Monitor
-          </Link>
-          <Link href="/report-a-story" className="page-header-action">
-            Public Intake
-          </Link>
-        </div>
-      }
-    >
+    <AdminPage title="Reporter">
       <div className="admin-card">
         <div className="admin-card-header">
           <div className="flex items-center gap-0">

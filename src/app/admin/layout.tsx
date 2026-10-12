@@ -62,10 +62,13 @@ export default async function AdminLayout({
   );
 
   const commandPaletteRoutes = visibleNavSections.flatMap((section) =>
-    section.items.map((item) => ({
-      href: item.href,
-      label: `${section.title}: ${item.label}`,
-    }))
+    section.items.flatMap((item) => [
+      { href: item.href, label: `${section.title}: ${item.label}` },
+      ...(item.children ?? []).map((child) => ({
+        href: child.href,
+        label: `${item.label}: ${child.label}`,
+      })),
+    ])
   );
 
   return (

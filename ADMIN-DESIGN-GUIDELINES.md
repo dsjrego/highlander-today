@@ -261,3 +261,7 @@ Before considering a management surface done:
 - [ ] Keyboard, focus, labels, and AA contrast verified.
 
 When in doubt, open `design/admin/Organization Management.html` and match it.
+
+### Reporter navigation — 2026-10-12
+
+Source Monitor and Public Intake are nested sidebar links beneath Reporter, replacing its header buttons. Child links stay attached when Reporter is reordered.
