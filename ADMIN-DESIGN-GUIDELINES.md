@@ -267,3 +267,5 @@ When in doubt, open `design/admin/Organization Management.html` and match it.
 Source Monitor and Public Intake are nested sidebar links beneath Reporter, replacing its header buttons. Child links stay attached when Reporter is reordered.
 
 Reporter follow-up (2026-10-12): remove the redundant Morning Reporter Desk Source Monitor link and label the reporting-run section “Assigned Stories.” Owner intends default staff-reporter assignment; AI versus human assignee identity remains unresolved, so this release changes presentation only.
+
+Reporter page layout (2026-10-12): Morning Reporter Desk remains above four tabs: Editor Ready (default), Assigned Stories, Candidates and Interviews. Candidates move out of the desk; Editor Ready replaces Editor Ready Stories and displays all matching runs. Section selection uses a separate query parameter to preserve run filters and legacy links. Tabs support keyboard arrow/Home/End navigation and labelled panels.
