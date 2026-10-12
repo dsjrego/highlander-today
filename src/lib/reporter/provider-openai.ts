@@ -15,6 +15,12 @@ import {
   ReporterDraftOutputSchema,
   SourcePacketAnalysisOutputSchema,
 } from './reporter-agent-schemas';
+import {
+  REPORTER_OPENAI_MODEL,
+  REPORTER_OPENAI_REASONING_EFFORT,
+  type ReporterModelRoute,
+  type ReporterReasoningEffort,
+} from './model-routing';
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/responses';
 
@@ -177,9 +183,13 @@ function finalizeProviderDraft(
 export class OpenAIReporterProvider implements ReporterProviderAdapter {
   readonly provider = 'openai';
   readonly model: string;
+  readonly reasoningEffort: ReporterReasoningEffort;
+  readonly routing: ReporterModelRoute | null;
 
-  constructor(model = process.env.REPORTER_MODEL_NAME || 'gpt-5.6') {
-    this.model = model;
+  constructor(routing: ReporterModelRoute | null = null) {
+    this.model = REPORTER_OPENAI_MODEL;
+    this.reasoningEffort = REPORTER_OPENAI_REASONING_EFFORT;
+    this.routing = routing;
   }
 
   async generateDraft(
@@ -205,7 +215,7 @@ export class OpenAIReporterProvider implements ReporterProviderAdapter {
         body: JSON.stringify({
           model: this.model,
           reasoning: {
-            effort: process.env.REPORTER_MODEL_REASONING_EFFORT || 'medium',
+            effort: this.reasoningEffort,
           },
           max_output_tokens: draftType === REPORTER_DRAFT_TYPE.SOURCE_PACKET_SUMMARY ? 1200 : 2200,
           input: [
@@ -265,13 +275,19 @@ export class OpenAIReporterProvider implements ReporterProviderAdapter {
         this.model
       );
 
+      const inputSnapshotJson = this.routing
+        ? { ...promptBundle.inputSnapshotJson, routing: this.routing }
+        : promptBundle.inputSnapshotJson;
+
       return {
         ...result,
         metadata: {
           ...result.metadata,
           ...promptBundle.traceMetadata,
-          inputHash: hashReporterJson(promptBundle.inputSnapshotJson),
-          inputSnapshotJson: promptBundle.inputSnapshotJson,
+          reasoningEffort: this.reasoningEffort,
+          routing: this.routing,
+          inputHash: hashReporterJson(inputSnapshotJson),
+          inputSnapshotJson,
           rawOutputText: rawText,
           parsedOutputJson: validatedParsed,
           latencyMs: Date.now() - startedAt,

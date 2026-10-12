@@ -421,3 +421,9 @@ When Vercel-facing requirements change:
 - update `.env.example` if env vars changed
 - update `scripts/check-deployment-env.ts` if the env validation contract changed
 - update `README.md` only when the general repo-facing setup story also changes
+
+## Reporter Luna policy — 2026-10-12
+
+Owner requested all OpenAI Reporter actions move to GPT-6 Luna (`gpt-6-luna`) with medium reasoning. This supersedes earlier model defaults. Shared routing pins source analysis, article drafting, interviews, declared extraction/follow-up/classification tasks and bounded retries; stale model/effort overrides are rejected. Align global and per-task REPORTER_MODEL_* environment values across production, preview and development. Provider/API credentials, source grounding and explicit human publication remain unchanged. Official compatibility: https://developers.openai.com/api/docs/models/gpt-6-luna. No paid inference is required for configuration/routing verification.
+
+Verification: exact scoped source installed with npm ci from the committed lock; lint, 53 unit suites/219 tests and production build passed. Mocked requests verify Luna/medium in direct generation, source analysis, interviews, risk paths and retries. All 16 model/effort settings verified in production, preview and development. Paid inference and production editorial writes were not exercised. Earlier dependency audit findings remain unchanged; unrelated hardening edits are excluded.

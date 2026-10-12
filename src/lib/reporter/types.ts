@@ -1,3 +1,5 @@
+import type { ReporterModelRoute, ReporterReasoningEffort } from './model-routing';
+
 export const REPORTER_RUN_STATUS = {
   NEW: 'NEW',
   NEEDS_REVIEW: 'NEEDS_REVIEW',
@@ -273,6 +275,8 @@ export interface ReporterValidationResult {
 export interface ReporterProviderMetadata {
   provider: string;
   model: string;
+  reasoningEffort?: ReporterReasoningEffort | null;
+  routing?: ReporterModelRoute | null;
   promptKey?: string | null;
   promptVersion?: string | null;
   promptHash?: string | null;

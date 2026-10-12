@@ -131,4 +131,47 @@ describe('generateReporterDraftWithValidation', () => {
     expect(result.draft.generationNotes).toContain('failed model response');
     expect(result.draft.generationNotes).toContain('"body"');
   });
+
+  it('retries a failed OpenAI draft once on the fixed Luna medium-reasoning route', async () => {
+    process.env.REPORTER_MODEL_PROVIDER = 'openai';
+    process.env.OPENAI_API_KEY = 'test-key';
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        text: async () => 'temporary provider failure',
+      } as never)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          output_text: JSON.stringify({
+            headline: 'Color Blast Returns in May',
+            dek: 'The Highlander Foundation announced its second annual event.',
+            body:
+              'The Highlander Foundation will host its second annual Highlander Color Blast 5K on Saturday, May 16, at 11 a.m., according to the school district announcement.',
+            generationNotes: 'Recovered on the bounded medium-reasoning retry.',
+          }),
+        }),
+      } as never) as any;
+
+    const result = await generateReporterDraftWithValidation(
+      buildPacket(),
+      REPORTER_DRAFT_TYPE.ARTICLE_DRAFT
+    );
+
+    const requests = (global.fetch as jest.Mock).mock.calls.map((call) =>
+      JSON.parse(String((call[1] as RequestInit).body))
+    );
+    expect(requests).toHaveLength(2);
+    expect(requests[0]).toMatchObject({
+      model: 'gpt-6-luna',
+      reasoning: { effort: 'medium' },
+    });
+    expect(requests[1]).toMatchObject({
+      model: 'gpt-6-luna',
+      reasoning: { effort: 'medium' },
+    });
+    expect(result.draft.generationNotes).toContain('bounded medium-reasoning retry');
+  });
 });

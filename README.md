@@ -105,7 +105,7 @@ GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 ```
 
-Optional variables include Cloudflare R2 upload settings, MaxMind login geolocation credentials, and reporter model settings such as `REPORTER_MODEL_PROVIDER`, `REPORTER_MODEL_NAME`, `REPORTER_MODEL_REASONING_EFFORT`, and `OPENAI_API_KEY`. See `.env.example` and `PROJECT-STATUS.md` when adding those.
+Optional variables include Cloudflare R2 upload settings, MaxMind login geolocation credentials, and reporter model settings such as `REPORTER_MODEL_PROVIDER`, the per-task `REPORTER_MODEL_*` routes, and `OPENAI_API_KEY`. All OpenAI Reporter actions and retries use GPT-6 Luna (`gpt-6-luna`) with medium reasoning, enforced by the shared routing policy. See `.env.example` and `PROJECT-STATUS.md` when adding those.
 
 ### Initial admin bootstrap
 

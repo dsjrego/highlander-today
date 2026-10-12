@@ -21,6 +21,12 @@ import {
   REPORTER_AGENT_ACTION,
   REPORTER_AGENT_ACTOR,
 } from './reporter-agent-permissions';
+import {
+  REPORTER_MODEL_TASK,
+  resolveReporterModelRoute,
+  type ReporterModelRiskLevel,
+  type ReporterModelRoute,
+} from './model-routing';
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/responses';
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
@@ -57,9 +63,9 @@ function getProvider() {
   return (process.env.REPORTER_MODEL_PROVIDER || 'openai').toLowerCase();
 }
 
-function getModel(provider: string) {
+function getModel(provider: string, routing: ReporterModelRoute | null = null) {
   if (provider === 'openai') {
-    return process.env.REPORTER_MODEL_NAME || 'gpt-5.6';
+    return routing?.model || resolveReporterModelRoute({ task: REPORTER_MODEL_TASK.INTERVIEW_NEXT_STEP }).model;
   }
 
   return process.env.REPORTER_MODEL_NAME || 'claude-sonnet-4-6';
@@ -191,8 +197,9 @@ async function buildInterviewPromptBundle(params: {
 async function requestOpenAIInterviewDecision(params: {
   systemPrompt: string;
   userPrompt: string;
+  routing: ReporterModelRoute;
 }) {
-  const model = getModel('openai');
+  const model = getModel('openai', params.routing);
   const startedAt = Date.now();
   const response = await fetch(OPENAI_API_URL, {
     method: 'POST',
@@ -203,7 +210,7 @@ async function requestOpenAIInterviewDecision(params: {
     body: JSON.stringify({
       model,
       reasoning: {
-        effort: process.env.REPORTER_MODEL_REASONING_EFFORT || 'medium',
+        effort: params.routing.reasoningEffort,
       },
       max_output_tokens: 350,
       input: [
@@ -240,6 +247,7 @@ async function requestOpenAIInterviewDecision(params: {
   return {
     parsed,
     model,
+    routing: params.routing,
     rawText,
     latencyMs: Date.now() - startedAt,
   };
@@ -380,6 +388,17 @@ export async function decideNextInterviewStep(params: {
   const outstandingRequired = framework.requiredQuestionKeys.filter(
     (key) => !coveredRequired.includes(key)
   );
+  const provider = getProvider();
+  const interviewRisk: ReporterModelRiskLevel = params.request.sensitivityNotes?.trim()
+    ? 'high'
+    : 'routine';
+  const routing =
+    provider === 'openai'
+      ? resolveReporterModelRoute({
+          task: REPORTER_MODEL_TASK.INTERVIEW_NEXT_STEP,
+          riskLevel: interviewRisk,
+        })
+      : null;
 
   if (!hasConfiguredInterviewerProvider()) {
     const fallbackDecision = buildFallbackDecision({
@@ -416,10 +435,11 @@ export async function decideNextInterviewStep(params: {
     });
 
     const response =
-      getProvider() === 'openai'
+      provider === 'openai' && routing
         ? await requestOpenAIInterviewDecision({
             systemPrompt: promptBundle.systemPrompt,
             userPrompt: promptBundle.userPrompt,
+            routing,
           })
         : await requestAnthropicInterviewDecision({
             systemPrompt: promptBundle.systemPrompt,
@@ -455,11 +475,17 @@ export async function decideNextInterviewStep(params: {
         await createSuccessfulReporterAgentTrace({
           reporterRunId: params.reporterRunId,
           traceType: 'INTERVIEW_NEXT_STEP',
-          provider: getProvider(),
+          provider,
           modelName: response.model,
           ...promptBundle.traceMetadata,
-          inputHash: hashReporterJson(promptBundle.inputSnapshotJson),
-          inputSnapshotJson: promptBundle.inputSnapshotJson,
+          inputHash: hashReporterJson({
+            ...promptBundle.inputSnapshotJson,
+            routing: routing || undefined,
+          }),
+          inputSnapshotJson: {
+            ...promptBundle.inputSnapshotJson,
+            routing: routing || undefined,
+          },
           rawOutputText: response.rawText,
           parsedOutputJson: parsed,
           latencyMs: response.latencyMs,
@@ -513,11 +539,17 @@ export async function decideNextInterviewStep(params: {
       await createSuccessfulReporterAgentTrace({
         reporterRunId: params.reporterRunId,
         traceType: 'INTERVIEW_NEXT_STEP',
-        provider: getProvider(),
+        provider,
         modelName: response.model,
         ...promptBundle.traceMetadata,
-        inputHash: hashReporterJson(promptBundle.inputSnapshotJson),
-        inputSnapshotJson: promptBundle.inputSnapshotJson,
+        inputHash: hashReporterJson({
+          ...promptBundle.inputSnapshotJson,
+          routing: routing || undefined,
+        }),
+        inputSnapshotJson: {
+          ...promptBundle.inputSnapshotJson,
+          routing: routing || undefined,
+        },
         rawOutputText: response.rawText,
         parsedOutputJson: parsed,
         validationJson: { normalizedKey },
@@ -531,8 +563,9 @@ export async function decideNextInterviewStep(params: {
       await createFailedReporterAgentTrace({
         reporterRunId: params.reporterRunId,
         traceType: 'INTERVIEW_NEXT_STEP',
-        provider: hasConfiguredInterviewerProvider() ? getProvider() : 'fallback',
-        modelName: hasConfiguredInterviewerProvider() ? getModel(getProvider()) : null,
+        provider: hasConfiguredInterviewerProvider() ? provider : 'fallback',
+        modelName: hasConfiguredInterviewerProvider() ? getModel(provider, routing) : null,
+        inputSnapshotJson: routing ? { routing } : undefined,
         errorMessage:
           error instanceof Error
             ? error.message
