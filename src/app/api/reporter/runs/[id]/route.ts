@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { getCurrentCommunity } from '@/lib/community';
 import { logActivity } from '@/lib/activity-log';
-import { canEditReporterRun, canViewReporterRun } from '@/lib/reporter/permissions';
+import { canEditReporterRun, canViewReporterRun, canAssignReporterRun, canGenerateReporterDraft } from '@/lib/reporter/permissions';
 import { assertReporterRunStatusTransition } from '@/lib/reporter/status';
 
 const UpdateReporterRunSchema = z.object({
@@ -170,6 +170,16 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
 
     const body = await request.json();
     const validated = UpdateReporterRunSchema.parse(body);
+
+    if (validated.assignedToUserId !== undefined) {
+      if (!canAssignReporterRun(userRole)) return NextResponse.json({ error: 'An editor must assign stories.' }, { status: 403 });
+      if (validated.assignedToUserId) {
+        const member = await db.userCommunityMembership.findUnique({ where: { userId_communityId: { userId: validated.assignedToUserId, communityId: currentCommunity!.id } }, include: { user: { select: { trustLevel: true } } } });
+        if (!member || member.user.trustLevel !== 'TRUSTED' || !canGenerateReporterDraft(member.role)) {
+          return NextResponse.json({ error: 'Choose a trusted reporter in this community.' }, { status: 400 });
+        }
+      }
+    }
 
     if (validated.status && validated.status !== existing.status) {
       assertReporterRunStatusTransition(existing.status, validated.status);

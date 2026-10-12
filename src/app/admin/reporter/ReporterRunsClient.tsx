@@ -1,13 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { AdminChip } from '@/components/admin/AdminChip';
 import { AdminDrawer } from '@/components/admin/AdminDrawer';
 import { AdminFilterBar } from '@/components/admin/AdminFilterBar';
-import { AdminViewTabs } from '@/components/admin/AdminViewTabs';
+import { STORY_STATUS_LABELS } from '@/lib/reporter/story-status';
+import PrepareStoryButton from './PrepareStoryButton';
 
 interface ReporterRunRow {
   id: string;
@@ -21,6 +22,8 @@ interface ReporterRunRow {
   requesterEmail: string | null;
   createdAt: string | Date;
   updatedAt: string | Date;
+  interviewRequests?: Array<{ sessions: Array<{ id: string }> }>;
+  linkedArticle?: { status: string; slug: string } | null;
   assignedTo: {
     id: string;
     firstName: string;
@@ -36,21 +39,15 @@ interface ReporterRunRow {
 
 interface ReporterRunsClientProps {
   runs: ReporterRunRow[];
+  canPrepare?: boolean;
+  canAssign?: boolean;
+  currentUserId?: string;
   assignees: {
     id: string;
     firstName: string;
     lastName: string;
   }[];
 }
-
-type ReporterQueueViewKey =
-  | 'all'
-  | 'NEW'
-  | 'NEEDS_REVIEW'
-  | 'READY_FOR_DRAFT'
-  | 'DRAFT_CREATED'
-  | 'BLOCKED'
-  | 'editor-ready';
 
 const STATUS_OPTIONS = [
   'ALL',
@@ -60,6 +57,8 @@ const STATUS_OPTIONS = [
   'READY_FOR_DRAFT',
   'BLOCKED',
   'DRAFT_CREATED',
+  'CONVERTED_TO_ARTICLE',
+  'ARCHIVED',
 ] as const;
 
 const MODE_OPTIONS = ['REQUEST', 'INTERVIEW', 'RESEARCH', 'HYBRID'] as const;
@@ -120,21 +119,42 @@ function statusTone(status: string): 'ok' | 'pend' | 'bad' | 'neu' {
 export default function ReporterRunsClient({
   runs,
   assignees,
+  canPrepare = false,
+  canAssign = false,
+  currentUserId = '',
 }: ReporterRunsClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const activeView = (searchParams.get('view') as ReporterQueueViewKey | null) ?? 'all';
+  const legacyView = searchParams.get('view');
   const focus = searchParams.get('focus');
 
   const [rows, setRows] = useState(runs);
-  const [statusFilter, setStatusFilter] = useState<(typeof STATUS_OPTIONS)[number]>('ALL');
+  useEffect(() => {
+    setRows(runs);
+  }, [runs]);
+  const [statusFilter, setStatusFilter] =
+    useState<(typeof STATUS_OPTIONS)[number]>('ALL');
+  useEffect(() => {
+    const value = legacyView === 'editor-ready' ? 'DRAFT_CREATED' : legacyView;
+    if (
+      value &&
+      STATUS_OPTIONS.includes(value as (typeof STATUS_OPTIONS)[number])
+    ) {
+      setStatusFilter(value as (typeof STATUS_OPTIONS)[number]);
+    }
+  }, [legacyView]);
   const [assigneeFilter, setAssigneeFilter] = useState('all');
   const [query, setQuery] = useState('');
-  const [createForm, setCreateForm] = useState<CreateReporterRunFormState>(EMPTY_CREATE_FORM);
+  const [assignmentError, setAssignmentError] = useState('');
+  const [assigning, setAssigning] = useState<string | null>(null);
+  const [newReporterId, setNewReporterId] = useState('');
+  const [createForm, setCreateForm] =
+    useState<CreateReporterRunFormState>(EMPTY_CREATE_FORM);
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState('');
-  const [createSuccessRun, setCreateSuccessRun] = useState<ReporterRunRow | null>(null);
+  const [createSuccessRun, setCreateSuccessRun] =
+    useState<ReporterRunRow | null>(null);
 
   function updateSearchParams(updates: Record<string, string | null>) {
     const next = new URLSearchParams(searchParams.toString());
@@ -154,15 +174,6 @@ export default function ReporterRunsClient({
   const filteredRuns = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return rows.filter((run) => {
-      if (activeView !== 'all') {
-        if (activeView === 'editor-ready') {
-          if (run.status !== 'DRAFT_CREATED') {
-            return false;
-          }
-        } else if (run.status !== activeView) {
-          return false;
-        }
-      }
       if (statusFilter !== 'ALL' && run.status !== statusFilter) {
         return false;
       }
@@ -182,7 +193,7 @@ export default function ReporterRunsClient({
         .filter(Boolean)
         .some((value) => value!.toLowerCase().includes(normalizedQuery));
     });
-  }, [activeView, assigneeFilter, query, rows, statusFilter]);
+  }, [assigneeFilter, query, rows, statusFilter]);
 
   function updateCreateForm<K extends keyof CreateReporterRunFormState>(
     key: K,
@@ -193,6 +204,10 @@ export default function ReporterRunsClient({
 
   async function handleCreateRun(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!newReporterId) {
+      setCreateError('Choose a reporter for this story.');
+      return;
+    }
     setIsCreating(true);
     setCreateError('');
     setCreateSuccessRun(null);
@@ -204,6 +219,7 @@ export default function ReporterRunsClient({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          assignedToUserId: newReporterId,
           mode: createForm.mode,
           requestType: createForm.requestType,
           topic: createForm.topic,
@@ -225,7 +241,7 @@ export default function ReporterRunsClient({
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create reporter run');
+        throw new Error(data.error || 'Unable to create story');
       }
 
       const nextRun: ReporterRunRow = {
@@ -240,7 +256,8 @@ export default function ReporterRunsClient({
         requesterEmail: data.requesterEmail,
         createdAt: data.createdAt,
         updatedAt: data.updatedAt,
-        assignedTo: null,
+        assignedTo:
+          assignees.find((reporter) => reporter.id === newReporterId) || null,
         _count: {
           sources: Array.isArray(data.sources) ? data.sources.length : 0,
           blockers: 0,
@@ -257,7 +274,9 @@ export default function ReporterRunsClient({
       setQuery('');
       updateSearchParams({ focus: null, view: data.status || 'all' });
     } catch (error) {
-      setCreateError(error instanceof Error ? error.message : 'Failed to create reporter run');
+      setCreateError(
+        error instanceof Error ? error.message : 'Unable to create story'
+      );
     } finally {
       setIsCreating(false);
     }
@@ -266,35 +285,8 @@ export default function ReporterRunsClient({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <AdminViewTabs
-          defaultView="all"
-          views={[
-            { key: 'all', label: 'All Runs', count: rows.length },
-            { key: 'NEW', label: 'New', count: rows.filter((run) => run.status === 'NEW').length, tone: 'pend' },
-            {
-              key: 'NEEDS_REVIEW',
-              label: 'Needs Review',
-              count: rows.filter((run) => run.status === 'NEEDS_REVIEW').length,
-              tone: 'pend',
-            },
-            {
-              key: 'READY_FOR_DRAFT',
-              label: 'Ready',
-              count: rows.filter((run) => run.status === 'READY_FOR_DRAFT').length,
-            },
-            {
-              key: 'editor-ready',
-              label: 'Editor Ready',
-              count: rows.filter((run) => run.status === 'DRAFT_CREATED').length,
-            },
-            {
-              key: 'BLOCKED',
-              label: 'Blocked',
-              count: rows.filter((run) => run.status === 'BLOCKED').length,
-              tone: 'bad',
-            },
-          ]}
-        />
+        <span className="text-sm">{rows.length} stories</span>
+        {canAssign || canPrepare ? (
         <button
           type="button"
           className="page-header-action"
@@ -304,54 +296,64 @@ export default function ReporterRunsClient({
           }}
         >
           <Plus className="h-4 w-4" />
-          <span>Reporter Run</span>
+          <span>New Story</span>
         </button>
+        ) : <Link href="/report-a-story" className="page-header-action">Suggest a Story</Link>}
       </div>
 
       <div className="admin-list">
+        {assignmentError ? (
+          <p role="alert" className="admin-list-error">
+            {assignmentError}
+          </p>
+        ) : null}
         {createSuccessRun ? (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            Reporter run created.{' '}
-            <Link
-              href={`/admin/reporter/${createSuccessRun.id}`}
-              className="font-semibold underline underline-offset-2"
-            >
-              Open {createSuccessRun.title || createSuccessRun.topic}
-            </Link>
+            Story assigned. Choose Prepare Draft to continue.
           </div>
         ) : null}
 
         <AdminFilterBar
           search={
             <label className="admin-list-filter">
-              <span className="admin-list-filter-label">Topic, Subject, Requester</span>
+              <span className="admin-list-filter-label">Search stories</span>
               <input
                 type="text"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search reporter runs"
+                placeholder="Search stories"
                 className="admin-list-filter-input"
               />
             </label>
           }
           right={
             <div className="flex flex-wrap gap-3">
-              <label className="admin-list-filter">
-                <span className="admin-list-filter-label">Status</span>
+              <div className="admin-list-filter">
+                <label
+                  htmlFor="story-status-filter"
+                  className="admin-list-filter-label"
+                >
+                  Status
+                </label>
                 <select
+                  id="story-status-filter"
                   value={statusFilter}
                   onChange={(event) =>
-                    setStatusFilter(event.target.value as (typeof STATUS_OPTIONS)[number])
+                    setStatusFilter(
+                      event.target.value as (typeof STATUS_OPTIONS)[number]
+                    )
                   }
                   className="admin-list-cell-select"
                 >
                   {STATUS_OPTIONS.map((status) => (
                     <option key={status} value={status}>
-                      {status === 'ALL' ? 'All statuses' : status}
+                      {status === 'ALL'
+                        ? 'All statuses'
+                        : STORY_STATUS_LABELS[status] || status}
                     </option>
                   ))}
                 </select>
-              </label>
+              </div>
 
               <label className="admin-list-filter">
                 <span className="admin-list-filter-label">Assignee</span>
@@ -376,46 +378,111 @@ export default function ReporterRunsClient({
           <table className="admin-list-table">
             <thead className="admin-list-head">
               <tr>
-                <th className="admin-list-header-cell">Topic</th>
+                <th className="admin-list-header-cell">Story</th>
                 <th className="admin-list-header-cell">Status</th>
-                <th className="admin-list-header-cell">Requester</th>
                 <th className="admin-list-header-cell">Assignee</th>
-                <th className="admin-list-header-cell">Packet</th>
+                <th className="admin-list-header-cell">Reporting material</th>
                 <th className="admin-list-header-cell">Updated</th>
-                <th className="admin-list-header-cell">Actions</th>
+                <th className="admin-list-header-cell">Next action</th>
               </tr>
             </thead>
             <tbody>
               {filteredRuns.length === 0 ? (
                 <tr className="admin-list-row">
-                  <td className="admin-list-empty" colSpan={7}>
-                    No reporter runs found.
+                  <td className="admin-list-empty" colSpan={6}>
+                    No assigned stories found.
                   </td>
                 </tr>
               ) : (
                 filteredRuns.map((run) => (
                   <tr key={run.id} className="admin-list-row">
                     <td className="admin-list-cell">
-                      <Link href={`/admin/reporter/${run.id}`} className="admin-list-link">
+                      <span className="font-medium">
                         {run.title || run.topic}
-                      </Link>
+                      </span>
                       <div className="text-xs text-slate-500">
-                        {run.subjectName || `${run.requestType} · ${run.mode}`}
+                        {run.subjectName || 'Reporting assignment'}
                       </div>
                     </td>
                     <td className="admin-list-cell">
-                      <AdminChip tone={statusTone(run.status)}>{run.status}</AdminChip>
+                      <AdminChip tone={statusTone(run.status)}>
+                        {STORY_STATUS_LABELS[run.status] || run.status}
+                      </AdminChip>
                     </td>
                     <td className="admin-list-cell">
-                      {run.requesterName || run.requesterEmail || 'Internal/unspecified'}
+                      {canAssign ? (
+                        <label>
+                          <span className="sr-only">
+                            Reporter for {run.title || run.topic}
+                          </span>
+                          <select
+                            className="admin-list-cell-select"
+                            disabled={assigning === run.id}
+                            value={run.assignedTo?.id || ''}
+                            onChange={async (event) => {
+                              const id = event.target.value;
+                              if (!id) return;
+                              setAssigning(run.id);
+                              setAssignmentError('');
+                              try {
+                                const response = await fetch(
+                                  `/api/reporter/runs/${run.id}`,
+                                  {
+                                    method: 'PATCH',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                      assignedToUserId: id,
+                                    }),
+                                  }
+                                );
+                                const data = await response.json();
+                                if (!response.ok)
+                                  throw new Error(
+                                    data.error || 'Unable to assign reporter.'
+                                  );
+                                setRows((current) =>
+                                  current.map((row) =>
+                                    row.id === run.id
+                                      ? { ...row, assignedTo: data.assignedTo }
+                                      : row
+                                  )
+                                );
+                              } catch (failure) {
+                                setAssignmentError(
+                                  failure instanceof Error
+                                    ? failure.message
+                                    : 'Unable to assign reporter.'
+                                );
+                              } finally {
+                                setAssigning(null);
+                              }
+                            }}
+                          >
+                            <option value="">Choose reporter</option>
+                            {assignees.map((reporter) => (
+                              <option key={reporter.id} value={reporter.id}>
+                                {reporter.firstName} {reporter.lastName}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : run.assignedTo ? (
+                        `${run.assignedTo.firstName} ${run.assignedTo.lastName}`
+                      ) : (
+                        'Needs a reporter'
+                      )}
                     </td>
                     <td className="admin-list-cell">
-                      {run.assignedTo
-                        ? `${run.assignedTo.firstName} ${run.assignedTo.lastName}`
-                        : 'Unassigned'}
-                    </td>
-                    <td className="admin-list-cell">
-                      {run._count.sources} src / {run._count.blockers} blk / {run._count.drafts} dr / {run._count.interviewRequests} iv
+                      {run._count.sources}{' '}
+                      {run._count.sources === 1 ? 'source' : 'sources'}
+                      {run._count.blockers
+                        ? ` · ${run._count.blockers} open issues`
+                        : ''}
+                      {run._count.interviewRequests
+                        ? ` · ${run._count.interviewRequests} interviews`
+                        : ''}
                     </td>
                     <td className="admin-list-cell">
                       {new Date(run.updatedAt).toLocaleDateString('en-US', {
@@ -425,9 +492,35 @@ export default function ReporterRunsClient({
                       })}
                     </td>
                     <td className="admin-list-cell">
-                      <Link href={`/admin/reporter/${run.id}`} className="admin-list-link">
-                        Open
-                      </Link>
+                      {run._count.drafts ? (
+                        <Link
+                          href={`/admin/reporter/${run.id}/review`}
+                          className="admin-list-link"
+                        >
+                          Review &amp; Publish
+                        </Link>
+                      ) : (
+                        <PrepareStoryButton
+                          runId={run.id}
+                          canPrepare={canPrepare}
+                          disabledReason={
+                            !run.assignedTo
+                              ? 'Choose a reporter.'
+                              : run.status === 'ARCHIVED'
+                                ? 'This story is archived.'
+                                : !run._count.sources
+                                  ? 'Add source material.'
+                                  : run._count.blockers
+                                    ? `${run._count.blockers} reporting issues need attention.`
+                                    : run.interviewRequests?.some(
+                                          (interview) =>
+                                            interview.sessions.length
+                                        )
+                                      ? 'Review completed interview notes.'
+                                      : undefined
+                          }
+                        />
+                      )}
                     </td>
                   </tr>
                 ))
@@ -437,188 +530,85 @@ export default function ReporterRunsClient({
         </div>
       </div>
 
-      <AdminDrawer title="Create Reporter Run">
+      <AdminDrawer title="New Story">
         {focus === 'new' ? (
-          <form
-            onSubmit={handleCreateRun}
-            className="space-y-5"
-          >
+          <form onSubmit={handleCreateRun} className="space-y-5">
             <div>
-              <h3 className="text-lg font-bold text-slate-950">Create Reporter Run</h3>
+              <h3 className="text-lg font-bold text-slate-950">New Story</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Start an internal reporting assignment without going through public intake. This creates the run, seeds any starting links or notes, and drops it into the reporter queue immediately.
+                Add the story topic and source material. Then choose Prepare
+                Draft from Assigned Stories.
               </p>
             </div>
 
-            {createError ? <div className="admin-list-error">{createError}</div> : null}
+            {createError ? (
+              <div className="admin-list-error">{createError}</div>
+            ) : null}
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5">
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div>
-                  <label className="form-label text-slate-500">Topic</label>
-                  <input
-                    type="text"
-                    value={createForm.topic}
-                    onChange={(event) => updateCreateForm('topic', event.target.value)}
-                    className="form-input border-slate-300 bg-white text-slate-950"
-                    placeholder="Village budget vote follow-up"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="form-label text-slate-500">Working Title</label>
-                  <input
-                    type="text"
-                    value={createForm.title}
-                    onChange={(event) => updateCreateForm('title', event.target.value)}
-                    className="form-input border-slate-300 bg-white text-slate-950"
-                    placeholder="Budget vote follow-up"
-                  />
-                </div>
-
-                <div>
-                  <label className="form-label text-slate-500">Mode</label>
-                  <select
-                    value={createForm.mode}
-                    onChange={(event) =>
-                      updateCreateForm(
-                        'mode',
-                        event.target.value as CreateReporterRunFormState['mode']
-                      )
-                    }
-                    className="form-input border-slate-300 bg-white text-slate-950"
-                  >
-                    {MODE_OPTIONS.map((mode) => (
-                      <option key={mode} value={mode}>
-                        {mode}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="form-label text-slate-500">Request Type</label>
-                  <select
-                    value={createForm.requestType}
-                    onChange={(event) =>
-                      updateCreateForm(
-                        'requestType',
-                        event.target.value as CreateReporterRunFormState['requestType']
-                      )
-                    }
-                    className="form-input border-slate-300 bg-white text-slate-950"
-                  >
-                    {REQUEST_TYPE_OPTIONS.map((requestType) => (
-                      <option key={requestType} value={requestType}>
-                        {requestType}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="form-label text-slate-500">Subject</label>
-                  <input
-                    type="text"
-                    value={createForm.subjectName}
-                    onChange={(event) => updateCreateForm('subjectName', event.target.value)}
-                    className="form-input border-slate-300 bg-white text-slate-950"
-                    placeholder="Village board / candidate / business / event"
-                  />
-                </div>
-
-                <div>
-                  <label className="form-label text-slate-500">Requested Article Type</label>
-                  <input
-                    type="text"
-                    value={createForm.requestedArticleType}
-                    onChange={(event) =>
-                      updateCreateForm('requestedArticleType', event.target.value)
-                    }
-                    className="form-input border-slate-300 bg-white text-slate-950"
-                    placeholder="News brief, profile, explainer"
-                  />
-                </div>
-
-                <div className="lg:col-span-2">
-                  <label className="form-label text-slate-500">Assignment Summary</label>
-                  <textarea
-                    value={createForm.requestSummary}
-                    onChange={(event) => updateCreateForm('requestSummary', event.target.value)}
-                    className="form-textarea border-slate-300 bg-white text-slate-950"
-                    rows={4}
-                    placeholder="What is the assignment and what should the reporter find out?"
-                  />
-                </div>
-
-                <div className="lg:col-span-2">
-                  <label className="form-label text-slate-500">Starting Facts or Description</label>
-                  <textarea
-                    value={createForm.whatHappened}
-                    onChange={(event) => updateCreateForm('whatHappened', event.target.value)}
-                    className="form-textarea border-slate-300 bg-white text-slate-950"
-                    rows={4}
-                    placeholder="Initial facts, newsroom context, or intake-style description."
-                  />
-                </div>
-
-                <div className="lg:col-span-2">
-                  <label className="form-label text-slate-500">Editor Notes</label>
-                  <textarea
-                    value={createForm.editorNotes}
-                    onChange={(event) => updateCreateForm('editorNotes', event.target.value)}
-                    className="form-textarea border-slate-300 bg-white text-slate-950"
-                    rows={4}
-                    placeholder="Internal instructions, sourcing angles, constraints, or follow-up priorities."
-                  />
-                </div>
-
-                <div className="lg:col-span-2">
-                  <label className="form-label text-slate-500">Supporting Links</label>
-                  <textarea
-                    value={createForm.supportingLinks}
-                    onChange={(event) => updateCreateForm('supportingLinks', event.target.value)}
-                    className="form-textarea border-slate-300 bg-white text-slate-950"
-                    rows={4}
-                    placeholder="One URL per line"
-                  />
-                </div>
-
-                <div>
-                  <label className="form-label text-slate-500">Requester Name</label>
-                  <input
-                    type="text"
-                    value={createForm.requesterName}
-                    onChange={(event) => updateCreateForm('requesterName', event.target.value)}
-                    className="form-input border-slate-300 bg-white text-slate-950"
-                    placeholder="Optional source or assigning editor name"
-                  />
-                </div>
-
-                <div>
-                  <label className="form-label text-slate-500">Requester Email</label>
-                  <input
-                    type="email"
-                    value={createForm.requesterEmail}
-                    onChange={(event) => updateCreateForm('requesterEmail', event.target.value)}
-                    className="form-input border-slate-300 bg-white text-slate-950"
-                    placeholder="Optional contact email"
-                  />
-                </div>
-
-                <div>
-                  <label className="form-label text-slate-500">Requester Phone</label>
-                  <input
-                    type="text"
-                    value={createForm.requesterPhone}
-                    onChange={(event) => updateCreateForm('requesterPhone', event.target.value)}
-                    className="form-input border-slate-300 bg-white text-slate-950"
-                    placeholder="Optional phone number"
-                  />
-                </div>
-              </div>
+            <div className="admin-list-filter">
+              <label
+                htmlFor="new-story-reporter"
+                className="admin-list-filter-label"
+              >
+                Reporter (required)
+              </label>
+              <select
+                id="new-story-reporter"
+                required
+                className="form-input"
+                value={newReporterId}
+                onChange={(event) => setNewReporterId(event.target.value)}
+              >
+                <option value="">Choose reporter</option>
+                {assignees
+                  .filter(
+                    (reporter) => canAssign || reporter.id === currentUserId
+                  )
+                  .map((reporter) => (
+                    <option key={reporter.id} value={reporter.id}>
+                      {reporter.firstName} {reporter.lastName}
+                    </option>
+                  ))}
+              </select>
             </div>
+            <label className="admin-list-filter">
+              <span className="form-label">Story topic (required)</span>
+              <input
+                required
+                className="form-input"
+                value={createForm.topic}
+                onChange={(event) =>
+                  updateCreateForm('topic', event.target.value)
+                }
+              />
+            </label>
+            <label className="admin-list-filter">
+              <span className="form-label">Source notes (optional)</span>
+              <textarea
+                className="form-input"
+                rows={5}
+                value={createForm.whatHappened}
+                onChange={(event) =>
+                  updateCreateForm('whatHappened', event.target.value)
+                }
+              />
+            </label>
+            <label className="admin-list-filter">
+              <span className="form-label">
+                Source links (optional, one per line)
+              </span>
+              <textarea
+                className="form-input"
+                rows={3}
+                value={createForm.supportingLinks}
+                onChange={(event) =>
+                  updateCreateForm('supportingLinks', event.target.value)
+                }
+              />
+            </label>
+            <p className="text-sm">
+              Add source notes or links before preparing a draft.
+            </p>
 
             <div className="flex justify-end gap-3">
               <button
@@ -631,14 +621,18 @@ export default function ReporterRunsClient({
               >
                 Cancel
               </button>
-              <button type="submit" disabled={isCreating} className="btn-primary">
-                {isCreating ? 'Creating...' : 'Create Reporter Run'}
+              <button
+                type="submit"
+                disabled={isCreating}
+                className="btn-primary"
+              >
+                {isCreating ? 'Creating...' : 'Create Story'}
               </button>
             </div>
           </form>
         ) : (
           <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
-            Choose “Reporter Run” to create a new run from this drawer.
+            Choose “New Story” to create a reporting assignment.
           </div>
         )}
       </AdminDrawer>

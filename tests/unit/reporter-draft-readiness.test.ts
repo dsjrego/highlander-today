@@ -1,0 +1,10 @@
+import { assertReporterRunReadyForDraft } from '@/lib/reporter/draft-service';
+jest.mock('@/lib/db', () => ({ db: {} }));
+jest.mock('@/lib/reporter/draft-generator', () => ({ generateReporterDraftWithValidation: jest.fn() }));
+jest.mock('@/lib/reporter/claim-service', () => ({ createReporterClaimsFromSourcePacketAnalysis: jest.fn() }));
+const run = () => ({ status: 'NEW', sources: [{ id: 'source' }], blockers: [], interviewRequests: [] }) as any;
+test('allows grounded new jobs without manual status changes', () => expect(() => assertReporterRunReadyForDraft(run())).not.toThrow());
+test('requires source material', () => expect(() => assertReporterRunReadyForDraft({ ...run(), sources: [] })).toThrow('source'));
+test('requires blocker resolution', () => expect(() => assertReporterRunReadyForDraft({ ...run(), blockers: [{}] })).toThrow('reporting issues'));
+test('requires completed interview review', () => expect(() => assertReporterRunReadyForDraft({ ...run(), interviewRequests: [{ sessions: [{ reviewedAt: null }] }] })).toThrow('reviewed'));
+test('refuses archived stories', () => expect(() => assertReporterRunReadyForDraft({ ...run(), status: 'ARCHIVED' })).toThrow('Reopen'));

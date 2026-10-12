@@ -15,6 +15,7 @@ interface TipTapEditorProps {
   content: string;
   onChange: (html: string) => void;
   placeholder?: string;
+  label?: string;
 }
 
 function unwrapElement(element: Element) {
@@ -168,7 +169,7 @@ function Sep() {
 }
 
 // ─── Main component ────────────────────────────────────────────────
-export default function TipTapEditor({ content, onChange, placeholder }: TipTapEditorProps) {
+export default function TipTapEditor({ content, onChange, placeholder, label = 'Article body' }: TipTapEditorProps) {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -198,6 +199,9 @@ export default function TipTapEditor({ content, onChange, placeholder }: TipTapE
     },
     editorProps: {
       attributes: {
+        role: 'textbox',
+        'aria-label': label,
+        'aria-multiline': 'true',
         class:
           'prose prose-lg max-w-none focus:outline-none min-h-[320px] px-4 py-3',
       },

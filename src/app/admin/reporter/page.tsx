@@ -12,6 +12,7 @@ import { listReporterStoryCandidates } from '@/lib/reporter/story-candidates';
 import { AdminPage } from '@/components/admin/AdminPage';
 import ReporterRunsClient from './ReporterRunsClient';
 import ReporterPageTabs from './ReporterPageTabs';
+import AssignStoryButton from './AssignStoryButton';
 
 export default async function AdminReporterPage() {
   const session = await getServerSession(authOptions);
@@ -21,95 +22,154 @@ export default async function AdminReporterPage() {
     redirect('/');
   }
 
-  const currentCommunity = await getCurrentCommunity({ headers: await headers() });
+  const currentCommunity = await getCurrentCommunity({
+    headers: await headers(),
+  });
 
-  const [runs, assignees, interviewQueue, morningDesk, storyCandidates] = await Promise.all([
-    db.reporterRun.findMany({
-      where: {
-        ...(currentCommunity?.id ? { communityId: currentCommunity.id } : {}),
-      },
-      select: {
-        id: true,
-        status: true,
-        mode: true,
-        requestType: true,
-        topic: true,
-        title: true,
-        subjectName: true,
-        requesterName: true,
-        requesterEmail: true,
-        createdAt: true,
-        updatedAt: true,
-        assignedTo: {
-          select: { id: true, firstName: true, lastName: true },
-        },
-        _count: {
-          select: { sources: true, blockers: true, drafts: true, interviewRequests: true },
-        },
-      },
-      orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
-    }),
-    currentCommunity?.id
-      ? db.userCommunityMembership.findMany({
-          where: {
-            communityId: currentCommunity.id,
-            role: {
-              in: ['CONTRIBUTOR', 'STAFF_WRITER', 'EDITOR', 'ADMIN', 'SUPER_ADMIN'],
-            },
-          },
-          select: {
-            user: {
-              select: { id: true, firstName: true, lastName: true },
-            },
-          },
-          orderBy: [{ user: { lastName: 'asc' } }, { user: { firstName: 'asc' } }],
-        })
-      : [],
-    db.reporterInterviewRequest.findMany({
-      where: {
-        reporterRun: {
+  const [runs, assignees, interviewQueue, morningDesk, storyCandidates] =
+    await Promise.all([
+      db.reporterRun.findMany({
+        where: {
           ...(currentCommunity?.id ? { communityId: currentCommunity.id } : {}),
         },
-        status: {
-          in: ['DRAFT', 'INVITED', 'READY', 'IN_PROGRESS', 'BLOCKED'],
-        },
-      },
-      select: {
-        id: true,
-        status: true,
-        interviewType: true,
-        priority: true,
-        intervieweeName: true,
-        suggestedLanguage: true,
-        scheduledFor: true,
-        createdAt: true,
-        reporterRun: {
-          select: {
-            id: true,
-            topic: true,
-            title: true,
+        select: {
+          id: true,
+          status: true,
+          mode: true,
+          requestType: true,
+          topic: true,
+          title: true,
+          subjectName: true,
+          requesterName: true,
+          requesterEmail: true,
+          createdAt: true,
+          updatedAt: true,
+          linkedArticle: { select: { id: true, status: true, slug: true } },
+          interviewRequests: {
+            select: {
+              sessions: {
+                where: { status: 'COMPLETED', reviewedAt: null },
+                select: { id: true },
+              },
+            },
+          },
+          assignedTo: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+          _count: {
+            select: {
+              sources: true,
+              blockers: { where: { isResolved: false } },
+              drafts: { where: { draftType: 'ARTICLE_DRAFT' } },
+              interviewRequests: true,
+            },
           },
         },
-      },
-      orderBy: [
-        { priority: 'desc' },
-        { scheduledFor: 'asc' },
-        { createdAt: 'desc' },
-      ],
-      take: 25,
-    }),
-    currentCommunity?.id
-      ? getReporterDailyCoverageDesk({ communityId: currentCommunity.id })
-      : Promise.resolve(null),
-    currentCommunity?.id
-      ? listReporterStoryCandidates({
-          communityId: currentCommunity.id,
-          limit: 5,
-        })
-      : Promise.resolve([]),
-  ]);
+        orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+      }),
+      currentCommunity?.id
+        ? db.userCommunityMembership.findMany({
+            where: {
+              communityId: currentCommunity.id,
+              role: {
+                in: [
+                  'CONTRIBUTOR',
+                  'STAFF_WRITER',
+                  'EDITOR',
+                  'ADMIN',
+                  'SUPER_ADMIN',
+                ],
+              },
+            },
+            select: {
+              role: true,
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  trustLevel: true,
+                },
+              },
+            },
+            orderBy: [
+              { user: { lastName: 'asc' } },
+              { user: { firstName: 'asc' } },
+            ],
+          })
+        : [],
+      db.reporterInterviewRequest.findMany({
+        where: {
+          reporterRun: {
+            ...(currentCommunity?.id
+              ? { communityId: currentCommunity.id }
+              : {}),
+          },
+          OR: [
+            {
+              status: {
+                in: ['DRAFT', 'INVITED', 'READY', 'IN_PROGRESS', 'BLOCKED'],
+              },
+            },
+            { sessions: { some: { status: 'COMPLETED', reviewedAt: null } } },
+          ],
+        },
+        select: {
+          id: true,
+          status: true,
+          interviewType: true,
+          _count: {
+            select: {
+              sessions: { where: { status: 'COMPLETED', reviewedAt: null } },
+            },
+          },
+          priority: true,
+          intervieweeName: true,
+          suggestedLanguage: true,
+          scheduledFor: true,
+          createdAt: true,
+          reporterRun: {
+            select: {
+              id: true,
+              topic: true,
+              title: true,
+            },
+          },
+        },
+        orderBy: [
+          { priority: 'desc' },
+          { scheduledFor: 'asc' },
+          { createdAt: 'desc' },
+        ],
+        take: 25,
+      }),
+      currentCommunity?.id
+        ? getReporterDailyCoverageDesk({ communityId: currentCommunity.id })
+        : Promise.resolve(null),
+      currentCommunity?.id
+        ? listReporterStoryCandidates({
+            communityId: currentCommunity.id,
+            limit: 5,
+          })
+        : Promise.resolve([]),
+    ]);
 
-  const editorReadyRuns = runs.filter((run) => run.status === 'DRAFT_CREATED');
+  const editorReadyRuns = runs.filter(
+    (run) =>
+      run._count.drafts > 0 &&
+      run.linkedArticle?.status !== 'PUBLISHED' &&
+      run.status !== 'ARCHIVED'
+  );
+  const assignedRuns = runs.filter(
+    (run) =>
+      run._count.drafts === 0 && run.linkedArticle?.status !== 'PUBLISHED'
+  );
+  const eligibleReporters = assignees
+    .filter(
+      ({ user, role }) =>
+        user.trustLevel === 'TRUSTED' && checkPermission(role, 'reporter:draft')
+    )
+    .map(({ user }) => user);
 
   return (
     <AdminPage title="Reporter">
@@ -166,7 +226,7 @@ export default async function AdminReporterPage() {
                     <th className="admin-list-header-cell">
                       Production status
                     </th>
-                    <th className="admin-list-header-cell">Score</th>
+                    <th className="admin-list-header-cell">Priority score</th>
                     <th className="admin-list-header-cell">Validation</th>
                     <th className="admin-list-header-cell">Action</th>
                   </tr>
@@ -203,7 +263,11 @@ export default async function AdminReporterPage() {
                         <td className="admin-list-cell">
                           {item.reporterRun ? (
                             <Link
-                              href={`/admin/reporter/${item.reporterRun.id}?view=${item.articleDraft ? 'drafts' : item.status === 'blocked' ? 'blockers' : 'sources'}`}
+                              href={
+                                item.articleDraft
+                                  ? `/admin/reporter/${item.reporterRun.id}/review`
+                                  : `/admin/reporter/${item.reporterRun.id}?view=${item.status === 'blocked' ? 'blockers' : 'sources'}`
+                              }
                               className="admin-list-link"
                             >
                               {item.articleDraft ? 'Review Draft' : 'Open Run'}
@@ -251,12 +315,15 @@ export default async function AdminReporterPage() {
                           <th className="admin-list-header-cell">Story</th>
                           <th className="admin-list-header-cell">Assignee</th>
                           <th className="admin-list-header-cell">Updated</th>
+                          <th className="admin-list-header-cell">
+                            Next action
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {editorReadyRuns.length === 0 ? (
                           <tr className="admin-list-row">
-                            <td className="admin-list-empty" colSpan={3}>
+                            <td className="admin-list-empty" colSpan={4}>
                               No editor-ready reporter stories yet.
                             </td>
                           </tr>
@@ -265,13 +332,15 @@ export default async function AdminReporterPage() {
                             <tr key={run.id} className="admin-list-row">
                               <td className="admin-list-cell">
                                 <Link
-                                  href={`/admin/reporter/${run.id}?view=drafts`}
+                                  href={`/admin/reporter/${run.id}/review`}
                                   className="admin-list-link"
                                 >
                                   {run.title || run.topic}
                                 </Link>
                                 <div className="text-xs text-slate-500">
-                                  {run.requestType} · {run.mode}
+                                  {run.status === 'BLOCKED'
+                                    ? 'Needs attention before publishing'
+                                    : 'Draft ready for review'}
                                 </div>
                               </td>
                               <td className="admin-list-cell">
@@ -288,6 +357,14 @@ export default async function AdminReporterPage() {
                                     year: 'numeric',
                                   }
                                 )}
+                              </td>
+                              <td className="admin-list-cell">
+                                <Link
+                                  href={`/admin/reporter/${run.id}/review`}
+                                  className="admin-list-link"
+                                >
+                                  Review &amp; Publish
+                                </Link>
                               </td>
                             </tr>
                           ))
@@ -313,8 +390,11 @@ export default async function AdminReporterPage() {
               </div>
               <div className="admin-card-body">
                 <ReporterRunsClient
-                  runs={runs}
-                  assignees={assignees.map(({ user }) => user)}
+                  runs={assignedRuns}
+                  canPrepare={checkPermission(userRole, 'reporter:draft')}
+                  canAssign={checkPermission(userRole, 'reporter:assign')}
+                  currentUserId={session?.user?.id || ''}
+                  assignees={eligibleReporters}
                 />
               </div>
             </div>
@@ -339,7 +419,9 @@ export default async function AdminReporterPage() {
                             <th className="admin-list-header-cell">
                               Readiness
                             </th>
-                            <th className="admin-list-header-cell">Score</th>
+                            <th className="admin-list-header-cell">
+                              Priority score
+                            </th>
                             <th className="admin-list-header-cell">Sources</th>
                             <th className="admin-list-header-cell">Action</th>
                           </tr>
@@ -353,11 +435,13 @@ export default async function AdminReporterPage() {
                                     {candidate.title}
                                   </div>
                                   <div className="text-xs text-slate-500">
-                                    {candidate.candidateType.replace(/_/g, ' ')}
+                                    {candidate.summary}
                                   </div>
                                 </td>
                                 <td className="admin-list-cell">
-                                  {candidate.readiness.label}
+                                  {candidate.linkedReporterRun
+                                    ? 'Assigned'
+                                    : 'Not assigned'}
                                 </td>
                                 <td className="admin-list-cell">
                                   {candidate.signal.score}
@@ -366,12 +450,17 @@ export default async function AdminReporterPage() {
                                   {candidate.sourceCount}
                                 </td>
                                 <td className="admin-list-cell">
-                                  <Link
-                                    href={`/admin/reporter/sources?candidate=${candidate.id}`}
-                                    className="admin-list-link"
-                                  >
-                                    Review Lead
-                                  </Link>
+                                  <AssignStoryButton
+                                    candidateId={candidate.id}
+                                    linkedRunId={
+                                      candidate.linkedReporterRun?.id || null
+                                    }
+                                    reporters={eligibleReporters}
+                                    canAssign={checkPermission(
+                                      userRole,
+                                      'reporter:assign'
+                                    )}
+                                  />
                                 </td>
                               </tr>
                             ))
@@ -411,14 +500,17 @@ export default async function AdminReporterPage() {
                           <th className="admin-list-header-cell">Type</th>
                           <th className="admin-list-header-cell">Priority</th>
                           <th className="admin-list-header-cell">Status</th>
-                          <th className="admin-list-header-cell">Run</th>
+                          <th className="admin-list-header-cell">Story</th>
                           <th className="admin-list-header-cell">Schedule</th>
+                          <th className="admin-list-header-cell">
+                            Next action
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {interviewQueue.length === 0 ? (
                           <tr className="admin-list-row">
-                            <td className="admin-list-empty" colSpan={6}>
+                            <td className="admin-list-empty" colSpan={7}>
                               No open interview requests yet.
                             </td>
                           </tr>
@@ -434,17 +526,29 @@ export default async function AdminReporterPage() {
                                 </div>
                               </td>
                               <td className="admin-list-cell">
-                                {interview.interviewType}
+                                {interview.interviewType
+                                  .toLowerCase()
+                                  .replace(/_/g, ' ')}
                               </td>
                               <td className="admin-list-cell">
                                 {interview.priority}
                               </td>
                               <td className="admin-list-cell">
-                                {interview.status}
+                                {interview._count.sessions
+                                  ? 'Notes need review'
+                                  : (
+                                      {
+                                        DRAFT: 'Needs invitation',
+                                        INVITED: 'Awaiting response',
+                                        READY: 'Ready to interview',
+                                        IN_PROGRESS: 'Interview in progress',
+                                        BLOCKED: 'Needs attention',
+                                      } as Record<string, string>
+                                    )[interview.status] || 'Needs review'}
                               </td>
                               <td className="admin-list-cell">
                                 <Link
-                                  href={`/admin/reporter/${interview.reporterRun.id}`}
+                                  href={`/admin/reporter/${interview.reporterRun.id}?view=interviews`}
                                   className="admin-list-link"
                                 >
                                   {interview.reporterRun.title ||
@@ -463,6 +567,16 @@ export default async function AdminReporterPage() {
                                       minute: '2-digit',
                                     })
                                   : 'Unscheduled'}
+                              </td>
+                              <td className="admin-list-cell">
+                                <Link
+                                  className="admin-list-link"
+                                  href={`/admin/reporter/${interview.reporterRun.id}?view=interviews`}
+                                >
+                                  {interview._count.sessions
+                                    ? 'Review Interview'
+                                    : 'Manage Interview'}
+                                </Link>
                               </td>
                             </tr>
                           ))

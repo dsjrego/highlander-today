@@ -12,6 +12,7 @@ export async function loadReporterRunForDraft(runId: string) {
       sources: {
         orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
       },
+      blockers: { where: { isResolved: false } },
       claims: {
         orderBy: [{ createdAt: 'desc' }],
       },
@@ -31,6 +32,9 @@ export async function loadReporterRunForDraft(runId: string) {
 }
 
 export function assertReporterRunReadyForDraft(run: NonNullable<Awaited<ReturnType<typeof loadReporterRunForDraft>>>) {
+  if (!run.sources.length) throw new Error('Add at least one source before preparing a draft.');
+  if (run.blockers?.length) throw new Error('Resolve the open reporting issues before preparing a draft.');
+  if (run.status === 'ARCHIVED') throw new Error('Reopen this story before preparing a draft.');
   const unreviewedInterviewSessions = run.interviewRequests.flatMap((interview) =>
     interview.sessions.filter((session) => !session.reviewedAt)
   );

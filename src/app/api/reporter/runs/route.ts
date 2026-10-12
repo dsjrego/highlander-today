@@ -3,11 +3,12 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { getCurrentCommunity } from '@/lib/community';
 import { logActivity } from '@/lib/activity-log';
-import { canCreateReporterRun, canViewReporterRun } from '@/lib/reporter/permissions';
+import { canCreateReporterRun, canViewReporterRun, canAssignReporterRun, canGenerateReporterDraft } from '@/lib/reporter/permissions';
 import { normalizeReporterRunInput } from '@/lib/reporter/run-normalizer';
 import { createReporterClaimsFromSourcePacketAnalysis } from '@/lib/reporter/claim-service';
 
 const CreateReporterRunSchema = z.object({
+  assignedToUserId: z.string().uuid().optional(),
   storyCandidateId: z.string().uuid().optional().nullable(),
   mode: z.enum(['REQUEST', 'INTERVIEW', 'RESEARCH', 'HYBRID']).optional().nullable(),
   requestType: z
@@ -180,9 +181,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Community not found' }, { status: 500 });
     }
 
+    if (payload.assignedToUserId) {
+      if (!userId || (!canAssignReporterRun(userRole) && !(payload.assignedToUserId === userId && canGenerateReporterDraft(userRole)))) {
+        return NextResponse.json({ error: 'Insufficient permissions to assign this story.' }, { status: 403 });
+      }
+      const member = await db.userCommunityMembership.findUnique({ where: { userId_communityId: { userId: payload.assignedToUserId, communityId: fallbackCommunity.id } }, include: { user: { select: { trustLevel: true } } } });
+      if (!member || member.user.trustLevel !== 'TRUSTED' || !canGenerateReporterDraft(member.role)) {
+        return NextResponse.json({ error: 'Choose a trusted reporter in this community.' }, { status: 400 });
+      }
+    }
+
     const createdRun = await db.reporterRun.create({
       data: {
         communityId: fallbackCommunity.id,
+        assignedToUserId: payload.assignedToUserId,
         createdByUserId: userId || null,
         requesterUserId: userId || null,
         ...(normalized.mode ? { mode: normalized.mode } : {}),

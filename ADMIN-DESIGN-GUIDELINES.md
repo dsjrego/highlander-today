@@ -269,3 +269,9 @@ Source Monitor and Public Intake are nested sidebar links beneath Reporter, repl
 Reporter follow-up (2026-10-12): remove the redundant Morning Reporter Desk Source Monitor link and label the reporting-run section “Assigned Stories.” Owner intends default staff-reporter assignment; AI versus human assignee identity remains unresolved, so this release changes presentation only.
 
 Reporter page layout (2026-10-12): Morning Reporter Desk remains above four tabs: Editor Ready (default), Assigned Stories, Candidates and Interviews. Candidates move out of the desk; Editor Ready replaces Editor Ready Stories and displays all matching runs. Section selection uses a separate query parameter to preserve run filters and legacy links. Tabs support keyboard arrow/Home/End navigation and labelled panels.
+
+## Reporter simplified publishing — 2026-10-12
+
+Use Assign Story → Prepare Draft → Review & Publish. Keep the Morning Reporter Desk and four main tabs. Assigned Stories has one status filter, readable source/issue counts and a clear next action; remove nested status tabs. New Story asks for topic, reporter, notes and links. Review & Publish brings editing, source checks, saving and explicit human publication together. Preserve tenant/role checks, source grounding, issue resolution and interview review. Staff assignment is explicit until the owner designates a default reporter. Local verification: 259 unit tests, 12 browser cases and production build passed; inference was mocked, database writes were real on the isolated test database.
+
+Release verification on the exact staged tree and committed dependency lock: lint, production build, 51 unit suites/209 tests and five workflow browser cases passed. No schema/environment changes.

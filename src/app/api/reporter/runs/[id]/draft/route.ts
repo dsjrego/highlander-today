@@ -63,7 +63,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
         { status: 400 }
       );
     }
-    if (error instanceof Error && error.message.includes('Completed interview output must be reviewed')) {
+    if (error instanceof Error && ['Completed interview output must be reviewed', 'Add at least one source', 'Resolve the open reporting issues', 'Reopen this story'].some((message) => error.message.includes(message))) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
     console.error('Error generating reporter draft:', error);
