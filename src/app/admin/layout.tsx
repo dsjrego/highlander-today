@@ -2,7 +2,10 @@ import { ReactNode } from 'react';
 import { headers } from 'next/headers';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { AdminCommandPalette } from '@/components/admin/AdminCommandPalette';
+import {
+  AdminCommandPalette,
+  AdminCommandPaletteProvider,
+} from '@/components/admin/AdminCommandPalette';
 import { AdminSidebarShell } from '@/components/admin/AdminSidebarShell';
 import {
   ADMIN_SIDEBAR_ORDER_SETTING_KEY,
@@ -14,7 +17,11 @@ import { getCurrentCommunity } from '@/lib/community';
 import { db } from '@/lib/db';
 import { redirect } from 'next/navigation';
 
-export default async function AdminLayout({ children }: { children: ReactNode }) {
+export default async function AdminLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const session = await getServerSession(authOptions);
   const adminSurfaceRoles = new Set([
     'CONTRIBUTOR',
@@ -32,7 +39,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     redirect('/');
   }
   const isSuperAdmin = session?.user?.role === 'SUPER_ADMIN';
-  const currentCommunity = await getCurrentCommunity({ headers: await headers() });
+  const currentCommunity = await getCurrentCommunity({
+    headers: await headers(),
+  });
   const sidebarOrderSetting = currentCommunity
     ? await db.siteSetting.findUnique({
         where: {
@@ -67,12 +76,14 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         initialSidebarOrder={sidebarOrder}
       />
 
-      <main className="admin-main">
-        <div className="admin-topbar">
-          <AdminCommandPalette routes={commandPaletteRoutes} />
-        </div>
-        <div className="admin-main-body">{children}</div>
-      </main>
+      <AdminCommandPaletteProvider routes={commandPaletteRoutes}>
+        <main className="admin-main">
+          <div className="admin-topbar">
+            <AdminCommandPalette />
+          </div>
+          <div className="admin-main-body">{children}</div>
+        </main>
+      </AdminCommandPaletteProvider>
     </div>
   );
 }

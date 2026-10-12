@@ -105,6 +105,7 @@ app sidebar  |  topbar (breadcrumb + scoped search)
 ```
 
 ### Rules
+- **Shared admin header (`AdminPage`):** keep the page title on the left and route search on the right of one row. Use muted slate text at weight 500; page-specific actions sit below, aligned right. On narrow screens, use an accessible compact search button. Legacy pages retain their standalone search bar until migrated. (Owner decision, 2026-10-12.)
 - **Breadcrumb** the path (`Workspace / Organizations / <name>`); the last segment is the current record, bold, non-link.
 - **Entity header** carries identity: logo/mark, name, a status pill, a type chip, the slug/URL, and summary counts. Top-level actions (`View public page`, `Save changes`) sit top-right of the header.
 - **Tabs split sub-resources** when one record owns several collections (profile, locations, members, contacts). Use tabs — not four stacked sections on one endless page. The active tab is marked by a **crimson** underline; counts ride as muted pill badges.
