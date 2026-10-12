@@ -12,6 +12,12 @@ const Input = z.object({
   title: z.string().trim().min(3).max(255),
   body: z.string().min(10).max(200000),
   categoryId: z.string().uuid().nullable(),
+  featuredImageUrl: z.string().max(2048).refine((value) => {
+    if (!value || /^\/uploads\/[a-zA-Z0-9/_\-.]+$/.test(value)) return true;
+    try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password; }
+    catch { return false; }
+  }, 'Choose a valid image.').nullable().optional(),
+  featuredImageCaption: z.string().trim().max(300).nullable().optional(),
   draftId: z.string().uuid(),
   runVersion: z.string().datetime(),
   articleVersion: z.string().datetime().nullable(),
@@ -194,6 +200,10 @@ export async function POST(
         title: input.title,
         body: html,
         categoryId: input.categoryId,
+        ...(input.featuredImageUrl !== undefined ? { featuredImageUrl: input.featuredImageUrl || null } : {}),
+        ...(input.featuredImageUrl === null || input.featuredImageUrl === ''
+          ? { featuredImageCaption: null }
+          : input.featuredImageCaption !== undefined ? { featuredImageCaption: input.featuredImageCaption || null } : {}),
         excerpt: stripHtmlToText(html).slice(0, 500),
         status:
           input.intent === 'publish'
@@ -269,7 +279,7 @@ export async function POST(
   } catch (error) {
     if (error instanceof z.ZodError)
       return NextResponse.json(
-        { error: 'Check the headline, story and category fields.' },
+        { error: 'Check the headline, story, category and image fields.' },
         { status: 400 }
       );
     if (error instanceof EditorialError)

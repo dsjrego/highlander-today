@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import ImageUpload from '@/components/shared/ImageUpload';
 import TipTapEditor from '@/components/articles/TipTapEditor';
 
 type Article = { id: string; slug: string; status: string; updatedAt: string };
@@ -14,6 +15,8 @@ export default function ReviewStoryClient({
   initialTitle,
   initialBody,
   initialCategoryId,
+  initialFeaturedImageUrl,
+  initialFeaturedImageCaption,
   categories,
   canSave,
   canPublish,
@@ -31,6 +34,8 @@ export default function ReviewStoryClient({
   initialTitle: string;
   initialBody: string;
   initialCategoryId: string;
+  initialFeaturedImageUrl: string | null;
+  initialFeaturedImageCaption: string | null;
   categories: Array<{ id: string; name: string }>;
   canSave: boolean;
   canPublish: boolean;
@@ -50,6 +55,9 @@ export default function ReviewStoryClient({
   const [title, setTitle] = useState(initialTitle);
   const [body, setBody] = useState(initialBody);
   const [categoryId, setCategoryId] = useState(initialCategoryId);
+  const [featuredImageUrl, setFeaturedImageUrl] = useState(initialFeaturedImageUrl || '');
+  const [featuredImageCaption, setFeaturedImageCaption] = useState(initialFeaturedImageCaption || '');
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [article, setArticle] = useState(initialArticle);
   const [runVersion, setRunVersion] = useState(initialRunVersion);
   const [addressed, setAddressed] = useState<string[]>([]);
@@ -60,7 +68,7 @@ export default function ReviewStoryClient({
   const router = useRouter();
   const [refreshing, startRefresh] = useTransition();
   const [action, setAction] = useState<'save' | 'publish' | 'rerun' | null>(null);
-  const busy = action !== null || refreshing;
+  const busy = action !== null || refreshing || uploadingImage;
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const published = article?.status === 'PUBLISHED';
@@ -111,6 +119,8 @@ export default function ReviewStoryClient({
           title,
           body,
           categoryId: categoryId || null,
+          featuredImageUrl: featuredImageUrl || null,
+          featuredImageCaption: featuredImageCaption.trim() || null,
           draftId,
           runVersion,
           articleVersion: article?.updatedAt || null,
@@ -252,6 +262,30 @@ export default function ReviewStoryClient({
                   ))}
                 </select>
               </div>
+            </fieldset>
+            <fieldset disabled={busy || !canSave} className="space-y-3">
+              <legend className="form-label">Article image (optional)</legend>
+              <ImageUpload
+                label="Featured image (optional)"
+                labelClassName="form-label"
+                context="article"
+                compact
+                value={featuredImageUrl ? [featuredImageUrl] : []}
+                disabled={busy || !canSave}
+                onUploadingChange={setUploadingImage}
+                onUpload={(image) => setFeaturedImageUrl(image.url)}
+                onRemove={() => { setFeaturedImageUrl(''); setFeaturedImageCaption(''); }}
+                helperText="JPG, PNG or WebP, up to 5MB. Shown at the top of the article and in story previews."
+              />
+              {featuredImageUrl ? (
+                <div>
+                  <label className="form-label" htmlFor="story-image-caption">Caption / photo credit (optional)</label>
+                  <textarea id="story-image-caption" className="form-input" rows={2} maxLength={300}
+                    value={featuredImageCaption} onChange={(event) => setFeaturedImageCaption(event.target.value)} />
+                </div>
+              ) : null}
+              {uploadingImage ? <p role="status">Uploading article image…</p> : null}
+              <p>Use the image button in the Story toolbar to add more images within the story. Save to keep your attachments. Re-Run retains the featured image and caption.</p>
             </fieldset>
             <section aria-label="Story text">
               <h2 className="form-label">Story (required)</h2>

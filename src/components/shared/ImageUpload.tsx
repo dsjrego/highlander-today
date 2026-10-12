@@ -14,6 +14,8 @@ const ACCEPT_ATTRIBUTE = '.jpg,.jpeg,.png,.webp';
 interface ImageUploadProps {
   /** Called when an image is successfully uploaded */
   onUpload: (image: UploadedImage) => void;
+  disabled?: boolean;
+  onUploadingChange?: (uploading: boolean) => void;
   /** Called when an image is removed */
   onRemove?: (url: string) => void;
   /** Upload context for organizing files (article, profile, event, organization, marketplace, help-wanted, memoriam) */
@@ -39,6 +41,8 @@ interface ImageUploadProps {
 export default function ImageUpload({
   onUpload,
   onRemove,
+  disabled = false,
+  onUploadingChange,
   context = 'article',
   maxFiles = 1,
   value = [],
@@ -75,6 +79,7 @@ export default function ImageUpload({
       }
 
       setIsUploading(true);
+      onUploadingChange?.(true);
       try {
         const formData = new FormData();
         formData.append('file', file);
@@ -97,18 +102,20 @@ export default function ImageUpload({
         setError('Upload failed. Please try again.');
       } finally {
         setIsUploading(false);
+        onUploadingChange?.(false);
       }
     },
-    [context, onUpload]
+    [context, onUpload, onUploadingChange]
   );
 
   const handleFiles = useCallback(
     (files: FileList) => {
+      if (disabled || isUploading) return;
       const remaining = maxFiles - value.length;
       const toUpload = Array.from(files).slice(0, remaining);
       toUpload.forEach(uploadFile);
     },
-    [maxFiles, value.length, uploadFile]
+    [maxFiles, value.length, uploadFile, disabled, isUploading]
   );
 
   const handleDrag = (e: React.DragEvent) => {
@@ -153,6 +160,7 @@ export default function ImageUpload({
           >
             {hasImage ? (
               <div
+                role="img"
                 aria-label={`${imageLabel} preview`}
                 className="h-full w-full bg-cover bg-center bg-no-repeat"
                 style={{ backgroundImage: `url("${value[0]}")` }}
@@ -182,6 +190,8 @@ export default function ImageUpload({
             {hasImage && onRemove && (
               <button
                 type="button"
+                disabled={disabled || isUploading}
+                aria-label="Remove image"
                 onClick={() => onRemove(value[0])}
                 className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity hover:opacity-100"
               >
@@ -210,7 +220,7 @@ export default function ImageUpload({
             <button
               type="button"
               onClick={openPicker}
-              disabled={isUploading}
+              disabled={disabled || isUploading}
               className="btn btn-primary"
             >
               {isUploading ? 'Uploading...' : hasImage ? `Change ${uploadLabel}` : `Upload ${uploadLabel}`}
@@ -218,6 +228,8 @@ export default function ImageUpload({
             {hasImage && onRemove && (
               <button
                 type="button"
+                disabled={disabled || isUploading}
+                aria-label="Remove image"
                 onClick={() => onRemove(value[0])}
                 className="btn btn-danger"
               >
@@ -229,12 +241,13 @@ export default function ImageUpload({
             id={inputId}
             ref={inputRef}
             type="file"
+            disabled={disabled || isUploading}
             accept={ACCEPT_ATTRIBUTE}
             onChange={handleChange}
             className="sr-only"
           />
         </div>
-        {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+        {error && <p role="alert" className="text-xs text-red-500 mt-2">{error}</p>}
       </div>
     );
   }
@@ -258,6 +271,7 @@ export default function ImageUpload({
               }`}
             >
               <div
+                role="img"
                 aria-label="Uploaded image preview"
                 className="h-full w-full bg-cover bg-center bg-no-repeat"
                 style={{ backgroundImage: `url("${url}")` }}
@@ -265,8 +279,10 @@ export default function ImageUpload({
               {onRemove && (
                 <button
                   type="button"
+                  disabled={disabled || isUploading}
+                  aria-label="Remove image"
                   onClick={() => onRemove(url)}
-                  className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-500 text-white opacity-0 transition-opacity hover:bg-red-600 group-hover:opacity-100"
+                  className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-500 text-white transition-opacity hover:bg-red-600"
                 >
                   &times;
                 </button>
@@ -280,6 +296,7 @@ export default function ImageUpload({
         id={inputId}
         ref={inputRef}
         type="file"
+        disabled={disabled || isUploading}
         accept={ACCEPT_ATTRIBUTE}
         multiple={maxFiles > 1}
         onChange={handleChange}
@@ -319,7 +336,7 @@ export default function ImageUpload({
               <p className={`font-medium text-gray-600 ${compact ? 'text-xs' : 'text-sm'}`}>
                 {dragActive ? 'Drop image here' : 'Drag & drop or click to upload'}
               </p>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-[var(--text-muted)] mt-1">
                 {helperText || `JPG, PNG, or WebP only (no HEIC) up to 5MB${maxFiles > 1 ? ` (${value.length}/${maxFiles})` : ''}`}
               </p>
             </>
@@ -327,7 +344,7 @@ export default function ImageUpload({
         </label>
       )}
 
-      {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+      {error && <p role="alert" className="text-xs text-red-500 mt-2">{error}</p>}
     </div>
   );
 }

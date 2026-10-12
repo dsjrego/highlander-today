@@ -102,6 +102,8 @@ export default async function ReviewStoryPage({
             : reporterTextToHtml(draft.body)
         }
         initialCategoryId={run.linkedArticle?.categoryId || ''}
+        initialFeaturedImageUrl={run.linkedArticle?.featuredImageUrl || null}
+        initialFeaturedImageCaption={run.linkedArticle?.featuredImageCaption || null}
         categories={categories.map((category) => ({
           id: category.id,
           name: category.parentCategory

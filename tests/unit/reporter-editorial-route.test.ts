@@ -34,9 +34,9 @@ beforeEach(() => {
   jest.mocked(db.$transaction).mockImplementation(async (callback: any) => callback(tx));
 });
 test('publishes only on explicit editor action and preserves source-draft linkage', async () => {
-  const response = await POST(request(), params);
+  const response = await POST(request({ featuredImageUrl: 'https://images.example/bridge.webp', featuredImageCaption: 'County photo' }), params);
   expect(response.status).toBe(200);
-  expect(tx.article.create.mock.calls[0][0].data).toMatchObject({ communityId: 'community-1', status: 'PUBLISHED', authorUserId: 'editor-1' });
+  expect(tx.article.create.mock.calls[0][0].data).toMatchObject({ communityId: 'community-1', status: 'PUBLISHED', authorUserId: 'editor-1', featuredImageUrl: 'https://images.example/bridge.webp', featuredImageCaption: 'County photo' });
   expect(tx.reporterRun.update.mock.calls[0][0].data.linkedArticleId).toBe('article-1');
   expect(tx.reporterRun.updateMany.mock.calls[0][0].where).toMatchObject({ communityId: 'community-1', updatedAt: new Date(version), linkedArticleId: null });
 });
@@ -92,4 +92,30 @@ test('only explicit correction of current critical notes can clear them', async 
   expect((await POST(request({ resolvedIssueIds: [issueId] }), params)).status).toBe(200);
   expect(tx.reporterValidationIssue.updateMany.mock.calls[0][0].where).toMatchObject({ reporterRunId: id, id: { in: [issueId] } });
   expect((await POST(request({ resolvedIssueIds: [id] }), params)).status).toBe(409);
+});
+
+
+test('saves attached featured image and caption alongside sanitized inline images', async () => {
+  const response = await POST(request({ intent: 'save', featuredImageUrl: '/uploads/article/photo.webp', featuredImageCaption: '  County photo  ', body: '<p>The bridge is closed.</p><img src="https://images.example/bridge.webp" alt="Bridge repair">' }), params);
+  expect(response.status).toBe(200);
+  expect(tx.article.create.mock.calls[0][0].data).toMatchObject({ status: 'DRAFT', featuredImageUrl: '/uploads/article/photo.webp', featuredImageCaption: 'County photo' });
+  expect(tx.article.create.mock.calls[0][0].data.body).toContain('alt="Bridge repair"');
+});
+test('updates and removes existing image metadata with article version guards', async () => {
+  run.linkedArticleId = 'article-1';
+  run.linkedArticle = { id: 'article-1', communityId: 'community-1', status: 'DRAFT' };
+  tx.article.findUniqueOrThrow.mockResolvedValue({ ...run.linkedArticle, updatedAt: version });
+  expect((await POST(request({ intent: 'save', articleVersion: version, featuredImageUrl: 'https://images.example/cover.webp', featuredImageCaption: 'Credit' }), params)).status).toBe(200);
+  expect(tx.article.updateMany.mock.calls[0][0]).toMatchObject({ where: { communityId: 'community-1', updatedAt: new Date(version) }, data: { featuredImageUrl: 'https://images.example/cover.webp', featuredImageCaption: 'Credit' } });
+  expect((await POST(request({ intent: 'save', articleVersion: version, featuredImageUrl: null, featuredImageCaption: 'Old credit' }), params)).status).toBe(200);
+  expect(tx.article.updateMany.mock.calls[1][0].data).toMatchObject({ featuredImageUrl: null, featuredImageCaption: null });
+});
+test('omitting image fields preserves existing metadata for older clients', async () => {
+  expect((await POST(request({ intent: 'save' }), params)).status).toBe(200);
+  expect(tx.article.create.mock.calls[0][0].data).not.toHaveProperty('featuredImageUrl');
+  expect(tx.article.create.mock.calls[0][0].data).not.toHaveProperty('featuredImageCaption');
+});
+test.each(['javascript:alert(1)', 'data:image/svg+xml;base64,AAA', '//images.example/image.webp', 'https://user:secret@images.example/a.webp'])('rejects unsafe featured image URL %s', async (featuredImageUrl) => {
+  expect((await POST(request({ featuredImageUrl }), params)).status).toBe(400);
+  expect(tx.article.create).not.toHaveBeenCalled();
 });
