@@ -208,7 +208,8 @@ export async function prepareReporterResearch(params: {
         }
         // Correction can repair evidence or withdraw support, never erase/change
         // a central premise or promote another claim to replace it.
-        return replacement ? { ...claim, evidence: replacement.evidence, attribution: replacement.attribution, status: replacement.status } : claim;
+        return replacement ? { ...claim, evidence: replacement.evidence, attribution: replacement.attribution || claim.attribution,
+          status: ['unresolved', 'disputed'].includes(replacement.status) ? replacement.status : claim.status } : claim;
       }) };
       gaps = validateReporterEvidence(assessment, workingPacket);
     } catch (error) {

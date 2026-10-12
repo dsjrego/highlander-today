@@ -23,6 +23,17 @@ import {
 } from './model-routing';
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/responses';
+const DRAFT_JSON_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['headline', 'dek', 'body', 'generationNotes'],
+  properties: {
+    headline: { type: ['string', 'null'] },
+    dek: { type: ['string', 'null'] },
+    body: { type: 'string' },
+    generationNotes: { type: ['string', 'null'] },
+  },
+};
 
 function buildSourcePacketPrompt(input: ReporterDraftGenerationInput) {
   const claims = input.packet.supportedClaims
@@ -222,6 +233,8 @@ export class OpenAIReporterProvider implements ReporterProviderAdapter {
             effort: this.reasoningEffort,
           },
           max_output_tokens: draftType === REPORTER_DRAFT_TYPE.SOURCE_PACKET_SUMMARY ? 1200 : 2200,
+          store: false,
+          text: { format: { type: 'json_schema', name: 'reporter_draft_output', strict: true, schema: DRAFT_JSON_SCHEMA } },
           input: [
             {
               role: 'system',
@@ -255,6 +268,13 @@ export class OpenAIReporterProvider implements ReporterProviderAdapter {
       }
 
       const data = await response.json();
+      if (data.status && data.status !== 'completed') {
+        throw new Error('OpenAI draft response was incomplete; no article text was accepted.');
+      }
+      if (Array.isArray(data.output) && data.output.some((item: any) =>
+        Array.isArray(item.content) && item.content.some((block: any) => block.type === 'refusal'))) {
+        throw new Error('OpenAI declined the draft request; no article text was accepted.');
+      }
       const rawText = extractTextFromOpenAIResponse(data);
 
       if (!rawText) {

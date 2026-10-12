@@ -120,6 +120,12 @@ describe('OpenAIReporterProvider', () => {
     expect(JSON.parse(String(request.body))).toMatchObject({
       model: 'gpt-6-luna',
       reasoning: { effort: 'medium' },
+      store: false,
+      text: { format: { type: 'json_schema', strict: true, schema: {
+        type: 'object', additionalProperties: false,
+        required: ['headline', 'dek', 'body', 'generationNotes'],
+        properties: { body: { type: 'string' } },
+      } } },
     });
   });
 
@@ -220,6 +226,34 @@ describe('OpenAIReporterProvider', () => {
     expect(result.body).toContain('Source strength');
     expect(result.body).toContain('Coverage recommendation');
     expect(result.body).toContain('Next steps');
+    const request = (global.fetch as jest.Mock).mock.calls[0]?.[1] as RequestInit;
+    expect(JSON.parse(String(request.body)).text.format).toMatchObject({ type: 'json_schema', strict: true });
+  });
+
+  it('preserves escaped paragraph breaks and quotes in structured draft output', async () => {
+    process.env.OPENAI_API_KEY = 'test-key';
+    const body = 'Officials said “repairs begin Monday.”\n\nThe bridge remains closed, according to the county.';
+    global.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ status: 'completed', output_text: JSON.stringify({ headline: 'Bridge closure', dek: null, body, generationNotes: null }) }) })) as any;
+    const result = await new OpenAIReporterProvider().generateDraft({ packet: buildPacket() });
+    expect(result.body).toBe(body);
+  });
+
+  it('rejects literal control characters instead of attempting to repair article JSON', async () => {
+    process.env.OPENAI_API_KEY = 'test-key';
+    global.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ status: 'completed', output_text: '{"headline":"Bridge closure","dek":null,"body":"First paragraph.\n\nSecond paragraph.","generationNotes":null}' }) })) as any;
+    await expect(new OpenAIReporterProvider().generateDraft({ packet: buildPacket() })).rejects.toThrow(SyntaxError);
+  });
+
+  it('rejects incomplete Responses output even when its partial text parses as JSON', async () => {
+    process.env.OPENAI_API_KEY = 'test-key';
+    global.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ status: 'incomplete', output_text: JSON.stringify({ headline: 'Bridge closure', dek: null, body: 'A truncated draft.', generationNotes: null }) }) })) as any;
+    await expect(new OpenAIReporterProvider().generateDraft({ packet: buildPacket() })).rejects.toThrow('incomplete');
+  });
+
+  it('rejects a refusal before accepting any accompanying draft-shaped text', async () => {
+    process.env.OPENAI_API_KEY = 'test-key';
+    global.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ status: 'completed', output: [{ content: [{ type: 'refusal', refusal: 'Request declined.' }] }], output_text: JSON.stringify({ headline: 'Bridge closure', dek: null, body: 'Unexpected draft.', generationNotes: null }) }) })) as any;
+    await expect(new OpenAIReporterProvider().generateDraft({ packet: buildPacket() })).rejects.toThrow('declined');
   });
 
   it('throws when the model payload fails schema validation', async () => {

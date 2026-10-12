@@ -206,3 +206,11 @@ test('records an incidental claim withdrawn by citation correction in internal o
   expect(result.supportedClaims).toHaveLength(1);
   expect(result.researchNotes).toContain('citation correction could not establish support');
 });
+
+test('citation correction preserves required attribution instead of promoting an attributed claim to fact', async () => {
+  grazingSource(); const repaired = grazingAssessment(true);
+  repaired.claims[1] = { ...repaired.claims[1], status: 'supported', attribution: null, evidence: [{ sourceId: 'cdc', quote: wildfire }, { sourceId: 'cdc', quote: nepa }] };
+  (assessReporterEvidence as any).mockResolvedValueOnce(grazingAssessment(true)).mockResolvedValueOnce(repaired);
+  const result = await prepareReporterResearch({ packet: packet(), communityId: 'tenant-1', createdByUserId: null });
+  expect(result.supportedClaims[1]).toMatchObject({ claimType: 'ATTRIBUTED_CLAIM', attribution: 'USDA announcement' });
+});
