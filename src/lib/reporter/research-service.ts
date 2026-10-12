@@ -48,6 +48,7 @@ export async function prepareReporterResearch(params: {
   communityId: string;
   createdByUserId: string | null;
   requireReady?: boolean;
+  forceRefresh?: boolean;
 }): Promise<ReporterSourcePacket> {
   const { packet } = params;
   const owner = await db.reporterRun.findFirst({ where: { id: packet.runId, communityId: params.communityId, status: { not: 'ARCHIVED' } }, select: { id: true } });
@@ -105,7 +106,7 @@ export async function prepareReporterResearch(params: {
     if (!source.url || !PUBLIC_SOURCE_TYPES.has(source.sourceType)) { sources.push(source); continue; }
     const url = normalizeReporterPublicUrl(source.url);
     if (!url || visited.has(url)) continue;
-    if (source.retrievedAt && Date.now() - Date.parse(source.retrievedAt) < CACHE_MS && source.contentText) {
+    if (!params.forceRefresh && source.retrievedAt && Date.now() - Date.parse(source.retrievedAt) < CACHE_MS && source.contentText) {
       visited.add(url); sources.push(source); continue;
     }
     await retrieve(url, source);
@@ -123,7 +124,7 @@ export async function prepareReporterResearch(params: {
   for (const link of links.slice(0, 3)) await retrieve(link.url);
 
   let workingPacket = { ...packet, sources };
-  const previousTrace = await db.reporterAgentTrace.findFirst({ where: { reporterRunId: packet.runId, provider: 'research-workflow', inputHash: assessmentPacketHash(workingPacket),
+  const previousTrace = params.forceRefresh ? null : await db.reporterAgentTrace.findFirst({ where: { reporterRunId: packet.runId, provider: 'research-workflow', inputHash: assessmentPacketHash(workingPacket),
     wasSuccessful: true, createdAt: { gte: new Date(Date.now() - CACHE_MS) } }, orderBy: { createdAt: 'desc' } });
   const previousAssessment = ReporterEvidenceAssessmentSchema.safeParse(previousTrace?.parsedOutputJson);
   const reuseReadyAssessment = previousAssessment.success && validateReporterEvidence(previousAssessment.data, workingPacket).length === 0;
@@ -148,7 +149,7 @@ export async function prepareReporterResearch(params: {
   let assessmentHash = assessmentPacketHash(workingPacket);
   let assessment: ReporterEvidenceAssessment;
   try {
-    const cached = await db.reporterAgentTrace.findFirst({ where: { reporterRunId: packet.runId, provider: 'research-workflow', inputHash: assessmentHash,
+    const cached = params.forceRefresh ? null : await db.reporterAgentTrace.findFirst({ where: { reporterRunId: packet.runId, provider: 'research-workflow', inputHash: assessmentHash,
       wasSuccessful: true, createdAt: { gte: new Date(Date.now() - CACHE_MS) } }, orderBy: { createdAt: 'desc' } });
     const cachedResult = ReporterEvidenceAssessmentSchema.safeParse(cached?.parsedOutputJson);
     assessment = cachedResult.success ? cachedResult.data : await assessReporterEvidence(workingPacket, signal);

@@ -49,6 +49,7 @@ export async function createReporterDraftForRun(params: {
   run: NonNullable<Awaited<ReturnType<typeof loadReporterRunForDraft>>>;
   createdByUserId: string | null;
   draftType?: ReporterDraftTypeValue;
+  forceRefresh?: boolean;
 }) {
   assertReporterRunReadyForDraft(params.run);
 
@@ -57,6 +58,7 @@ export async function createReporterDraftForRun(params: {
     communityId: params.run.communityId,
     createdByUserId: params.createdByUserId,
     requireReady: params.draftType !== REPORTER_DRAFT_TYPE.SOURCE_PACKET_SUMMARY,
+    forceRefresh: params.forceRefresh,
   });
   const { draft, validation } = await generateReporterDraftWithValidation(packet, params.draftType);
   draft.generationNotes = [draft.generationNotes, packet.researchNotes].filter(Boolean).join('\n') || null;

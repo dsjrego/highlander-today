@@ -127,6 +127,15 @@ describe('reporter draft route', () => {
     expect(logActivityMock).not.toHaveBeenCalled();
   });
 
+  it('passes an explicit re-run through the authorized drafting service', async () => {
+    (createReporterDraftForRunMock as any).mockResolvedValue({ persisted: { id: 'new-draft' }, validation: { issues: [], hasCriticalIssues: false } });
+    const request = buildRequest();
+    request.json = async () => ({ draftType: 'ARTICLE_DRAFT', forceRefresh: true });
+    const response = await POST(request, { params: Promise.resolve({ id: 'run-1' }) });
+    expect(response.status).toBe(200);
+    expect(createReporterDraftForRunMock).toHaveBeenCalledWith(expect.objectContaining({ draftType: 'ARTICLE_DRAFT', forceRefresh: true, createdByUserId: 'staff-1' }));
+  });
+
   it('rejects draft generation without permission', async () => {
     const response = await POST(
       new Request('http://localhost/api/reporter/runs/run-1/draft', {

@@ -9,6 +9,7 @@ import { checkPermission } from '@/lib/permissions';
 import { getCategories } from '@/lib/categories';
 import { sanitizeArticleHtml } from '@/lib/sanitize';
 import { reporterTextToHtml } from '@/lib/reporter/editorial';
+import { canGenerateReporterDraft } from '@/lib/reporter/permissions';
 import { AdminPage } from '@/components/admin/AdminPage';
 import ReviewStoryClient from './ReviewStoryClient';
 
@@ -49,6 +50,8 @@ export default async function ReviewStoryPage({
     notFound();
   const draft = run.drafts[0];
   if (!draft) redirect(`/admin/reporter?section=assigned`);
+  const useSavedArticle = run.linkedArticle &&
+    (run.linkedArticle.status === 'PUBLISHED' || draft.status === 'CONVERTED_TO_ARTICLE');
   const categories = (await getCategories()).filter(
     (category) =>
       !category.contentModel ||
@@ -91,10 +94,10 @@ export default async function ReviewStoryPage({
             : null
         }
         initialTitle={
-          run.linkedArticle?.title || draft.headline || run.title || run.topic
+          (useSavedArticle ? run.linkedArticle?.title : null) || draft.headline || run.title || run.topic
         }
         initialBody={
-          run.linkedArticle?.body
+          useSavedArticle && run.linkedArticle?.body
             ? sanitizeArticleHtml(run.linkedArticle.body)
             : reporterTextToHtml(draft.body)
         }
@@ -110,6 +113,7 @@ export default async function ReviewStoryPage({
           checkPermission(role, 'articles:edit')
         }
         canPublish={checkPermission(role, 'articles:approve')}
+        canRerun={canGenerateReporterDraft(role)}
         criticalIssues={issues
           .filter((issue) => issue.severity === 'CRITICAL')
           .map((issue) => ({ id: issue.id, message: issue.message }))}

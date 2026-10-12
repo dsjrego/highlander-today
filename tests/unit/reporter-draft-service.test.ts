@@ -21,8 +21,8 @@ test('researches before writing and persists internal scope notes with the resul
     expect(packet.title).toBe('Supported news');
     return { draft: { headline: packet.title, dek: null, body: 'A supported news report.', draftType: 'ARTICLE_DRAFT', modelProvider: 'openai', modelName: 'gpt-6-luna', generationNotes: null }, validation: { issues: [], hasCriticalIssues: false } };
   });
-  await createReporterDraftForRun({ run: run(), createdByUserId: 'editor' });
-  expect(prepareReporterResearch).toHaveBeenCalledWith(expect.objectContaining({ communityId: 'community', requireReady: true }));
+  await createReporterDraftForRun({ run: run(), createdByUserId: 'editor', forceRefresh: true });
+  expect(prepareReporterResearch).toHaveBeenCalledWith(expect.objectContaining({ communityId: 'community', requireReady: true, forceRefresh: true }));
   expect(tx.reporterDraft.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ headline: 'Supported news', generationNotes: 'Historical comparison omitted.' }) }));
 });
 

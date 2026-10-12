@@ -990,3 +990,8 @@ The easiest way to understand the Reporter system is this:
 - `Source Monitor` watches recurring public-interest sources over time
 
 The system is designed to help the newsroom work more clearly and consistently, while keeping human editorial judgment in control.
+
+
+## Reporter review actions release — 2026-10-12
+
+Owner authorized commit, push and deployment of Cancel → Re-Run → Save → Publish. Cancel returns to Reporter; Re-Run creates a new draft through current research/writing with retrieval and assessment caches bypassed. Latest draft replaces editor text, retaining category, refreshing sources/notes and headline focus. Earlier drafts and saved article remain until explicit Save/Publish; failed Re-Run preserves unsaved edits. Tenant/role/review/publication guards remain. No schema, environment or cron changes. Unrelated local work excluded. Local broader checks: 291 unit tests, eight disposable-database browser cases, lint/typecheck/build passed; generation responses were stubbed. Exact release: clean npm ci, lint, standalone typecheck, 57 unit suites/252 tests, production build (Next 15.5.26) and all eight PostgreSQL/Chromium browser cases passed (17.7s). Browser generation was stubbed; all writes were restricted to the disposable local test database. Runtime audit retains the preceding release baseline of 11 findings (7 high/4 moderate), with no dependency changes. Production deployment pending. Rollback: research release 31b76de / dpl_8B9EdVuJMnWE5YewY4PV1V7iQwKt.

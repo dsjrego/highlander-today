@@ -1,5 +1,7 @@
 # Highlander Today — Project Status
 
+> **2026-10-12 review actions:** Owner-authorized release adds Cancel → Re-Run → Save → Publish; Re-Run forces current research/writing and refreshes the review draft. No schema/environment/cron changes. Exact release passed 252 unit tests, eight browser cases, lint/typecheck/build; deployment pending. [Release evidence](VERCEL.md#reporter-review-actions-release--2026-10-12).
+
 > **2026-10-12 Reporter research release:** Owner requires evidence retrieval, citation following, follow-up research and claim checking before article drafting, in manual and scheduled reporting. Shared preparation now enforces this; unresolved essential claims block article creation. Historical superlatives require historical evidence. Human publication approval remains required. Broader unrelated local changes are excluded. No schema/environment change. Exact release passed 250 unit tests, lint, typecheck, build and five isolated browser cases; deployment is pending; see [release evidence](VERCEL.md#reporter-research-release--2026-10-12).
 
 > **Last updated:** 2026-09-26 (session 218)

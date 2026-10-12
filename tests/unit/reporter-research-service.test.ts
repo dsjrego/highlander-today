@@ -100,3 +100,14 @@ test('narrows a supported brief and keeps an unsupported comparison in internal 
   expect(result.researchNotes).toContain('Omitted unsupported claims: Highest in decades');
   expect(result.supportedClaims.every((claim) => !claim.claimText.includes('decades'))).toBe(true);
 });
+
+test('an explicit re-run retrieves evidence and reassesses it despite recent cached reporting', async () => {
+  const input = packet();
+  input.sources = [{ ...source('cdc', 'https://www.cdc.gov/measles/report'), contentText: 'An older cached agency statement.', retrievedAt: new Date().toISOString() }];
+  (db.reporterAgentTrace.findFirst as any).mockResolvedValue({ parsedOutputJson: assessment() });
+  const result = await prepareReporterResearch({ packet: input, communityId: 'tenant-1', createdByUserId: 'editor', forceRefresh: true });
+  expect(fetchReporterPublicDocument).toHaveBeenCalledWith('https://www.cdc.gov/measles/report', expect.any(AbortSignal));
+  expect(discoverReporterEvidence).toHaveBeenCalled();
+  expect(assessReporterEvidence).toHaveBeenCalledWith(expect.objectContaining({ sources: [expect.objectContaining({ contentText: quote })] }), expect.any(AbortSignal));
+  expect(result.sources[0].contentText).toBe(quote);
+});

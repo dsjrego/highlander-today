@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import TipTapEditor from '@/components/articles/TipTapEditor';
 
 type Article = { id: string; slug: string; status: string; updatedAt: string };
@@ -16,6 +17,7 @@ export default function ReviewStoryClient({
   categories,
   canSave,
   canPublish,
+  canRerun,
   problems,
   warnings,
   sources,
@@ -32,6 +34,7 @@ export default function ReviewStoryClient({
   categories: Array<{ id: string; name: string }>;
   canSave: boolean;
   canPublish: boolean;
+  canRerun: boolean;
   interviewReviewRequired: boolean;
   criticalIssues: Array<{ id: string; message: string }>;
   problems: string[];
@@ -54,12 +57,49 @@ export default function ReviewStoryClient({
   const remainingIssues = criticalIssues.filter(
     (issue) => !resolved.includes(issue.id)
   );
-  const [busy, setBusy] = useState(false);
+  const router = useRouter();
+  const [refreshing, startRefresh] = useTransition();
+  const [action, setAction] = useState<'save' | 'publish' | 'rerun' | null>(null);
+  const busy = action !== null || refreshing;
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const published = article?.status === 'PUBLISHED';
+  const previousDraftId = useRef(draftId);
+  const headlineInput = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (refreshing || previousDraftId.current === draftId) return;
+    previousDraftId.current = draftId;
+    setTitle(initialTitle);
+    setBody(initialBody);
+    setArticle(initialArticle);
+    setRunVersion(initialRunVersion);
+    setAddressed([]);
+    setResolved([]);
+    setError('');
+    setNotice('Draft recreated. Review it before saving or publishing.');
+    requestAnimationFrame(() => headlineInput.current?.focus());
+  }, [draftId, initialTitle, initialBody, initialArticle, initialRunVersion, refreshing]);
+  async function rerun() {
+    setAction('rerun');
+    setError('');
+    setNotice('');
+    try {
+      const response = await fetch(`/api/reporter/runs/${runId}/draft`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draftType: 'ARTICLE_DRAFT', forceRefresh: true }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Unable to recreate the draft.');
+      startRefresh(() => router.refresh());
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'Unable to recreate the draft.');
+    } finally {
+      setAction(null);
+    }
+  }
   async function save(intent: 'save' | 'publish') {
-    setBusy(true);
+    setAction(intent);
     setError('');
     setNotice('');
     try {
@@ -94,13 +134,16 @@ export default function ReviewStoryClient({
         failure instanceof Error ? failure.message : 'Unable to save story.'
       );
     } finally {
-      setBusy(false);
+      setAction(null);
     }
   }
   return (
     <div className="admin-card">
       <div className="admin-card-body space-y-5">
         {notice ? <p role="status">{notice}</p> : null}
+        {action === 'rerun' || refreshing ? (
+          <p role="status">Researching sources and recreating the draft…</p>
+        ) : null}
         {error ? (
           <p role="alert" className="admin-list-error">
             {error}
@@ -184,6 +227,7 @@ export default function ReviewStoryClient({
                 </label>
                 <input
                   id="story-headline"
+                  ref={headlineInput}
                   className="form-input"
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
@@ -247,10 +291,21 @@ export default function ReviewStoryClient({
           ))}
         </section>
         {!published ? (
-          <div className="flex flex-wrap justify-end gap-3">
-            <Link href="/admin/reporter" className="admin-list-link">
-              Back to Reporter
+          <div className="flex flex-wrap justify-end gap-3" role="group" aria-label="Story actions">
+            <Link href="/admin/reporter" className="btn btn-ghost">
+              Cancel
             </Link>
+            {canRerun ? (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={busy || problems.length > 0}
+                onClick={rerun}
+                title="Recreate this draft using the current reporting process. Replaces the text in this editor."
+              >
+                {action === 'rerun' || refreshing ? 'Re-Running…' : 'Re-Run'}
+              </button>
+            ) : null}
             {canSave ? (
               <button
                 type="button"
@@ -258,7 +313,7 @@ export default function ReviewStoryClient({
                 disabled={busy}
                 onClick={() => save('save')}
               >
-                Save Draft
+                {action === 'save' ? 'Saving…' : 'Save'}
               </button>
             ) : (
               <p>An editor must save or publish this story.</p>
@@ -277,7 +332,7 @@ export default function ReviewStoryClient({
                 }
                 onClick={() => save('publish')}
               >
-                {busy ? 'Saving…' : 'Publish'}
+                {action === 'publish' ? 'Publishing…' : 'Publish'}
               </button>
             ) : null}
           </div>

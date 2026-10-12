@@ -10,6 +10,7 @@ export const maxDuration = 300;
 
 const GenerateReporterDraftSchema = z.object({
   draftType: z.enum(['ARTICLE_DRAFT', 'SOURCE_PACKET_SUMMARY']).optional(),
+  forceRefresh: z.boolean().optional(),
 });
 
 export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
@@ -40,6 +41,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       run,
       createdByUserId: userId,
       draftType: validated.draftType,
+      forceRefresh: validated.forceRefresh,
     });
 
     await logActivity({
@@ -52,6 +54,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
         reporterRunId: run.id,
         hasCriticalIssues: validation.hasCriticalIssues,
         issueCount: validation.issues.length,
+        forceRefresh: validated.forceRefresh === true,
       },
     });
 
