@@ -1,5 +1,7 @@
 # Highlander Today — Project Status
 
+> **2026-10-12 Reporter research release:** Owner requires evidence retrieval, citation following, follow-up research and claim checking before article drafting, in manual and scheduled reporting. Shared preparation now enforces this; unresolved essential claims block article creation. Historical superlatives require historical evidence. Human publication approval remains required. Broader unrelated local changes are excluded. No schema/environment change. Exact release passed 250 unit tests, lint, typecheck, build and five isolated browser cases; deployment is pending; see [release evidence](VERCEL.md#reporter-research-release--2026-10-12).
+
 > **Last updated:** 2026-09-26 (session 218)
 > **Purpose:** Fast-start context for the next session. Read this file first, then open only the supporting docs relevant to the active slice.
 > **Detailed reference:** `PROJECT-STATUS-REFERENCE.md` preserves the fuller implementation ledger, rollout history, verification notes, deployment runbook, and infrastructure rationale that used to live here.

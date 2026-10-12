@@ -1,5 +1,14 @@
 # Reporter User Manual
 
+## Automatic reporting before drafting — 2026-10-12
+
+**Prepare Draft** now retrieves public story bodies, follows relevant evidence links, searches for primary or independent confirmation, and checks the central claims against the retrieved passages. A headline or RSS teaser is a lead, not a completed source packet. Search receives public document context; private intake, editor and interview notes stay out of public search.
+
+When the evidence supports a useful shorter story, Reporter proposes a supported headline and records omitted assertions in internal review notes. If the main event or essential claim remains unsupported after bounded follow-up, it returns a specific reporting obstacle without creating a placeholder article. Publication rejects copy that describes the reporter’s own incomplete verification; editors can still save and correct unpublished work.
+
+Current limits: eight public documents, one follow-up search, and a 150-second research budget per preparation; recent unchanged evidence checks can be reused for one hour. Direct retrieval supports HTML/plain text. PDFs, interactive-only data, authenticated sources and interviews requiring contact need additional capabilities. GPT-6 Luna/medium remains the OpenAI policy. See [current status](PROJECT-STATUS.md) and [release evidence](VERCEL.md#reporter-research-release--2026-10-12) for verification and deployment state.
+
+
 ## Purpose
 
 This guide explains the live Highlander Today Reporter system in plain language.

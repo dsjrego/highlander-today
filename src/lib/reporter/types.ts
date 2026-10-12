@@ -215,6 +215,7 @@ export interface ReporterSourcePacketItem {
   publisher: string | null;
   author: string | null;
   publishedAt: string | null;
+  retrievedAt?: string | null;
   excerpt: string | null;
   note: string | null;
   contentText: string | null;
@@ -241,6 +242,7 @@ export interface ReporterSourcePacket {
   requestedArticleType: string | null;
   requestSummary: string | null;
   editorNotes: string | null;
+  researchNotes?: string | null;
   supportedClaims: ReporterSourcePacketClaimItem[];
   sources: ReporterSourcePacketItem[];
 }

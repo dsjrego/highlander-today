@@ -10,6 +10,14 @@ The goal is not generic AI content generation. The goal is a constrained reporti
 
 For the dedicated browser-based interview workflow, queue model, multilingual behavior, and deterministic interview setup described after the initial reporter foundation, use `REPORTER-INTERVIEW-AGENT-PLAN.md` as the canonical follow-on plan.
 
+## Adopted reporting behavior — 2026-10-12
+
+Owner requirement: Reporter performs the reporting work before presenting an article for editorial review. It retrieves source bodies, follows relevant evidence, seeks primary or independent confirmation, checks claim dates and attribution, and makes bounded follow-up attempts when evidence is incomplete. Headlines and feed teasers are leads, not sufficient evidence by themselves. Reputable articles also provide leads to their own sources: inspect linked reports, datasets, original statements and named or quoted sources, then seek the underlying evidence for confirmation and additional relevant material. Historical claims such as “highest in decades” require the historical basis, not merely repetition by another outlet.
+
+Only supported claims enter article drafting. A useful narrower story may omit unsupported assertions with explicit internal notes; it must not substitute background for an unverified central premise. When essential facts remain unresolved, block article preparation and identify the reporting obstacle internally. Do not produce publishable copy that hands unfinished verification back to the editor. Human review and publication approval remain required.
+
+This policy applies to manual and scheduled reporting. Shared service, evidence-validation, and publication-guard regression tests must preserve it. See the [manual](REPORTER-USER-MANUAL.md#automatic-reporting-before-drafting--2026-10-12) for current capability limits and [current status](PROJECT-STATUS.md) for local verification and deployment state. The phase descriptions below retain historical scope.
+
 ## Product Fit
 
 This fits Highlander Today only if it is treated as:

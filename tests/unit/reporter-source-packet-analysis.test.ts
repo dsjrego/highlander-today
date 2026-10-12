@@ -61,6 +61,21 @@ describe('generateReporterDraftWithValidation', () => {
     global.fetch = originalFetch;
   });
 
+  it('requests one same-model revision when an evidence-rich article stops at its lead', async () => {
+    process.env.REPORTER_MODEL_PROVIDER = 'openai';
+    process.env.OPENAI_API_KEY = 'test-key';
+    const packet = buildPacket();
+    packet.supportedClaims = Array.from({ length: 4 }, (_, index) => ({ id: `claim-${index}`, claimType: 'BACKGROUND_CONTEXT', claimText: `Supported fact ${index}`, sourceExcerpt: 'Source passage supports this fact.', attribution: 'County', confidence: 'MEDIUM', verificationStatus: 'SUPPORTED' }));
+    const replies = ['The county announced a bridge closure.', 'The county announced a bridge closure.\n\nOfficials published a repair schedule and detour route.'];
+    global.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ output_text: JSON.stringify({ headline: 'Bridge closure', dek: null, body: replies.shift(), generationNotes: null }) }) })) as any;
+    const result = await generateReporterDraftWithValidation(packet, REPORTER_DRAFT_TYPE.ARTICLE_DRAFT);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(result.validation.hasCriticalIssues).toBe(false);
+    const request = JSON.parse((global.fetch as any).mock.calls[1][1].body);
+    expect(request).toMatchObject({ model: 'gpt-6-luna', reasoning: { effort: 'medium' } });
+    expect(JSON.stringify(request.input)).toContain('REQUIRED REVISION');
+  });
+
   it('replaces weak source-packet summaries with deterministic brief analysis', async () => {
     process.env.REPORTER_MODEL_PROVIDER = 'anthropic';
     process.env.ANTHROPIC_API_KEY = 'test-key';

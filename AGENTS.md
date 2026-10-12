@@ -50,6 +50,7 @@ When a domain-specific plan exists, treat that plan as the product and workflow 
 - Prefer the existing Next.js + TypeScript + Prisma architecture over adding sidecar services unless a plan explicitly calls for it.
 - Use the existing auth, trust, role, and moderation model. Do not bypass those boundaries for convenience.
 - Keep public AI/reporting flows constrained, source-grounded, reviewable, and human-approved before publication.
+- Reporter must perform evidence retrieval, follow-up research, and claim checking before drafting; headlines/feed teasers are leads. If essential facts remain unsupported, block article preparation with an internal reporting obstacle instead of putting the reporter’s unfinished verification in article copy. Apply this to manual and scheduled reporting; preserve regression coverage.
 - Preserve the product’s “local digital infrastructure” posture. Favor accountable workflows over generic platform patterns.
 
 ## Codebase Rules

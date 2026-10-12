@@ -41,6 +41,7 @@ describe('reporter convert-to-article route', () => {
       drafts: [
         {
           id: 'draft-1',
+          draftType: 'ARTICLE_DRAFT',
           headline: 'Bridge Closure Disrupts Morning Traffic',
           dek: null,
           body: 'The bridge will remain closed pending repairs.\n\nOfficials said traffic will be detoured.',
@@ -99,6 +100,30 @@ describe('reporter convert-to-article route', () => {
       data: { status: 'CONVERTED_TO_ARTICLE' },
     });
     expect(logActivityMock).toHaveBeenCalled();
+  });
+
+  it.each(['BLOCKED', 'ARCHIVED'])('refuses conversion of a %s run', async (status) => {
+    const run = await prismaMock.reporterRun.findUnique({ where: { id: 'run-1' } }) as any;
+    (prismaMock.reporterRun.findUnique as any).mockResolvedValue({ ...run, status });
+    const response = await POST(buildRequest(), { params: Promise.resolve({ id: 'run-1' }) });
+    expect(response.status).toBe(422);
+    expect(prismaMock.article.create).not.toHaveBeenCalled();
+  });
+
+  it('refuses unresolved critical validation issues and legacy reporting disclaimers', async () => {
+    const run = await prismaMock.reporterRun.findUnique({ where: { id: 'run-1' } }) as any;
+    (prismaMock.reporterRun.findUnique as any).mockResolvedValue({ ...run, drafts: [{ ...run.drafts[0], validationIssues: [{ severity: 'CRITICAL' }] }] });
+    expect((await POST(buildRequest(), { params: Promise.resolve({ id: 'run-1' }) })).status).toBe(422);
+    (prismaMock.reporterRun.findUnique as any).mockResolvedValue({ ...run, drafts: [{ ...run.drafts[0], body: 'A Stateline headline says measles cases have reached 4,080 for the year. The number could not be independently confirmed from the materials available for this story.' }] });
+    expect((await POST(buildRequest(), { params: Promise.resolve({ id: 'run-1' }) })).status).toBe(422);
+    expect(prismaMock.article.create).not.toHaveBeenCalled();
+  });
+
+  it('does not convert a source analysis into an article', async () => {
+    (prismaMock.reporterRun.findUnique as any).mockResolvedValue({ id: 'run-1', communityId: 'community-1', linkedArticle: null, drafts: [{ id: 'analysis-1', draftType: 'SOURCE_ANALYSIS', body: 'Internal evidence notes' }] });
+    const response = await POST(buildRequest(), { params: Promise.resolve({ id: 'run-1' }) });
+    expect(response.status).toBe(400);
+    expect(prismaMock.article.create).not.toHaveBeenCalled();
   });
 
   it('rejects conversion without permission', async () => {

@@ -5,6 +5,7 @@ import { getCurrentCommunity } from '@/lib/community';
 import { checkPermission } from '@/lib/permissions';
 import { logActivity } from '@/lib/activity-log';
 import { sanitizeArticleHtml, stripHtmlToText } from '@/lib/sanitize';
+import { findIncompleteReporterCopy } from '@/lib/reporter/draft-validator';
 
 const Input = z.object({
   intent: z.enum(['save', 'publish']),
@@ -61,6 +62,9 @@ export async function POST(
         { status: 404 }
       );
     const html = sanitizeArticleHtml(input.body);
+    if (input.intent === 'publish' && findIncompleteReporterCopy({ headline: input.title, dek: null, body: stripHtmlToText(html) })) {
+      return NextResponse.json({ error: 'Complete the reporting and remove verification-workflow notes from the article before publishing.' }, { status: 422 });
+    }
     if (stripHtmlToText(html).trim().length < 10) {
       return NextResponse.json(
         { error: 'The story needs at least 10 characters of text.' },

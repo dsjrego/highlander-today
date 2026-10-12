@@ -9,6 +9,7 @@ import {
 import { db } from '@/lib/db';
 import { createReporterClaimsFromSourcePacketAnalysis } from './claim-service';
 import { createReporterDraftForRun, loadReporterRunForDraft } from './draft-service';
+import { ReporterNeedsReportingError } from './research-service';
 import { normalizeReporterRunInput } from './run-normalizer';
 import { listReporterStoryCandidates, type ReporterStoryCandidateView } from './story-candidates';
 
@@ -975,7 +976,7 @@ async function maybeGenerateDailyCoverageArticleDraft(params: {
   } catch (error) {
     return {
       articleDraftId: null,
-      articleStatus: ReporterDailyCoverageArticleStatus.FAILED,
+      articleStatus: error instanceof ReporterNeedsReportingError ? ReporterDailyCoverageArticleStatus.BLOCKED : ReporterDailyCoverageArticleStatus.FAILED,
       articleSummary:
         error instanceof Error
           ? error.message

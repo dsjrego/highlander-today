@@ -55,6 +55,7 @@
     "bcryptjs": "^2.4.3",
     "d3": "^7.8.5",
     "date-fns": "^2.30.0",
+    "htmlparser2": "10.1.0",
     "lucide-react": "^0.309.0",
     "next": "^15.5.24",
     "next-auth": "^4.24.15",

@@ -37,6 +37,23 @@ function buildPacket(): ReporterSourcePacket {
 }
 
 describe('validateReporterDraft', () => {
+  it('requires body context when four or more assessed facts support a developed brief', () => {
+    const packet = buildPacket();
+    packet.supportedClaims = Array.from({ length: 4 }, (_, index) => ({ id: `claim-${index}`, claimType: 'BACKGROUND_CONTEXT', claimText: `Supported fact ${index}`, sourceExcerpt: 'Source passage.', attribution: null, confidence: 'MEDIUM', verificationStatus: 'SUPPORTED' }));
+    const draft: ReporterGeneratedDraft = { headline: 'Bridge closure', dek: null, body: 'The county closed the bridge.', draftType: 'ARTICLE_DRAFT', modelProvider: 'openai', modelName: 'gpt-6-luna', generationNotes: null };
+    expect(validateReporterDraft(draft, packet).issues).toEqual(expect.arrayContaining([expect.objectContaining({ code: 'DRAFT_UNDERDEVELOPED' })]));
+    draft.body += '\n\nThe county published the repair schedule and detour route.';
+    expect(validateReporterDraft(draft, packet).hasCriticalIssues).toBe(false);
+  });
+  it('blocks the reported headline-only disclaimer in article copy', () => {
+    const draft: ReporterGeneratedDraft = { headline: 'Measles cases', dek: null, body: 'A Stateline headline says measles cases have reached 4,080 for the year. The number could not be independently confirmed from the materials available for this story.', draftType: 'ARTICLE_DRAFT', modelProvider: 'openai', modelName: 'gpt-6-luna', generationNotes: null };
+    expect(validateReporterDraft(draft, buildPacket()).issues).toEqual(expect.arrayContaining([expect.objectContaining({ code: 'REPORTING_INCOMPLETE', severity: 'CRITICAL' })]));
+  });
+
+  it('allows ordinary attributed uncertainty about an event', () => {
+    const draft: ReporterGeneratedDraft = { headline: 'Bridge closed', dek: null, body: 'County officials could not confirm when the bridge would reopen. The county announced the closure on Tuesday.', draftType: 'ARTICLE_DRAFT', modelProvider: 'openai', modelName: 'gpt-6-luna', generationNotes: null };
+    expect(validateReporterDraft(draft, buildPacket()).hasCriticalIssues).toBe(false);
+  });
   it('accepts analysis with the new weak-packet sections and recommendation label', () => {
     const draft: ReporterGeneratedDraft = {
       headline: 'Reporter Agent Analysis: Bridge closure',

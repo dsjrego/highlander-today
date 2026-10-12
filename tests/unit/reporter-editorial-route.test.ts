@@ -45,6 +45,12 @@ test('saving never publishes, including a draft with critical issues', async () 
   expect((await POST(request({ intent: 'save', categoryId: null }), params)).status).toBe(200);
   expect(tx.article.create.mock.calls[0][0].data).toMatchObject({ status: 'DRAFT', publishedAt: null });
 });
+test('refuses publishing reporting disclaimers while preserving an editor’s ability to save work', async () => {
+  const body = '<p>A Stateline headline says measles cases reached 4,080. The number could not be independently confirmed from the materials available for this story.</p>';
+  expect((await POST(request({ body }), params)).status).toBe(422);
+  expect(tx.article.create).not.toHaveBeenCalled();
+  expect((await POST(request({ intent: 'save', body }), params)).status).toBe(200);
+});
 test.each(['STAFF_WRITER', 'CONTRIBUTOR', 'READER'])('denies publication by %s', async (role) => {
   expect((await POST(request({}, role), params)).status).toBe(403);
   expect(tx.article.create).not.toHaveBeenCalled();

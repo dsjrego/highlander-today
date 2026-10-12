@@ -45,12 +45,15 @@ function buildSourcePacketPrompt(input: ReporterDraftGenerationInput) {
     .map((source, index) => {
       const parts = [
         `Source ${index + 1}`,
+        `id=${source.id}`,
         `type=${source.sourceType}`,
         `reliability=${source.reliabilityTier}`,
         source.title ? `title=${source.title}` : null,
         source.url ? `url=${source.url}` : null,
         source.publisher ? `publisher=${source.publisher}` : null,
         source.author ? `author=${source.author}` : null,
+        source.publishedAt ? `publishedAt=${source.publishedAt}` : null,
+        source.retrievedAt ? `retrievedAt=${source.retrievedAt}` : null,
         source.excerpt ? `excerpt=${source.excerpt}` : null,
         source.note ? `note=${source.note}` : null,
         source.contentText ? `content=${source.contentText}` : null,
@@ -212,6 +215,7 @@ export class OpenAIReporterProvider implements ReporterProviderAdapter {
           'content-type': 'application/json',
           authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
         },
+        signal: AbortSignal.timeout(45000),
         body: JSON.stringify({
           model: this.model,
           reasoning: {

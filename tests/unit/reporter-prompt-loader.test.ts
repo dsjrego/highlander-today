@@ -33,7 +33,7 @@ describe('reporter prompt loader', () => {
 
     expect(traceMetadata).toMatchObject({
       promptKey: 'draft-generation',
-      promptVersion: '1',
+      promptVersion: '2',
     });
     expect(traceMetadata.promptHash).toMatch(/^[a-f0-9]{64}$/);
   });

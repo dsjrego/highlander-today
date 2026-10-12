@@ -118,6 +118,15 @@ describe('reporter draft route', () => {
     );
   });
 
+  it('returns an actionable reporting response without creating a placeholder draft', async () => {
+    const { ReporterNeedsReportingError } = require('@/lib/reporter/research-service');
+    (createReporterDraftForRunMock as any).mockRejectedValue(new ReporterNeedsReportingError('Reporting is incomplete: primary count is unavailable.'));
+    const response = await POST(buildRequest(), { params: Promise.resolve({ id: 'run-1' }) });
+    expect(response.status).toBe(422);
+    await expect(response.json()).resolves.toMatchObject({ needsReporting: true, error: expect.stringContaining('primary count') });
+    expect(logActivityMock).not.toHaveBeenCalled();
+  });
+
   it('rejects draft generation without permission', async () => {
     const response = await POST(
       new Request('http://localhost/api/reporter/runs/run-1/draft', {

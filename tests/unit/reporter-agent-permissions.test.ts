@@ -35,6 +35,14 @@ describe('reporter agent permissions', () => {
     ).toBe(true);
   });
 
+  it('limits public evidence retrieval/search to the research role', () => {
+    for (const action of [REPORTER_AGENT_ACTION.RETRIEVE_PUBLIC_EVIDENCE, REPORTER_AGENT_ACTION.SEARCH_PUBLIC_EVIDENCE]) {
+      expect(canReporterAgentPerformAction(REPORTER_AGENT_ACTOR.RESEARCH_AGENT, action)).toBe(true);
+      expect(canReporterAgentPerformAction(REPORTER_AGENT_ACTOR.DRAFT_AGENT, action)).toBe(false);
+      expect(canReporterAgentPerformAction(REPORTER_AGENT_ACTOR.INTERVIEW_AGENT, action)).toBe(false);
+    }
+  });
+
   it('denies publish, contact, and browse actions by default', () => {
     expect(
       canReporterAgentPerformAction(

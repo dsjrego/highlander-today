@@ -100,8 +100,8 @@ export async function generateReporterDraftWithValidation(
         })
       : null;
 
-  const generateAndTrace = async (selectedRouting: ReporterModelRoute | null) => {
-    const generatedDraft = await generateReporterDraft(packet, draftType, selectedRouting);
+  const generateAndTrace = async (selectedRouting: ReporterModelRoute | null, sourcePacket = packet) => {
+    const generatedDraft = await generateReporterDraft(sourcePacket, draftType, selectedRouting);
     await createSuccessfulReporterAgentTrace({
       reporterRunId: packet.runId,
       traceType,
@@ -181,6 +181,19 @@ export async function generateReporterDraftWithValidation(
   }
 
   let validation = validateGeneratedReporterDraft(draft, packet);
+  if (draftType === REPORTER_DRAFT_TYPE.ARTICLE_DRAFT && validation.issues.some((issue) => issue.code === 'DRAFT_UNDERDEVELOPED')) {
+    await createFailedReporterAgentTrace({ reporterRunId: packet.runId, traceType: 'DRAFT_VALIDATION', provider: draft.modelProvider,
+      modelName: draft.modelName, errorMessage: 'Article stopped at the lead despite sufficient supported context; requesting one bounded revision.', validationJson: validation });
+    const revisionRouting = configuredProvider === 'openai' ? resolveReporterModelRoute({ task: modelTask, packet, attempt: 1 }) : null;
+    try {
+      draft = await generateAndTrace(revisionRouting, { ...packet, editorNotes: [packet.editorNotes,
+        'REQUIRED REVISION: Write at least two short paragraphs separated by a blank line. Keep the supported lead, then report meaningful supporting facts from the assessed claims in the body. A dek or generation note does not count as a body paragraph. Do not add unsupported material.'
+      ].filter(Boolean).join('\n') });
+      validation = validateGeneratedReporterDraft(draft, packet);
+    } catch (error) {
+      await traceFailure(error, revisionRouting);
+    }
+  }
   await assertReporterAgentActionAllowed({
     actor: REPORTER_AGENT_ACTOR.DRAFT_AGENT,
     action: REPORTER_AGENT_ACTION.CREATE_VALIDATION_ISSUE,

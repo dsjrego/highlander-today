@@ -40,12 +40,15 @@ function buildSourcePacketPrompt(input: ReporterDraftGenerationInput) {
     .map((source, index) => {
       const parts = [
         `Source ${index + 1}`,
+        `id=${source.id}`,
         `type=${source.sourceType}`,
         `reliability=${source.reliabilityTier}`,
         source.title ? `title=${source.title}` : null,
         source.url ? `url=${source.url}` : null,
         source.publisher ? `publisher=${source.publisher}` : null,
         source.author ? `author=${source.author}` : null,
+        source.publishedAt ? `publishedAt=${source.publishedAt}` : null,
+        source.retrievedAt ? `retrievedAt=${source.retrievedAt}` : null,
         source.excerpt ? `excerpt=${source.excerpt}` : null,
         source.note ? `note=${source.note}` : null,
         source.contentText ? `content=${source.contentText}` : null,
@@ -199,6 +202,7 @@ export class AnthropicReporterProvider implements ReporterProviderAdapter {
           'x-api-key': process.env.ANTHROPIC_API_KEY,
           'anthropic-version': ANTHROPIC_API_VERSION,
         },
+        signal: AbortSignal.timeout(45000),
         body: JSON.stringify({
           model: this.model,
           max_tokens: draftType === REPORTER_DRAFT_TYPE.SOURCE_PACKET_SUMMARY ? 1200 : 2200,

@@ -4,6 +4,7 @@ import { createReporterClaimsFromSourcePacketAnalysis } from './claim-service';
 import { generateReporterDraftWithValidation } from './draft-generator';
 import { buildReporterSourcePacket } from './source-packet';
 import { REPORTER_DRAFT_TYPE, type ReporterDraftTypeValue } from './types';
+import { prepareReporterResearch } from './research-service';
 
 export async function loadReporterRunForDraft(runId: string) {
   return db.reporterRun.findUnique({
@@ -51,8 +52,14 @@ export async function createReporterDraftForRun(params: {
 }) {
   assertReporterRunReadyForDraft(params.run);
 
-  const packet = buildReporterSourcePacket(params.run, params.run.sources, params.run.claims);
+  const packet = await prepareReporterResearch({
+    packet: buildReporterSourcePacket(params.run, params.run.sources, params.run.claims),
+    communityId: params.run.communityId,
+    createdByUserId: params.createdByUserId,
+    requireReady: params.draftType !== REPORTER_DRAFT_TYPE.SOURCE_PACKET_SUMMARY,
+  });
   const { draft, validation } = await generateReporterDraftWithValidation(packet, params.draftType);
+  draft.generationNotes = [draft.generationNotes, packet.researchNotes].filter(Boolean).join('\n') || null;
 
   const persisted = await db.$transaction(async (tx) => {
     const createdDraft = await tx.reporterDraft.create({

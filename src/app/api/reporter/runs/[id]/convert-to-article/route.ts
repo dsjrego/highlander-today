@@ -4,6 +4,7 @@ import { getCurrentCommunity } from '@/lib/community';
 import { logActivity } from '@/lib/activity-log';
 import { sanitizeArticleHtml, stripHtmlToText } from '@/lib/sanitize';
 import { canConvertReporterToArticle } from '@/lib/reporter/permissions';
+import { findIncompleteReporterCopy } from '@/lib/reporter/draft-validator';
 
 function slugify(value: string) {
   return value
@@ -54,7 +55,9 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
           select: { id: true, title: true, slug: true, status: true },
         },
         drafts: {
+          where: { draftType: 'ARTICLE_DRAFT' },
           orderBy: [{ createdAt: 'desc' }],
+          include: { validationIssues: { where: { isResolved: false, severity: 'CRITICAL' } } },
         },
       },
     });
@@ -70,9 +73,13 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       );
     }
 
-    const draft = run.drafts[0];
+    const draft = run.drafts.find((candidate) => candidate.draftType === 'ARTICLE_DRAFT');
     if (!draft) {
       return NextResponse.json({ error: 'No reporter draft found' }, { status: 400 });
+    }
+
+    if (run.status === 'BLOCKED' || run.status === 'ARCHIVED' || draft.status === 'REJECTED' || draft.validationIssues?.length || findIncompleteReporterCopy(draft)) {
+      return NextResponse.json({ error: 'Resolve the reporting and validation issues before creating an article draft.' }, { status: 422 });
     }
 
     const baseSlug = slugify(draft.headline || run.title || run.topic || 'reporter-draft');

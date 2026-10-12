@@ -28,6 +28,7 @@ interface ReporterSourceLike {
   publisher: string | null;
   author: string | null;
   publishedAt: Date | null;
+  retrievedAt?: Date | null;
   excerpt: string | null;
   note: string | null;
   contentText: string | null;
@@ -54,6 +55,7 @@ function mapSource(source: ReporterSourceLike): ReporterSourcePacketItem {
     publisher: source.publisher,
     author: source.author,
     publishedAt: source.publishedAt?.toISOString() ?? null,
+    retrievedAt: source.retrievedAt?.toISOString() ?? null,
     excerpt: source.excerpt,
     note: source.note,
     contentText: source.contentText,

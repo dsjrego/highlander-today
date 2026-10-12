@@ -4,6 +4,9 @@ import { getCurrentCommunity } from '@/lib/community';
 import { logActivity } from '@/lib/activity-log';
 import { canGenerateReporterDraft } from '@/lib/reporter/permissions';
 import { createReporterDraftForRun, loadReporterRunForDraft } from '@/lib/reporter/draft-service';
+import { ReporterNeedsReportingError } from '@/lib/reporter/research-service';
+
+export const maxDuration = 300;
 
 const GenerateReporterDraftSchema = z.object({
   draftType: z.enum(['ARTICLE_DRAFT', 'SOURCE_PACKET_SUMMARY']).optional(),
@@ -57,6 +60,9 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       validation,
     });
   } catch (error) {
+    if (error instanceof ReporterNeedsReportingError) {
+      return NextResponse.json({ error: error.message, needsReporting: true }, { status: 422 });
+    }
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation failed', details: error.errors },

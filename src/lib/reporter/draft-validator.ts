@@ -44,6 +44,19 @@ const coverageRecommendationPatterns = [
   /\bneeds more sourcing\b/i,
 ];
 
+// These describe failure of our reporting process, not ordinary uncertainty in
+// an event (for example, officials have not yet determined a cause).
+const reportingFailurePatterns = [
+  /\b(?:could not|cannot|unable to)\s+(?:be\s+)?independently\s+(?:confirm|confirmed|verify|verified)\b/i,
+  /\b(?:materials|sources|source packet)\s+(?:available|provided)\s+(?:for|to)\s+(?:this|the)\s+(?:story|draft)\b/i,
+  /\b(?:a|the)\s+headline\s+(?:says|states|reports)\b/i,
+];
+
+export function findIncompleteReporterCopy(draft: Pick<ReporterGeneratedDraft, 'headline' | 'dek' | 'body'>): string | null {
+  const copy = [draft.headline, draft.dek, draft.body].filter(Boolean).join('\n');
+  return reportingFailurePatterns.map((pattern) => copy.match(pattern)?.[0]).find(Boolean) || null;
+}
+
 export function validateReporterDraft(
   draft: ReporterGeneratedDraft,
   packet: ReporterSourcePacket
@@ -66,6 +79,16 @@ export function validateReporterDraft(
       message: 'Article draft is missing a headline.',
       evidenceSpan: null,
     });
+  }
+
+  if (draft.draftType === 'ARTICLE_DRAFT') {
+    const match = findIncompleteReporterCopy(draft);
+    if (match) issues.push({ code: 'REPORTING_INCOMPLETE', severity: REPORTER_VALIDATION_SEVERITY.CRITICAL,
+      message: 'Article copy describes incomplete reporting. Resolve the source or verification gap before preparing it for editorial review.', evidenceSpan: match });
+    if (packet.supportedClaims.filter((claim) => claim.verificationStatus === 'SUPPORTED').length >= 4 && draft.body.trim().split(/\n\s*\n/).length < 2) {
+      issues.push({ code: 'DRAFT_UNDERDEVELOPED', severity: REPORTER_VALIDATION_SEVERITY.CRITICAL,
+        message: 'The source packet supports a developed brief, but the body stops at one paragraph. Include substantive supported context in the article.', evidenceSpan: null });
+    }
   }
 
   if (draft.draftType === 'SOURCE_PACKET_SUMMARY') {
