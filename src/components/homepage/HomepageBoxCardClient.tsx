@@ -410,7 +410,7 @@ export default function HomepageBoxCardClient({
             </TrackedLink>
           )}
 
-          <div className={`${emphasize ? 'homepage-feature-divider lg:border-l' : ''} p-5 md:p-6`}>
+          <div className={`${emphasize ? 'homepage-feature-divider lg:border-l' : ''} min-w-0 p-5 md:p-6`}>
             {box.linkItems.length > 0 ? (
               <>
                 <p className="homepage-latest-label text-xs font-semibold uppercase tracking-[0.22em]">
@@ -422,7 +422,7 @@ export default function HomepageBoxCardClient({
                       {item.contentType === 'EVENT' ? (
                         <EventHomepageTrigger
                           item={item}
-                          className="flex w-full items-start gap-3 text-left no-underline transition hover:no-underline"
+                          className="flex w-full items-start gap-3 p-0 text-left no-underline transition hover:no-underline"
                           onOpen={openEventModal}
                           placement="supporting-link"
                           boxType={box.boxType}
@@ -441,12 +441,12 @@ export default function HomepageBoxCardClient({
                               </div>
                             )}
                           </div>
-                          <div className="min-w-0">
-                            <p className="homepage-latest-link text-sm font-semibold leading-6 transition">
+                          <div className="flex h-12 min-w-0 flex-1 flex-col justify-center gap-0.5">
+                            <p className="homepage-latest-link m-0 truncate text-sm font-semibold leading-6 transition" title={item.title}>
                               {item.title}
                             </p>
                             {item.metadata ? (
-                              <p className="homepage-support-meta mt-0.5 text-xs font-medium">
+                              <p className="homepage-support-meta m-0 truncate text-xs font-medium leading-4">
                                 • {item.metadata.split(' • ').at(-1)}
                               </p>
                             ) : null}
@@ -455,7 +455,7 @@ export default function HomepageBoxCardClient({
                       ) : (
                         <TrackedLink
                           href={item.url}
-                          className="flex items-start gap-3 no-underline transition hover:no-underline"
+                          className="flex w-full items-start gap-3 no-underline transition hover:no-underline"
                           pageType="homepage"
                           eventName="homepage_slot_clicked"
                           contentType={item.contentType}
@@ -479,12 +479,12 @@ export default function HomepageBoxCardClient({
                               </div>
                             )}
                           </div>
-                          <div className="min-w-0">
-                            <p className="homepage-latest-link text-sm font-semibold leading-6 transition">
+                          <div className="flex h-12 min-w-0 flex-1 flex-col justify-center gap-0.5">
+                            <p className="homepage-latest-link m-0 truncate text-sm font-semibold leading-6 transition" title={item.title}>
                               {item.title}
                             </p>
                             {item.metadata ? (
-                              <p className="homepage-support-meta mt-0.5 text-xs font-medium">
+                              <p className="homepage-support-meta m-0 truncate text-xs font-medium leading-4">
                                 • {item.metadata.split(' • ').at(-1)}
                               </p>
                             ) : null}
