@@ -7,6 +7,7 @@ import {
   REPORTER_TENANT_KEYWORDS_SETTING_KEY,
 } from './tenant-keywords';
 import { REPORTER_EVENT_ORIENTED_SOURCE_TYPE_OPTIONS } from './monitored-sources';
+import { pacastListedActivityDate } from './pacast-source';
 
 const STORY_STOP_WORDS = new Set([
   'a',
@@ -583,8 +584,10 @@ function getItemActivityTime(item: {
   publishedAt: Date | null;
   lastSeenAt: Date;
   firstSeenAt: Date;
+  metadataJson?: Prisma.JsonValue | null;
 }) {
-  return new Date(item.publishedAt || item.lastSeenAt || item.firstSeenAt).getTime();
+  const sourceActivityDate = pacastListedActivityDate(item.metadataJson);
+  return new Date(item.publishedAt || sourceActivityDate || item.lastSeenAt || item.firstSeenAt).getTime();
 }
 
 function countCivicSignalTerms(value: string) {

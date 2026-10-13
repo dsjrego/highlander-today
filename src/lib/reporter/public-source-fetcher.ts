@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { fetchPublicHttpUrl, readResponseBytes } from '@/lib/security/safe-fetch';
 import { recordReporterMonitoredSourceFetch } from './monitored-source-ingestion';
+import { isPacastListingUrl, PACAST_USER_AGENT, parsePacastListing } from './pacast-source';
 
 type ParsedIngestionItem = {
   dedupeKey?: string | null;
@@ -1347,6 +1348,7 @@ function parseResponseItems(params: {
       return parseJsonFeed(parsed, params.sourceUrl, params.publisher);
     }
     case 'HTML':
+      if (isPacastListingUrl(params.sourceUrl)) return parsePacastListing(params.bodyText || '', params.publisher);
       return parseHtmlDocument(params.bodyText || '', params.sourceUrl, params.publisher);
     case 'ICS':
       return parseIcsCalendar(params.bodyText || '', params.sourceUrl, params.publisher);
@@ -1390,7 +1392,9 @@ export async function executeReporterMonitoredSourceFetch(monitoredSourceId: str
   const startedAt = new Date();
   const requestHeaders = new Headers({
     Accept: buildAcceptHeader(source.sourceFormat),
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
+    'User-Agent': isPacastListingUrl(source.url) && source.sourceFormat === 'HTML'
+      ? PACAST_USER_AGENT
+      : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
   });
 
   if (source.lastETag) {

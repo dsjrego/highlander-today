@@ -263,6 +263,25 @@ describe('reporter story candidate service', () => {
     });
   });
 
+  it('does not refresh old PAcast activity when a listing is polled again', async () => {
+    (prismaMock.siteSetting.findUnique as any).mockResolvedValue(null);
+    (prismaMock.reporterRun.findMany as any).mockResolvedValue([]);
+    (prismaMock.article.findMany as any).mockResolvedValue([]);
+    (prismaMock.reporterStoryCandidateItem.findMany as any).mockResolvedValue([]);
+    (prismaMock.reporterStoryCandidate.findMany as any).mockResolvedValue([]);
+    (prismaMock.reporterSourceIngestionItem.findMany as any).mockResolvedValue([{
+      id: 'old-pacast', title: 'Governor announces bridge repairs', canonicalUrl: 'https://pacast.com/m?p=900',
+      publishedAt: null, firstSeenAt: new Date(), lastSeenAt: new Date(), publisher: 'Commonwealth Media Services',
+      excerpt: 'PAcast media listing dated 2020-01-02 — Johnstown.',
+      metadataJson: { extractionMode: 'pacast-listing', sourceListedDate: '2020-01-02' },
+      monitoredSource: { id: 'pacast', label: 'PAcast', coverageScope: 'STATE', place: null },
+    }]);
+    await materializeReporterStoryCandidates({ communityId: 'community-1' });
+    expect(prismaMock.reporterStoryCandidate.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ latestSourceAt: new Date('2020-01-02T00:00:00Z'), recentItemCount: 0 }),
+    }));
+  });
+
   it('lists persisted story candidates in view shape', async () => {
     (prismaMock.reporterStoryCandidate.findMany as any).mockResolvedValue([
       {

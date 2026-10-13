@@ -92,6 +92,34 @@ describe('reporter public source fetcher', () => {
     expect(result.fetch.id).toBe('fetch-1');
   });
 
+  it('collects PAcast with an honest identity and preserves listing provenance', async () => {
+    (prismaMock.reporterMonitoredSource.findUnique as any).mockResolvedValue({
+      id: 'source-1', label: 'PAcast', communityId: 'community-1', url: 'https://pacast.com/',
+      sourceFormat: 'HTML', publisher: 'Commonwealth Media Services', status: 'PAUSED',
+    });
+    global.fetch = jest.fn(async () => new Response(`<section id="banner"><h2>Governor announces bridge repairs</h2><p>October 12, 2026 - Johnstown</p><a href="m?p=900">View</a></section>`)) as any;
+    (recordReporterMonitoredSourceFetchMock as any).mockResolvedValue({ fetch: { id: 'pacast-fetch' } });
+    await executeReporterMonitoredSourceFetch('source-1');
+    const request = (global.fetch as any).mock.calls[0][1];
+    expect(new Headers(request.headers).get('user-agent')).toBe('HighlanderToday-Reporter/1.0 (+https://highlander.today)');
+    expect(recordReporterMonitoredSourceFetchMock).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'SUCCESS', items: [expect.objectContaining({ dedupeKey: 'pacast:900', publishedAt: null,
+        contentText: null, metadataJson: expect.objectContaining({ sourceListedDate: '2026-10-12', listedLocation: 'Johnstown' }) })],
+    }));
+  });
+
+  it.each([200, 403])('records PAcast failure for invalid markup or HTTP %s without changing source configuration', async (status) => {
+    (prismaMock.reporterMonitoredSource.findUnique as any).mockResolvedValue({
+      id: 'source-1', label: 'PAcast', communityId: 'community-1', url: 'https://pacast.com/',
+      sourceFormat: 'HTML', status: 'PAUSED',
+    });
+    global.fetch = jest.fn(async () => new Response('<html><a href="/about">About</a></html>', { status })) as any;
+    (recordReporterMonitoredSourceFetchMock as any).mockResolvedValue({ fetch: { id: 'failed-fetch' } });
+    await executeReporterMonitoredSourceFetch('source-1');
+    expect(recordReporterMonitoredSourceFetchMock).toHaveBeenCalledWith(expect.objectContaining({ status: 'FAILED' }));
+    expect(prismaMock.reporterMonitoredSource.update).not.toHaveBeenCalled();
+  });
+
   it('records no-change on 304 responses', async () => {
     global.fetch = jest.fn(async () => new Response(null, { status: 304 })) as any;
     (recordReporterMonitoredSourceFetchMock as any).mockResolvedValue({
