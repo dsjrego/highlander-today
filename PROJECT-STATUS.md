@@ -106,3 +106,8 @@
 ## Reporter queue archive release — 2026-10-12
 
 Editor Ready now offers Archive beside Review & Publish for users with reporter edit permission. It removes the story from the queue while retaining drafts, sources and any saved article. Failures remain visible in the row. Uses the existing tenant-scoped status endpoint; no schema, dependency or environment changes. Owner authorized commit, push and deployment. Exact-release clean npm ci, lint, standalone typecheck, 58 unit suites/264 tests, Next 15.5.26 production build and ten Chromium/PostgreSQL workflow cases passed (28.1s). Archive error/retry and retention verified against the disposable localhost test database. Generation/upload services stubbed. Runtime audit retains prior 11 findings (7 high/4 moderate); dependencies unchanged. No production story archived. Rollback: cd3040db1eecfbf614a53e4b46ee0cf9e6d838f2.
+
+
+## Reporter hero images — 2026-10-13
+
+Owner authorized commit/push/deploy of conceptual editorial hero-image generation in Review & Publish. Editors review, regenerate, discard or choose a candidate, then use ordinary Save/Publish. AI disclosure caption is supplied. Dedicated image model preserves Luna text routing; no schema/dependency/cron changes. Exact release: clean npm ci, lint, typecheck, 317 unit tests, production build and isolated PostgreSQL/Chromium hero-image workflow passed. Deployment follows this owner-authorized commit; broader-tree checks remain separate evidence.

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import ImageUpload from '@/components/shared/ImageUpload';
 import TipTapEditor from '@/components/articles/TipTapEditor';
+import ReporterHeroImageGenerator from '@/components/articles/ReporterHeroImageGenerator';
 
 type Article = { id: string; slug: string; status: string; updatedAt: string };
 export default function ReviewStoryClient({
@@ -58,6 +59,7 @@ export default function ReviewStoryClient({
   const [featuredImageUrl, setFeaturedImageUrl] = useState(initialFeaturedImageUrl || '');
   const [featuredImageCaption, setFeaturedImageCaption] = useState(initialFeaturedImageCaption || '');
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [generatingImage, setGeneratingImage] = useState(false);
   const [article, setArticle] = useState(initialArticle);
   const [runVersion, setRunVersion] = useState(initialRunVersion);
   const [addressed, setAddressed] = useState<string[]>([]);
@@ -68,7 +70,7 @@ export default function ReviewStoryClient({
   const router = useRouter();
   const [refreshing, startRefresh] = useTransition();
   const [action, setAction] = useState<'save' | 'publish' | 'rerun' | null>(null);
-  const busy = action !== null || refreshing || uploadingImage;
+  const busy = action !== null || refreshing || uploadingImage || generatingImage;
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const published = article?.status === 'PUBLISHED';
@@ -265,6 +267,22 @@ export default function ReviewStoryClient({
             </fieldset>
             <fieldset disabled={busy || !canSave} className="space-y-3">
               <legend className="form-label">Article image (optional)</legend>
+              {canSave ? (
+                <ReporterHeroImageGenerator
+                  key={draftId}
+                  runId={runId}
+                  draftId={draftId}
+                  title={title}
+                  body={body}
+                  disabled={busy}
+                  onGeneratingChange={setGeneratingImage}
+                  onSelect={(image) => {
+                    setFeaturedImageUrl(image.url);
+                    setFeaturedImageCaption(image.caption);
+                    setNotice('Hero image selected. Save to keep it with this draft.');
+                  }}
+                />
+              ) : null}
               <ImageUpload
                 label="Featured image (optional)"
                 labelClassName="form-label"
@@ -273,7 +291,7 @@ export default function ReviewStoryClient({
                 value={featuredImageUrl ? [featuredImageUrl] : []}
                 disabled={busy || !canSave}
                 onUploadingChange={setUploadingImage}
-                onUpload={(image) => setFeaturedImageUrl(image.url)}
+                onUpload={(image) => { setFeaturedImageUrl(image.url); setFeaturedImageCaption(''); }}
                 onRemove={() => { setFeaturedImageUrl(''); setFeaturedImageCaption(''); }}
                 helperText="JPG, PNG or WebP, up to 5MB. Shown at the top of the article and in story previews."
               />
