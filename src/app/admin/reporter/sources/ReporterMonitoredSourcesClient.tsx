@@ -1466,9 +1466,6 @@ export default function ReporterMonitoredSourcesClient({
         console.error('Failed to refresh story candidates after run creation:', refreshError);
         setNotice('Reporter run created.');
       }
-
-      router.push(`/admin/reporter/${data.id}?view=sources`);
-      router.refresh();
     } catch (createRunError) {
       setError(
         createRunError instanceof Error
