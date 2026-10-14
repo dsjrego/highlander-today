@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ArrowLeft, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ActionTooltip } from "@/components/shared/ActionTooltip";
 import { AdminSidebarNav } from "@/components/admin/AdminSidebarNav";
 import { normalizeAdminNavSections } from "@/lib/admin-navigation";
 import type {
@@ -24,15 +25,11 @@ export function AdminSidebarShell({
   initialSidebarOrder: AdminSidebarOrder;
 }) {
   const pathname = usePathname();
-  const [mobileAnalytics, setMobileAnalytics] = useState(
-    pathname.startsWith("/admin/analytics"),
-  );
+  const [mobileNavigation, setMobileNavigation] = useState(false);
   useEffect(() => {
     const media = window.matchMedia("(max-width: 1100px)");
     const update = () =>
-      setMobileAnalytics(
-        pathname.startsWith("/admin/analytics") && media.matches,
-      );
+      setMobileNavigation(media.matches);
     update();
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
@@ -182,7 +179,7 @@ export function AdminSidebarShell({
     <>
       <AdminSidebarNav
         sections={orderedSections}
-        collapsed={collapsed && !mobileAnalytics}
+        collapsed={collapsed && !mobileNavigation}
         draggable={allowCustomization && !collapsed}
         draggedHref={draggedHref}
         draggedSectionTitle={draggedSectionTitle}
@@ -194,20 +191,25 @@ export function AdminSidebarShell({
         onMoveSection={handleMoveSection}
       />
       <div className="admin-sidebar-footer">
-        <Link href="/" className="admin-sidebar-footer-link">
-          {collapsed && !mobileAnalytics ? "Home" : "Back to Site"}
+        <ActionTooltip text="Back to site" enabled={collapsed && !mobileNavigation} className="admin-sidebar-tooltip">
+        <Link href="/" className="admin-sidebar-footer-link" aria-label="Back to site">
+          <ArrowLeft className="admin-nav-icon" aria-hidden="true" />
+          <span className="admin-sidebar-link-label">Back to site</span>
         </Link>
+        </ActionTooltip>
       </div>
     </>
   );
 
   return (
     <aside
-      className={`admin-sidebar ${collapsed && !mobileAnalytics ? "is-collapsed" : ""}`}
+      className={`admin-sidebar ${collapsed && !mobileNavigation ? "is-collapsed" : ""}`}
     >
-      {!mobileAnalytics && (
+      {!mobileNavigation && (
         <div className="admin-sidebar-header">
           <div className="admin-sidebar-brand-row">
+            <span className="admin-sidebar-brand-label">Administration</span>
+            <ActionTooltip text={collapsed ? "Expand admin sidebar" : "Collapse admin sidebar"}>
             <button
               type="button"
               className="admin-sidebar-toggle"
@@ -223,12 +225,13 @@ export function AdminSidebarShell({
                 <PanelLeftClose className="h-4 w-4" />
               )}
             </button>
+            </ActionTooltip>
           </div>
         </div>
       )}
 
-      {mobileAnalytics ? (
-        <details className="analytics-mobile-nav">
+      {mobileNavigation ? (
+        <details className="admin-mobile-nav">
           <summary>Administration navigation</summary>
           {navigation}
         </details>

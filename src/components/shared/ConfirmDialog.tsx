@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useRef } from 'react';
+import { useId, useRef, type ReactNode } from 'react';
 import { useDialogAccessibility } from '@/components/shared/useDialogAccessibility';
 
 interface ConfirmDialogProps {
@@ -12,6 +12,7 @@ interface ConfirmDialogProps {
   onConfirm: () => Promise<void> | void;
   onCancel: () => void;
   tone?: 'danger' | 'neutral';
+  children?: ReactNode;
 }
 
 export default function ConfirmDialog({
@@ -23,6 +24,7 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
   tone = 'danger',
+  children,
 }: ConfirmDialogProps) {
   const titleId = useId();
   const descriptionId = useId();
@@ -53,7 +55,7 @@ export default function ConfirmDialog({
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
         tabIndex={-1}
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+        className="confirm-dialog w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id={titleId} className="mb-3 text-xl font-bold text-gray-900">
@@ -62,6 +64,7 @@ export default function ConfirmDialog({
         <p id={descriptionId} className="text-sm leading-6 text-gray-600">
           {description}
         </p>
+        {children}
         <div className="mt-6 flex justify-end gap-3">
           <button
             ref={cancelButtonRef}

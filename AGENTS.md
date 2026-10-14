@@ -65,6 +65,8 @@ When a domain-specific plan exists, treat that plan as the product and workflow 
 
 ## UI And Design Rules
 
+- Owner preference (2026-10-14): admin tools must be compact, polished, and consistent. Use data tables for collections and item-level icon actions with accessible names and hover/focus tooltips instead of verbose action links. Build reusable controls and styling in shared components/CSS wherever possible. Preserve concise text for navigation, field labels, and consequential save/confirm actions where it improves comprehension.
+
 - Reuse the shared structural vocabulary from [DESIGN-SYSTEM-ARCHITECTURE.md](./DESIGN-SYSTEM-ARCHITECTURE.md): `page-header`, `section-*`, `card-*`, and related semantic classes.
 - For any administration, management, workspace, settings, or data-heavy surface, follow [ADMIN-DESIGN-GUIDELINES.md](./ADMIN-DESIGN-GUIDELINES.md). It is the standing answer for layout, field types and form controls, button hierarchy and placement, editing patterns (inline-expand by default), and empty/loading/error/validation states — build to it instead of asking case by case.
 - For admin record-management surfaces, default to the compact `admin-list` table pattern documented in [ADMIN-LIST-DESIGN.md](./ADMIN-LIST-DESIGN.md). Do not render collections as stacked full-editor cards.

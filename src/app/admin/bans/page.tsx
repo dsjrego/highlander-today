@@ -1,6 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { AdminPage } from '@/components/admin/AdminPage';
+import { CrudActionButton } from '@/components/shared/CrudAction';
+
+import { CheckCircle2 } from 'lucide-react';
+import { Fragment, useState, useEffect, useCallback } from "react";
 
 interface BannedAccount {
   id: string;
@@ -88,8 +92,7 @@ export default function BansPage() {
   };
 
   return (
-    <div>
-      <h1 className="text-4xl font-bold mb-8 text-[var(--brand-primary)]">Banned Accounts</h1>
+    <AdminPage title="Banned accounts" count={pagination.total}>
 
       {/* Messages */}
       {successMsg && (
@@ -99,30 +102,17 @@ export default function BansPage() {
         <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">{error}</div>
       )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
-          <p className="text-gray-600 text-sm mb-2">Active Bans</p>
-          <p className="text-3xl font-bold text-red-600">{pagination.total}</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
-          <p className="text-gray-600 text-sm mb-2">Tip</p>
-          <p className="text-sm text-gray-500">
-            Banned emails prevent re-registration. Unbanning a user restores them to REGISTERED status — they must be re-vouched to become TRUSTED again.
-          </p>
-        </div>
-      </div>
-
       {/* Search */}
-      <div className="bg-white p-4 rounded-lg border border-gray-200 mb-6">
+      <label className="admin-list-filter">
+        <span className="admin-list-filter-label">Email address</span>
         <input
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search by email..."
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
+          placeholder="Email address"
+          className="admin-list-filter-input"
         />
-      </div>
+      </label>
 
       {/* Bans Table */}
       {isLoading ? (
@@ -135,50 +125,51 @@ export default function BansPage() {
           {searchTerm ? "No banned accounts matching your search." : "No active bans. The community is in good standing!"}
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="px-5 py-3 text-left text-xs font-bold uppercase text-gray-600">User</th>
-                  <th className="px-5 py-3 text-left text-xs font-bold uppercase text-gray-600">Email</th>
-                  <th className="px-5 py-3 text-left text-xs font-bold uppercase text-gray-600">Reason</th>
-                  <th className="px-5 py-3 text-left text-xs font-bold uppercase text-gray-600">Banned</th>
-                  <th className="px-5 py-3 text-left text-xs font-bold uppercase text-gray-600">Banned By</th>
-                  <th className="px-5 py-3 text-left text-xs font-bold uppercase text-gray-600">Actions</th>
+        <div className="admin-list">
+          <div className="admin-list-table-wrap">
+            <table className="admin-list-table">
+              <thead className="admin-list-head">
+                <tr>
+                  <th className="admin-list-header-cell">User</th>
+                  <th className="admin-list-header-cell">Email</th>
+                  <th className="admin-list-header-cell">Reason</th>
+                  <th className="admin-list-header-cell">Banned</th>
+                  <th className="admin-list-header-cell">Banned By</th>
+                  <th className="admin-list-header-cell">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {bans.map((ban) => (
-                  <>
-                    <tr key={ban.id} className="border-b hover:bg-gray-50">
-                      <td className="px-5 py-3 font-semibold text-sm">
+                  <Fragment key={ban.id}>
+                    <tr key={ban.id} className="admin-list-row">
+                      <td className="admin-list-cell font-semibold text-sm">
                         {ban.firstName && ban.lastName
                           ? `${ban.firstName} ${ban.lastName}`
                           : <span className="text-gray-400 italic">No account</span>}
                       </td>
-                      <td className="px-5 py-3 text-sm">{ban.email}</td>
-                      <td className="px-5 py-3 text-sm text-gray-600 max-w-xs truncate">
+                      <td className="admin-list-cell text-sm">{ban.email}</td>
+                      <td className="admin-list-cell text-sm text-gray-600 max-w-xs truncate">
                         {ban.reason || <span className="text-gray-400">No reason recorded</span>}
                       </td>
-                      <td className="px-5 py-3 text-xs text-gray-500">
+                      <td className="admin-list-cell text-xs text-gray-500">
                         {new Date(ban.bannedAt).toLocaleDateString()}
                       </td>
-                      <td className="px-5 py-3 text-sm text-gray-600">{ban.bannedBy}</td>
-                      <td className="px-5 py-3">
+                      <td className="admin-list-cell text-sm text-gray-600">{ban.bannedBy}</td>
+                      <td className="admin-list-cell">
                         {unbanningId === ban.id ? null : (
-                          <button
+                          <CrudActionButton
+                            variant="inline-success" icon={CheckCircle2} label="Unban account"
                             onClick={() => setUnbanningId(ban.id)}
-                            className="!px-3 !py-1 text-xs font-medium text-white rounded bg-green-600 hover:bg-green-700"
+
                           >
                             Unban
-                          </button>
+                          </CrudActionButton>
                         )}
                       </td>
                     </tr>
                     {unbanningId === ban.id && (
                       <tr key={`${ban.id}-confirm`} className="bg-green-50 border-b">
-                        <td colSpan={6} className="px-5 py-3">
+                        <td colSpan={6} className="admin-list-cell">
                           <div className="flex items-center gap-4">
                             <div>
                               <p className="text-sm font-medium text-gray-900">
@@ -208,7 +199,7 @@ export default function BansPage() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>
@@ -245,6 +236,6 @@ export default function BansPage() {
           )}
         </div>
       )}
-    </div>
+    </AdminPage>
   );
 }

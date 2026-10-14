@@ -60,6 +60,8 @@ When the surface is primarily a record list, default to this structure:
 - Put the primary identifier in the first column and render it as the row's main link or manage trigger.
 - Put status, counts, dates, and short metadata in separate columns instead of stacking them into one card body.
 - Keep row actions compact and inline.
+- Reuse `CrudActionButton` / `CrudActionLink` inline variants for icon actions with accessible names and hover/focus tooltips; group them with `admin-row-actions` at the right edge. Keep record identities and column labels visible as text.
+- New tables may use `AdminTable` for shared column alignment, empty states, keyboard-scrollable wrappers, and one controlled expanded detail row. Use `AdminSection` and `AdminSummary` for consistent section and metric structure.
 - If a record needs deeper editing on the same page, expand it inline beneath the row rather than rendering every record as a full editing card by default.
 - Use card-style full-detail editors only after the admin explicitly opens a record.
 

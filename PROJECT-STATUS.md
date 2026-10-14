@@ -1,5 +1,10 @@
 # Highlander Today — Project Status
 
+## Admin interface release — 2026-10-14
+
+Owner authorized compact, polished administration using shared components and CSS, tabular collections and icon actions with hover/focus help. Implemented compact route-aware chrome, sidebar icons/mobile navigation, dashboard/store/trust tables, shared action controls and status/alignment fixes. Broader local checks passed (397 units, 21 browser cases); exact release verification and production deployment are tracked in VERCEL.md. No schema, dependency, environment or scheduled-workflow changes. Unrelated local hardening and documentation migration are excluded.
+
+
 Analytics release (2026-10-13): core suite implemented; see [release scope and operations](CONTENT-ANALYTICS-PLAN.md#analytics-release--2026-10-13). Owner authorized commit/push/deploy. Production migration/deployment verification is pending.
 
 > **2026-10-12 article images:** Owner-authorized Reporter featured-image/caption attachment release; existing inline uploads retained. No schema/environment changes. Exact 259 unit tests/nine browser cases/lint/typecheck/build passed; deployment pending. [Release evidence](VERCEL.md#reporter-article-images-release--2026-10-12).

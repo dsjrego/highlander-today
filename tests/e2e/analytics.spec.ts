@@ -206,7 +206,7 @@ test.describe("community analytics", () => {
         ),
       ).toBe(true);
       if (width < 1100) {
-        const nav = page.locator(".analytics-mobile-nav");
+        const nav = page.locator(".admin-mobile-nav");
         await expect(nav).toBeVisible();
         await expect(nav).not.toHaveAttribute("open");
         await nav.locator("summary").click();

@@ -1,5 +1,14 @@
 # Vercel Setup And Deployment Guide
 
+## Admin interface release — 2026-10-14
+
+Owner authorized commit, push and production deployment of the compact admin interface. Release uses shared table/section/summary/action/tooltip/chrome primitives, compact sidebar icons/mobile navigation, dashboard/store/trust tables and aligned bans/audit screens. Existing permissions, status confirmations and Reporter publication boundaries remain intact. No API/schema/dependency/environment/cron changes. Scope excludes unrelated local hardening and documentation migration; baseline production is a8f9f2d / GimoU6uqZUUBuVFagp34YAF36Kwv (rollback).
+
+Exact release verification passed under Node 22.23.2: clean npm ci --include=dev, lint/typecheck, 367 unit tests, production build and ten isolated admin/store/archive/analytics browser cases. Runtime/full audits retain the deployed baseline (11/45 findings); dependency remediation remains separate.
+
+Exact release checks are run under Node 22.23.2 after npm ci --include=dev; isolated database/browser checks require localhost highlander_today_test and blank paid-model keys. New browser coverage verifies numeric/status styles, hover/focus/Escape help, responsive navigation, one expanded store detail row, filtering, failed-update note retention, cancelled/approved/suspended/rejected state and approval audit reason. Public/admin chrome transitions and existing archive/analytics suites guard shared behavior. Deployment occurs through the existing main Git integration; READY status, artifact/domain correspondence, CI and public/access smoke checks must be verified separately. Authenticated production writes are not part of the smoke check.
+
+
 ## Assigned Stories archive release — 2026-10-14
 
 Owner authorized commit, push and deployment. Adds Archive beside the Assigned Stories next action, hides archived assignments from All active statuses and counts, and retains access through the Archived filter and View story. Reuses existing tenant/role-checked status updates; sources, notes, drafts and linked articles are preserved. No schema, dependency, environment or cron changes. Release is isolated from unrelated primary-worktree changes, including Reporter-page accessibility work.

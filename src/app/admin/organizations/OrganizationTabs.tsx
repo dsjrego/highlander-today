@@ -399,7 +399,7 @@ export default function OrganizationTabs({ organizations }: OrganizationTabsProp
                         <AdminChip tone={statusMeta.tone}>{statusMeta.label}</AdminChip>
                       </td>
                       <td className="admin-list-cell">
-                        <div className="flex flex-wrap gap-3">
+                        <div className="admin-row-actions">
                           <CrudActionLink
                             href={`/admin/organizations/${organization.id}`}
                             variant="inline-link"

@@ -1,5 +1,13 @@
 "use client";
 
+import { ShieldOff } from 'lucide-react';
+import { AdminSummary } from '@/components/admin/AdminSummary';
+import { AdminSection } from '@/components/admin/AdminSection';
+import { AdminTable } from '@/components/admin/AdminTable';
+import { AdminChip } from '@/components/admin/AdminChip';
+import { AdminPage } from '@/components/admin/AdminPage';
+import { CrudActionButton } from '@/components/shared/CrudAction';
+
 import { useState, useEffect, useCallback } from "react";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 
@@ -155,18 +163,8 @@ export default function TrustManagementPage() {
     }
   };
 
-  const getNodeColor = (trustLevel: string) => {
-    switch (trustLevel) {
-      case "TRUSTED": return "#22c55e";
-      case "REGISTERED": return "#3b82f6";
-      case "SUSPENDED": return "#ef4444";
-      default: return "#9ca3af";
-    }
-  };
-
   return (
-    <div>
-      <h1 className="text-4xl font-bold mb-8 text-[var(--brand-primary)]">Trust Management</h1>
+    <AdminPage title="Trust management">
 
       {/* Messages */}
       {successMsg && (
@@ -176,84 +174,35 @@ export default function TrustManagementPage() {
         <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">{error}</div>
       )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white p-5 rounded-lg border border-gray-200">
-          <p className="text-gray-600 text-xs mb-1">Total Vouches</p>
-          <p className="text-2xl font-bold text-[var(--brand-primary)]">{stats.totalVouches}</p>
-        </div>
-        <div className="bg-white p-5 rounded-lg border border-gray-200">
-          <p className="text-gray-600 text-xs mb-1">Trusted Users</p>
-          <p className="text-2xl font-bold text-green-600">{userStats?.trustedCount ?? "..."}</p>
-        </div>
-        <div className="bg-white p-5 rounded-lg border border-gray-200">
-          <p className="text-gray-600 text-xs mb-1">Awaiting Vouch</p>
-          <p className="text-2xl font-bold text-blue-600">{userStats?.registeredCount ?? "..."}</p>
-        </div>
-        <div className="bg-white p-5 rounded-lg border border-gray-200">
-          <p className="text-gray-600 text-xs mb-1">Suspended</p>
-          <p className="text-2xl font-bold text-red-600">{userStats?.suspendedCount ?? "..."}</p>
-        </div>
-      </div>
+      <AdminSummary label="Trust summary" items={[
+        { label: 'Vouches', value: stats.totalVouches.toLocaleString() },
+        { label: 'Trusted users', value: userStats?.trustedCount ?? '…' },
+        { label: 'Awaiting vouch', value: userStats?.registeredCount ?? '…' },
+        { label: 'Suspended', value: userStats?.suspendedCount ?? '…' },
+      ]} />
 
-      {/* Vouching Graph */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
-        <h3 className="font-bold text-lg mb-4">Vouching Network</h3>
-        {graphLoading ? (
-          <div className="text-center py-8 text-gray-500">Loading graph...</div>
-        ) : graphNodes.length === 0 ? (
-          <div className="text-center py-8 text-gray-400 text-sm">
-            No vouching relationships yet. The graph will appear once users start vouching for each other.
-          </div>
-        ) : (
-          <div>
-            <div className="flex flex-wrap gap-2 mb-4">
-              <span className="text-xs text-gray-500">{graphNodes.length} users in network, {graphEdges.length} connections</span>
-              <span className="mx-2 text-gray-300">|</span>
-              <span className="flex items-center gap-1 text-xs">
-                <span className="inline-block w-3 h-3 rounded-full bg-green-500"></span> Trusted
-              </span>
-              <span className="flex items-center gap-1 text-xs">
-                <span className="inline-block w-3 h-3 rounded-full bg-[var(--article-card-badge-bg)]0"></span> Registered
-              </span>
-              <span className="flex items-center gap-1 text-xs">
-                <span className="inline-block w-3 h-3 rounded-full bg-red-500"></span> Suspended
-              </span>
-            </div>
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 overflow-x-auto">
-              <div className="flex flex-wrap gap-3">
-                {graphNodes.map((node) => (
-                  <div
-                    key={node.id}
-                    className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm border border-gray-100"
-                  >
-                    <span
-                      className="inline-block w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: getNodeColor(node.trustLevel) }}
-                    ></span>
-                    <span className="text-xs font-medium">{node.name}</span>
-                    <span className="text-[10px] text-gray-400">
-                      ({graphEdges.filter(e => e.from === node.id).length} given,{" "}
-                      {graphEdges.filter(e => e.to === node.id).length} recv)
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      <AdminSection title="Vouching network" count={graphNodes.length}>
+        <AdminTable label="Vouching network" rows={graphLoading ? [] : graphNodes} rowKey={(node) => node.id}
+          emptyMessage={graphLoading ? 'Loading network…' : 'No vouching relationships yet.'}
+          columns={[
+            { key: 'name', label: 'Person', render: (node) => node.name },
+            { key: 'trust', label: 'Trust', render: (node) => <AdminChip tone={node.trustLevel === 'TRUSTED' ? 'ok' : node.trustLevel === 'SUSPENDED' ? 'bad' : 'neu'}>{node.trustLevel.replace(/_/g, ' ')}</AdminChip> },
+            { key: 'given', label: 'Given', align: 'right', render: (node) => graphEdges.filter((edge) => edge.from === node.id).length },
+            { key: 'received', label: 'Received', align: 'right', render: (node) => graphEdges.filter((edge) => edge.to === node.id).length },
+          ]} />
+      </AdminSection>
 
       {/* Search */}
-      <div className="bg-white p-4 rounded-lg border border-gray-200 mb-6">
+      <label className="admin-list-filter">
+        <span className="admin-list-filter-label">Voucher or recipient name/email</span>
         <input
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search by voucher or recipient name/email..."
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
+          placeholder="Voucher or recipient name/email"
+          className="admin-list-filter-input"
         />
-      </div>
+      </label>
 
       {/* Vouches Table */}
       {isLoading ? (
@@ -266,22 +215,22 @@ export default function TrustManagementPage() {
           No vouch records found.
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="px-5 py-3 text-left text-xs font-bold uppercase text-gray-600">Voucher</th>
-                  <th className="px-5 py-3 text-left text-xs font-bold uppercase text-gray-600">Recipient</th>
-                  <th className="px-5 py-3 text-left text-xs font-bold uppercase text-gray-600">Date</th>
-                  <th className="px-5 py-3 text-left text-xs font-bold uppercase text-gray-600">Status</th>
-                  <th className="px-5 py-3 text-left text-xs font-bold uppercase text-gray-600">Actions</th>
+        <div className="admin-list">
+          <div className="admin-list-table-wrap">
+            <table className="admin-list-table">
+              <thead className="admin-list-head">
+                <tr>
+                  <th className="admin-list-header-cell">Voucher</th>
+                  <th className="admin-list-header-cell">Recipient</th>
+                  <th className="admin-list-header-cell">Date</th>
+                  <th className="admin-list-header-cell">Status</th>
+                  <th className="admin-list-header-cell">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {vouches.map((vouch) => (
-                  <tr key={vouch.id} className="border-b hover:bg-gray-50">
-                    <td className="px-5 py-3">
+                  <tr key={vouch.id} className="admin-list-row">
+                    <td className="admin-list-cell">
                       <div>
                         <p className="font-semibold text-sm">{vouch.voucherName}</p>
                         <p className="text-xs text-gray-500">{vouch.voucherEmail}</p>
@@ -290,7 +239,7 @@ export default function TrustManagementPage() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-5 py-3">
+                    <td className="admin-list-cell">
                       <div>
                         <p className="font-semibold text-sm">{vouch.recipientName}</p>
                         <p className="text-xs text-gray-500">{vouch.recipientEmail}</p>
@@ -299,10 +248,10 @@ export default function TrustManagementPage() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-5 py-3 text-xs text-gray-500">
+                    <td className="admin-list-cell text-xs text-gray-500">
                       {new Date(vouch.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="px-5 py-3">
+                    <td className="admin-list-cell">
                       {vouch.recipientTrustLevel === "TRUSTED" ? (
                         <span className="px-2 py-1 rounded-full text-xs font-semibold text-green-700 bg-green-100">
                           Active
@@ -317,15 +266,16 @@ export default function TrustManagementPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-5 py-3 text-xs">
+                    <td className="admin-list-cell text-xs">
                       {vouch.recipientTrustLevel === "TRUSTED" && (
-                        <button
+                        <CrudActionButton
+                          variant="inline-danger" icon={ShieldOff} label="Revoke trust"
                           onClick={() => setRevokeDialog({ userId: vouch.recipientId, userName: vouch.recipientName })}
                           disabled={actionLoading === vouch.recipientId}
-                          className="!px-3 !py-1 text-xs font-medium text-white rounded bg-red-600 hover:bg-red-700 disabled:opacity-50"
+
                         >
                           {actionLoading === vouch.recipientId ? "..." : "Revoke"}
-                        </button>
+                        </CrudActionButton>
                       )}
                     </td>
                   </tr>
@@ -378,6 +328,6 @@ export default function TrustManagementPage() {
           }}
         />
       ) : null}
-    </div>
+    </AdminPage>
   );
 }

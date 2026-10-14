@@ -72,7 +72,7 @@ export default async function AdminLayout({
   );
 
   return (
-    <div className="admin-shell relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] min-h-screen w-screen">
+    <div className="admin-shell relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen">
       <AdminSidebarShell
         sections={visibleNavSections}
         allowCustomization={isSuperAdmin}

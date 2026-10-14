@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
-import { FileSearch } from 'lucide-react';
+import { Eye, FileSearch } from 'lucide-react';
+import { CrudActionLink } from '@/components/shared/CrudAction';
 import { authOptions } from '@/lib/auth';
 import { getCurrentCommunity } from '@/lib/community';
 import { db } from '@/lib/db';
@@ -360,13 +361,14 @@ export default async function AdminReporterPage() {
                                 )}
                               </td>
                               <td className="admin-list-cell">
-                                <div className="flex flex-wrap items-center gap-3">
-                                  <Link
+                                <div className="admin-row-actions">
+                                  <CrudActionLink
                                     href={`/admin/reporter/${run.id}/review`}
-                                    className="admin-list-link"
+                                    icon={Eye}
+                                    label="Review & Publish"
                                   >
                                     Review &amp; Publish
-                                  </Link>
+                                  </CrudActionLink>
                                   {checkPermission(userRole, 'reporter:edit') ? (
                                     <ArchiveStoryButton runId={run.id} />
                                   ) : null}

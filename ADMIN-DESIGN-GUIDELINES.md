@@ -37,6 +37,8 @@ If a workspace reference exists, match that shell first, then apply the field/li
 
 ## 1. Core Principles
 
+**Owner direction (2026-10-14):** compact, professional enterprise tools throughout administration. Collections use data tables; actions belong to the relevant record. Prefer icon buttons with accessible names and hover/focus tooltips over verbose action links. Retain concise text navigation, persistent field labels, and clear save/confirm labels. Use restrained spacing, typography, borders, and consistent alignment; avoid oversized cards and explanatory copy that competes with the work.
+
 1. **Operational density, not card sprawl.** These surfaces are tools. Optimize for scanning many records and editing one at a time. A screen that shows three records as three giant editor cards has failed.
 2. **One read path, one edit path.** Records are *scanned* in a table and *edited* in one deliberate place (inline-expand, drawer, or modal). Never render every record as a permanently-open form.
 3. **Structure is visible.** Group related fields under labeled fieldsets. Every input has a real, persistent `<label>` — never a placeholder masquerading as a label.
@@ -83,7 +85,7 @@ Use the shared admin tokens. Do not introduce route-local hex values. These alre
 | Info / Neutral | `#12436b` | `#e9f0f6` | `#c4d6e6` |
 
 ### Shape & elevation
-- Radius: `10–12px` cards, `8px` inputs/buttons, `999px` pills. Never the oversized `30px` "hero" radius on a tool surface.
+- Radius: `6px` panels, `4–6px` compact controls, `999px` status pills. Never the oversized `30px` "hero" radius on a tool surface. This tightens the earlier `10–12px` panel guidance to the owner's compact-interface direction (2026-10-14).
 - Elevation: at most one soft shadow on cards (`0 1px 2px`, `0 6px 18px` at low opacity). Tables and inputs are flat with borders. No layered/colored glows.
 - Type: system sans stack (`-apple-system, "Segoe UI", Roboto, …`). It is the correct, native, application feel. Do not import display fonts for tools.
 
@@ -126,7 +128,7 @@ Tables are the default for any collection that can grow beyond ~2 entries. (Tabl
 - **First column is the identity** (name/label) + one muted sub-line of context. It is the record's anchor and the manage trigger.
 - **One concept per column.** Status, counts, dates, visibility, and "primary" each get their own column. Never stack four facts into one cell.
 - **Right-align numbers**, center status/boolean/icon columns, left-align text.
-- **Row actions** live in a final, header-less, right-aligned column as compact icon buttons (edit, delete, overflow `⋯`). Destructive icon buttons reveal red only on hover.
+- **Row actions** live in a final, right-aligned column as compact icon buttons (edit, delete, overflow `⋯`). Use a concise `Actions` column heading. Destructive icon buttons reveal red only on hover. Reuse `CrudActionButton` / `CrudActionLink`; inline variants default to icon-only with an accessible name and portaled hover/focus tooltip. Keep text on save/confirmation actions.
 - **Booleans in a row** render as a real checkbox or a star toggle, not text. **Status** renders as a status pill (dot + label). **Category/type** renders as a tinted chip.
 - **Inline edit-in-place** is allowed for low-risk single fields (e.g. a member's Role `<select>` right in the row). Anything with multiple fields opens the full editor instead.
 - **Zebra + hover:** subtle zebra (`--row-zebra`), `--row-hover` on hover, `--navy-tint` on the expanded/selected row.

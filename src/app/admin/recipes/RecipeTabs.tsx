@@ -269,7 +269,7 @@ export default function RecipeTabs({ recipes, recipeCategories }: RecipeTabsProp
                       </td>
                       <td className="admin-list-cell">{formatDate(recipe.publishedAt)}</td>
                       <td className="admin-list-cell">
-                        <div className="flex flex-wrap gap-3">
+                        <div className="admin-row-actions">
                           <CrudActionLink
                             href={`/recipes/submit?edit=${recipe.id}`}
                             variant="inline-link"

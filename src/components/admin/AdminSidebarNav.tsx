@@ -6,6 +6,8 @@ import { usePathname } from 'next/navigation';
 import { ChevronDown, ChevronUp, GripVertical } from 'lucide-react';
 
 import type { AdminNavSection } from '@/lib/admin-navigation';
+import { ActionTooltip } from '@/components/shared/ActionTooltip';
+import { AdminNavIcon } from './AdminNavIcon';
 
 const SIDEBAR_SECTION_STATE_KEY = 'hl-admin-sidebar-sections';
 
@@ -149,6 +151,7 @@ export function AdminSidebarNav({
 
                   return (
                     <div key={item.href} className="admin-sidebar-item">
+                      <ActionTooltip text={item.label} enabled={collapsed} className="admin-sidebar-tooltip">
                       <Link
                         href={item.href}
                         draggable={draggable}
@@ -174,29 +177,34 @@ export function AdminSidebarNav({
                         }}
                         className={`admin-sidebar-link ${isActive ? 'is-active' : ''} ${isDragged ? 'is-dragged' : ''}`}
                         aria-current={isActive ? 'page' : undefined}
-                        title={collapsed ? item.label : undefined}
+                        aria-label={item.label}
                       >
                         {draggable ? (
                           <span className="admin-sidebar-link-grip" aria-hidden="true">
                             <GripVertical className="h-3.5 w-3.5" />
                           </span>
                         ) : null}
+                        <AdminNavIcon href={item.href} />
                         <span className="admin-sidebar-link-label">{item.label}</span>
                       </Link>
+                      </ActionTooltip>
                       {item.children?.length ? (
                         <ul className="admin-sidebar-submenu" aria-label={`${item.label} submenu`}>
                           {item.children.map((child) => {
                             const isChildActive = isActivePath(pathname, child.href);
                             return (
                               <li key={child.href}>
+                                <ActionTooltip text={child.label} enabled={collapsed} className="admin-sidebar-tooltip">
                                 <Link
                                   href={child.href}
                                   className={`admin-sidebar-link admin-sidebar-sublink ${isChildActive ? 'is-active' : ''}`}
                                   aria-current={isChildActive ? 'page' : undefined}
-                                  title={collapsed ? child.label : undefined}
+                                  aria-label={child.label}
                                 >
+                                  <AdminNavIcon href={child.href} />
                                   <span className="admin-sidebar-link-label">{child.label}</span>
                                 </Link>
+                                </ActionTooltip>
                               </li>
                             );
                           })}

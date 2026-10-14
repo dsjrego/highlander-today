@@ -1,8 +1,11 @@
-'use client';
-
 import Link from 'next/link';
-import type { ButtonHTMLAttributes, ComponentPropsWithoutRef, ReactNode } from 'react';
+import type {
+  ButtonHTMLAttributes,
+  ComponentPropsWithoutRef,
+  ReactNode,
+} from 'react';
 import type { LucideIcon } from 'lucide-react';
+import { ActionTooltip } from './ActionTooltip';
 
 function joinClasses(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(' ');
@@ -24,9 +27,9 @@ const VARIANT_CLASS_NAMES: Record<CrudActionVariant, string> = {
   neutral: 'btn btn-neutral',
   danger: 'btn btn-danger',
   inline: 'admin-list-cell-button',
-  'inline-link': 'admin-list-cell-button text-[#2563eb]',
-  'inline-success': 'admin-list-cell-button text-[#1f7a45]',
-  'inline-danger': 'admin-list-cell-button text-[var(--brand-accent)]',
+  'inline-link': 'admin-list-cell-button crud-action-link',
+  'inline-success': 'admin-list-cell-button crud-action-success',
+  'inline-danger': 'admin-list-cell-button crud-action-danger',
 };
 
 type SharedCrudActionProps = {
@@ -36,6 +39,7 @@ type SharedCrudActionProps = {
   iconClassName?: string;
   className?: string;
   children?: ReactNode;
+  iconOnly?: boolean;
 };
 
 export function CrudActionButton({
@@ -45,22 +49,35 @@ export function CrudActionButton({
   iconClassName,
   className,
   children,
+  iconOnly = variant.startsWith('inline'),
+  title,
   ...props
 }: SharedCrudActionProps & ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button
-      aria-label={label}
-      title={label}
-      className={joinClasses(
-        'crud-action-button',
-        VARIANT_CLASS_NAMES[variant],
-        className
-      )}
-      {...props}
-    >
-      <Icon aria-hidden="true" className={joinClasses('crud-action-icon h-4 w-4 shrink-0', iconClassName)} />
-      <span className="crud-action-label">{children ?? label}</span>
-    </button>
+    <ActionTooltip text={title || label} enabled={iconOnly}>
+      <button
+        aria-label={label}
+        title={iconOnly ? undefined : title || label}
+        className={joinClasses(
+          'crud-action-button',
+          iconOnly && 'crud-action-icon-only',
+          VARIANT_CLASS_NAMES[variant],
+          className,
+        )}
+        {...props}
+      >
+        <Icon
+          aria-hidden="true"
+          className={joinClasses(
+            'crud-action-icon h-4 w-4 shrink-0',
+            iconClassName,
+          )}
+        />
+        {!iconOnly ? (
+          <span className="crud-action-label">{children ?? label}</span>
+        ) : null}
+      </button>
+    </ActionTooltip>
   );
 }
 
@@ -71,21 +88,34 @@ export function CrudActionLink({
   iconClassName,
   className,
   children,
+  iconOnly = variant.startsWith('inline'),
+  title,
   ...props
 }: SharedCrudActionProps & ComponentPropsWithoutRef<typeof Link>) {
   return (
-    <Link
-      aria-label={label}
-      title={label}
-      className={joinClasses(
-        'crud-action-button',
-        VARIANT_CLASS_NAMES[variant],
-        className
-      )}
-      {...props}
-    >
-      <Icon aria-hidden="true" className={joinClasses('crud-action-icon h-4 w-4 shrink-0', iconClassName)} />
-      <span className="crud-action-label">{children ?? label}</span>
-    </Link>
+    <ActionTooltip text={title || label} enabled={iconOnly}>
+      <Link
+        aria-label={label}
+        title={iconOnly ? undefined : title || label}
+        className={joinClasses(
+          'crud-action-button',
+          iconOnly && 'crud-action-icon-only',
+          VARIANT_CLASS_NAMES[variant],
+          className,
+        )}
+        {...props}
+      >
+        <Icon
+          aria-hidden="true"
+          className={joinClasses(
+            'crud-action-icon h-4 w-4 shrink-0',
+            iconClassName,
+          )}
+        />
+        {!iconOnly ? (
+          <span className="crud-action-label">{children ?? label}</span>
+        ) : null}
+      </Link>
+    </ActionTooltip>
   );
 }

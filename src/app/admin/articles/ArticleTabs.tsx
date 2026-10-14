@@ -299,7 +299,7 @@ export default function ArticleTabs({ articles, articleCategories }: ArticleTabs
                       </td>
                       <td className="admin-list-cell">{formatDate(article.publishedAt)}</td>
                       <td className="admin-list-cell">
-                        <div className="flex flex-wrap gap-3">
+                        <div className="admin-row-actions">
                           <CrudActionLink
                             href={`/local-life/submit?edit=${article.id}`}
                             variant="inline-link"
@@ -422,7 +422,7 @@ export default function ArticleTabs({ articles, articleCategories }: ArticleTabs
               </select>
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="admin-row-actions">
               <CrudActionLink
                 href={`/local-life/submit?edit=${focusedArticle.id}`}
                 variant="inline-link"

@@ -696,7 +696,7 @@ export default function UsersPage() {
                         )}
                       </td>
                       <td className="admin-list-cell">
-                        <div className="flex flex-wrap gap-3">
+                        <div className="admin-row-actions">
                           <CrudActionLink href={`/profile/${user.id}`} variant="inline-link" icon={Eye} label="View profile">
                             View
                           </CrudActionLink>
@@ -820,7 +820,7 @@ export default function UsersPage() {
 
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Actions</p>
-              <div className="flex flex-wrap gap-3">
+              <div className="admin-row-actions">
                 <CrudActionLink href={`/profile/${focusedUser.id}`} variant="inline-link" icon={Eye} label="View profile">
                   View profile
                 </CrudActionLink>

@@ -7,6 +7,7 @@ import Providers from "@/components/Providers";
 import DevThemeSwitcher from "@/components/dev/DevThemeSwitcher";
 import BannerActions from "@/components/layout/BannerActions";
 import NavigationBar from "@/components/layout/NavigationBar";
+import { SiteChrome } from "@/components/layout/SiteChrome";
 import LocationCompletionGate from "@/components/location/LocationCompletionGate";
 import { authOptions } from "@/lib/auth";
 import { getAboutNavItems } from "@/lib/about";
@@ -158,6 +159,7 @@ export default async function RootLayout({
           <LocationCompletionGate />
           <div className="app-shell min-h-screen" style={themeVars}>
           {/* Masthead */}
+          <SiteChrome region="masthead" siteName={siteName}>
           <header className="app-masthead relative z-40 overflow-visible">
             <div className="app-masthead-overlay" />
             <div className="app-masthead-inner relative w-full px-3 py-2 md:p-3">
@@ -209,6 +211,7 @@ export default async function RootLayout({
               </div>
             </div>
           </header>
+          </SiteChrome>
 
           {/* Main Content */}
           <main
@@ -220,6 +223,7 @@ export default async function RootLayout({
           </main>
 
           {/* Footer */}
+          <SiteChrome region="footer">
           <footer className="app-footer mt-12">
             <div className="container mx-auto px-4 py-10">
               <div className="mb-8 grid gap-8 text-center md:grid-cols-2">
@@ -259,6 +263,7 @@ export default async function RootLayout({
             </div>
           <div className="mt-3"><AnalyticsPrivacyControl /></div>
           </footer>
+          </SiteChrome>
           </div>
         </Providers>
       </body>

@@ -33,6 +33,7 @@ export function AdminFacet({
     <button
       type="button"
       className={`admin-facet ${active ? 'is-active' : ''}`}
+      aria-pressed={active}
       onClick={onClick}
     >
       {children}

@@ -4,6 +4,8 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 type View = { key: string; label: string; count?: number; tone?: 'pend' | 'bad' };
 
+const dotClasses = { pend: 'admin-view-tab-dot-pend', bad: 'admin-view-tab-dot-bad' };
+
 export function AdminViewTabs({ views, defaultView }: { views: View[]; defaultView: string }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -29,7 +31,7 @@ export function AdminViewTabs({ views, defaultView }: { views: View[]; defaultVi
           >
             {view.tone ? (
               <span
-                className={`admin-view-tab-dot admin-view-tab-dot-${view.tone}`}
+                className={`admin-view-tab-dot ${dotClasses[view.tone]}`}
                 aria-hidden="true"
               />
             ) : null}

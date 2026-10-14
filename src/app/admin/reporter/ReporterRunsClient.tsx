@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Eye, Plus } from 'lucide-react';
+import { CrudActionLink } from '@/components/shared/CrudAction';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { AdminChip } from '@/components/admin/AdminChip';
 import { AdminDrawer } from '@/components/admin/AdminDrawer';
@@ -498,18 +499,19 @@ export default function ReporterRunsClient({
                       })}
                     </td>
                     <td className="admin-list-cell">
-                      <div className="flex flex-wrap items-center gap-3">
+                      <div className="admin-row-actions">
                         {run.status === 'ARCHIVED' ? (
-                          <Link href={`/admin/reporter/${run.id}?view=details`} className="admin-list-link">
+                          <CrudActionLink href={`/admin/reporter/${run.id}?view=details`} icon={Eye} label="View story">
                             View story
-                          </Link>
+                          </CrudActionLink>
                         ) : run._count.drafts ? (
-                          <Link
+                          <CrudActionLink
                             href={`/admin/reporter/${run.id}/review`}
-                            className="admin-list-link"
+                            icon={Eye}
+                            label="Review & Publish"
                           >
                             Review &amp; Publish
-                          </Link>
+                          </CrudActionLink>
                         ) : (
                           <PrepareStoryButton
                             runId={run.id}

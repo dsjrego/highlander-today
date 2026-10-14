@@ -705,7 +705,7 @@ export default function EventTabs({ events, organizations, locations }: EventTab
                       </AdminChip>
                     </td>
                     <td className="admin-list-cell">
-                      <div className="flex flex-wrap gap-3">
+                      <div className="admin-row-actions">
                         <Link href={`/admin/events/${event.id}`} className="admin-list-link">
                           Open
                         </Link>

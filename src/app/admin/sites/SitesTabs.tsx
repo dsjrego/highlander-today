@@ -310,7 +310,7 @@ export default function SitesTabs({ sites }: SitesTabsProps) {
                       </td>
                       <td className="admin-list-cell">{formatDate(site.createdAt)}</td>
                       <td className="admin-list-cell">
-                        <div className="flex flex-wrap gap-3">
+                        <div className="admin-row-actions">
                           <CrudActionLink
                             href={`/admin/sites/${site.id}`}
                             variant="inline-link"

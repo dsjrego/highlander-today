@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { FileText, ListChecks } from 'lucide-react';
+import { CrudActionButton, CrudActionLink } from '@/components/shared/CrudAction';
 
 export default function PrepareStoryButton({
   runId,
@@ -22,20 +24,23 @@ export default function PrepareStoryButton({
           {disabledReason || 'A staff reporter must prepare this draft.'}
         </div>
         {disabledReason !== 'Choose a reporter.' ? (
-          <a
+          <CrudActionLink
             href={`/admin/reporter/${runId}?view=${disabledReason?.includes('source') ? 'sources' : disabledReason?.includes('interview') ? 'interviews' : disabledReason?.includes('archived') ? 'details' : 'blockers'}`}
-            className="admin-list-link"
+            icon={ListChecks}
+            label="Resolve issues"
           >
             Resolve issues
-          </a>
+          </CrudActionLink>
         ) : null}
       </div>
     );
   return (
     <div>
-      <button
+      <CrudActionButton
         type="button"
-        className="admin-list-link"
+        variant="inline"
+        icon={FileText}
+        label={busy ? 'Preparing draft…' : 'Prepare Draft'}
         disabled={busy}
         onClick={async () => {
           setBusy(true);
@@ -61,7 +66,7 @@ export default function PrepareStoryButton({
         }}
       >
         {busy ? 'Preparing draft…' : 'Prepare Draft'}
-      </button>
+      </CrudActionButton>
       {error ? (
         <p role="alert" className="admin-list-error">
           {error}

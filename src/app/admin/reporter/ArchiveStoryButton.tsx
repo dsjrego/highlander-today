@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { Archive } from 'lucide-react';
+import { CrudActionButton } from '@/components/shared/CrudAction';
 
 export default function ArchiveStoryButton({ runId, onArchived }: { runId: string; onArchived?: () => void }) {
   const router = useRouter();
@@ -10,9 +12,11 @@ export default function ArchiveStoryButton({ runId, onArchived }: { runId: strin
   const [error, setError] = useState('');
   return (
     <div>
-      <button
+      <CrudActionButton
         type="button"
-        className="admin-list-link"
+        variant="inline"
+        icon={Archive}
+        label={saving || refreshing ? 'Archiving…' : 'Archive'}
         disabled={saving || refreshing}
         title="Remove this story from the active list. Drafts and sources are kept."
         onClick={async () => {
@@ -36,7 +40,7 @@ export default function ArchiveStoryButton({ runId, onArchived }: { runId: strin
         }}
       >
         {saving || refreshing ? 'Archiving…' : 'Archive'}
-      </button>
+      </CrudActionButton>
       {error ? <p role="alert" className="admin-list-error">{error}</p> : null}
     </div>
   );

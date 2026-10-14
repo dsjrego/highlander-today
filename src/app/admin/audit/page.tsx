@@ -1,5 +1,9 @@
 "use client";
 
+import { ChevronDown, ChevronUp, RotateCcw } from 'lucide-react';
+import { AdminPage } from '@/components/admin/AdminPage';
+import { CrudActionButton } from '@/components/shared/CrudAction';
+
 import { useState, useEffect, useCallback, Fragment } from "react";
 import { Pagination } from "@/components/shared/Pagination";
 
@@ -198,15 +202,10 @@ export default function AuditPage() {
   // ============================================================================
 
   return (
-    <div>
-      <h1 className="text-4xl font-bold mb-2 text-[var(--brand-primary)]">Audit Log</h1>
-      <p className="text-gray-500 mb-6">
-        Security events, trust actions, and content activity across the
-        platform.
-      </p>
+    <AdminPage title="Audit log">
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit">
+      <div className="admin-view-tabs" role="group" aria-label="Audit categories">
         {(
           [
             { key: "all", label: "All", count: totalCount },
@@ -218,11 +217,8 @@ export default function AuditPage() {
           <button
             key={t.key}
             onClick={() => handleTabChange(t.key)}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              tab === t.key
-                ? "bg-white shadow-sm text-gray-900"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
+            aria-pressed={tab === t.key}
+            className={`admin-view-tab ${tab === t.key ? "is-active" : ""}`}
           >
             {t.label}
             {t.count !== undefined && t.count > 0 && (
@@ -317,12 +313,13 @@ export default function AuditPage() {
           )}
 
           <div>
-            <button
+            <CrudActionButton
+              type="button" variant="inline" icon={RotateCcw} label="Reset filters"
               onClick={handleFilterReset}
-              className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+
             >
               Reset Filters
-            </button>
+            </CrudActionButton>
           </div>
         </div>
       </div>
@@ -355,41 +352,42 @@ export default function AuditPage() {
       ) : (
         <>
           {/* Table */}
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+          <div className="admin-list">
+            <div className="admin-list-table-wrap">
+              <table className="admin-list-table">
+                <thead className="admin-list-head">
                   <tr>
-                    <th className="px-5 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    <th className="admin-list-header-cell">
                       Timestamp
                     </th>
                     {tab === "all" && (
-                      <th className="px-5 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      <th className="admin-list-header-cell">
                         Source
                       </th>
                     )}
-                    <th className="px-5 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    <th className="admin-list-header-cell">
                       Action
                     </th>
-                    <th className="px-5 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    <th className="admin-list-header-cell">
                       Actor
                     </th>
-                    <th className="px-5 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    <th className="admin-list-header-cell">
                       Target
                     </th>
-                    <th className="px-5 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    <th className="admin-list-header-cell">
                       IP Address
                     </th>
-                    <th className="px-5 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    <th className="admin-list-header-cell">
                       Details
                     </th>
+                    <th className="admin-list-header-cell">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {entries.map((entry) => (
                     <Fragment key={entry.id}>
                       <tr
-                        className={`hover:bg-gray-50 cursor-pointer transition-colors ${
+                        className={`admin-list-row cursor-pointer ${
                           entry.loginMeta?.isAnomaly
                             ? "bg-red-50 hover:bg-red-100"
                             : ""
@@ -400,15 +398,15 @@ export default function AuditPage() {
                           )
                         }
                       >
-                        <td className="px-5 py-3 text-xs text-gray-500 whitespace-nowrap">
+                        <td className="admin-list-cell text-xs text-gray-500 whitespace-nowrap">
                           {formatDate(entry.timestamp)}
                         </td>
                         {tab === "all" && (
-                          <td className="px-5 py-3">
+                          <td className="admin-list-cell">
                             {getSourceBadge(entry.source)}
                           </td>
                         )}
-                        <td className="px-5 py-3">
+                        <td className="admin-list-cell">
                           <span
                             className={`inline-block px-2.5 py-1 text-xs font-semibold rounded ${getActionColor(
                               entry
@@ -417,7 +415,7 @@ export default function AuditPage() {
                             {entry.action}
                           </span>
                         </td>
-                        <td className="px-5 py-3">
+                        <td className="admin-list-cell">
                           <div className="text-sm font-medium text-gray-900">
                             {entry.actor.name}
                           </div>
@@ -425,7 +423,7 @@ export default function AuditPage() {
                             {entry.actor.email}
                           </div>
                         </td>
-                        <td className="px-5 py-3">
+                        <td className="admin-list-cell">
                           {entry.target ? (
                             <div>
                               <div className="text-sm text-gray-900">
@@ -439,15 +437,23 @@ export default function AuditPage() {
                             <span className="text-gray-400">-</span>
                           )}
                         </td>
-                        <td className="px-5 py-3 text-xs text-gray-600 font-mono">
+                        <td className="admin-list-cell text-xs text-gray-600 font-mono">
                           {entry.ipAddress || (
                             <span className="text-gray-400">-</span>
                           )}
                         </td>
-                        <td className="px-5 py-3 text-sm text-gray-600 max-w-xs truncate">
+                        <td className="admin-list-cell text-sm text-gray-600 max-w-xs truncate">
                           {entry.details || (
                             <span className="text-gray-400">-</span>
                           )}
+                        </td>
+                        <td className="admin-list-cell">
+                          <div className="admin-row-actions">
+                            <CrudActionButton type="button" variant="inline" icon={expandedId === entry.id ? ChevronUp : ChevronDown}
+                              label={expandedId === entry.id ? 'Close audit details' : 'View audit details'}
+                              aria-expanded={expandedId === entry.id}
+                              onClick={(event) => { event.stopPropagation(); setExpandedId((current) => current === entry.id ? null : entry.id); }} />
+                          </div>
                         </td>
                       </tr>
 
@@ -455,7 +461,7 @@ export default function AuditPage() {
                       {expandedId === entry.id && (
                         <tr>
                           <td
-                            colSpan={tab === "all" ? 7 : 6}
+                            colSpan={tab === "all" ? 8 : 7}
                             className="px-5 py-4 bg-gray-50"
                           >
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -584,6 +590,6 @@ export default function AuditPage() {
           </p>
         </>
       )}
-    </div>
+    </AdminPage>
   );
 }
