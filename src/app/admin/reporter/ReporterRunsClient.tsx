@@ -9,6 +9,7 @@ import { AdminDrawer } from '@/components/admin/AdminDrawer';
 import { AdminFilterBar } from '@/components/admin/AdminFilterBar';
 import { STORY_STATUS_LABELS } from '@/lib/reporter/story-status';
 import PrepareStoryButton from './PrepareStoryButton';
+import ArchiveStoryButton from './ArchiveStoryButton';
 
 interface ReporterRunRow {
   id: string;
@@ -41,6 +42,7 @@ interface ReporterRunsClientProps {
   runs: ReporterRunRow[];
   canPrepare?: boolean;
   canAssign?: boolean;
+  canArchive?: boolean;
   currentUserId?: string;
   assignees: {
     id: string;
@@ -121,6 +123,7 @@ export default function ReporterRunsClient({
   assignees,
   canPrepare = false,
   canAssign = false,
+  canArchive = false,
   currentUserId = '',
 }: ReporterRunsClientProps) {
   const router = useRouter();
@@ -174,6 +177,9 @@ export default function ReporterRunsClient({
   const filteredRuns = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return rows.filter((run) => {
+      if (statusFilter === 'ALL' && run.status === 'ARCHIVED') {
+        return false;
+      }
       if (statusFilter !== 'ALL' && run.status !== statusFilter) {
         return false;
       }
@@ -285,7 +291,7 @@ export default function ReporterRunsClient({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-sm">{rows.length} stories</span>
+        <span className="text-sm">{filteredRuns.length} {filteredRuns.length === 1 ? 'story' : 'stories'}</span>
         {canAssign || canPrepare ? (
         <button
           type="button"
@@ -348,7 +354,7 @@ export default function ReporterRunsClient({
                   {STATUS_OPTIONS.map((status) => (
                     <option key={status} value={status}>
                       {status === 'ALL'
-                        ? 'All statuses'
+                        ? 'All active statuses'
                         : STORY_STATUS_LABELS[status] || status}
                     </option>
                   ))}
@@ -390,7 +396,7 @@ export default function ReporterRunsClient({
               {filteredRuns.length === 0 ? (
                 <tr className="admin-list-row">
                   <td className="admin-list-empty" colSpan={6}>
-                    No assigned stories found.
+                    {statusFilter === 'ARCHIVED' ? 'No archived stories found.' : 'No assigned stories found.'}
                   </td>
                 </tr>
               ) : (
@@ -492,35 +498,50 @@ export default function ReporterRunsClient({
                       })}
                     </td>
                     <td className="admin-list-cell">
-                      {run._count.drafts ? (
-                        <Link
-                          href={`/admin/reporter/${run.id}/review`}
-                          className="admin-list-link"
-                        >
-                          Review &amp; Publish
-                        </Link>
-                      ) : (
-                        <PrepareStoryButton
-                          runId={run.id}
-                          canPrepare={canPrepare}
-                          disabledReason={
-                            !run.assignedTo
-                              ? 'Choose a reporter.'
-                              : run.status === 'ARCHIVED'
-                                ? 'This story is archived.'
+                      <div className="flex flex-wrap items-center gap-3">
+                        {run.status === 'ARCHIVED' ? (
+                          <Link href={`/admin/reporter/${run.id}?view=details`} className="admin-list-link">
+                            View story
+                          </Link>
+                        ) : run._count.drafts ? (
+                          <Link
+                            href={`/admin/reporter/${run.id}/review`}
+                            className="admin-list-link"
+                          >
+                            Review &amp; Publish
+                          </Link>
+                        ) : (
+                          <PrepareStoryButton
+                            runId={run.id}
+                            canPrepare={canPrepare}
+                            disabledReason={
+                              !run.assignedTo
+                                ? 'Choose a reporter.'
                                 : !run._count.sources
                                   ? 'Add source material.'
                                   : run._count.blockers
                                     ? `${run._count.blockers} reporting issues need attention.`
                                     : run.interviewRequests?.some(
-                                          (interview) =>
-                                            interview.sessions.length
+                                          (interview) => interview.sessions.length
                                         )
                                       ? 'Review completed interview notes.'
                                       : undefined
-                          }
-                        />
-                      )}
+                            }
+                          />
+                        )}
+                        {canArchive && run.status !== 'ARCHIVED' ? (
+                          <ArchiveStoryButton
+                            runId={run.id}
+                            onArchived={() =>
+                              setRows((current) =>
+                                current.map((row) =>
+                                  row.id === run.id ? { ...row, status: 'ARCHIVED' } : row
+                                )
+                              )
+                            }
+                          />
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 ))

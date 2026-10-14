@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function ArchiveStoryButton({ runId }: { runId: string }) {
+export default function ArchiveStoryButton({ runId, onArchived }: { runId: string; onArchived?: () => void }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [refreshing, startRefresh] = useTransition();
@@ -14,7 +14,7 @@ export default function ArchiveStoryButton({ runId }: { runId: string }) {
         type="button"
         className="admin-list-link"
         disabled={saving || refreshing}
-        title="Remove this story from Editor Ready. Drafts and sources are kept."
+        title="Remove this story from the active list. Drafts and sources are kept."
         onClick={async () => {
           setSaving(true);
           setError('');
@@ -26,6 +26,7 @@ export default function ArchiveStoryButton({ runId }: { runId: string }) {
             });
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || 'Unable to archive story.');
+            onArchived?.();
             startRefresh(() => router.refresh());
           } catch (failure) {
             setError(failure instanceof Error ? failure.message : 'Unable to archive story.');

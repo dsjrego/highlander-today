@@ -1,5 +1,11 @@
 # Vercel Setup And Deployment Guide
 
+## Assigned Stories archive release — 2026-10-14
+
+Owner authorized commit, push and deployment. Adds Archive beside the Assigned Stories next action, hides archived assignments from All active statuses and counts, and retains access through the Archived filter and View story. Reuses existing tenant/role-checked status updates; sources, notes, drafts and linked articles are preserved. No schema, dependency, environment or cron changes. Release is isolated from unrelated primary-worktree changes, including Reporter-page accessibility work.
+
+Exact release under Node 22.23.2 passed clean npm ci with developer tooling, lint, typecheck, 367 unit tests (68 suites), production build (Next 15.5.26) and both PostgreSQL/Chromium archive cases (11.5s); deployment and live results are maintained in the local canonical operations runbook. Rollback baseline: `e2fb654` / Vercel `DnXvZ38ApjJyoGSsLmsbKD84ggYa`. Existing runtime audit baseline is 11 findings (7 high, 4 moderate), and full audit retains 45 (1 critical, 35 high, 9 moderate); dependency remediation remains separate from this UI release.
+
 ## Purpose
 
 This file is the single operator-facing reference for Highlander Today’s Vercel setup.

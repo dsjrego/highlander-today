@@ -14,7 +14,7 @@ function request(role = 'EDITOR', userId = 'editor-1') {
   });
 }
 beforeEach(() => { jest.clearAllMocks(); });
-test.each(['DRAFT_CREATED', 'CONVERTED_TO_ARTICLE', 'BLOCKED'])('archives %s without deleting drafts, sources or the linked article', async (status) => {
+test.each(['NEW', 'NEEDS_REVIEW', 'SOURCE_PACKET_IN_PROGRESS', 'READY_FOR_DRAFT', 'DRAFT_CREATED', 'CONVERTED_TO_ARTICLE', 'BLOCKED'])('archives %s without deleting drafts, sources or the linked article', async (status) => {
   jest.mocked(db.reporterRun.findUnique).mockResolvedValue({ id: 'run-1', communityId: 'community-1', status } as any);
   jest.mocked(db.reporterRun.update).mockResolvedValue({ id: 'run-1', status: 'ARCHIVED' } as any);
   expect((await PATCH(request(), params)).status).toBe(200);

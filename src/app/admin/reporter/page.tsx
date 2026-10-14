@@ -399,6 +399,7 @@ export default async function AdminReporterPage() {
                   runs={assignedRuns}
                   canPrepare={checkPermission(userRole, 'reporter:draft')}
                   canAssign={checkPermission(userRole, 'reporter:assign')}
+                  canArchive={checkPermission(userRole, 'reporter:edit')}
                   currentUserId={session?.user?.id || ''}
                   assignees={eligibleReporters}
                 />
