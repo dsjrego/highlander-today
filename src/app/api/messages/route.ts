@@ -1,9 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { areUsersBlocked } from '@/lib/blocks';
-import { checkPermission } from '@/lib/permissions';
-import { logMessageSent } from '@/lib/activity-log';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { areUsersBlocked } from "@/lib/blocks";
+import { checkPermission } from "@/lib/permissions";
+import { logMessageSent } from "@/lib/activity-log";
+import { z } from "zod";
+import { resolveAnalyticsCommunity } from "@/lib/analytics/access";
+import { createAnalyticsEvent } from "@/lib/analytics/server";
 
 const SendMessageSchema = z
   .object({
@@ -12,46 +14,62 @@ const SendMessageSchema = z
     body: z.string().trim().min(1).max(5000).optional(),
     content: z.string().trim().min(1).max(5000).optional(),
     createOnly: z.boolean().optional(),
+    analytics: z
+      .object({
+        contentType: z.enum([
+          "MARKETPLACE_LISTING",
+          "HELP_WANTED_POST",
+          "ARTICLE",
+          "EVENT",
+          "RECIPE",
+          "ORGANIZATION",
+          "STOREFRONT",
+          "ROADMAP_IDEA",
+          "STATIC_PAGE",
+          "SUPPORT_PAGE",
+        ]),
+        contentId: z.string().uuid(),
+        anonymousVisitorId: z.string().uuid(),
+        sessionId: z.string().uuid(),
+      })
+      .optional(),
   })
   .refine((data) => Boolean(data.createOnly || data.body || data.content), {
-    message: 'Message body is required',
-    path: ['body'],
+    message: "Message body is required",
+    path: ["body"],
   })
   .refine((data) => Boolean(data.conversationId || data.recipientId), {
-    message: 'conversationId or recipientId is required',
-    path: ['conversationId'],
+    message: "conversationId or recipientId is required",
+    path: ["conversationId"],
   });
 
-function getDisplayName(user: {
-  firstName: string;
-  lastName: string;
-}) {
+function getDisplayName(user: { firstName: string; lastName: string }) {
   return `${user.firstName} ${user.lastName}`.trim();
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id');
-    const userRole = request.headers.get('x-user-role') || '';
+    const userId = request.headers.get("x-user-id");
+    const userRole = request.headers.get("x-user-role") || "";
 
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!checkPermission(userRole, 'messages:access')) {
+    if (!checkPermission(userRole, "messages:access")) {
       return NextResponse.json(
-        { error: 'Insufficient permissions' },
-        { status: 403 }
+        { error: "Insufficient permissions" },
+        { status: 403 },
       );
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1);
+    const page = Math.max(parseInt(searchParams.get("page") || "1", 10), 1);
     const limit = Math.min(
-      Math.max(parseInt(searchParams.get('limit') || '20', 10), 1),
-      100
+      Math.max(parseInt(searchParams.get("limit") || "20", 10), 1),
+      100,
     );
-    const search = (searchParams.get('search') || '').trim().toLowerCase();
+    const search = (searchParams.get("search") || "").trim().toLowerCase();
 
     const memberships = await db.conversationParticipant.findMany({
       where: { userId },
@@ -72,7 +90,7 @@ export async function GET(request: NextRequest) {
               },
             },
             messages: {
-              orderBy: { createdAt: 'desc' },
+              orderBy: { createdAt: "desc" },
               take: 1,
               include: {
                 sender: {
@@ -94,7 +112,8 @@ export async function GET(request: NextRequest) {
         const otherParticipants = conversation.participants
           .map((participant) => participant.user)
           .filter((participant) => participant.id !== userId);
-        const participant = otherParticipants[0] ?? conversation.participants[0]?.user;
+        const participant =
+          otherParticipants[0] ?? conversation.participants[0]?.user;
         const latestMessage = conversation.messages[0] ?? null;
 
         if (!participant) {
@@ -124,7 +143,7 @@ export async function GET(request: NextRequest) {
             profilePhotoUrl: participant.profilePhotoUrl,
             trustLevel: participant.trustLevel,
           },
-          lastMessage: latestMessage?.body ?? '',
+          lastMessage: latestMessage?.body ?? "",
           lastMessageAt:
             latestMessage?.createdAt.toISOString() ??
             conversation.createdAt.toISOString(),
@@ -133,15 +152,13 @@ export async function GET(request: NextRequest) {
             : null,
           unreadCount,
         };
-      })
+      }),
     );
 
     const visibleConversations = conversations
       .filter(
-        (
-          conversation
-        ): conversation is NonNullable<typeof conversation> =>
-          Boolean(conversation)
+        (conversation): conversation is NonNullable<typeof conversation> =>
+          Boolean(conversation),
       )
       .filter((conversation) => {
         if (!search) return true;
@@ -159,7 +176,10 @@ export async function GET(request: NextRequest) {
       });
 
     const total = visibleConversations.length;
-    const paginated = visibleConversations.slice((page - 1) * limit, page * limit);
+    const paginated = visibleConversations.slice(
+      (page - 1) * limit,
+      page * limit,
+    );
 
     return NextResponse.json({
       conversations: paginated,
@@ -171,36 +191,37 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching conversations:', error);
+    console.error("Error fetching conversations:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch conversations' },
-      { status: 500 }
+      { error: "Failed to fetch conversations" },
+      { status: 500 },
     );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id');
-    const userRole = request.headers.get('x-user-role') || '';
+    const userId = request.headers.get("x-user-id");
+    const userRole = request.headers.get("x-user-role") || "";
 
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!checkPermission(userRole, 'messages:send')) {
+    if (!checkPermission(userRole, "messages:send")) {
       return NextResponse.json(
-        { error: 'Insufficient permissions' },
-        { status: 403 }
+        { error: "Insufficient permissions" },
+        { status: 403 },
       );
     }
 
     const body = await request.json();
     const validated = SendMessageSchema.parse(body);
     const messageBody = validated.body ?? validated.content ?? null;
-    const ipAddress = request.headers.get('x-client-ip');
+    const ipAddress = request.headers.get("x-client-ip");
 
     let conversationId = validated.conversationId;
+    let newlyCreated = false;
 
     if (conversationId) {
       const participant = await db.conversationParticipant.findFirst({
@@ -211,15 +232,15 @@ export async function POST(request: NextRequest) {
       });
 
       if (!participant) {
-        return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+        return NextResponse.json({ error: "Access denied" }, { status: 403 });
       }
     }
 
     if (!conversationId && validated.recipientId) {
       if (validated.recipientId === userId) {
         return NextResponse.json(
-          { error: 'Cannot message yourself' },
-          { status: 400 }
+          { error: "Cannot message yourself" },
+          { status: 400 },
         );
       }
 
@@ -230,16 +251,16 @@ export async function POST(request: NextRequest) {
 
       if (!recipient) {
         return NextResponse.json(
-          { error: 'Recipient not found' },
-          { status: 404 }
+          { error: "Recipient not found" },
+          { status: 404 },
         );
       }
 
       const usersBlocked = await areUsersBlocked(userId, validated.recipientId);
       if (usersBlocked) {
         return NextResponse.json(
-          { error: 'You cannot message this user' },
-          { status: 403 }
+          { error: "You cannot message this user" },
+          { status: 403 },
         );
       }
 
@@ -267,14 +288,65 @@ export async function POST(request: NextRequest) {
           },
         });
         conversationId = conversation.id;
+        newlyCreated = true;
       }
     }
 
     if (!conversationId) {
       return NextResponse.json(
-        { error: 'conversationId or recipientId is required' },
-        { status: 400 }
+        { error: "conversationId or recipientId is required" },
+        { status: 400 },
       );
+    }
+
+    try {
+      if (newlyCreated && validated.analytics && validated.recipientId) {
+        const context = validated.analytics;
+        const communityId = await resolveAnalyticsCommunity(request.headers);
+        if (communityId) {
+          const owned =
+            context.contentType === "MARKETPLACE_LISTING"
+              ? await db.marketplaceListing.findFirst({
+                  where: {
+                    id: context.contentId,
+                    communityId,
+                    status: "ACTIVE",
+                    store: { ownerUserId: validated.recipientId },
+                  },
+                  select: { id: true },
+                })
+              : context.contentType === "HELP_WANTED_POST"
+                ? await db.helpWantedPost.findFirst({
+                    where: {
+                      id: context.contentId,
+                      communityId,
+                      status: "PUBLISHED",
+                      authorUserId: validated.recipientId,
+                    },
+                    select: { id: true },
+                  })
+                : null;
+          if (owned)
+            await createAnalyticsEvent({
+              communityId,
+              eventName: "message_started_from_content",
+              contentType: context.contentType,
+              contentId: context.contentId,
+              sessionId: context.sessionId,
+              anonymousVisitorId: context.anonymousVisitorId,
+              pageType: "content-detail",
+              pagePath: `/${context.contentType === "MARKETPLACE_LISTING" ? "marketplace" : "help-wanted"}/${context.contentId}`,
+              staff: [
+                "EDITOR",
+                "ADMIN",
+                "SUPER_ADMIN",
+                "STAFF_WRITER",
+              ].includes(userRole),
+            });
+        }
+      }
+    } catch {
+      console.error("[analytics] Conversation measurement unavailable");
     }
 
     if (validated.createOnly) {
@@ -283,7 +355,7 @@ export async function POST(request: NextRequest) {
           conversationId,
           created: true,
         },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
@@ -335,19 +407,19 @@ export async function POST(request: NextRequest) {
         },
         attachments: message.attachments,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
-        { status: 400 }
+        { error: "Validation failed", details: error.errors },
+        { status: 400 },
       );
     }
-    console.error('Error sending message:', error);
+    console.error("Error sending message:", error);
     return NextResponse.json(
-      { error: 'Failed to send message' },
-      { status: 500 }
+      { error: "Failed to send message" },
+      { status: 500 },
     );
   }
 }

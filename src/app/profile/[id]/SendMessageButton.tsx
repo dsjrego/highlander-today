@@ -1,5 +1,6 @@
 'use client';
 
+import { getAnalyticsActionContext } from '@/lib/analytics/client';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
@@ -105,6 +106,7 @@ export default function SendMessageButton({
         body: JSON.stringify({
           recipientId: profileUserId,
           createOnly: true,
+          analytics: getAnalyticsActionContext(),
         }),
       });
 

@@ -1,15 +1,26 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
+import { getCurrentRequestIdentity } from '@/lib/request-identity';
 import {
   applyTrustedIdentityHeaders,
   getProxyClientIp,
+  getPublicRequestUrl,
+  isSameOriginMutation,
   resolveTrustedTenantContext,
   stripUntrustedForwardedHeaders,
 } from '@/lib/request-security';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  let publicUrl: URL;
+  try { publicUrl = getPublicRequestUrl(request); } catch {
+    return NextResponse.json({ error: 'Invalid request host' }, { status: 400 });
+  }
+
+  if (pathname.startsWith('/api/') && !isSameOriginMutation(request)) {
+    return NextResponse.json({ error: 'Cross-origin mutation rejected' }, { status: 403 });
+  }
 
   let token = null;
   try {
@@ -18,11 +29,19 @@ export async function middleware(request: NextRequest) {
     token = null;
   }
 
-  const tenantContext = resolveTrustedTenantContext(token as any, request.nextUrl.hostname);
+  if (token) {
+    try {
+      token = typeof token.id === 'string' ? await getCurrentRequestIdentity(token.id) : null;
+    } catch {
+      // Never retain token privileges when current authority cannot be checked.
+      return NextResponse.json({ error: 'Authentication is temporarily unavailable' }, { status: 503 });
+    }
+  }
+
+  const tenantContext = resolveTrustedTenantContext(token as any, publicUrl.hostname);
   const isSuspended = token?.trust_level === 'SUSPENDED';
   const isTrusted = token?.trust_level === 'TRUSTED';
-  // A privileged membership never overrides the account trust boundary. This
-  // also protects older/stale JWTs after an account is demoted or suspended.
+  // A privileged membership never overrides current account trust.
   const effectiveRole = isSuspended ? '' : isTrusted ? tenantContext.role : 'READER';
   const isSuperAdmin = effectiveRole === 'SUPER_ADMIN';
   const isRoadmapUiRoute =
@@ -43,7 +62,7 @@ export async function middleware(request: NextRequest) {
       );
     }
 
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL('/', publicUrl));
   }
 
   // Protected UI routes — redirect to login if unauthenticated
@@ -55,17 +74,16 @@ export async function middleware(request: NextRequest) {
     token?.trust_level === 'TRUSTED' && adminRoles.has(effectiveRole);
 
   if (isProtected && (!token || isSuspended)) {
-    const loginUrl = new URL('/login', request.url);
+    const loginUrl = new URL('/login', publicUrl);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   if (pathname.startsWith('/admin') && !hasAdminSurfaceAccess) {
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL('/', publicUrl));
   }
 
-  // Forward user context as headers so API route handlers can read them
-  // without making extra DB calls on every request.
+  // Forward freshly verified context through the established route contract.
   const requestHeaders = new Headers(request.headers);
   stripUntrustedForwardedHeaders(requestHeaders);
 
@@ -87,6 +105,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
+  runtime: 'nodejs',
   matcher: [
     '/admin/:path*',
     '/messages/:path*',

@@ -56,6 +56,7 @@ export const prismaMock = {
   article: {
     create: jest.fn(),
     findUnique: jest.fn(),
+    findFirst: jest.fn(),
     findMany: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
@@ -290,6 +291,7 @@ export const prismaMock = {
     create: jest.fn(),
     count: jest.fn(),
     findUnique: jest.fn(),
+    findFirst: jest.fn(),
     groupBy: jest.fn(),
     upsert: jest.fn(),
     deleteMany: jest.fn(),

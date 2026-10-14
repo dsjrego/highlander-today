@@ -1,5 +1,6 @@
 {
   "crons": [
+    { "path": "/api/admin/analytics/maintenance", "schedule": "40 10 * * *" },
     {
       "path": "/api/admin/reporter/daily-coverage/run/highlander-today",
       "schedule": "15 10 * * *"

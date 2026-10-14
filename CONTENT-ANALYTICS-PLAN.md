@@ -1,5 +1,25 @@
 # Highlander Today Content Analytics & Reaction Intelligence Plan
 
+## Analytics release — 2026-10-13
+
+The core analytics suite now includes eight reporting areas, exact measured browser counts, comparison trends, tenant/device/channel/content/staff filters, observed-browser cohorts, an ordered funnel, saved private reports, formula-safe CSV, browser print/PDF and explicit platform community comparisons. Public collection measures foreground activity, viewable homepage impressions and Core Web Vitals. The footer offers browser opt-out; DNT/GPC and per-tenant collection settings are honored. New events exclude user IDs, private paths, queries and form/message bodies.
+
+Tenant access relies on fresh database identity and trusted middleware headers. This release includes the identity/origin prerequisites and regression coverage. Existing broader hardening, dependency upgrades and documentation relocation are excluded.
+
+### Deployment order
+
+1. Review and commit `prisma/migrations/20261013180000_analytics_vitals/migration.sql`. Apply it with `prisma migrate deploy` before deploying the new collector. It adds only an enum value, tenant/event/time index and daily history table; the previous application remains compatible.
+2. Deploy the committed application to the existing main-linked Vercel project. Preserve Reporter cron; analytics maintenance runs daily at 10:40 UTC. The existing `CRON_SECRET` must be present. Missing configuration fails closed.
+3. Verify production domain/commit correspondence, public collection, unauthorized dashboard/export denial and protected cron registration. Verify an actual maintenance outcome separately from registration.
+
+Raw exploration is limited to 90 days; maintenance archives before deletion and retains daily history for 25 months. Daily distinct audiences must not be summed as range uniques. Browser delivery is best effort; throttling is process-local. Email delivery, configurable anomaly rules/funnel builders, collaborative annotations, geography/search integrations, organization reports and AI answers remain future work.
+
+### Exact release evidence
+
+Clean npm ci, lint, typecheck, 363 unit tests, six real PostgreSQL analytics cases and production build pass under Node 22.23.2 / Next 15.5.26. All nine Chromium release cases pass, including analytics accessibility, desktop/mobile layout, tenant isolation, opt-out, private reports, confirmed conversation deduplication, platform comparison and stale authority/origin/deleted-account checks. Fresh PostgreSQL 17 migration-chain rehearsal applied all four migrations successfully. A fresh production backup restored successfully into an isolated database: 92 tables and 3,785 rows matched snapshot fingerprints; representative application reads passed. Private archive/receipt are outside version control under `~/.local/share/highlander-today/recovery/9ee8eeea/`.
+
+Read-only production inspection confirms all prior migrations applied and the analytics additions genuinely pending. Pre-existing Reporter physical constraint/index naming differences are recorded and are not changed by this migration. Runtime audit remains the previously deployed baseline of 11 findings (seven high/four moderate); no new runtime finding is introduced by Web Vitals. Existing dependency remediation remains separate work. Production migration and deployment are authorized but have not yet run at the time of this commit preparation.
+
 ## Purpose
 
 Highlander Today needs a site-wide statistics system that does more than count pageviews. The platform should be able to understand:

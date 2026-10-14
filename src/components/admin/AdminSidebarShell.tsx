@@ -1,13 +1,18 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
-import { AdminSidebarNav } from '@/components/admin/AdminSidebarNav';
-import { normalizeAdminNavSections } from '@/lib/admin-navigation';
-import type { AdminNavItem, AdminNavSection, AdminSidebarOrder } from '@/lib/admin-navigation';
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { AdminSidebarNav } from "@/components/admin/AdminSidebarNav";
+import { normalizeAdminNavSections } from "@/lib/admin-navigation";
+import type {
+  AdminNavItem,
+  AdminNavSection,
+  AdminSidebarOrder,
+} from "@/lib/admin-navigation";
 
-const SIDEBAR_COLLAPSED_KEY = 'hl-admin-sidebar-collapsed';
+const SIDEBAR_COLLAPSED_KEY = "hl-admin-sidebar-collapsed";
 
 export function AdminSidebarShell({
   sections,
@@ -18,15 +23,34 @@ export function AdminSidebarShell({
   allowCustomization: boolean;
   initialSidebarOrder: AdminSidebarOrder;
 }) {
+  const pathname = usePathname();
+  const [mobileAnalytics, setMobileAnalytics] = useState(
+    pathname.startsWith("/admin/analytics"),
+  );
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 1100px)");
+    const update = () =>
+      setMobileAnalytics(
+        pathname.startsWith("/admin/analytics") && media.matches,
+      );
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, [pathname]);
   const [collapsed, setCollapsed] = useState(false);
-  const [sidebarOrder, setSidebarOrder] = useState<AdminSidebarOrder>(initialSidebarOrder);
+  const [sidebarOrder, setSidebarOrder] =
+    useState<AdminSidebarOrder>(initialSidebarOrder);
   const [draggedHref, setDraggedHref] = useState<string | null>(null);
-  const [draggedSectionTitle, setDraggedSectionTitle] = useState<string | null>(null);
+  const [draggedSectionTitle, setDraggedSectionTitle] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     try {
-      const storedCollapsed = window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
-      if (storedCollapsed === '1') {
+      const storedCollapsed = window.localStorage.getItem(
+        SIDEBAR_COLLAPSED_KEY,
+      );
+      if (storedCollapsed === "1") {
         setCollapsed(true);
       }
     } catch {
@@ -36,7 +60,7 @@ export function AdminSidebarShell({
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0');
+      window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? "1" : "0");
     } catch {
       // Ignore storage failures.
     }
@@ -44,29 +68,36 @@ export function AdminSidebarShell({
 
   const orderedSections = useMemo(
     () => normalizeAdminNavSections(sections, sidebarOrder),
-    [sidebarOrder, sections]
+    [sidebarOrder, sections],
   );
 
   async function persistSidebarOrder(nextSidebarOrder: AdminSidebarOrder) {
     try {
-      const response = await fetch('/api/admin/sidebar-order', {
-        method: 'PATCH',
+      const response = await fetch("/api/admin/sidebar-order", {
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(nextSidebarOrder),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save admin sidebar order');
+        throw new Error("Failed to save admin sidebar order");
       }
     } catch (error) {
       console.error(error);
     }
   }
 
-  function handleMoveItem(sourceHref: string, targetHref: string | null, targetSectionTitle: string) {
-    if (!allowCustomization || (targetHref !== null && sourceHref === targetHref)) {
+  function handleMoveItem(
+    sourceHref: string,
+    targetHref: string | null,
+    targetSectionTitle: string,
+  ) {
+    if (
+      !allowCustomization ||
+      (targetHref !== null && sourceHref === targetHref)
+    ) {
       return;
     }
 
@@ -78,7 +109,9 @@ export function AdminSidebarShell({
     let movedItem: AdminNavItem | null = null;
 
     for (const section of nextSections) {
-      const itemIndex = section.items.findIndex((item) => item.href === sourceHref);
+      const itemIndex = section.items.findIndex(
+        (item) => item.href === sourceHref,
+      );
       if (itemIndex >= 0) {
         [movedItem] = section.items.splice(itemIndex, 1);
         break;
@@ -93,7 +126,9 @@ export function AdminSidebarShell({
       if (section.title !== targetSectionTitle) continue;
 
       const targetIndex =
-        targetHref === null ? -1 : section.items.findIndex((item) => item.href === targetHref);
+        targetHref === null
+          ? -1
+          : section.items.findIndex((item) => item.href === targetHref);
 
       if (targetIndex >= 0) {
         section.items.splice(targetIndex, 0, movedItem);
@@ -105,8 +140,11 @@ export function AdminSidebarShell({
 
     const nextOrder = Object.fromEntries(
       nextSections.flatMap((section) =>
-        section.items.map((item, index) => [item.href, { section: section.title, index }])
-      )
+        section.items.map((item, index) => [
+          item.href,
+          { section: section.title, index },
+        ]),
+      ),
     );
     const nextSidebarOrder = {
       ...sidebarOrder,
@@ -140,25 +178,11 @@ export function AdminSidebarShell({
     void persistSidebarOrder(nextSidebarOrder);
   }
 
-  return (
-    <aside className={`admin-sidebar ${collapsed ? 'is-collapsed' : ''}`}>
-      <div className="admin-sidebar-header">
-        <div className="admin-sidebar-brand-row">
-          <button
-            type="button"
-            className="admin-sidebar-toggle"
-            onClick={() => setCollapsed((current) => !current)}
-            aria-label={collapsed ? 'Expand admin sidebar' : 'Collapse admin sidebar'}
-            aria-pressed={collapsed}
-          >
-            {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-          </button>
-        </div>
-      </div>
-
+  const navigation = (
+    <>
       <AdminSidebarNav
         sections={orderedSections}
-        collapsed={collapsed}
+        collapsed={collapsed && !mobileAnalytics}
         draggable={allowCustomization && !collapsed}
         draggedHref={draggedHref}
         draggedSectionTitle={draggedSectionTitle}
@@ -169,12 +193,48 @@ export function AdminSidebarShell({
         onMoveItem={handleMoveItem}
         onMoveSection={handleMoveSection}
       />
-
       <div className="admin-sidebar-footer">
         <Link href="/" className="admin-sidebar-footer-link">
-          {collapsed ? 'Home' : 'Back to Site'}
+          {collapsed && !mobileAnalytics ? "Home" : "Back to Site"}
         </Link>
       </div>
+    </>
+  );
+
+  return (
+    <aside
+      className={`admin-sidebar ${collapsed && !mobileAnalytics ? "is-collapsed" : ""}`}
+    >
+      {!mobileAnalytics && (
+        <div className="admin-sidebar-header">
+          <div className="admin-sidebar-brand-row">
+            <button
+              type="button"
+              className="admin-sidebar-toggle"
+              onClick={() => setCollapsed((current) => !current)}
+              aria-label={
+                collapsed ? "Expand admin sidebar" : "Collapse admin sidebar"
+              }
+              aria-pressed={collapsed}
+            >
+              {collapsed ? (
+                <PanelLeftOpen className="h-4 w-4" />
+              ) : (
+                <PanelLeftClose className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {mobileAnalytics ? (
+        <details className="analytics-mobile-nav">
+          <summary>Administration navigation</summary>
+          {navigation}
+        </details>
+      ) : (
+        navigation
+      )}
     </aside>
   );
 }

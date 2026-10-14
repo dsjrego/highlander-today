@@ -212,33 +212,6 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
     };
   }, [publishedArticleId]);
 
-  useEffect(() => {
-    if (!publishedArticleId || typeof window === 'undefined') {
-      return;
-    }
-
-    let pingCount = 0;
-    const intervalId = window.setInterval(() => {
-      if (document.visibilityState !== 'visible') {
-        return;
-      }
-
-      pingCount += 1;
-      trackAnalyticsEvent({
-        eventName: 'engaged_time_ping',
-        contentType: 'ARTICLE',
-        contentId: publishedArticleId,
-        pageType: 'article-detail',
-        metadata: {
-          engagedSeconds: pingCount * 15,
-        },
-      });
-    }, 15000);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [publishedArticleId]);
 
   async function refreshArticle() {
     try {
@@ -291,12 +264,6 @@ export default function ArticleDetailClient({ articleId }: ArticleDetailClientPr
       }
 
       await navigator.clipboard.writeText(window.location.href);
-      trackAnalyticsEvent({
-        eventName: 'share_clicked',
-        contentType: 'ARTICLE',
-        contentId: articleId,
-        pageType: 'article-detail',
-      });
       trackAnalyticsEvent({
         eventName: 'copy_link_clicked',
         contentType: 'ARTICLE',

@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 
+import ContentAnalytics from '@/components/analytics/ContentAnalytics';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
@@ -156,6 +157,7 @@ export default async function OrganizationProfilePage(props: PageProps) {
 
   return (
     <div className="space-y-6">
+      <ContentAnalytics contentType="ORGANIZATION" contentId={organization.id} />
       <InternalPageHeader
         icon={<Building2 className="h-5 w-5" />}
         title={organization.name}

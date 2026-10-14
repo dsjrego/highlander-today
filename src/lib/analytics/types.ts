@@ -1,51 +1,53 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const ANALYTICS_EVENT_NAMES = [
-  'page_view',
-  'page_exit',
-  'engaged_time_ping',
-  'scroll_depth_reached',
-  'content_impression',
-  'content_open',
-  'reaction_added',
-  'comment_created',
-  'share_clicked',
-  'copy_link_clicked',
-  'message_started_from_content',
-  'cta_clicked',
-  'search_result_clicked',
-  'homepage_slot_clicked',
+  "page_view",
+  "page_exit",
+  "engaged_time_ping",
+  "scroll_depth_reached",
+  "content_impression",
+  "content_open",
+  "reaction_added",
+  "comment_created",
+  "share_clicked",
+  "copy_link_clicked",
+  "message_started_from_content",
+  "cta_clicked",
+  "search_result_clicked",
+  "homepage_slot_clicked",
+  "web_vital",
 ] as const;
 
 export const ANALYTICS_CONTENT_TYPES = [
-  'ARTICLE',
-  'EVENT',
-  'MARKETPLACE_LISTING',
-  'STOREFRONT',
-  'HELP_WANTED_POST',
-  'ROADMAP_IDEA',
-  'STATIC_PAGE',
-  'SUPPORT_PAGE',
-  'RECIPE',
-  'ORGANIZATION',
+  "ARTICLE",
+  "EVENT",
+  "MARKETPLACE_LISTING",
+  "STOREFRONT",
+  "HELP_WANTED_POST",
+  "ROADMAP_IDEA",
+  "STATIC_PAGE",
+  "SUPPORT_PAGE",
+  "RECIPE",
+  "ORGANIZATION",
 ] as const;
 
 export const CONTENT_REACTION_TYPES = [
-  'useful',
-  'important',
-  'interesting',
-  'needs_follow_up',
+  "useful",
+  "important",
+  "interesting",
+  "needs_follow_up",
 ] as const;
 
 export const ANALYTICS_REFERRER_TYPES = [
-  'INTERNAL',
-  'DIRECT',
-  'SEARCH',
-  'EXTERNAL',
-  'UNKNOWN',
+  "INTERNAL",
+  "DIRECT",
+  "SEARCH",
+  "EXTERNAL",
+  "UNKNOWN",
 ] as const;
 
 export const AnalyticsClientEventSchema = z.object({
+  eventId: z.string().uuid().optional(),
   eventName: z.enum(ANALYTICS_EVENT_NAMES),
   contentType: z.enum(ANALYTICS_CONTENT_TYPES).optional().nullable(),
   contentId: z.string().trim().min(1).max(128).optional().nullable(),
@@ -53,7 +55,18 @@ export const AnalyticsClientEventSchema = z.object({
   pagePath: z.string().trim().min(1).max(500),
   referrerUrl: z.string().trim().url().optional().nullable(),
   occurredAt: z.string().datetime().optional(),
-  metadata: z.record(z.any()).optional().nullable(),
+  metadata: z
+    .record(
+      z.union([
+        z.string().max(500),
+        z.number().finite(),
+        z.boolean(),
+        z.null(),
+      ]),
+    )
+    .refine((v) => Object.keys(v).length <= 30, "Too many metadata fields")
+    .optional()
+    .nullable(),
 });
 
 export const AnalyticsEventBatchSchema = z.object({
@@ -75,4 +88,6 @@ export type AnalyticsEventName = (typeof ANALYTICS_EVENT_NAMES)[number];
 export type AnalyticsContentType = (typeof ANALYTICS_CONTENT_TYPES)[number];
 export type ContentReactionType = (typeof CONTENT_REACTION_TYPES)[number];
 export type AnalyticsReferrerType = (typeof ANALYTICS_REFERRER_TYPES)[number];
-export type AnalyticsClientEventInput = z.infer<typeof AnalyticsClientEventSchema>;
+export type AnalyticsClientEventInput = z.infer<
+  typeof AnalyticsClientEventSchema
+>;

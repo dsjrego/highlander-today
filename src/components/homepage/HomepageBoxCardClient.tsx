@@ -70,14 +70,17 @@ function EventHomepageTrigger({
   return (
     <button
       type="button"
+      data-analytics-content-type={item.contentType}
+      data-analytics-content-id={item.contentId}
+      data-analytics-placement={placement}
       className={className}
-      onClick={() => {
+      onClick={(event) => {
         trackAnalyticsEvent({
           eventName: 'homepage_slot_clicked',
           pageType: 'homepage',
           contentType: item.contentType,
           contentId: item.contentId,
-          metadata: { boxType, placement, presentation: 'event-modal' },
+          metadata: { boxType, placement, slot: Number((event.currentTarget.closest('[data-analytics-slot]') as HTMLElement | null)?.dataset.analyticsSlot || 0) },
         });
         onOpen(item);
       }}
@@ -266,7 +269,7 @@ export default function HomepageBoxCardClient({
 
   if (!box.heroItem) {
     return (
-      <section className="homepage-feature-card p-6">
+      <section data-analytics-homepage-box={box.boxType} className="homepage-feature-card p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="homepage-feature-label text-xs font-semibold uppercase tracking-[0.28em]">
@@ -364,6 +367,7 @@ export default function HomepageBoxCardClient({
   return (
     <>
       <section
+        data-analytics-homepage-box={box.boxType}
         className={`homepage-feature-card ${
           emphasize ? 'xl:col-span-2' : ''
         }`}

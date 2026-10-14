@@ -14,6 +14,8 @@ import { getCurrentCommunity } from "@/lib/community";
 import { SUPPORT_NAV_ITEMS } from "@/lib/support";
 import { resolveTenantTheme } from "@/lib/theme/resolve-theme";
 import { themeToCssVars } from "@/lib/theme/to-css-vars";
+import { db } from '@/lib/db';
+import SiteAnalytics, { AnalyticsPrivacyControl } from "@/components/analytics/SiteAnalytics";
 import "./globals.css";
 import "./editorial-recipe.css";
 
@@ -109,6 +111,7 @@ export default async function RootLayout({
   const requestHeaders = await headers();
   const cookieStore = await cookies();
   const currentCommunity = await getCurrentCommunity({ headers: requestHeaders });
+  const analyticsSetting = currentCommunity ? await db.siteSetting.findUnique({ where: { communityId_key: { communityId: currentCommunity.id, key: 'analytics_enabled' } }, select: { value: true } }) : null;
   const previewTenantSlug = process.env.NODE_ENV === 'development'
     ? cookieStore.get('theme-tenant-preview')?.value ?? null
     : null;
@@ -139,6 +142,8 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
+      data-community-id={currentCommunity?.id}
+      data-analytics-enabled={currentCommunity && analyticsSetting?.value !== 'false' ? 'true' : 'false'}
       data-tenant={resolvedTheme.manifest.tenantSlug}
       data-theme-mode={resolvedTheme.mode}
       data-theme-tenant-preview={previewTenantSlug ?? undefined}
@@ -148,6 +153,7 @@ export default async function RootLayout({
           Skip to main content
         </a>
         <Providers>
+          <SiteAnalytics />
           <DevThemeSwitcher />
           <LocationCompletionGate />
           <div className="app-shell min-h-screen" style={themeVars}>
@@ -251,6 +257,7 @@ export default async function RootLayout({
                 ) : null}
               </div>
             </div>
+          <div className="mt-3"><AnalyticsPrivacyControl /></div>
           </footer>
           </div>
         </Providers>

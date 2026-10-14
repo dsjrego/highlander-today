@@ -57,6 +57,7 @@ model Community {
   memorialAuditLogs      MemorialAuditLog[]
   siteSettings           SiteSetting[]
   tenantCoverageAreas    TenantCoverageArea[]
+  analyticsTrafficDaily  AnalyticsTrafficDaily[]
   analyticsEvents        AnalyticsEvent[]
   contentReactions       ContentReaction[]
   contentMetricsDaily    ContentMetricsDaily[]
@@ -2945,6 +2946,7 @@ enum AnalyticsEventName {
   cta_clicked
   search_result_clicked
   homepage_slot_clicked
+  web_vital
 }
 
 enum AnalyticsContentType {
@@ -2997,6 +2999,7 @@ model AnalyticsEvent {
   user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([communityId, occurredAt])
+  @@index([communityId, eventName, occurredAt])
   @@index([contentType, contentId, occurredAt])
   @@index([eventName, occurredAt])
   @@index([sessionId, occurredAt])
@@ -3094,4 +3097,21 @@ model HomepageSlotMetricsDaily {
   @@unique([communityId, date, slotPosition, boxType, placement, contentType, contentId])
   @@index([communityId, date, boxType])
   @@map("homepage_slot_metrics_daily")
+}
+
+// Non-identifying UTC daily history; daily distincts must never be summed as range uniques.
+model AnalyticsTrafficDaily {
+  id              String @id @default(uuid()) @db.Uuid
+  communityId     String @db.Uuid
+  date            DateTime @db.Date
+  views           Int @default(0)
+  visits          Int @default(0)
+  visitors        Int @default(0)
+  engagedSessions Int @default(0)
+  activeSeconds   Int @default(0)
+  confirmedActions Int @default(0)
+  updatedAt       DateTime @updatedAt
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  @@unique([communityId, date])
+  @@map("analytics_traffic_daily")
 }

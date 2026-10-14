@@ -3,6 +3,7 @@
 "use client";
 
 import Link from "next/link";
+import ContentAnalytics from "@/components/analytics/ContentAnalytics";
 import { useEffect, useMemo, useState, use } from "react";
 
 interface StoreDetail {
@@ -207,6 +208,7 @@ export default function StorefrontPage(props: PageProps) {
 
   return (
     <div className="space-y-8">
+      {store.status === "APPROVED" && <ContentAnalytics contentType="STOREFRONT" contentId={store.id} />}
       <div className="flex items-center justify-between gap-4">
         <Link
           href="/marketplace"

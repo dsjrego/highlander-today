@@ -170,10 +170,11 @@ export async function POST(request: NextRequest) {
       metadata: { articleId: comment.articleId, parentCommentId: comment.parentCommentId },
     }).catch(() => {});
 
-    createAnalyticsEvent({
+    await createAnalyticsEvent({
       communityId: article.communityId,
       siteDomain: request.headers.get('x-community-domain') || request.headers.get('host'),
       userId,
+      staff: ['EDITOR', 'ADMIN', 'SUPER_ADMIN', 'STAFF_WRITER'].includes(userRole),
       eventName: 'comment_created',
       contentType: 'ARTICLE',
       contentId: comment.articleId,

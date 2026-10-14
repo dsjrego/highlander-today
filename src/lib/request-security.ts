@@ -35,6 +35,29 @@ export function normalizeRequestHostname(hostname: string) {
   return hostname.trim().toLowerCase().replace(/^www\./, '').replace(/\.$/, '');
 }
 
+/** Use the actual HTTP destination authority, preserving the request protocol.
+ * Forwarded-host values are not trusted as an allowlist or redirect target. */
+export function getPublicRequestUrl(request: { url: string; headers: Headers }) {
+  const target = new URL(request.url);
+  const host = request.headers.get('host');
+  if (!host) return target;
+  const authority = new URL(`${target.protocol}//${host}`);
+  if (authority.username || authority.password || authority.pathname !== '/' || authority.search || authority.hash) throw new Error('Invalid request host');
+  return new URL(target.pathname + target.search, authority);
+}
+
+/** Cookie-authenticated mutations must originate on this origin. Requests
+ * without browser origin metadata remain available to authenticated workers. */
+export function isSameOriginMutation(request: { method: string; url: string; headers: Headers }) {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(request.method.toUpperCase())) return true;
+  if (request.headers.get('sec-fetch-site') === 'cross-site') return false;
+  const origin = request.headers.get('origin');
+  if (!origin) return true;
+  try {
+    return new URL(origin).origin === getPublicRequestUrl(request).origin;
+  } catch { return false; }
+}
+
 export function resolveTrustedTenantContext(
   token: TokenLike | null | undefined,
   hostname: string

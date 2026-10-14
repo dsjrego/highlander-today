@@ -95,3 +95,7 @@ build/
 public/uploads/
 .vercel
 .env*
+
+# Browser verification artifacts
+test-results/
+playwright-report/
