@@ -5,6 +5,8 @@ import AxeBuilder from '@axe-core/playwright';
 import { db } from '../../src/lib/db';
 import { ensureDefaultSiteSettings } from '../../src/lib/community';
 
+test.use({ launchOptions: { ignoreDefaultArgs: ['--hide-scrollbars'] } });
+
 test.describe('compact admin interface', () => {
   const communityIds: string[] = [];
   let editorId: string;
@@ -44,6 +46,9 @@ test.describe('compact admin interface', () => {
     await editorSession(context);
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/admin');
+    await page.addStyleTag({ content: 'html { overflow-y: scroll; scrollbar-gutter: stable; } ::-webkit-scrollbar { width: 15px; height: 15px; }' });
+    await expect.poll(() => page.evaluate(() => document.documentElement.clientWidth < window.innerWidth)).toBe(true);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     await expect(page.locator('.admin-chrome-header')).toBeVisible();
     await expect(page.locator('.app-masthead')).toHaveCount(0);
     await expect(page.getByRole('table')).toHaveCount(3);
@@ -81,7 +86,7 @@ test.describe('compact admin interface', () => {
       await expect(navigation).toBeVisible();
       await page.getByText('Administration navigation', { exact: true }).click();
       await expect(navigation).toBeHidden();
-      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
       await page.screenshot({ path: testInfo.outputPath(`admin-dashboard-${width}.png`), fullPage: true });
     }
     await page.setViewportSize({ width: 1440, height: 1000 });
@@ -145,7 +150,7 @@ test.describe('compact admin interface', () => {
     expect(scan.violations).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath('stores-desktop.png'), fullPage: true });
     await page.setViewportSize({ width: 390, height: 900 });
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     await page.screenshot({ path: testInfo.outputPath('stores-mobile.png'), fullPage: true });
     await page.locator('.admin-chrome-identity').click();
     await expect(page.locator('.app-masthead')).toBeVisible();

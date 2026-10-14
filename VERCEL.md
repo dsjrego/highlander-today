@@ -1,5 +1,9 @@
 # Vercel Setup And Deployment Guide
 
+## Admin viewport follow-up — 2026-10-14
+
+Native production inspection after the shared admin release found a 7px horizontal spill with a reserved 15px browser scrollbar. The admin main now uses the normal containing width; removed its obsolete viewport-wide negative-margin breakout. Browser checks explicitly reserve scrollbar space and compare document scrollWidth against clientWidth. No API, data, dependency, schema or environment changes. Follow-up lint/typecheck/production build and all ten isolated admin/archive/analytics browser cases passed, including a reserved native scrollbar. The test suite disables Chromium’s default hide-scrollbars switch and checks visible clientWidth. Deployment is tracked with the main admin release.
+
 ## Admin interface release — 2026-10-14
 
 Owner authorized commit, push and production deployment of the compact admin interface. Release uses shared table/section/summary/action/tooltip/chrome primitives, compact sidebar icons/mobile navigation, dashboard/store/trust tables and aligned bans/audit screens. Existing permissions, status confirmations and Reporter publication boundaries remain intact. No API/schema/dependency/environment/cron changes. Scope excludes unrelated local hardening and documentation migration; baseline production is a8f9f2d / GimoU6uqZUUBuVFagp34YAF36Kwv (rollback).
