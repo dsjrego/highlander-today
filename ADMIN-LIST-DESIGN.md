@@ -55,6 +55,8 @@ When the surface is primarily a record list, default to this structure:
 
 ## Interaction Rules
 
+- Owner clarification (2026-10-15): compact table controls may use persistent visually hidden labels when their visible selector text or column context already identifies the field. Keep accessible names. Omit status columns that merely repeat the control state, inert action text, and repeated per-row headings. Keep row controls and icon actions on one line; constrain preview text and reveal longer detail on demand.
+
 - Keep the first row dense and scannable.
 - Prefer one record per table row.
 - Put the primary identifier in the first column and render it as the row's main link or manage trigger.

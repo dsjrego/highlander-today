@@ -125,6 +125,8 @@ If a record has only one collection, skip the tab row and render the single sect
 Tables are the default for any collection that can grow beyond ~2 entries. (Table mechanics, density, filtering, empty states, and pagination are specified in [ADMIN-LIST-DESIGN.md](./ADMIN-LIST-DESIGN.md) — follow it.) The rules below cover composition and column design.
 
 ### Column rules
+
+- Owner clarification (2026-10-15): compact table controls may use persistent visually hidden labels when their visible selector text or column context already identifies the field. Keep accessible names. Omit status columns that merely repeat the control state, inert action text, and repeated per-row headings. Keep row controls and icon actions on one line; constrain preview text and reveal longer detail on demand.
 - **First column is the identity** (name/label) + one muted sub-line of context. It is the record's anchor and the manage trigger.
 - **One concept per column.** Status, counts, dates, visibility, and "primary" each get their own column. Never stack four facts into one cell.
 - **Right-align numbers**, center status/boolean/icon columns, left-align text.

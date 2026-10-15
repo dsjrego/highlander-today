@@ -418,21 +418,27 @@ export default async function AdminReporterPage() {
                   <div className="admin-list">
                     <div
                       className="admin-list-table-wrap"
+                      tabIndex={0}
+                      role="region"
+                      aria-label="Candidates"
                     >
-                      <table className="admin-list-table">
+                      <table className="admin-list-table admin-candidate-table">
+                        <colgroup>
+                          <col />
+                          <col className="admin-candidate-score-column" />
+                          <col className="admin-candidate-sources-column" />
+                          <col className="admin-candidate-actions-column" />
+                        </colgroup>
                         <thead className="admin-list-head">
                           <tr>
                             <th className="admin-list-header-cell">
                               Candidate
                             </th>
-                            <th className="admin-list-header-cell">
-                              Readiness
-                            </th>
-                            <th className="admin-list-header-cell">
+                            <th className="admin-list-header-cell admin-align-right">
                               Priority score
                             </th>
-                            <th className="admin-list-header-cell">Sources</th>
-                            <th className="admin-list-header-cell">Action</th>
+                            <th className="admin-list-header-cell admin-align-right">Sources</th>
+                            <th className="admin-list-header-cell admin-align-right">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -440,22 +446,19 @@ export default async function AdminReporterPage() {
                             storyCandidates.map((candidate) => (
                               <tr key={candidate.id} className="admin-list-row">
                                 <td className="admin-list-cell">
-                                  <div className="font-medium text-slate-900">
+                                  <div className="line-clamp-2 font-medium text-slate-900" title={candidate.title}>
                                     {candidate.title}
                                   </div>
-                                  <div className="text-xs text-slate-500">
-                                    {candidate.summary}
-                                  </div>
+                                  {candidate.summary ? (
+                                    <details className="admin-list-preview">
+                                      <summary className="admin-list-secondary">{candidate.summary}</summary>
+                                    </details>
+                                  ) : null}
                                 </td>
-                                <td className="admin-list-cell">
-                                  {candidate.linkedReporterRun
-                                    ? 'Assigned'
-                                    : 'Not assigned'}
-                                </td>
-                                <td className="admin-list-cell">
+                                <td className="admin-list-cell admin-align-right">
                                   {candidate.signal.score}
                                 </td>
-                                <td className="admin-list-cell">
+                                <td className="admin-list-cell admin-align-right">
                                   {candidate.sourceCount}
                                 </td>
                                 <td className="admin-list-cell">
@@ -465,6 +468,7 @@ export default async function AdminReporterPage() {
                                       candidate.linkedReporterRun?.id || null
                                     }
                                     reporters={eligibleReporters}
+                                    canDismiss={checkPermission(userRole, 'reporter:edit')}
                                     canAssign={checkPermission(
                                       userRole,
                                       'reporter:assign'
@@ -475,7 +479,7 @@ export default async function AdminReporterPage() {
                             ))
                           ) : (
                             <tr className="admin-list-row">
-                              <td className="admin-list-empty" colSpan={5}>
+                              <td className="admin-list-empty" colSpan={4}>
                                 No active story candidates are available yet.
                               </td>
                             </tr>

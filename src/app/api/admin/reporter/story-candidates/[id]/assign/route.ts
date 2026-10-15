@@ -54,7 +54,7 @@ export async function POST(
       );
     }
     const candidate = await db.reporterStoryCandidate.findFirst({
-      where: { id, communityId: community.id, isActive: true },
+      where: { id, communityId: community.id, isActive: true, dismissedAt: null },
       include: {
         candidateItems: {
           include: {
@@ -121,6 +121,7 @@ export async function POST(
           id,
           communityId: community.id,
           isActive: true,
+          dismissedAt: null,
           linkedReporterRunId: null,
         },
         data: { linkedReporterRunId: created.id },

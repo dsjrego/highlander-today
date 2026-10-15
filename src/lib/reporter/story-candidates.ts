@@ -937,6 +937,7 @@ export async function listReporterStoryCandidates(params: {
     where: {
       communityId: params.communityId,
       isActive: true,
+      dismissedAt: null,
     },
     orderBy: [{ score: 'desc' }, { latestSourceAt: 'desc' }],
     take: params.limit || DEFAULT_MAX_CANDIDATES,
@@ -1122,7 +1123,7 @@ export async function materializeReporterStoryCandidates(params: {
       select: {
         ingestionItemId: true,
         reporterStoryCandidate: {
-          select: { id: true },
+          select: { id: true, dismissedAt: true },
         },
       },
     }),
@@ -1183,7 +1184,13 @@ export async function materializeReporterStoryCandidates(params: {
     sourcePlaceName: item.monitoredSource.place?.displayName || null,
   }));
 
+  const dismissedItemIds = new Set(
+    (existingCandidateItems || [])
+      .filter((item) => item.reporterStoryCandidate.dismissedAt)
+      .map((item) => item.ingestionItemId)
+  );
   const clusters = clusterStoryItems(workItems)
+    .filter((items) => !items.some((item) => dismissedItemIds.has(item.id)))
     .map((items) => {
       const matchedKeywords = buildMatchedKeywords(items, tenantKeywords);
       const assessment = assessStoryCandidateSignal(items, matchedKeywords);

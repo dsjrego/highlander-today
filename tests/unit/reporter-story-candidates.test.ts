@@ -525,4 +525,27 @@ describe('reporter story candidate service', () => {
       ])
     );
   });
+  it('excludes dismissed candidates from lists and does not recreate their source clusters on refresh', async () => {
+    (prismaMock.siteSetting.findUnique as any).mockResolvedValue(null);
+    (prismaMock.reporterRun.findMany as any).mockResolvedValue([]);
+    (prismaMock.article.findMany as any).mockResolvedValue([]);
+    (prismaMock.reporterStoryCandidate.findMany as any).mockResolvedValue([]);
+    (prismaMock.reporterStoryCandidateItem.findMany as any).mockResolvedValue([
+      { ingestionItemId: 'dismissed-item', reporterStoryCandidate: { id: 'dismissed-candidate', dismissedAt: new Date() } },
+    ]);
+    (prismaMock.reporterSourceIngestionItem.findMany as any).mockResolvedValue([{
+      id: 'dismissed-item', title: 'School board budget hearing',
+      excerpt: 'The school board will review the budget Tuesday.', canonicalUrl: 'https://district.example/notice',
+      publishedAt: new Date(), firstSeenAt: new Date(), lastSeenAt: new Date(), publisher: 'District',
+      monitoredSource: { id: 'source-1', label: 'District', sourceType: 'SCHOOL_NEWS', coverageScope: 'LOCAL', place: null },
+    }]);
+    const result = await materializeReporterStoryCandidates({ communityId: 'community-1' });
+    expect(result.candidates).toEqual([]);
+    expect(prismaMock.reporterStoryCandidate.create).not.toHaveBeenCalled();
+    expect(prismaMock.reporterStoryCandidate.update).not.toHaveBeenCalled();
+    expect(prismaMock.reporterStoryCandidate.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { communityId: 'community-1', isActive: true, dismissedAt: null },
+    }));
+  });
+
 });

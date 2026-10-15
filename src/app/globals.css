@@ -2213,6 +2213,24 @@
     vertical-align: middle;
   }
 
+  .admin-list-table.admin-candidate-table {
+    table-layout: fixed;
+    min-width: 50rem;
+  }
+
+  .admin-candidate-score-column { width: 7rem; }
+  .admin-candidate-sources-column { width: 4.5rem; }
+  .admin-candidate-actions-column { width: 17rem; }
+
+  .admin-list-preview summary {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .admin-list-preview[open] summary { white-space: normal; }
+
   .admin-list-cell p {
     margin: 0;
   }

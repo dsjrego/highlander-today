@@ -65,6 +65,8 @@ When a domain-specific plan exists, treat that plan as the product and workflow 
 
 ## UI And Design Rules
 
+- Owner clarification (2026-10-15): compact table controls may use persistent visually hidden labels when their visible selector text or column context already identifies the field. Keep accessible names. Omit status columns that merely repeat the control state, inert action text, and repeated per-row headings. Keep row controls and icon actions on one line; constrain preview text and reveal longer detail on demand.
+
 - Owner preference (2026-10-14): admin tools must be compact, polished, and consistent. Use data tables for collections and item-level icon actions with accessible names and hover/focus tooltips instead of verbose action links. Build reusable controls and styling in shared components/CSS wherever possible. Preserve concise text for navigation, field labels, and consequential save/confirm actions where it improves comprehension.
 
 - Reuse the shared structural vocabulary from [DESIGN-SYSTEM-ARCHITECTURE.md](./DESIGN-SYSTEM-ARCHITECTURE.md): `page-header`, `section-*`, `card-*`, and related semantic classes.

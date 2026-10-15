@@ -1422,6 +1422,7 @@ model ReporterStoryCandidate {
   civicSignalCount Int                      @default(0)
   latestSourceAt   DateTime
   isActive         Boolean                  @default(true)
+  dismissedAt      DateTime?
   lastMaterializedAt DateTime               @default(now())
   createdAt        DateTime                 @default(now())
   updatedAt        DateTime                 @updatedAt
