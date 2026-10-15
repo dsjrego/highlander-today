@@ -43,11 +43,15 @@ test.describe('simple reporter workflow', () => {
     await page.goto('/admin/reporter?section=candidates');
     const row = page.getByRole('row').filter({ hasText: 'Bridge closes Monday' });
     await row.getByLabel('Reporter', { exact: true }).selectOption(staffId);
-    await row.getByRole('button', { name: 'Assign story', exact: true }).click();
-    await expect(page.getByRole('tabpanel', { name: 'Assigned Stories', exact: true })).toBeVisible();
+    await expect(row.getByRole('link', { name: 'View assigned story' })).toBeVisible();
+    await expect(page).toHaveURL(/\/admin\/reporter\?section=candidates$/);
+    await expect(page.getByRole('tabpanel', { name: 'Candidates', exact: true })).toBeVisible();
     const run = await db.reporterRun.findFirstOrThrow({ where: { storyCandidates: { some: { id: candidate.id } } }, include: { sources: true } });
     expect(run.assignedToUserId).toBe(staffId);
     expect(run.sources[0].contentText).toBe(item.contentText);
+    await page.reload();
+    await expect(row.getByRole('link', { name: 'View assigned story' })).toHaveAttribute('href', `/admin/reporter/${run.id}`);
+    await page.getByRole('tab', { name: 'Assigned Stories', exact: true }).click();
     await expect(page.getByRole('tabpanel', { name: 'Assigned Stories', exact: true }).getByRole('tablist')).toHaveCount(0);
     await expect(page.getByText('1 source', { exact: true })).toBeVisible();
     // Only model inference is stubbed; persistence, navigation and publication are real.
@@ -81,6 +85,53 @@ test.describe('simple reporter workflow', () => {
     await expect(page.getByRole('tabpanel', { name: 'Editor Ready', exact: true }).getByText('Bridge repair starts Monday')).toHaveCount(0);
   });
 
+  test('candidate assignment autosaves, disables pending controls and retries a failed save in place', async ({ page, context }) => {
+    await session(context);
+    const candidate = await db.reporterStoryCandidate.create({ data: {
+      communityId, title: `Autosave candidate ${randomUUID()}`, signalLevel: 'POSSIBLE',
+      score: 5, latestSourceAt: new Date(),
+    } });
+    const endpoint = `**/api/admin/reporter/story-candidates/${candidate.id}/assign`;
+    let finishFailure!: () => void;
+    const pendingFailure = new Promise<void>((resolve) => { finishFailure = resolve; });
+    let requests = 0;
+    await page.route(endpoint, async (route) => {
+      requests += 1;
+      expect(route.request().postDataJSON()).toEqual({ assignedToUserId: staffId });
+      await pendingFailure;
+      await route.fulfill({ status: 500, json: { error: 'Assignment unavailable. Please try again.' } });
+    });
+    await page.goto('/admin/reporter?section=candidates');
+    const panel = page.getByRole('tabpanel', { name: 'Candidates', exact: true });
+    const row = panel.getByRole('row').filter({ hasText: candidate.title });
+    const reporter = row.getByLabel('Reporter', { exact: true });
+    expect(requests).toBe(0);
+    await reporter.selectOption(staffId);
+    await expect(reporter).toBeDisabled();
+    await expect(row.getByRole('button', { name: 'Dismiss candidate' })).toBeDisabled();
+    await expect(row.getByRole('status')).toHaveText('Saving…');
+    await expect.poll(() => requests).toBe(1);
+    finishFailure();
+    await expect(row.getByRole('alert')).toHaveText('Assignment unavailable. Please try again.');
+    await expect(reporter).toBeEnabled();
+    await expect(reporter).toHaveValue('');
+    expect((await db.reporterStoryCandidate.findUniqueOrThrow({ where: { id: candidate.id } })).linkedReporterRunId).toBeNull();
+    await expect(page).toHaveURL(/\/admin\/reporter\?section=candidates$/);
+    await page.unroute(endpoint);
+    await reporter.selectOption(staffId);
+    await expect(row.getByRole('link', { name: 'View assigned story' })).toBeVisible();
+    await expect(row.getByRole('status')).toHaveText('Story assigned.');
+    await expect(row.getByRole('alert')).toHaveCount(0);
+    await expect(panel).toBeVisible();
+    await expect(page).toHaveURL(/\/admin\/reporter\?section=candidates$/);
+    const run = await db.reporterRun.findFirstOrThrow({ where: { storyCandidates: { some: { id: candidate.id } } } });
+    expect(run.assignedToUserId).toBe(staffId);
+    expect(await db.reporterRun.count({ where: { communityId, topic: candidate.title } })).toBe(1);
+    await page.reload();
+    await expect(row.getByRole('link', { name: 'View assigned story' })).toHaveAttribute('href', `/admin/reporter/${run.id}`);
+    await expect(panel).toBeVisible();
+  });
+
   test('keeps candidate rows compact and dismisses leads durably without removing assigned stories', async ({ page, context }, testInfo) => {
     await session(context);
     const topic = `Candidate dismissal ${randomUUID()}`;
@@ -105,7 +156,7 @@ test.describe('simple reporter workflow', () => {
     await expect(panel.getByRole('columnheader', { name: 'Readiness' })).toHaveCount(0);
     await expect(row.getByLabel('Reporter', { exact: true })).toBeVisible();
     await expect(row.getByText('Reporter', { exact: true })).toHaveClass('sr-only');
-    await expect(row.getByRole('button', { name: 'Assign story', exact: true })).toBeDisabled();
+    await expect(row.getByRole('button', { name: 'Assign story', exact: true })).toHaveCount(0);
     expect((await row.boundingBox())!.height).toBeLessThanOrEqual(65);
     const accessibility = await new AxeBuilder({ page }).include('#reporter-panel-candidates').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
     expect(accessibility.violations).toEqual([]);

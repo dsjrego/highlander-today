@@ -1,5 +1,11 @@
 # Vercel Setup And Deployment Guide
 
+## Candidate assignment autosave release — 2026-10-15
+
+Owner authorized commit, push and deploy. Reporter selection saves immediately and keeps Candidates open; the extra assignment icon and automatic navigation are removed. Pending controls are disabled, screen-reader feedback announces saving/success, and errors reset selection for retry. Relative positioning contains the hidden status within the scrolling table. Existing assignment permissions/tenancy and human publication boundaries remain. No API, schema, dependency, environment or cron changes. Unrelated local edits/documentation relocation excluded.
+
+Broader primary-tree build/typecheck/lint/standards, 14 targeted units and three disposable-PostgreSQL/Chromium cases pass. Exact release clean npm ci --include=dev, lint, standalone typecheck and 375 unit tests (69 suites) pass. Runtime/full audit inventory remains the deployed baseline 11/45 findings; dependencies unchanged and remediation remains separate. Fresh test schema migrations apply; only three inherited morning-slate FK/index naming differences remain. Exact production build (Next15.5.26) and all three disposable-PostgreSQL/Chromium cases pass (15.9s), including autosave/pending/error/retry/reload, assignment/publication and compact desktop/mobile dismissal/Axe checks. Paid inference stubbed; no production writes. Push/deployment pending. Rollback: `7a75fb4` / `4qbfNi86AqYmw2bCtbe3QQXD6QKv`.
+
 ## Candidate dismissal release — 2026-10-15
 
 Owner authorized commit, push and deployment. Candidates now have compact inline assignment/view/dismiss icons, hidden accessible labels, no redundant readiness column, and expandable summary previews. Additive migration `20261015000000_reporter_candidate_dismissal` adds nullable `dismissedAt`; migration must precede application deployment. Tenant/edit permissions, retained sources/linked assignments, idempotent audit and refresh/assignment guards preserve the reporting boundaries. Admin guidelines adopt the density clarification. Unrelated local hardening, dependencies and documentation relocation are excluded.

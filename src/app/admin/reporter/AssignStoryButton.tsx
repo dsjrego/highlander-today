@@ -1,7 +1,7 @@
 'use client';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Eye, UserPlus, X } from 'lucide-react';
+import { Eye, X } from 'lucide-react';
 import {
   CrudActionButton,
   CrudActionLink,
@@ -24,10 +24,11 @@ export default function AssignStoryButton({
   const [busy, setBusy] = useState(false);
   const [refreshing, startRefresh] = useTransition();
   const [error, setError] = useState('');
+  const [assignedRunId, setAssignedRunId] = useState(linkedRunId);
   const router = useRouter();
   const disabled = busy || refreshing;
 
-  async function act(action: 'assign' | 'dismiss') {
+  async function act(action: 'assign' | 'dismiss', selectedReporterId?: string) {
     setBusy(true);
     setError('');
     try {
@@ -38,7 +39,7 @@ export default function AssignStoryButton({
           ...(action === 'assign'
             ? {
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ assignedToUserId: reporterId }),
+                body: JSON.stringify({ assignedToUserId: selectedReporterId }),
               }
             : {}),
         }
@@ -46,12 +47,12 @@ export default function AssignStoryButton({
       const data = await response.json();
       if (!response.ok)
         throw new Error(data.error || `Unable to ${action} candidate.`);
+      if (action === 'assign') setAssignedRunId(data.id);
       startRefresh(() => {
-        if (action === 'assign')
-          router.push('/admin/reporter?section=assigned');
         router.refresh();
       });
     } catch (failure) {
+      if (action === 'assign') setReporterId('');
       setError(
         failure instanceof Error
           ? failure.message
@@ -63,11 +64,11 @@ export default function AssignStoryButton({
   }
 
   return (
-    <div>
+    <div className="relative">
       <div className="admin-row-actions">
-        {linkedRunId ? (
+        {assignedRunId || linkedRunId ? (
           <CrudActionLink
-            href={`/admin/reporter/${linkedRunId}`}
+            href={`/admin/reporter/${assignedRunId || linkedRunId}`}
             icon={Eye}
             label="View assigned story"
           />
@@ -84,7 +85,11 @@ export default function AssignStoryButton({
               className="admin-list-cell-select"
               value={reporterId}
               disabled={disabled}
-              onChange={(event) => setReporterId(event.target.value)}
+              onChange={(event) => {
+                const selectedReporterId = event.target.value;
+                setReporterId(selectedReporterId);
+                if (selectedReporterId) void act('assign', selectedReporterId);
+              }}
             >
               <option value="">Choose reporter</option>
               {reporters.map((reporter) => (
@@ -93,14 +98,6 @@ export default function AssignStoryButton({
                 </option>
               ))}
             </select>
-            <CrudActionButton
-              type="button"
-              variant="inline"
-              icon={UserPlus}
-              label="Assign story"
-              disabled={!reporterId || disabled}
-              onClick={() => act('assign')}
-            />
           </>
         ) : null}
         {canDismiss ? (
@@ -115,6 +112,9 @@ export default function AssignStoryButton({
           />
         ) : null}
       </div>
+      <span role="status" className="sr-only">
+        {assignedRunId ? 'Story assigned.' : busy ? 'Saving…' : ''}
+      </span>
       {error ? (
         <p role="alert" className="admin-list-error">
           {error}

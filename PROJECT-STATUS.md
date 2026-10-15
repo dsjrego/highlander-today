@@ -1,5 +1,9 @@
 # Highlander Today — Project Status
 
+## Candidate assignment autosave release — 2026-10-15
+
+Owner authorized scoped commit/push/deploy. Selection saves and stays on Candidates; exact release install/lint/typecheck, 375 units/build and three browser cases pass; deployment pending. See [release evidence](VERCEL.md#candidate-assignment-autosave-release--2026-10-15).
+
 ## Candidate dismissal release — 2026-10-15
 
 Owner authorized scoped commit/push/deploy of compact candidate rows and durable dismissal. Exact-release lint/types,375 units,build/two browser cases pass; additive production migration/deployment pending; see [release evidence](VERCEL.md#candidate-dismissal-release--2026-10-15).

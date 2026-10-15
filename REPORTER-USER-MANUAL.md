@@ -1015,4 +1015,8 @@ Server requirements: existing `OPENAI_API_KEY`; optional `REPORTER_IMAGE_MODEL` 
 
 ## Candidate controls — 2026-10-15
 
-The Candidates tab uses inline assignment/view/dismiss icons. Choose a reporter and use Assign story; expand summaries for full text. Dismiss candidate removes a lead from active queues and survives refresh while preserving sources and linked assigned stories. Editors and contributors with Reporter edit permission can dismiss candidates.
+The Candidates tab uses inline assignment/view/dismiss icons. Choose a reporter to save automatically and stay on Candidates; expand summaries for full text. Dismiss candidate removes a lead from active queues and survives refresh while preserving sources and linked assigned stories. Editors and contributors with Reporter edit permission can dismiss candidates.
+
+## Candidate assignment autosave — 2026-10-15
+
+Choose a reporter in Candidates to save immediately. The Candidates tab remains open and the row offers View assigned story. Controls are disabled while saving. If a save fails, an error appears and the dropdown resets; choose the same reporter to retry.
