@@ -46,7 +46,7 @@ test.describe('Reporter hero images', () => {
   test('reviews, regenerates and selects an editorial hero image before saving it', async ({ page, context }, testInfo) => {
     await session(context);
     const run = await drafted();
-    const caption = 'AI-generated editorial illustration; not a photograph of a reported event.';
+    const caption = 'AI-generated photorealistic image; not a photograph of a reported event.';
     const imageBytes = await sharp({ create: { width: 1536, height: 1024, channels: 3, background: '#d9e5e0' } }).png().toBuffer();
     await page.route('**/uploads/article/hero-*.webp', (route) => route.fulfill({ contentType: 'image/png', body: imageBytes }));
     let attempts = 0;
@@ -75,9 +75,9 @@ test.describe('Reporter hero images', () => {
     expect((await db.reporterRun.findUniqueOrThrow({ where: { id: run.id } })).linkedArticleId).toBeNull();
     await page.getByRole('button', { name: 'Regenerate hero image', exact: true }).click();
     await expect(page.getByRole('alert').filter({ hasText: 'image provider is unavailable' })).toBeVisible();
-    await expect(page.getByRole('img', { name: 'Generated conceptual editorial illustration for review' })).toHaveAttribute('src', '/uploads/article/hero-1.webp');
+    await expect(page.getByRole('img', { name: 'AI-generated photorealistic image for review' })).toHaveAttribute('src', '/uploads/article/hero-1.webp');
     await page.getByRole('button', { name: 'Regenerate hero image', exact: true }).click();
-    await expect(page.getByRole('img', { name: 'Generated conceptual editorial illustration for review' })).toHaveAttribute('src', '/uploads/article/hero-3.webp');
+    await expect(page.getByRole('img', { name: 'AI-generated photorealistic image for review' })).toHaveAttribute('src', '/uploads/article/hero-3.webp');
     for (const width of [1280, 390]) {
       await page.setViewportSize({ width, height: 900 });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -96,7 +96,7 @@ test.describe('Reporter hero images', () => {
     await expect(page.getByRole('button', { name: 'Use this image', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Discard generated image', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Generate hero image', exact: true })).toBeFocused();
-    await expect(page.getByRole('img', { name: 'Generated conceptual editorial illustration for review' })).toHaveCount(0);
+    await expect(page.getByRole('img', { name: 'AI-generated photorealistic image for review' })).toHaveCount(0);
     await expect(page.getByLabel('Caption / photo credit (optional)')).toHaveValue(caption);
     await page.getByLabel('Category (required to publish)').selectOption(categoryId);
     await page.getByRole('button', { name: 'Publish', exact: true }).click();

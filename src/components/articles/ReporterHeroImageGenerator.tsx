@@ -53,21 +53,21 @@ export default function ReporterHeroImageGenerator({
   return (
     <section aria-label="Generate editorial hero image" className="space-y-3">
       <p className="text-sm text-[var(--text-muted)]">
-        Create a conceptual illustration from the current headline and story. It uses symbols and themes without recreating reported people, places or events.
+        Create a photorealistic AI image from the current headline and story. It depicts representative subjects without recreating reported people, places or events.
       </p>
       <button ref={generateButton} type="button" className="btn btn-secondary" disabled={disabled || generating} onClick={generate}>
         {generating ? 'Generating hero image…' : candidate ? 'Regenerate hero image' : 'Generate hero image'}
       </button>
-      {generating ? <p role="status">Creating your illustration. This may take a couple of minutes…</p> : null}
+      {generating ? <p role="status">Creating your photorealistic image. This may take a couple of minutes…</p> : null}
       {error ? <p role="alert" className="admin-list-error">{error}</p> : null}
       {candidate ? (
         <div className="space-y-3">
           <figure className="max-w-2xl overflow-hidden rounded-lg border border-[var(--border)]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={candidate.url} alt="Generated conceptual editorial illustration for review" className="h-auto w-full" />
+            <img src={candidate.url} alt="AI-generated photorealistic image for review" className="h-auto w-full" />
             <figcaption className="p-3 text-sm text-[var(--text-muted)]">{candidate.caption}</figcaption>
           </figure>
-          <p role="status">Review the illustration for relevance and misleading details before choosing it.</p>
+          <p role="status">Review the image for relevance and misleading details before choosing it.</p>
           <div className="flex flex-wrap justify-end gap-3">
             <button type="button" className="btn btn-ghost" disabled={disabled || generating} onClick={() => { setCandidate(null); setError(''); generateButton.current?.focus(); }}>
               Discard generated image
