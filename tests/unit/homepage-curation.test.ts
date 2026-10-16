@@ -1,4 +1,4 @@
-import { replaceHomepageHeroItem } from '@/lib/homepage-curation';
+import { removeHomepageHeroItem, replaceHomepageHeroItem } from '@/lib/homepage-curation';
 import type { HomepageBoxData, HomepageContentItem } from '@/lib/homepage';
 
 function article(contentId: string): HomepageContentItem {
@@ -27,6 +27,37 @@ function articleBox(overrides: Partial<HomepageBoxData> = {}): HomepageBoxData {
     ...overrides,
   };
 }
+
+describe('homepage hero removal', () => {
+  it('removes only the hero, promotes the first link and preserves the remaining order without mutation', () => {
+    const box = articleBox();
+    const updated = removeHomepageHeroItem(box);
+
+    expect(updated.heroItem).toEqual(firstLink);
+    expect(updated.linkItems).toEqual([secondLink]);
+    expect(box.heroItem).toEqual(previousHero);
+    expect(box.linkItems).toEqual([firstLink, secondLink]);
+  });
+
+  it('preserves a sole supporting item as the next hero', () => {
+    const updated = removeHomepageHeroItem(articleBox({ linkItems: [firstLink] }));
+
+    expect(updated.heroItem).toEqual(firstLink);
+    expect(updated.linkItems).toEqual([]);
+  });
+
+  it('clears the hero when no supporting items remain', () => {
+    const updated = removeHomepageHeroItem(articleBox({ linkItems: [] }));
+
+    expect(updated.heroItem).toBeNull();
+    expect(updated.linkItems).toEqual([]);
+  });
+
+  it('leaves an already empty hero alone', () => {
+    const box = articleBox({ heroItem: null, linkItems: [] });
+    expect(removeHomepageHeroItem(box)).toBe(box);
+  });
+});
 
 describe('homepage article hero replacement', () => {
   it('puts the previous hero first and preserves the remaining link order without mutating the box', () => {

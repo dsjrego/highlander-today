@@ -5,7 +5,7 @@ import { db } from '../../src/lib/db';
 import { ensureDefaultSiteSettings } from '../../src/lib/community';
 import { ensureHomepageBoxes } from '../../src/lib/homepage';
 
-test('replaced article heroes lead supporting links after save and reload, including a full list', async ({ page, context }, testInfo) => {
+test('hero replacement and removal preserve other articles through save and reload, including a full list', async ({ page, context }, testInfo) => {
   let communityId: string | undefined;
   let editorId: string | undefined;
   try {
@@ -55,6 +55,21 @@ test('replaced article heroes lead supporting links after save and reload, inclu
       await page.reload();
       await expect(supporting.locator('p.font-semibold')).toHaveText(expectedLinks.map((article) => article.title));
       await page.screenshot({ path: testInfo.outputPath(`homepage-${linkCount}-links.png`), fullPage: true });
+
+      const hero = section.locator('div').filter({ has: page.getByRole('heading', { name: 'Hero Item', exact: true }) }).filter({ has: page.locator('p.font-semibold') }).last();
+      await hero.getByRole('button', { name: 'Remove', exact: true }).click();
+      await expect(hero.locator('p.font-semibold')).toHaveText(expectedLinks[0].title);
+      await expect(supporting.locator('p.font-semibold')).toHaveText(expectedLinks.slice(1).map((article) => article.title));
+      expect((await db.homepageBoxItem.findFirstOrThrow({ where: { homepageBoxId: articleBox.id, role: 'HERO' } })).contentId).toBe(articles[6].id);
+      await page.getByRole('button', { name: 'Save Curation', exact: true }).first().click();
+      await expect(page.getByText('Homepage curation saved.', { exact: true })).toBeVisible();
+      const afterRemoval = await db.homepageBoxItem.findMany({ where: { homepageBoxId: articleBox.id }, orderBy: { sortOrder: 'asc' } });
+      expect(afterRemoval.map((item) => item.contentId)).toEqual(expectedLinks.map((article) => article.id));
+      expect(afterRemoval[0].role).toBe('HERO');
+      expect(afterRemoval.slice(1).every((item) => item.role === 'LINK')).toBe(true);
+      await page.reload();
+      await expect(hero.locator('p.font-semibold')).toHaveText(expectedLinks[0].title);
+      await expect(supporting.locator('p.font-semibold')).toHaveText(expectedLinks.slice(1).map((article) => article.title));
     }
   } finally {
     if (communityId) await db.community.deleteMany({ where: { id: communityId } });

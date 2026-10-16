@@ -1,5 +1,9 @@
 # Highlander Today — Project Status
 
+## Homepage hero Remove correction — 2026-10-16
+
+Remove now removes only the selected hero, promotes the first supporting item and preserves the remaining order. Save Curation stays explicit. Correction to the previously authorized homepage release; exact lint/types, 404 units/build and PostgreSQL/Chromium regression pass. Deployment pending. See [release evidence](VERCEL.md#homepage-hero-remove-correction--2026-10-16).
+
 ## News-section release — 2026-10-16
 
 Owner authorized commit, push and production deployment. Top-level Article navigation items render automatic news sections: newest published section article as hero, recent headlines, optional subsection filters and pagination, without curation. Direct/descendant assignments are tenant-scoped; trust/archival/publication boundaries retained. National is already configured as an active top-level Article section (production read-only check); no category/schema/environment/dependency changes required. Sports and Medicine can use the same Article model. Existing dedicated routes retained. Exact Node22.23.2 release: clean npm ci, lint/typecheck, 400 unit tests/71 suites, Next15.5.26 production build and both isolated PostgreSQL/Chromium cases pass (9.5s), including main-content Axe, keyboard/mobile navigation, tenant isolation and Local Life compatibility. Fresh migrations pass; only the three inherited Reporter morning-slate naming differences remain. Audits retain deployed baseline 11 runtime/45 full findings. Unrelated worktree hardening/documentation relocation/dependency changes excluded. Deployment evidence is recorded separately after push; rollback reference 21bccfb.

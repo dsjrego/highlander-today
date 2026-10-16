@@ -5,7 +5,7 @@ import { LayoutTemplate, MoveVertical, PanelsTopLeft, Search } from 'lucide-reac
 import { AdminChip } from '@/components/admin/AdminChip';
 import { AdminPage } from '@/components/admin/AdminPage';
 import type { HomepageBoxData, HomepageBoxType, HomepageContentItem } from '@/lib/homepage';
-import { replaceHomepageHeroItem } from '@/lib/homepage-curation';
+import { removeHomepageHeroItem, replaceHomepageHeroItem } from '@/lib/homepage-curation';
 
 type HomepageBox = HomepageBoxData;
 type HomepageItem = HomepageContentItem;
@@ -188,11 +188,7 @@ export default function HomepageCurationPage() {
   };
 
   const removeHeroItem = (boxType: HomepageBoxType) => {
-    updateBox(boxType, (box) => ({
-      ...box,
-      heroItem: null,
-      linkItems: [],
-    }));
+    updateBox(boxType, removeHomepageHeroItem);
   };
 
   const addLinkItem = (boxType: HomepageBoxType, item: HomepageItem) => {

@@ -4,6 +4,18 @@ function isSameItem(left: HomepageContentItem, right: HomepageContentItem) {
   return left.contentType === right.contentType && left.contentId === right.contentId;
 }
 
+export function removeHomepageHeroItem(box: HomepageBoxData): HomepageBoxData {
+  if (!box.heroItem) {
+    return box;
+  }
+
+  return {
+    ...box,
+    heroItem: box.linkItems[0] ?? null,
+    linkItems: box.linkItems.slice(1),
+  };
+}
+
 export function replaceHomepageHeroItem(
   box: HomepageBoxData,
   item: HomepageContentItem
