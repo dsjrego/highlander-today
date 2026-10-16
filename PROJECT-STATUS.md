@@ -1,5 +1,9 @@
 # Highlander Today — Project Status
 
+## Homepage hero replacement — 2026-10-16
+
+Owner authorized commit/push/deploy. Replacing an article hero moves the old hero to the top of supporting links, keeps remaining order and trims the last link at capacity. Save Curation remains explicit. Exact-release install/lint/typecheck, 383 units/build and PostgreSQL/Chromium save/reload regression pass; deployment pending. See [release evidence](VERCEL.md#homepage-hero-replacement-release--2026-10-16).
+
 ## Candidate assignment autosave release — 2026-10-15
 
 Owner authorized scoped commit/push/deploy. Selection saves and stays on Candidates; exact release install/lint/typecheck, 375 units/build and three browser cases pass; deployment pending. See [release evidence](VERCEL.md#candidate-assignment-autosave-release--2026-10-15).
