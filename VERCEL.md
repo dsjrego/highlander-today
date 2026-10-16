@@ -1,5 +1,10 @@
 # Vercel Setup And Deployment Guide
 
+## News-section release — 2026-10-16
+
+Owner authorized commit, push and production deployment. Top-level Article navigation items render automatic news sections: newest published section article as hero, recent headlines, optional subsection filters and pagination, without curation. Direct/descendant assignments are tenant-scoped; trust/archival/publication boundaries retained. National is already configured as an active top-level Article section (production read-only check); no category/schema/environment/dependency changes required. Sports and Medicine can use the same Article model. Existing dedicated routes retained. Exact Node22.23.2 release: clean npm ci, lint/typecheck, 400 unit tests/71 suites, Next15.5.26 production build and both isolated PostgreSQL/Chromium cases pass (9.5s), including main-content Axe, keyboard/mobile navigation, tenant isolation and Local Life compatibility. Fresh migrations pass; only the three inherited Reporter morning-slate naming differences remain. Audits retain deployed baseline 11 runtime/45 full findings. Unrelated worktree hardening/documentation relocation/dependency changes excluded. Deployment evidence is recorded separately after push; rollback reference 21bccfb.
+
+
 ## Candidate assignment autosave release — 2026-10-15
 
 Owner authorized commit, push and deploy. Reporter selection saves immediately and keeps Candidates open; the extra assignment icon and automatic navigation are removed. Pending controls are disabled, screen-reader feedback announces saving/success, and errors reset selection for retry. Relative positioning contains the hidden status within the scrolling table. Existing assignment permissions/tenancy and human publication boundaries remain. No API, schema, dependency, environment or cron changes. Unrelated local edits/documentation relocation excluded.

@@ -176,7 +176,9 @@ function CategoryEditorRow({
         </select>
       </td>
       <td className="admin-list-cell">
+        <label htmlFor={`category-model-${category.id}`} className="sr-only">Content type for {category.name}</label>
         <select
+          id={`category-model-${category.id}`}
           value={draft.contentModel ?? ''}
           onChange={(event) =>
             updateDraft(category.id, {
@@ -613,7 +615,7 @@ export default function CategoryManagerPage() {
             <div>
               <h2 className="admin-section-card-title">Site Navigation</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Manage the top-level navbar structure, submenu nesting, model assignments, and trust gating.
+                Manage navigation, submenu nesting, content types, and trust gating. Top-level Article sections show the newest published story as the lead, followed by recent headlines.
               </p>
             </div>
           </div>
@@ -781,8 +783,9 @@ export default function CategoryManagerPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="mb-2 block text-sm font-semibold text-slate-700">Model type</label>
+                        <label htmlFor="new-category-model" className="mb-2 block text-sm font-semibold text-slate-700">Model type</label>
                         <select
+                          id="new-category-model"
                           value={newCategory.contentModel}
                           onChange={(event) =>
                             setNewCategory((current) => ({
@@ -800,7 +803,7 @@ export default function CategoryManagerPage() {
                           ))}
                         </select>
                         <p className="mt-2 text-xs leading-5 text-slate-500">
-                          Required for subcategories. Top-level sections can stay unset.
+                          Choose Article for a news section with an automatic latest-story lead. Required for subcategories; mixed top-level sections can stay unset.
                         </p>
                       </div>
                       <div>

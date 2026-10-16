@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 import React, { useId, useMemo, useRef, useState } from 'react';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { useDialogAccessibility } from '@/components/shared/useDialogAccessibility';
@@ -448,11 +450,11 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
 
 function Linkish() {
   return (
-    <a
+    <Link
       href="/guidelines"
       className="text-[var(--brand-primary)] underline underline-offset-2 transition hover:text-[var(--brand-accent)]"
     >
       Community guidelines
-    </a>
+    </Link>
   );
 }

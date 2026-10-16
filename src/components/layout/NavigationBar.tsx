@@ -24,6 +24,7 @@ type CategoryNavRecord = {
   name: string;
   slug: string;
   minTrustLevel: 'ANONYMOUS' | 'REGISTERED' | 'TRUSTED' | 'SUSPENDED';
+  contentModel?: string | null;
   parentCategoryId: string | null;
   sortOrder: number;
 };
@@ -247,11 +248,18 @@ export default function NavigationBar() {
         label: topLevelCategory.name,
         href: getCategoryHref(topLevelCategory.slug),
         slug: topLevelCategory.slug,
-        subcategories: children.map((child) => ({
-          label: child.name,
-          slug: child.slug,
-          href: getCategoryHref(child.slug, topLevelCategory.slug),
-        })),
+        subcategories: [
+          ...(topLevelCategory.contentModel === 'ARTICLE' && children.length > 0 ? [{
+            label: `All ${topLevelCategory.name}`,
+            slug: topLevelCategory.slug,
+            href: getCategoryHref(topLevelCategory.slug),
+          }] : []),
+          ...children.map((child) => ({
+            label: child.name,
+            slug: child.slug,
+            href: getCategoryHref(child.slug, topLevelCategory.slug),
+          })),
+        ],
       } satisfies NavSection;
     });
   }, [categories, session?.user?.role, session?.user?.trust_level]);
