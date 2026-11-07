@@ -404,9 +404,12 @@ export default function ReporterRunsClient({
                 filteredRuns.map((run) => (
                   <tr key={run.id} className="admin-list-row">
                     <td className="admin-list-cell">
-                      <span className="font-medium">
+                      <Link
+                        href={`/admin/reporter/${run.id}?view=details`}
+                        className="font-medium underline underline-offset-2"
+                      >
                         {run.title || run.topic}
-                      </span>
+                      </Link>
                       <div className="text-xs text-slate-500">
                         {run.subjectName || 'Reporting assignment'}
                       </div>
@@ -500,6 +503,15 @@ export default function ReporterRunsClient({
                     </td>
                     <td className="admin-list-cell">
                       <div className="admin-row-actions">
+                        {run.status !== 'ARCHIVED' ? (
+                          <CrudActionLink
+                            href={`/admin/reporter/${run.id}?view=details`}
+                            icon={Eye}
+                            label="Open story"
+                          >
+                            Open story
+                          </CrudActionLink>
+                        ) : null}
                         {run.status === 'ARCHIVED' ? (
                           <CrudActionLink href={`/admin/reporter/${run.id}?view=details`} icon={Eye} label="View story">
                             View story
